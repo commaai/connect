@@ -35,7 +35,6 @@
 
   const SPEEDUPS = [1, 2, 4, 5, 10];
 
-  // icons/index.jsx
   const CLOSE_BOLD = 'm249-183-66-66 231-231-231-231 66-66 231 231 231-231 66 66-231 231 231 231-66 66-231-231-231 231Z';
   const DOWNLOAD = 'M480-313 287-506l43-43 120 120v-371h60v371l120-120 43 43-193 193ZM220-160q-24 0-42-18t-18-42v-143h60v143h520v-143h60v143q0 24-18 42t-42 18H220Z';
   const PLAY_ARROW = 'M320-203v-560l440 280-440 280Z';
@@ -163,7 +162,6 @@
       if (open && clips.some((clip) => ACTIVE_STATUSES.has(clip.status))) {
         poll = setTimeout(() => loadClips(false), POLL_INTERVAL);
       }
-      // React deferred this to a setState callback, so it ran after the poll was armed.
       const autoClip = clips.find((clip) => clip.filename === autoDownloadFilename && clip.status === 'ready');
       if (open && autoClip) {
         autoDownloadFilename = null;
@@ -297,8 +295,6 @@
   let prevDongleId = undefined;
   let prevOnline = false;
 
-  // componentDidMount + componentDidUpdate: the first run sees the mount defaults,
-  // which reduces to React's `if (open) loadClips()`.
   $effect(() => {
     const nextOpen = open;
     const nextRouteName = route?.fullname;
@@ -345,8 +341,6 @@
     if (!deleteDialogOpen) deletingClip = null;
   });
 
-  // MUI's Modal portals to document.body, so the menu never inherits from the
-  // toolbar it is written beside.
   function portal(node) {
     document.body.appendChild(node);
     return {
@@ -438,8 +432,6 @@
   });
 
   function onEscape() {
-    // MUI's Modal stack routes Escape to the top modal only, so a delete in
-    // flight swallows it rather than letting it close the menu underneath.
     if (deleteDialogOpen) {
       if (!deleting) deleteDialogOpen = false;
     } else if (viewingClip) closeViewer();
@@ -450,12 +442,10 @@
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') onEscape(); }} />
 
 {#snippet icon(path, viewBox, size)}
-  <!-- MUI SvgIcon -->
   <svg {viewBox} class="icon" style="font-size: {size}px" aria-hidden="true"><path d={path} /></svg>
 {/snippet}
 
 {#snippet circularProgress(size)}
-  <!-- MUI CircularProgress size={size}, color primary -->
   <div class="progress" role="progressbar" style="width: {size}px; height: {size}px">
     <svg viewBox="22 22 44 44">
       <circle class="progressCircle" cx="44" cy="44" r="20.2" fill="none" stroke-width="3.6" />
@@ -522,14 +512,12 @@
       </div>
     </div>
     {#if clip.status === 'encoding'}
-      <!-- MUI LinearProgress, indeterminate -->
       <div class="linear encodingProgress" role="progressbar">
         <div class="linearBar linearBar1Indeterminate"></div>
         <div class="linearBar linearBar2Indeterminate"></div>
       </div>
     {/if}
     {#if previewing}
-      <!-- MUI LinearProgress, determinate -->
       <div class="linear transferProgress" role="progressbar" aria-valuenow={Math.round(previewProgress * 100)}>
         <div class="linearBar linearBar1Determinate" style="transform: scaleX({previewProgress})"></div>
       </div>
@@ -539,9 +527,7 @@
 {/snippet}
 
 {#if open}
-  <!-- MUI Modal -->
   <div use:portal class="modalRoot">
-    <!-- MUI Backdrop, invisible -->
     <div
       class="backdrop"
       role="presentation"
@@ -618,7 +604,6 @@
             </div>
             <div class="field">
               <p class="label">FILENAME</p>
-              <!-- preflight's `font: inherit` carries a line-height; React inherited 1.5 here -->
               <input
                 class="input"
                 style="line-height: 1.5"
@@ -653,7 +638,6 @@
               </span>
             </button>
           </div>
-          <!-- MUI Divider -->
           <hr class="divider" />
         {/if}
         <div class="clipsSection" tabindex="-1">
@@ -681,7 +665,6 @@
 {/if}
 
 {#if viewingClip}
-  <!-- MUI Dialog, maxWidth="md" -->
   <div use:portal class="modalRoot scrollPaper" role="dialog" aria-modal="true" aria-label="Clip">
     <div
       class="backdrop backdropVisible"
@@ -722,7 +705,6 @@
 {/if}
 
 {#if deleteDialogOpen}
-  <!-- MUI Dialog, maxWidth="sm" -->
   <div use:portal class="modalRoot scrollPaper" role="dialog" aria-modal="true" aria-label="Delete clip?">
     <div
       class="backdrop backdropVisible"
@@ -754,21 +736,18 @@
 {/if}
 
 <style>
-  /* MuiModal root */
   .modalRoot {
     position: fixed;
     z-index: 1300;
     inset: 0;
   }
 
-  /* MuiDialog scrollPaper */
   .scrollPaper {
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  /* MuiBackdrop, invisible under the menu and painted under the dialogs */
   .backdrop {
     position: fixed;
     z-index: -1;
@@ -782,8 +761,6 @@
     background-color: rgba(0, 0, 0, 0.5);
   }
 
-  /* MuiPaper root/rounded/elevation8 + MuiPopover paper + MuiMenu paper + styles.paper.
-     ClipMenu's sheet is created last, so its overflow and max-width beat Popover's. */
   .menuPaper {
     position: absolute;
     display: flex;
@@ -801,8 +778,6 @@
       0px 8px 10px 1px rgba(0, 0, 0, 0.14),
       0px 3px 14px 2px rgba(0, 0, 0, 0.12);
     -webkit-overflow-scrolling: touch;
-    /* React inherits tailwind preflight's 1.5 through the whole menu; the body
-       shim would otherwise hand every strut in here 1.46429. */
     line-height: 1.5;
   }
 
@@ -821,7 +796,6 @@
     }
   }
 
-  /* MuiList root + padding, via MenuList */
   .menuList {
     position: relative;
     display: flex;
@@ -857,7 +831,6 @@
   }
 
 
-  /* MuiTypography body1 with styles.header on top */
   .header {
     display: block;
     margin: 0 0 4px;
@@ -912,7 +885,6 @@
     overflow: hidden;
   }
 
-  /* MuiButtonBase root + MuiButton root, with the theme's text-transform: none */
   .muiButton {
     position: relative;
     box-sizing: border-box;
@@ -962,7 +934,6 @@
     background-color: transparent;
   }
 
-  /* MuiButton's label span */
   .buttonLabel {
     width: 100%;
     display: inherit;
@@ -988,7 +959,6 @@
     border-right: none;
   }
 
-  /* MuiButton's `&$disabled` is two classes deep, so it outranks the colour above */
   .segmentedButton:disabled {
     color: rgba(255, 255, 255, 0.3);
   }
@@ -1077,7 +1047,6 @@
     color: rgba(255, 255, 255, 0.6);
   }
 
-  /* MuiDivider */
   .divider {
     height: 1px;
     margin: 0;
@@ -1158,7 +1127,6 @@
     margin: -4px -7px -4px 0;
   }
 
-  /* MuiIconButton */
   .iconButton {
     position: relative;
     display: inline-flex;
@@ -1233,7 +1201,6 @@
     color: rgba(255, 255, 255, 0.4);
   }
 
-  /* MuiSvgIcon */
   .icon {
     user-select: none;
     width: 1em;
@@ -1243,7 +1210,6 @@
     flex-shrink: 0;
   }
 
-  /* MuiCircularProgress, indeterminate */
   .progress {
     display: inline-block;
     line-height: 1;
@@ -1279,7 +1245,6 @@
     }
   }
 
-  /* MuiLinearProgress root, colorPrimary: lighten(palette.primary.light, 0.6) */
   .linear {
     position: relative;
     overflow: hidden;
@@ -1376,7 +1341,6 @@
     padding-top: 5px;
   }
 
-  /* MuiPaper root/rounded/elevation24 + MuiDialog paper/paperScrollPaper */
   .dialogPaper {
     display: flex;
     flex-direction: column;
@@ -1392,11 +1356,9 @@
       0px 11px 15px -7px rgba(0, 0, 0, 0.2),
       0px 24px 38px 3px rgba(0, 0, 0, 0.14),
       0px 9px 46px 8px rgba(0, 0, 0, 0.12);
-    /* as in the menu: React's dialogs inherit preflight's 1.5 */
     line-height: 1.5;
   }
 
-  /* MuiDialog paperWidthSm/paperWidthMd, both narrowed by the classes below */
   .paperWidthSm {
     max-width: 600px;
   }
@@ -1405,14 +1367,12 @@
     max-width: 960px;
   }
 
-  /* MuiDialogTitle */
   .dialogTitle {
     margin: 0;
     padding: 24px 24px 20px;
     flex: 0 0 auto;
   }
 
-  /* MuiTypography title */
   .title {
     display: block;
     margin: 0;
@@ -1422,7 +1382,6 @@
     line-height: 1.16667em;
   }
 
-  /* MuiDialogContent */
   .dialogContent {
     flex: 1 1 auto;
     overflow-y: auto;
@@ -1430,7 +1389,6 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* MuiDialogActions root, and the `action` class it clones onto every child */
   .dialogActions {
     display: flex;
     align-items: center;

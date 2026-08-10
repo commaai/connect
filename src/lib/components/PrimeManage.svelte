@@ -25,7 +25,6 @@
     }
     return 'Could not reach the billing service. Check your internet connection and try again.';
   }
-  /** MUI Modal focuses its child on enter, after the opening click settles. */
   function autofocusPanel(node) {
     const id = requestAnimationFrame(() => node.focus());
     return { destroy: () => cancelAnimationFrame(id) };
@@ -87,8 +86,6 @@
   const hasPrimeSub = $derived(Boolean(subscription && subscription.user_id));
   const alias = $derived(deviceNamePretty(device));
   const containerPadding = $derived(windowWidth > 520 ? 36 : 16);
-  // Kept inline, because React set it with a style prop that beat MUI's own
-  // width class.
   const buttonSmallStyle = $derived(windowWidth < 514 ? 'width: 100%' : '');
 
   const joinDate = $derived(
@@ -166,8 +163,6 @@
     }
   }
 
-  // componentDidMount + componentDidUpdate: a stripe_success query param starts
-  // polling the session until billing confirms the payment.
   $effect(() => {
     if (!stripeSuccess || stripeStarted) return;
     stripeStarted = true;
@@ -270,7 +265,6 @@
     planSwitchTarget = null;
   }
 
-  // MUI Modal's onClose, which the switch guards while the request is in flight.
   function closePlanSwitch() {
     if (!switchingPlan) resetPlanSwitch();
   }
@@ -280,8 +274,6 @@
     if (cancelModal) cancelModal = false;
   }
 
-  // MUI's Modal portals to document.body, so the panel never inherits from the
-  // prime container it is written inside.
   function portal(node) {
     document.body.appendChild(node);
     return {
@@ -299,7 +291,6 @@
 
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') onEscape(); }} />
 
-<!-- MUI CircularProgress, size={19}, color forced to white by React's style prop -->
 {#snippet progress()}
   <div class="progress" role="progressbar" style="width: 19px; height: 19px; color: #fff">
     <svg viewBox="22 22 44 44">
@@ -309,13 +300,10 @@
 {/snippet}
 
 {#if hasPrimeSub || stripeStatus}
-  <!-- React inherits tailwind preflight's 1.5 here; the body shim would be 1.46429 -->
   <div class="primeBox" style="line-height: 1.5">
     <div class="primeContainer" style="padding: 8px {containerPadding}px">
-      <!-- MUI IconButton -->
       <button type="button" aria-label="Go Back" class="iconButton" onclick={() => onback?.()}>
         <span class="label">
-          <!-- @material-ui/icons/KeyboardBackspace -->
           <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" aria-hidden="true">
             <path d="M21 11H6.83l3.58-3.59L9 6l-6 6 6 6 1.41-1.41L6.83 13H21z" />
           </svg>
@@ -357,7 +345,6 @@
       <div class="overviewBlock">
         <h3 class="typography subheading">Device</h3>
         <div class="manageItem">
-          <!-- MUI Typography variant="body2" renders an <aside> via headlineMapping -->
           <aside class="typography body2">{alias}</aside>
           <!-- variant="caption", but `.manageItem span` outranks it: 0.9em, white70 -->
           <span class="typography caption">{`(${device.dongle_id})`}</span>
@@ -433,7 +420,6 @@
         </div>
         {#if subscription.requires_migration}
           <div class="overviewBlockDisabled">
-            <!-- @material-ui/icons/PriorityHigh -->
             <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0" aria-hidden="true">
               <circle cx="12" cy="19" r="2" />
               <path d="M10 3h4v12h-4z" />
@@ -457,7 +443,6 @@
 
   {#if planSwitchModal}
     <div use:portal class="fixed inset-0 z-[1300]" role="dialog" aria-modal="true" aria-labelledby="prime-plan-switch-modal">
-      <!-- MUI Backdrop: z-index -1 inside the modal's stacking context -->
       <div
         class="fixed inset-0 z-[-1] bg-black/50"
         role="presentation"
@@ -590,17 +575,11 @@
 {/if}
 
 <style>
-  /**
-   * MUI's JSS sheets and this component's `styles`, as plain CSS in the order
-   * JSS injected them. Anything React set with a style prop stays inline, so it
-   * still outranks these the way it outranked MUI's classes.
-   */
 
-  /* MuiTypography */
   .typography {
-    /* MUI Typography's own margin reset. Left to preflight, which zeroes p and
-       h2/h3 at element specificity, so an mt-* utility on the same element still
-       wins — declaring the shorthand here would silently outrank it. */
+    /* Margin is left to preflight, which zeroes p and h2/h3 at element
+       specificity, so an mt-* utility on the same element still wins —
+       declaring the shorthand here would silently outrank it. */
     display: block;
   }
 
@@ -644,7 +623,6 @@
     color: rgba(255, 255, 255, 0.7);
   }
 
-  /* MuiPaper: elevation 2, rounded, background overridden by the theme */
   .paper {
     background-color: #30373b;
     border-radius: 4px;
@@ -654,7 +632,6 @@
       0px 3px 1px -2px rgba(0, 0, 0, 0.12);
   }
 
-  /* MuiButtonBase root + MuiButton root, with the theme's text-transform: none */
   .muiButton {
     position: relative;
     box-sizing: border-box;
@@ -704,7 +681,6 @@
     background-color: transparent;
   }
 
-  /* MuiButton variant="contained"; the theme's grey palette has no A100 hover */
   .contained {
     color: rgba(0, 0, 0, 0.87);
     background-color: #535f64;
@@ -727,7 +703,6 @@
     background-color: rgba(255, 255, 255, 0.12);
   }
 
-  /* MuiButton's label span */
   .label {
     width: 100%;
     display: inherit;
@@ -735,7 +710,6 @@
     justify-content: inherit;
   }
 
-  /* MuiIconButton */
   .iconButton {
     position: relative;
     display: inline-flex;
@@ -772,7 +746,6 @@
     display: flex;
   }
 
-  /* MuiCircularProgress, indeterminate */
   .progress {
     display: inline-block;
     line-height: 1;

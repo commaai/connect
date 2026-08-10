@@ -17,18 +17,17 @@
     subscription = data.subscription;
   });
 
-  // Prime/index.jsx reads the stripe redirect params off window.location and
-  // forwards them: PrimeManage keys its post-checkout verification off
-  // stripeSuccess, PrimeCheckout shows "Checkout cancelled" off stripeCancelled.
+  // The stripe redirect params come off window.location: PrimeManage keys its
+  // post-checkout verification off stripeSuccess, PrimeCheckout shows
+  // "Checkout cancelled" off stripeCancelled.
   const stripeSuccess = $derived(page.url.searchParams.get('stripe_success'));
   const stripeCancelled = $derived(page.url.searchParams.get('stripe_cancelled'));
   const manage = $derived(Boolean(data.device?.prime || stripeSuccess));
   const hasAccess = $derived(Boolean(data.device?.is_owner || data.profile?.superuser));
 
   /**
-   * fetchSubscription: billing may not have written the record yet, so React
-   * kept the old subscription rather than rendering a user_id-less one, and
-   * swallowed 404s during that window.
+   * Billing may not have written the record yet, so keep the old subscription
+   * rather than render a user_id-less one, and swallow 404s during that window.
    */
   async function subscriptionChanged(next) {
     if (next) {
@@ -49,7 +48,6 @@
 <div class="flex flex-col">
   {#if data.profile && data.device}
     {#if !hasAccess}
-      <!-- MUI Typography, default variant body1 -->
       <p class="text-[0.875rem] text-white" style="line-height: 1.46429em">No access</p>
     {:else if manage}
       <PrimeManage

@@ -32,8 +32,6 @@
   const windowWidth = $derived(innerWidth.current ?? 1280);
   const windowHeight = $derived(innerHeight.current ?? 800);
 
-  // componentDidMount dispatched primeFetchSubscription; fall back to fetching
-  // here when the parent does not supply it.
   const info = $derived(subscribeInfo ?? fetchedSubscribeInfo);
 
   $effect(() => {
@@ -49,7 +47,6 @@
       });
   });
 
-  // Prime/index.jsx routed an already-subscribed device to PrimeManage.
   $effect(() => {
     if (device?.prime) untrack(() => onactivated?.());
   });
@@ -172,11 +169,10 @@
   const linkHighlight = 'hover:text-[#178645]';
   const linkHighlightStyle = 'color: #1a974e; text-decoration: underline';
 
-  // MUI Typography variants. The global body shim only supplies body1's
-  // line-height, so every variant states its own size and line-height.
-  // The variants declare colour too: createTypography puts text.primary (#fff on
-  // the dark palette) on body1/body2, and a class beats inheritance — which is
-  // what keeps them full white inside a panel that sets a dimmer colour.
+  // The global body shim only supplies body1's line-height, so each of these
+  // states its own size and line-height. They declare colour too, because a
+  // class beats inheritance — which is what keeps them full white inside a
+  // panel that sets a dimmer colour.
   const body1 = 'margin: 0; font-size: 0.875rem; font-weight: 400; line-height: 1.46429em; color: #fff';
   const body2 = 'margin: 0; font-size: 0.875rem; font-weight: 500; line-height: 1.71429em; color: #fff';
 
@@ -220,7 +216,6 @@
 {/snippet}
 
 {#snippet circularProgress(size, color)}
-  <!-- MUI CircularProgress size={size} -->
   <div
     role="progressbar"
     class="progress"
@@ -232,15 +227,12 @@
   </div>
 {/snippet}
 
-<!-- styles.primeBox. line-height 1.5 reproduces React's inherited preflight value,
-     which the <br> strut inside the plan subtext and every bare <p> here depend on. -->
 <div
   class="flex max-w-[430px] flex-col text-white"
   style="margin: {windowWidth > 520 ? '18px 24px' : '6px 12px'}; line-height: 1.5"
 >
   <!-- styles.primeHeader -->
   <div class="flex max-w-[410px] flex-row items-center justify-between">
-    <!-- MUI IconButton -->
     <button
       type="button"
       aria-label="Go Back"
@@ -249,7 +241,6 @@
       onclick={goBack}
     >
       <span class="flex w-full items-center justify-center">
-        <!-- @material-ui/icons/KeyboardBackspace -->
         {@render svgIcon('M21 11H6.83l3.58-3.59L9 6l-6 6 6 6 1.41-1.41L6.83 13H21z', '0 0 24 24', 24, '')}
       </span>
     </button>
@@ -272,7 +263,6 @@
       {#snippet checkListItem(label)}
         <!-- styles.checkListItem -->
         <div class="mb-1 flex items-center" style="padding-left: {listPadding}px; padding-right: {listPadding}px">
-          <!-- @material-ui/icons/Check, sized 21 by styles.checkListItem -->
           {@render svgIcon('M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z', '0 0 24 24', 21, ' align-self: flex-start')}
           <p style="margin: 0 0 0 14px; font-size: 14px">{label}</p>
         </div>
@@ -379,7 +369,6 @@
   {/if}
 
   <div style="margin-top: {blockMargin}px">
-    <!-- MUI Button + styles.buttons -->
     <button
       type="button"
       class="gotoCheckout relative inline-flex w-full items-center justify-center align-middle select-none hover:bg-[rgba(255,255,255,0.7)]"

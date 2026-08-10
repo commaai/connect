@@ -1,13 +1,13 @@
 /**
- * Playback state machine, ported from the redux reducer in src/timeline/playback.js.
+ * Playback state machine.
  *
  * The offset is not ticked: it is derived from wall-clock time as
  * `offset + (Date.now() - startTime) * playSpeed`, so anything that changes the speed
  * has to commit the offset reached so far first.
  *
- * All of the arithmetic lives in plain functions that take an explicit state object,
- * mirroring how currentOffset() already accepted one. The rune class below is a thin
- * wrapper that snapshots its fields, applies a transition, and writes the result back.
+ * All of the arithmetic lives in plain functions that take an explicit state object.
+ * The rune class below is a thin wrapper that snapshots its fields, applies a
+ * transition, and writes the result back.
  */
 
 /**
@@ -50,7 +50,7 @@ export function currentOffset(state) {
 }
 
 /**
- * Invariants the reducer re-applied after every action: skip the head of a route that has
+ * Invariants re-applied after every transition: skip the head of a route that has
  * no video yet, and wrap the offset back into the loop. Mutates and returns `state`.
  *
  * @param {object} state
@@ -198,9 +198,8 @@ class Playback {
   }
 
   /**
-   * Re-apply the reducer invariants. The redux playback reducer ran after every
-   * dispatch, so assigning currentRoute/zoom/loop used to fix the loop up for
-   * videoStartOffset as a side effect; call this after assigning them instead.
+   * Re-apply the invariants. Assigning currentRoute/zoom/loop does not fix the
+   * loop up for videoStartOffset on its own; call this after assigning them.
    */
   refresh() {
     this.commit(normalize(this.state()));

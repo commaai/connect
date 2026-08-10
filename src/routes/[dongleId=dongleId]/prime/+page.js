@@ -3,10 +3,9 @@ import * as Sentry from '@sentry/browser';
 import { billing as Billing, devices as Devices } from '$lib/api';
 
 /**
- * actions/index.js primeFetchSubscription: billing is only read for a device the
- * account owns, or for any device when the profile is a superuser. A prime
- * device reads its subscription, a non-prime one reads subscribe_info. Either
- * request failing leaves the screen with null, the way the redux state did.
+ * Billing is only read for a device the account owns, or for any device when the
+ * profile is a superuser. A prime device reads its subscription, a non-prime one
+ * reads subscribe_info. Either request failing leaves the screen with null.
  */
 export async function load({ params, parent }) {
   const { dongleId } = params;

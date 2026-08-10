@@ -42,8 +42,8 @@ export async function load({ params, parent }) {
       return null;
     });
 
-  // Not awaited: React rendered teleop from whatever the device list already
-  // held and never blocked on athena here, so gating the first paint on a
-  // getNotCar round trip would leave the previous page up for seconds.
+  // Not awaited: teleop renders from whatever the device list already holds.
+  // Gating the first paint on a getNotCar round trip would leave the previous
+  // page up for seconds.
   return { dongleId, device, notCar: fetchDeviceNotCar(dongleId, device) };
 }

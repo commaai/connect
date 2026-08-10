@@ -12,8 +12,6 @@
   const visible = $derived(isPermanent || open);
 </script>
 
-<!-- Temporary drawers sit above the page behind a scrim; permanent ones are
-     part of the layout, which is what MUI's Drawer variants did. -->
 {#if !isPermanent && open}
   <div
     class="fixed inset-x-0 bottom-0 z-[1200] bg-black/50"

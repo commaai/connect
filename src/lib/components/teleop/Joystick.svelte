@@ -15,7 +15,6 @@
   let gamepadState = $state({ steering: 0, gas: 0, brake: 0, lb: false, rb: false });
   let joystickArea = $state(null);
 
-  // Refs in React: written from handlers and the rAF loop, never rendered.
   let keys = { w: false, a: false, s: false, d: false };
   let touchId = null;
   let mouseDragging = false;
@@ -164,8 +163,6 @@
     };
   });
 
-  // Gamepad polling. React kept `gamepadConnected` in a ref so the loop was not
-  // torn down on every change; a prop is already live here.
   function pollGamepad() {
     gamepadFrame = requestAnimationFrame(pollGamepad);
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];

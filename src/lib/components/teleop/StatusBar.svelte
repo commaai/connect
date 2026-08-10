@@ -46,8 +46,6 @@
     connectionState = 'none',
     battery = null,
     isLandscape = false,
-    // Plain `{ current }` box, like React's latencyCallbackRef: the page routes
-    // the connection's raw samples into whatever is installed here.
     latencyCallbackRef = null,
     class: className = '',
     onqualitychange,

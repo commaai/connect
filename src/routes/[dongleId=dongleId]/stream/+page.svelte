@@ -27,8 +27,6 @@
   let stream = $state(null);
   let containerEl = $state(null);
 
-  // Plain boxes, like the refs React passed down: StatusBar installs its own
-  // sampler, ControlsBar reads the element it screenshots. Neither is state.
   const latencyCallbackRef = { current: null };
   const videoRef = { current: null };
 
@@ -173,8 +171,6 @@
 </script>
 
 <div class="fixed top-0 left-0 w-screen h-full z-[1300] bg-[#030404]">
-  <!-- React inherited line-height 1.5 from preflight on html; the body shim
-       would shorten every line box in here by a pixel. -->
   <div role="main"
     bind:this={containerEl}
     class="absolute inset-0 bg-[#030404] flex flex-col touch-none

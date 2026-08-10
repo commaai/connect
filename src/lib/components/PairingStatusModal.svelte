@@ -12,8 +12,6 @@
 
   const open = $derived(Boolean(pairLoading || pairError || pairDongleId));
 
-  // explorer.jsx componentDidMount: App stashes a ?pair= token in localforage,
-  // and the dashboard redeems it on the way in.
   $effect(() => {
     let cancelled = false;
 
@@ -71,7 +69,6 @@
     if (paired) onpaired?.(paired);
   }
 
-  /** MUI Modal focuses its child on enter, after the opening click settles. */
   function autofocusPanel(node) {
     const id = requestAnimationFrame(() => node.focus());
     return { destroy: () => cancelAnimationFrame(id) };
@@ -82,17 +79,13 @@
 
 {#if open}
   <div class="fixed inset-0 z-[1300]" role="dialog" aria-modal="true">
-    <!-- MUI Backdrop -->
     <div class="fixed inset-0 bg-black/50" role="presentation" onclick={closePair} onkeydown={() => {}}></div>
 
     <div role="document" tabindex="-1" class="paper modal" use:autofocusPanel>
       <h2 class="typography title">Pairing device</h2>
-      <!-- MUI Divider -->
       <hr class="divider" />
 
       {#if pairLoading}
-        <!-- MUI CircularProgress size={32}, indeterminate. The gallery freezes
-             animation, so what paints is the pre-animation dash pattern. -->
         <div class="progress" role="progressbar">
           <svg viewBox="22 22 44 44">
             <circle class="progressCircle" cx="44" cy="44" r="20.2" fill="none" stroke-width="3.6" />
@@ -118,7 +111,6 @@
 {/if}
 
 <style>
-  /* explorer.jsx styles.modal, over MUI Paper (theme background, elevation 2) */
   .paper {
     background-color: #30373b;
     border-radius: 4px;
@@ -148,7 +140,6 @@
     margin: 0;
   }
 
-  /* MUI Typography variant="title" */
   .title {
     font-size: 1.3125rem;
     font-weight: 500;
@@ -167,7 +158,6 @@
     font-weight: bold;
   }
 
-  /* MUI Divider */
   .divider {
     height: 1px;
     margin: 0;
@@ -176,8 +166,6 @@
     background-color: rgba(255, 255, 255, 0.12);
   }
 
-  /* MUI CircularProgress, size 32, styles.fabProgress marginTop. No color prop
-     at the call site, so it is colorPrimary: palette.primary.main. */
   .progress {
     display: inline-block;
     width: 32px;
@@ -196,7 +184,6 @@
     stroke-dashoffset: 0px;
   }
 
-  /* MuiButtonBase + MuiButton root, contained, with styles.closeButton */
   .muiButton {
     position: relative;
     display: inline-flex;

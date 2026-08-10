@@ -18,7 +18,6 @@
     open = false,
     update = false,
     device,
-    // redux read this off `state.dongleId`, the device the app is looking at
     currentDongleId = null,
     onclose,
   } = $props();
@@ -45,7 +44,6 @@
   let prevDongleId;
   let prevUploading;
 
-  // componentDidUpdate, seeded by a componentDidMount that called it with no prevProps.
   $effect(() => {
     const nextUpdate = update;
     const nextDongleId = device?.dongle_id;
@@ -107,10 +105,8 @@
     return lockBodyScroll();
   });
 
-  // styles.modal, on a MUI Paper whose background the theme overrides to #30373B.
   const paperClass = 'absolute top-1/2 left-1/2 w-max max-w-[90%] rounded-[4px] bg-[#30373B] p-4 outline-none '
     + 'shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]';
-  // MUI Button root; theme.MuiButton overrides text-transform to none.
   const buttonBase = 'box-border inline-flex min-h-[36px] min-w-[64px] cursor-pointer items-center justify-center '
     + 'rounded-[4px] px-4 py-2 align-middle text-[0.875rem] leading-[1.4em] font-medium transition-colors';
   // variant="contained" carries theme.shadows[2]; styles.cancelButton repaints it grey200/grey400.
@@ -121,17 +117,12 @@
   // styles.uploadCell
   const cellClass = 'h-[25px]';
 
-  // @material-ui/icons
   const HIGHLIGHT_OFF_PATH = 'M14.59 8L12 10.59 9.41 8 8 9.41 10.59 12 8 14.59 9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8zM12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z';
   const WARNING_PATH = 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z';
 </script>
 
 <svelte:window onkeydown={(e) => { if (open && e.key === 'Escape') onclose?.(); }} />
 
-<!--
-  MUI CircularProgress, indeterminate. The rotate/dash animations are what the gallery
-  freezes, so the captured frame is this static geometry: r = (44 - thickness) / 2.
--->
 {#snippet circularProgress(size, rootStyle)}
   <div class="progress inline-block" role="progressbar" style="width: {size}px; height: {size}px; line-height: 1; {rootStyle}">
     <svg viewBox="22 22 44 44">
@@ -152,12 +143,9 @@
     <div role="document" class={paperClass} style="transform: translate(-50%, -50%); line-height: 1.5">
       <!-- styles.titleContainer -->
       <div class="mb-[5px] flex items-baseline justify-between">
-        <!-- MUI Typography variant="title" -->
         <h2 class="text-[1.3125rem] font-medium text-white" style="line-height: 1.16667em">Upload queue</h2>
-        <!-- MUI Typography variant="caption", palette.text.secondary -->
         <span class="ml-2 block text-[0.75rem] text-white/70" style="line-height: 1.375em">{device.dongle_id}</span>
       </div>
-      <!-- MUI Divider -->
       <hr class="m-0 h-px shrink-0 border-none bg-white/12" />
 
       <!-- styles.uploadContainer -->
@@ -200,7 +188,6 @@
                   <td class={cellClass} style={cellStyle}>{FILE_NAMES[type][0].split('.')[0].substring(0, logNameLength)}</td>
                   {#if upload.current}
                     <td class={cellClass} style={cellStyle}>
-                      <!-- styles.uploadProgress, wrapping a MUI LinearProgress variant="determinate" -->
                       <div class="flex items-center justify-center text-[0.8rem]">
                         <div
                           class="relative overflow-hidden"

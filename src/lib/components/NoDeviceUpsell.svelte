@@ -3,9 +3,6 @@
 
   let { onpaired } = $props();
 
-  // MUI Button root (0.875rem / 1.4em, min 36x64, 8px 16px padding, theme
-  // overrides text-transform to none) merged with AddDevice.jsx styles.addButton
-  // (full width, white background, 18px radius, Colors.grey900 text).
   const addButton = 'relative m-0 box-border inline-flex min-h-9 w-full min-w-16 cursor-pointer '
     + 'items-center justify-center rounded-[18px] border-0 bg-white px-4 py-2 align-middle '
     + 'text-[0.875rem] leading-[1.4em] font-medium normal-case text-[#1e2224] no-underline '
@@ -36,7 +33,6 @@
       may have used previously.
     </p>
     <div class="mt-2 w-full">
-      <!-- React rendered <AddDevice> here, so the pair modal lives with its trigger -->
       <AddDevice buttonText="add new device" buttonStyle={addButton} {onpaired} />
     </div>
   </div>

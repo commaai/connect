@@ -11,8 +11,6 @@
     error = null,
     connectionTotalMs = null,
     started = false,
-    // Plain `{ current }` box, like React's videoRef: the page attaches an
-    // incoming track to the element this component owns.
     videoRef = null,
     onconnect,
     onfirstframe,
@@ -152,7 +150,6 @@
     <div class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
       <div class="flex flex-col items-center gap-3 pointer-events-auto">
         {#if connecting}
-          <!-- MUI v1 CircularProgress, size 40, thickness 4 -->
           <div
             class="progress-root"
             style="width: 40px; height: 40px; color: rgba(255, 255, 255, 0.7)"
@@ -164,10 +161,6 @@
           </div>
           <span class="text-xs text-white/50">Connecting...</span>
         {:else if canRetry}
-          <!-- MUI v1 Button. Its label span is what keeps the icon and the text
-               unspaced: the root's gap only ever sees that one child. The rest
-               of the root's metrics are inline, the way MUI's class was — the
-               tailwind utilities here are !important and outrank both. -->
           <button
             type="button"
             onclick={onconnect}

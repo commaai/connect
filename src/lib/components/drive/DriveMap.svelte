@@ -21,8 +21,6 @@
   let mapEl = $state(null);
 
   let map = $state(null);
-  // React only assigned this.map from inside the load handler, so nothing
-  // reached for a source before the style had one.
   let mapLoaded = $state(false);
 
   let shouldFlyTo = false;
@@ -87,8 +85,6 @@
   }
 
   function moveViewportTo(pos) {
-    // react-map-gl transitioned with a LinearInterpolator over 200ms; easeTo
-    // with a linear easing is the same camera move.
     if (shouldFlyTo) {
       flyNext = true;
       shouldFlyTo = false;
@@ -146,7 +142,6 @@
       return;
     }
 
-    // react-map-gl's defaultOnError; DriveMap never passed one of its own.
     instance.on('error', (event) => console.error(event.error));
 
     instance.on('move', () => {
@@ -253,7 +248,6 @@
     });
   });
 
-  // componentDidUpdate: a new route drops the drawn path and fetches its coords.
   let prevRouteName = null;
   $effect(() => {
     const currentRoute = route;
@@ -282,8 +276,6 @@
     });
   });
 
-  // populateMap, from both of the places React called it: the load handler and
-  // the update that first sees driveCoords.
   $effect(() => {
     const coords = driveCoords;
     const loaded = mapLoaded;
@@ -338,7 +330,6 @@
 </script>
 
 <div bind:this={containerEl} {@attach keepTouch()} class="driveMap h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
-  <!-- react-map-gl's event canvas, map container and canvas host. -->
   <div style="position: relative; width: 100%; height: 100%; cursor: grab">
     <div bind:this={mapContainerEl} style="position: relative; width: 100%; height: 100%">
       <div bind:this={mapEl} style="position: absolute; width: 100%; height: 100%; overflow: hidden; visibility: inherit"></div>
@@ -353,10 +344,8 @@
 </div>
 
 <style>
-  /* react-map-gl created the map with interactive:false and ran interaction
-     itself on an ancestor of this div, so the overlay layer could sit on top
-     harmlessly. mapbox binds its handlers inside the map element, i.e.
-     underneath — so the layer has to be transparent to pointers. */
+  /* mapbox binds its handlers inside the map element, i.e. underneath this
+     overlay layer — so the layer has to be transparent to pointers. */
   .driveMap :global(.overlays) {
     pointer-events: none;
   }

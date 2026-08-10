@@ -50,7 +50,6 @@
   const publicSwitch = $state({ loading: false, checked: null, error: null, errorAnchor: null });
   const preserveSwitch = $state({ loading: false, checked: null, error: null, errorAnchor: null });
 
-  // redux mutated the device record as athena learned it was online or metered
   const dev = $derived(withDeviceStatus(device));
   const files = $derived(getFiles());
 
@@ -351,9 +350,9 @@
   }
 
   /**
-   * MUI's Popover measured the paper and clamped it to the viewport; anchoring the
-   * corner named by transformOrigin is enough for these menus. A number is a pixel
-   * offset from the anchor's left edge, as the more-info menu passes.
+   * Anchoring the corner named by transformOrigin is enough for these menus. A
+   * number is a pixel offset from the anchor's left edge, as the more-info menu
+   * passes.
    */
   function menuPosition(el, transformHorizontal) {
     if (!el) {
@@ -367,7 +366,6 @@
     return `top: ${top}px; left: ${Math.max(16, rect.left - transformHorizontal)}px`;
   }
 
-  /** MUI Popper, placement="bottom" */
   function popperPosition(el) {
     if (!el) {
       return 'display: none';
@@ -385,7 +383,6 @@
 
 <svelte:window onkeydown={(ev) => { if (ev.key === 'Escape') closeMenus(); }} />
 
-<!-- MUI CircularProgress, indeterminate, default thickness -->
 {#snippet progress(size)}
   <div class="progress" role="progressbar" style="width: {size}px; height: {size}px; color: #fff">
     <svg viewBox="22 22 44 44">
@@ -396,7 +393,6 @@
 
 {#snippet menu(position, onclose, body)}
   <div class="fixed inset-0 z-[1300]">
-    <!-- MUI Modal's invisible backdrop -->
     <div
       class="fixed inset-0"
       role="presentation"
@@ -524,7 +520,6 @@
 {/snippet}
 
 {#snippet warningIcon()}
-  <!-- @material-ui/icons/Warning -->
   <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" aria-hidden="true">
     <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
   </svg>
@@ -597,7 +592,6 @@
     onkeydown={(ev) => { if (ev.key === 'Enter') copySegmentName(); }}
   >
     <div>{segmentName}</div>
-    <!-- @material-ui/icons/ContentCopy -->
     <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" aria-hidden="true">
       <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
     </svg>
@@ -611,7 +605,6 @@
       onkeydown={(ev) => { if (ev.key === 'Enter') shareCurrentRoute(); }}
     >
       Share this route
-      <!-- @material-ui/icons/Share -->
       <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" aria-hidden="true">
         <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z" />
       </svg>
@@ -676,7 +669,6 @@
       {/if}
       <div class="mediaOptions">
         {#if clipsSupported}
-          <!-- MUI Tooltip cloned its child, so the option stayed a direct flex item -->
           <Tooltip
             title={online ? '' : 'Device offline'}
             placement="top"
@@ -785,14 +777,7 @@
 </div>
 
 <style>
-  /**
-   * MUI's JSS sheets and this component's `styles`, as plain CSS in the order JSS
-   * injected them: the component's sheet is created after the MUI ones, so its
-   * single-class rules win the ties (which is how `.filesItem` undoes the
-   * disabled dimming below).
-   */
 
-  /* MuiTypography root */
   .typography {
     display: block;
     margin: 0;
@@ -849,7 +834,6 @@
     border-right: none;
   }
 
-  /* styles.mediaOptionText, over MuiTypography body1 */
   .mediaOptionText {
     font-size: 12px;
     font-weight: 500;
@@ -858,7 +842,6 @@
     text-align: center;
   }
 
-  /* MuiPaper elevation 8 + MuiPopover paper + MuiMenu paper */
   .menuPaper {
     position: fixed;
     overflow-x: hidden;
@@ -876,7 +859,6 @@
       0px 3px 14px 2px rgba(0, 0, 0, 0.12);
   }
 
-  /* MuiList root + padding */
   .menuList {
     position: relative;
     padding: 8px 0;
@@ -885,7 +867,6 @@
     outline: none;
   }
 
-  /* MuiListItem root + gutters */
   .listItem {
     display: flex;
     justify-content: flex-start;
@@ -898,7 +879,6 @@
     text-decoration: none;
   }
 
-  /* MuiListItem root/button + MuiMenuItem root (typography.subheading) */
   .menuItem {
     display: flex;
     justify-content: flex-start;
@@ -927,14 +907,12 @@
     background-color: rgba(255, 255, 255, 0.1);
   }
 
-  /* MuiListItem disabled + ButtonBase disabled */
   .itemDisabled {
     opacity: 0.5;
     pointer-events: none;
     cursor: default;
   }
 
-  /* MuiDivider */
   .divider {
     height: 1px;
     margin: 0;
@@ -943,7 +921,6 @@
     background-color: rgba(255, 255, 255, 0.12);
   }
 
-  /* MuiButtonBase root + MuiButton root, with the theme's text-transform: none */
   .muiButton {
     position: relative;
     box-sizing: border-box;
@@ -984,7 +961,6 @@
     color: rgba(255, 255, 255, 0.3);
   }
 
-  /* MuiButton label */
   .label {
     width: 100%;
     display: inherit;
@@ -992,7 +968,6 @@
     justify-content: inherit;
   }
 
-  /* MuiCircularProgress, indeterminate */
   .progress {
     display: inline-block;
     line-height: 1;
@@ -1111,7 +1086,6 @@
     justify-content: space-between;
   }
 
-  /* styles.dcameraUploadInfo, on a MUI Popper */
   .dcameraUploadInfo {
     position: fixed;
     z-index: 2000;
@@ -1134,7 +1108,6 @@
     align-items: center;
   }
 
-  /* MuiFormControlLabel root */
   .formControlLabel {
     display: inline-flex;
     align-items: center;
@@ -1152,7 +1125,6 @@
     color: #fff;
   }
 
-  /* MuiSwitch root */
   .switch {
     display: inline-flex;
     width: 62px;
@@ -1161,7 +1133,6 @@
     vertical-align: middle;
   }
 
-  /* MuiSwitchBase root, an IconButton box */
   .switchBase {
     position: relative;
     z-index: 1;
@@ -1175,7 +1146,6 @@
     transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   }
 
-  /* MuiSwitch checked, colorSecondary */
   .switchChecked {
     transform: translateX(14px);
     color: #1da756;
@@ -1193,7 +1163,6 @@
     cursor: inherit;
   }
 
-  /* MuiSwitch icon */
   .switchIcon {
     width: 20px;
     height: 20px;
@@ -1215,7 +1184,6 @@
     animation: circular-rotate 1s linear infinite;
   }
 
-  /* MuiSwitch bar */
   .switchBar {
     border-radius: 7px;
     display: block;
@@ -1238,7 +1206,6 @@
     opacity: 0.5;
   }
 
-  /* MuiSwitch disabled, dark palette */
   .switchDisabled {
     color: #272c2f;
   }
@@ -1248,7 +1215,6 @@
     opacity: 0.1;
   }
 
-  /* MuiSwitch iconChecked, shadows[2] */
   .switchChecked .switchIcon {
     box-shadow:
       0px 1px 5px 0px rgba(0, 0, 0, 0.2),

@@ -102,9 +102,8 @@
       ontouchend={handleScreenshotTouch}
       title="Save screenshot"
     >
-      <!-- @material-ui/icons PhotoCamera at styles.icon's 25px rather than
-           SvgIcon's own 24px. Declared here, not as a utility to be resolved
-           against the inline size. -->
+      <!-- 25px, declared here rather than as a utility to be resolved against
+           the inline size. -->
       <svg
         class="inline-block shrink-0 select-none"
         viewBox="0 0 24 24"

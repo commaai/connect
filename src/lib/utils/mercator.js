@@ -1,5 +1,5 @@
 // Web Mercator viewport math, a dependency free port of the parts of
-// viewport-mercator-project (@math.gl/web-mercator) that connect used through react-map-gl.
+// viewport-mercator-project (@math.gl/web-mercator) that connect uses.
 //
 // World coordinates are pixels on the 512x512 zoom 0 tile, y increasing north.
 // Screen coordinates are pixels from the top left of the viewport.
@@ -148,8 +148,6 @@ export function fitBounds(options) {
 }
 
 /**
- * Drop in replacement for react-map-gl's WebMercatorViewport.
- *
  * Markers are placed by projecting in JavaScript, so they render even when the map itself failed
  * to load.
  */

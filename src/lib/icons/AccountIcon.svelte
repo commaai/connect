@@ -1,6 +1,4 @@
 <script>
-  // Matches @material-ui/core SvgIcon's box: 1em square at a 24px font-size,
-  // filled with currentColor.
   let { class: className = '' } = $props();
 </script>
 

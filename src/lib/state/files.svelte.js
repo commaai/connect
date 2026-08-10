@@ -21,12 +21,6 @@ const HIGH_PRIORITY = 0;
 let uploadQueueTimeout = null;
 let openRequests = 0;
 
-/**
- * The redux `files` / `filesUploading` / `filesUploadingMeta` slices.
- *
- * `files` is keyed by `${dongleId}|${logId}--${segment}/${type}`, so entries for
- * different devices cannot collide and the map is kept flat, as the reducer had it.
- */
 const filesState = $state({
   files: null,
   uploading: {},
@@ -34,9 +28,9 @@ const filesState = $state({
 });
 
 /**
- * Athena calls learn whether a device is online and metered as a side effect. Redux
- * merged that into the device records; the device list here comes from the layout
- * load, so keep the learned fields beside it and merge on read.
+ * Athena calls learn whether a device is online and metered as a side effect. The
+ * device list comes from the layout load, so keep the learned fields beside it
+ * and merge on read.
  */
 const deviceStatus = $state({});
 

@@ -230,8 +230,6 @@
       {#if device?.commacare}
         <CommacareBadge onclick={() => onprimenav?.(true)} />
       {/if}
-      <!-- MUI Typography variant="title" -->
-      <!-- MUI Typography variant="title": lineHeight 24.5/21, not the body1 default -->
       <p class="text-[1.3125rem] font-medium" style="line-height: 1.16667em">{truncateName(deviceNamePretty(device))}</p>
     </div>
 
@@ -247,7 +245,6 @@
               onclick={(event) => onclips?.(event.currentTarget)}
               disabled={!online}
             >
-              <!-- @material-ui/icons/ContentCut -->
               <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0 text-black" aria-hidden="true">
                 <path d="M9.64 7.64c.23-.5.36-1.05.36-1.64 0-2.21-1.79-4-4-4S2 3.79 2 6s1.79 4 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1L9.64 7.64zM6 8c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm0 12c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm6-7.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zM19 3l-6 6 2 2 7-7V3z" />
               </svg>
@@ -290,7 +287,6 @@
             disabled={Boolean(snapshot.fetching || !online)}
           >
             {#if snapshot.fetching}
-              <!-- MUI CircularProgress size={19}, color primary -->
               <div class="progress inline-block" role="progressbar" style="width: 19px; height: 19px; line-height: 1; color: #57a9e3">
                 <svg viewBox="22 22 44 44">
                   <circle class="progressCircle" cx="44" cy="44" r="20.2" fill="none" stroke-width="3.6" />
@@ -312,7 +308,6 @@
           <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:20px" class="mr-1 shrink-0" aria-hidden="true">
             <path d="M4,3V6H1V20H23V6H20V3H14V6H10V3H4M3,8H21V18H3V8M15,10V12H13V14H15V16H17V14H19V12H17V10H15M5,12V14H11V12H5Z" />
           </svg>
-          <!-- 1.4em, not the global 1.46429: styles.carBattery overrode MUI's default -->
           <p class="w-[45px] text-[14px] font-medium" style="line-height: 1.4em">{batteryText}</p>
         {:else}
           <Tooltip title={pingTooltip} offset={5} panelClass={popover}>
@@ -326,7 +321,6 @@
           class="fixed {popover}"
           style="left: {errorRect.left + errorRect.width / 2}px; top: {errorRect.bottom + 5}px; transform: translateX(-50%)"
         >
-          <!-- MUI wrapped this in a Typography (body1, 14px); the popover's 12px styles the box only -->
           <p class="text-[14px]">{snapshotError}</p>
         </div>
       {/if}

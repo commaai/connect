@@ -27,11 +27,9 @@
   const renderScan = dev
     && (import.meta.env.VITE_RENDER_SCAN === '1' || import.meta.env.VITE_RENDER_SCAN === 'true');
 
-  // App.jsx: showLogin was false whenever url.js could parse a zoom or a segment
-  // range out of the path, so a shared drive link opened the explorer for a
-  // signed-out visitor instead of the landing page. A log id in the path is what
-  // made a URL shareable, so that is the test. Signed out there is no profile and
-  // no device list, exactly as the redux store started out.
+  // A log id in the path is what makes a URL shareable, so that is the test for
+  // whether a signed-out visitor gets the shell rather than the landing page.
+  // Signed out there is no profile and no device list.
   const sharedDrive = $derived(Boolean(page.params.logId));
   const showShell = $derived(data.authenticated || sharedDrive);
   const devices = $derived(data.devices ?? []);
@@ -42,8 +40,6 @@
   const device = $derived(devices.find((d) => d.dongle_id === selectedDongleId) ?? null);
   const settingsDevice = $derived(devices.find((d) => d.dongle_id === settingsDongleId) ?? null);
 
-  // explorer.jsx: with no devices and no selected one, the upsell takes the whole
-  // window and the drawer collapses to nothing.
   const noDevicesUpsell = $derived(data.authenticated && devices.length === 0 && !selectedDongleId);
 
   // The drawer is permanent on wide viewports, and takes 20% of the window down
@@ -52,8 +48,6 @@
   const isLarge = $derived(noDevicesUpsell || width > 1080);
   const sidebarWidth = $derived(noDevicesUpsell ? 0 : Math.max(280, width * 0.2));
 
-  // globalState reducer, ACTION_SELECT_DEVICE: remember the device so the next
-  // visit to / returns to it rather than to the first in the list.
   $effect(() => {
     if (!selectedDongleId) return;
     try {
@@ -63,7 +57,6 @@
     }
   });
 
-  // Close the drawer whenever the route changes, like componentDidUpdate did.
   let lastPathname = $state(null);
   $effect(() => {
     const { pathname } = page.url;
@@ -146,6 +139,5 @@
     />
   {/if}
 {:else}
-  <!-- App.jsx anonymousRoutes: one screen for every path a signed-out visitor asks for -->
   <AnonymousLanding />
 {/if}

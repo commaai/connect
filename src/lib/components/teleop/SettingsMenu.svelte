@@ -28,7 +28,6 @@
   // Size the panel to whichever page is active so it morphs between them.
   // The pages are `w-max`, so writing `dims` cannot change what is measured.
   $effect(() => {
-    // React re-measured on [view, open, quality, options].
     void [open, quality, options];
     const el = view === 'main' ? mainEl : qualityEl;
     if (el) dims = { width: el.offsetWidth, height: el.offsetHeight };
@@ -53,7 +52,6 @@
 </script>
 
 {#snippet chevronRight()}
-  <!-- @material-ui/icons ChevronRight -->
   <svg
     class="inline-block shrink-0 select-none"
     viewBox="0 0 24 24"
@@ -76,7 +74,6 @@
     onclick={toggleOpen}
     title="Settings"
   >
-    <!-- @material-ui/icons Settings -->
     <svg
       class="inline-block shrink-0 select-none"
       viewBox="0 0 24 24"
@@ -120,8 +117,6 @@
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="{rowClass} font-medium text-white/90" onclick={() => { view = 'main'; }}>
-        <!-- src/icons/index.jsx ArrowBackBold: a material symbol, so it keeps its
-             own viewBox inside MUI SvgIcon's box. -->
         <svg
           class="inline-block shrink-0 select-none w-4 h-4 -ml-1 text-white/70"
           viewBox="0 -960 960 960"
@@ -143,7 +138,6 @@
         <div class={rowClass} onclick={() => selectQuality(opt.key)}>
           <span class="flex w-4 items-center justify-center">
             {#if opt.key === quality}
-              <!-- @material-ui/icons Check -->
               <svg
                 class="inline-block shrink-0 select-none text-white"
                 viewBox="0 0 24 24"

@@ -8,12 +8,9 @@
 
   let { route = null, isMuted = false, onaudiostatuschange = undefined } = $props();
 
-  // react-player never bundled hls.js: it fetched the pinned build from jsdelivr at
-  // runtime and read the library off window.Hls. config.hlsVersion was '1.4.8'.
   const HLS_SDK_URL = 'https://cdn.jsdelivr.net/npm/hls.js@1.4.8/dist/hls.min.js';
   const HLS_OPTIONS = { maxBufferLength: 40 };
 
-  // ReactPlayer held a seek made before the manifest was parsed for this long.
   const SEEK_ON_PLAY_EXPIRY = 5000;
 
   let videoEl = $state(null);
@@ -21,8 +18,6 @@
 
   let hls = null;
   let sdkRequest = null;
-  // ReactPlayer's Player refused to report a duration or a current time until the
-  // manifest was parsed, which is what kept syncVideo off an unloaded player.
   let isReady = false;
   let isPlaying = false;
   let startOnPlay = true;
@@ -174,14 +169,6 @@
       // ignore
       return;
     }
-
-    // React ignored an error whose src was on the app's own origin and ended in
-    // "undefined". That was react-player assigning the url to the `src` IDL
-    // property: an undefined one stringifies to "undefined", which the browser
-    // reads as a relative URL, resolves against the page, and fails to fetch.
-    // This renders the url as an attribute instead, where undefined removes it,
-    // and renders no <video> at all without a route — so neither half of that
-    // condition can hold. DriveVideo.svelte.test.js pins both.
 
     playback.bufferVideo(true);
 
@@ -373,7 +360,6 @@
 
   function loadSource(el, url) {
     videoError = null;
-    // Player.componentDidUpdate re-armed the one-shot playback-rate set per url
     startOnPlay = true;
 
     if (!useHls) {
@@ -396,8 +382,6 @@
     });
   }
 
-  // componentDidUpdate re-ran syncVideo after every store change; this is read
-  // only to subscribe to the fields it looks at.
   const syncKey = $derived([
     route?.fullname,
     isMuted,
@@ -421,8 +405,6 @@
     return () => destroyHls();
   });
 
-  // Player.componentDidUpdate drove play/pause off the `playing` prop; the first
-  // run is the mount, where the autoplay attribute and handleReady cover it.
   $effect(() => {
     const want = playing;
     untrack(() => {
@@ -473,7 +455,6 @@
             {videoError}
           </p>
         {:else}
-          <!-- MuiCircularProgress, indeterminate, size={50} thickness={4} -->
           <div class="circularProgress" role="progressbar" style="width: 50px; height: 50px; color: #fff">
             <svg viewBox="22 22 44 44">
               <circle class="circle" cx="44" cy="44" r="20" fill="none" stroke-width="4" />
@@ -483,7 +464,6 @@
       </div>
     </div>
   {/if}
-  <!-- ReactPlayer's wrapper, width/height 100%; it rendered no player without a url -->
   <div style="width: 100%; height: 100%">
     {#if src}
       <!-- svelte-ignore a11y_media_has_caption -->
@@ -509,14 +489,12 @@
 </div>
 
 <style>
-  /* MuiCircularProgress root + indeterminate */
   .circularProgress {
     display: inline-block;
     line-height: 1;
     animation: mui-progress-circular-rotate 1.4s linear infinite;
   }
 
-  /* MuiCircularProgress circle + circleIndeterminate */
   .circle {
     stroke: currentColor;
     stroke-dasharray: 80px, 200px;

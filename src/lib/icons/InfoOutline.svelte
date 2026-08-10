@@ -1,8 +1,4 @@
 <script>
-  // src/icons/index.jsx InfoOutline: a material symbol, so it keeps its own
-  // viewBox inside MUI SvgIcon's 1em/24px box.
-  // SvgIcon's 24px box is the default; a caller that wants another size passes
-  // it rather than layering a text-* utility over the inline font-size.
   let { class: className = '', size = '24px' } = $props();
 </script>
 

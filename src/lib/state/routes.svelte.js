@@ -11,10 +11,6 @@ import {
   setCacheItem,
 } from './routes-fetch';
 
-/**
- * Per-route data that used to be merged into the redux routes/currentRoute objects.
- * Keyed by route fullname so it survives the routes list being refetched.
- */
 const routeData = $state({
   events: {}, // fullname -> { events, videoStartOffset }
   locations: {}, // fullname -> { startLocation, endLocation }
@@ -41,7 +37,6 @@ export function getRouteDriveCoords(fullname) {
   return routeData.driveCoords[fullname];
 }
 
-/** Route metadata with the fetched data merged in, matching the old redux route shape. */
 export function withRouteData(route) {
   if (!route) {
     return route;

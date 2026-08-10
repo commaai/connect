@@ -5,9 +5,8 @@
 
   let { devices, device, profile, selectedDongleId, onselect, onsettings, onpaired } = $props();
 
-  // DeviceList.jsx's addButtonStyle. React passed this as MUI Button's `style`
-  // prop, which is what let it beat AddDevice's own addButton class (the white
-  // pill the no-device screen uses) — so it has to stay an inline style here too.
+  // Stays an inline style so it outranks AddDevice's own addButton class, the
+  // white pill the no-device screen uses.
   const addButton = 'border-radius: unset; background-color: transparent; color: white;'
     + ' font-weight: 600; justify-content: space-between; padding: 16px 44px 16px 54px';
 
@@ -52,9 +51,7 @@
             style="background-color: {deviceIsOnline(d) ? '#178645' : '#4b5559'}"
           >&nbsp;</div>
           <div class="ml-4 flex flex-col justify-center">
-            <!-- MUI Typography body1: 0.875rem, not the browser's 16px default -->
             <p class="text-[0.875rem] font-semibold">{deviceNamePretty(d)}</p>
-            <!-- MUI Typography variant="caption": lineHeight 16.5/12, not the body1 default -->
             <p class="text-[0.75rem] text-[#74838e]" style="line-height: 1.375em">{d.dongle_id}</p>
           </div>
         </div>

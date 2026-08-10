@@ -32,7 +32,6 @@
   let error = $state(null);
   let unpairError = $state(null);
 
-  // componentDidUpdate: a new dongle resets everything and seeds the alias field.
   $effect(() => {
     const id = dongleId;
     untrack(() => {
@@ -152,10 +151,8 @@
     else if (isOpen) onclose?.();
   }
 
-  // styles.modal, on a MUI Paper whose background the theme overrides to #30373B.
   const paperClass = 'absolute top-[40%] left-1/2 rounded-[4px] bg-[#30373B] p-4 outline-none '
     + 'shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]';
-  // MUI Button root; theme.MuiButton overrides text-transform to none.
   const buttonBase = 'box-border inline-flex min-h-[36px] min-w-[64px] cursor-pointer items-center justify-center '
     + 'rounded-[4px] px-4 py-2 align-middle text-[0.875rem] leading-[1.4em] font-medium transition-colors';
   const outlinedButton = `${buttonBase} border border-white/23 text-white hover:bg-white/10 `
@@ -168,27 +165,21 @@
   // styles.titleContainer
   const titleRow = 'mb-[5px] flex items-baseline justify-between';
 
-  // @material-ui/icons
   const CHECK_PATH = 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z';
   const SAVE_PATH = 'M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z';
   const SHARE_PATH = 'M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z';
 </script>
 
-<!-- MUI routes Escape to the top modal only -->
 <svelte:window onkeydown={(e) => { if (!uploadModal && e.key === 'Escape') onEscape(); }} />
 
 {#snippet titleContainer(title)}
   <div class={titleRow}>
-    <!-- MUI Typography variant="title" -->
     <h2 class="text-[1.3125rem] font-medium" style="line-height: 1.16667em">{title}</h2>
-    <!-- MUI Typography variant="caption", palette.text.secondary -->
     <span class="block text-[0.75rem] text-white/70" style="line-height: 1.375em">{device.dongle_id}</span>
   </div>
-  <!-- MUI Divider -->
   <hr class="m-0 h-px shrink-0 border-none bg-white/12" />
 {/snippet}
 
-<!-- styles.wrapper + MUI IconButton (variant="fab" was never an IconButton prop) -->
 {#snippet fab(onclick, iconPath, loading, label)}
   <div class="relative m-2 inline-block">
     <button
@@ -202,7 +193,6 @@
       </svg>
     </button>
     {#if loading}
-      <!-- MUI CircularProgress size={48}, color primary (Colors.lightBlue900) -->
       <div class="progress absolute top-0 left-0 z-[1] inline-block" role="progressbar" style="width: 48px; height: 48px; line-height: 1; color: #57a9e3">
         <svg viewBox="22 22 44 44">
           <circle class="progressCircle" cx="44" cy="44" r="20.2" fill="none" stroke-width="3.6" />
@@ -244,7 +234,6 @@
         {#if error}
           <!-- styles.formRowError, Colors.red500 -->
           <div class="mb-[5px] bg-[#75141d] p-[10px]">
-            <!-- MUI Typography body1: 0.875rem, line-height from the global shim -->
             <p class="text-[0.875rem]">{error}</p>
           </div>
         {/if}
@@ -294,7 +283,6 @@
       {#if device.prime}
         <!-- styles.unpairWarning, Colors.orange200 -->
         <div class="mt-[15px] flex items-center bg-[#b85e1f] p-[10px] text-white">
-          <!-- @material-ui/icons/Warning -->
           <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0" aria-hidden="true">
             <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
           </svg>
@@ -312,7 +300,6 @@
       <div class="flex flex-wrap-reverse items-baseline justify-between">
         <button type="button" class="{cancelButton} {spacedButton}" onclick={closeUnpair}>{unpaired ? 'Close' : 'Cancel'}</button>
         {#if unpaired}
-          <!-- MUI Typography variant="body2" renders an <aside> via headlineMapping -->
           <aside class="text-[0.875rem] font-medium" style="line-height: 1.71429em">Unpaired</aside>
         {:else}
           <button

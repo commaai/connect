@@ -1,17 +1,17 @@
 <script>
   /**
-   * Stand-in for MUI v1's <Tooltip>: the anchor keeps its place in the parent's
-   * layout (the wrapper is display:contents) and the bubble is position:fixed,
-   * so neither adds a box the way a wrapping div would.
+   * The anchor keeps its place in the parent's layout (the wrapper is
+   * display:contents) and the bubble is position:fixed, so neither adds a box
+   * the way a wrapping div would.
    */
   let {
     title = '',
     placement = 'bottom',
     offset = 14,
     panelClass = '',
-    // MUI's popper class sets opacity .9; InfoTooltip's arrowPopper overrides it
-    // to 1. A prop rather than something the caller restyles, so the value is
-    // explicit instead of falling out of cascade order.
+    // A prop rather than something the caller restyles, so the value is
+    // explicit instead of falling out of cascade order. InfoTooltip wants 1,
+    // everything else .9.
     opacity = 0.9,
     open = $bindable(false),
     children,

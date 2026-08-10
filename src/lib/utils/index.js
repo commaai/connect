@@ -173,9 +173,8 @@ export function getDeviceFromState(state, dongleId) {
 /**
  * Which 60s segment of a route an offset falls in.
  *
- * The React version defaulted `offset` to a read of the global redux store,
- * which made a generic helper depend on playback state. Callers pass the
- * offset explicitly now.
+ * Callers pass the offset explicitly, so this stays independent of playback
+ * state.
  *
  * @param {object} route
  * @param {number} offset milliseconds from the start of the route

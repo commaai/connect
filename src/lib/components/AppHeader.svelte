@@ -25,8 +25,7 @@
 
   Glossy is three layers over a translucent surface — a sheen falling from the
   top edge, a lit 1px rule along that edge, and a blur of whatever scrolls
-  beneath. It replaces the opaque MUI AppBar, whose primary.main blue sat behind
-  the header and was never seen; through a translucent bar it would be.
+  beneath.
 -->
 <header
   bind:clientHeight={height}

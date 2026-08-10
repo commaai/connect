@@ -1,6 +1,4 @@
 <script>
-  // src/icons/index.jsx ErrorOutline: a material symbol, so it keeps its own
-  // viewBox inside MUI SvgIcon's 1em/24px box.
   let { class: className = '' } = $props();
 </script>
 

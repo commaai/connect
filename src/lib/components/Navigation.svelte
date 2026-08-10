@@ -27,8 +27,6 @@
   let noFly = $state(false);
   let showPrimeAd = $state(true);
   let mapError = $state(null);
-  // React declared `search` in its state shape but never assigned it, so every
-  // branch reading it is dead. Kept so flyToMarkers stays a faithful port.
   let search = $state(null);
 
   // The camera, driven by flyToMarkers and by the map's own move events. The
@@ -57,15 +55,12 @@
     ? { location: carLastLocation, accuracy: 0, time: carLastLocationTime }
     : null);
 
-  // react-map-gl projected markers in JavaScript rather than asking mapbox, so
-  // they are placed even when the map itself failed to load.
   const projection = $derived(new WebMercatorViewport({
     ...viewport,
     width: mapWidth,
     height: mapHeight,
   }));
 
-  // react-map-gl/src/utils/crisp-pixel
   const pixelRatio = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
   const crispPixel = (size) => Math.round(size * pixelRatio) / pixelRatio;
 
@@ -112,8 +107,6 @@
   // styles.clearSearchSelect
   const clearSearchSelect = 'absolute top-[-8px] left-[-6px] h-6 w-6 shrink-0 cursor-pointer select-none'
     + ' rounded-[12px] border border-[#394044] bg-[#1e2224] p-[5px] text-white hover:bg-[#303639]';
-  // MuiButton root + styles.searchSelectButton, minus the contained variant's
-  // shadow and 36px min-height — this Button is a flat one.
   const buttonBase = 'relative ml-2 inline-flex min-h-0 min-w-16 max-w-[125px] grow cursor-pointer select-none'
     + ' items-center justify-center rounded-[15px] py-[6px] align-middle text-[0.875rem] font-medium outline-none';
 
@@ -285,7 +278,6 @@
       title: '',
     };
 
-    // item never carries a distance; React sent it anyway.
     onanalytics?.('nav_search_select', { source: 'car', panned: noFly, distance: item.distance });
 
     noFly = false;
@@ -321,7 +313,6 @@
     }
   }
 
-  // componentDidUpdate: a new dongle resets everything back to initialState.
   let lastDongleId = null;
   $effect(() => {
     const id = dongleId;
@@ -441,9 +432,7 @@
       fitBoundsOptions: { maxZoom: 10 },
     });
     geolocate.on('geolocate', onGeolocate);
-    // react-map-gl replaced _updateCamera and routed it through
-    // onViewportChange={() => {}}, so geolocating never moved the map here.
-    // flyToMarkers does the framing.
+    // Geolocating does not move the map; flyToMarkers does the framing.
     geolocate._updateCamera = () => {};
     instance.addControl(geolocate);
     geolocateControl = geolocate;
@@ -520,9 +509,9 @@
     hadFocus = focused;
   });
 
-  // componentDidUpdate flew on a new car location, on the FIRST geolocate, and
-  // on any non-null searchSelect. It never re-fit on resize, so mapWidth is only
-  // a gate: fitBounds needs a measured map before the first fit can happen.
+  // Flies on a new car location, on the first geolocate, and on any non-null
+  // searchSelect. It never re-fits on resize, so mapWidth is only a gate:
+  // fitBounds needs a measured map before the first fit can happen.
   let prevCarLastLocation = null;
   let prevGeoLocateCoords = null;
   let prevSearchSelect = null;
@@ -550,7 +539,6 @@
 </script>
 
 {#snippet clearIcon(onclear)}
-  <!-- @material-ui/icons/Clear -->
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <svg
@@ -573,9 +561,8 @@
     </div>
   {/if}
 
-  <!-- react-map-gl's event canvas, map container and canvas host. The error
-       block above pushes it down and it overflows the 200px container, exactly
-       as in the original. -->
+  <!-- The event canvas, map container and canvas host. The error block above
+       pushes it down and it overflows the 200px container. -->
   <div style="position: relative; width: 100%; height: 100%; cursor: grab">
     <div bind:this={mapContainerEl} style="position: relative; width: 100%; height: 100%">
       <div bind:this={mapEl} style="position: absolute; width: 100%; height: 100%; overflow: hidden; visibility: inherit"></div>
@@ -688,11 +675,9 @@
     display: none;
   }
 
-  /* react-map-gl created the map with interactive:false and ran interaction
-     itself on an ancestor of this div, so overlays could sit on top harmlessly.
-     mapbox binds its handlers inside the map element, i.e. underneath — so the
-     overlay layer has to be transparent to pointers or the map is dead. Each
-     child opts back in, matching Marker/HTMLOverlay's capture* flags. */
+  /* mapbox binds its handlers inside the map element, i.e. underneath this
+     overlay layer — so the layer has to be transparent to pointers or the map
+     is dead. Each child opts back in. */
   .navMap :global(.overlays) {
     pointer-events: none;
   }

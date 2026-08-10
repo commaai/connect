@@ -59,7 +59,6 @@
   {onclick}
 >
   <div class="items-center" style={fmt.small ? 'padding: 18px' : 'padding: 18px 32px'}>
-    <!-- MUI <Grid container> -->
     <div class="box-border flex w-full flex-wrap">
       <div class="grow" style={fmt.grid.date}>
         <p class="text-[0.875rem] font-semibold">{fmt.startDate}</p>
@@ -79,7 +78,6 @@
       </div>
       {#if !fmt.small}
         <div class="grow" style={fmt.grid.arrow}>
-          <!-- icons/index.jsx RightArrow, at Colors.grey500 -->
           <svg
             viewBox="0 0 24 24"
             fill="currentColor"

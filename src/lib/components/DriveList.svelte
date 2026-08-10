@@ -84,7 +84,6 @@
       style="background: linear-gradient(to bottom, #30373B 0%, #1D2225 150%)"
       onclick={() => onfilter?.()}
     >
-      <!-- @material-ui/icons/FilterList -->
       <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" class="mr-2 text-xl" aria-hidden="true">
         <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
       </svg>

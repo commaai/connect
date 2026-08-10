@@ -23,19 +23,12 @@
   let canvasWidth = null;
   let canvasHeight = null;
 
-  /**
-   * DeviceList passes the CSS declarations React passed as a style object. They
-   * stay inline, because that is what let them beat MUI's own addButton class —
-   * as utilities they would be competing with .muiButton below instead.
-   */
   const asStyle = $derived(
     buttonStyle && (buttonStyle.includes(';') || /:\s/.test(buttonStyle)) ? buttonStyle : '',
   );
   const asClass = $derived(asStyle ? '' : (buttonStyle ?? ''));
   const scrim = $derived(Boolean(pairLoading || pairDongleId || pairError));
 
-  // MUI's Modal portals to document.body, so the panel never inherits from the
-  // trigger's container — NoDeviceUpsell renders the trigger inside `prose`.
   function portal(node) {
     document.body.appendChild(node);
     return {
@@ -50,7 +43,6 @@
     return lockBodyScroll();
   });
 
-  // componentDidMount: whether a camera exists decides which branch renders.
   $effect(() => {
     (async () => {
       try {
@@ -290,9 +282,8 @@
   onkeydown={(e) => { if (modalOpen && e.key === 'Escape') modalClose(); }}
 />
 
-<!-- MUI Button, variant="text", with styles.addButton -->
 <button type="button" class="muiButton addButton {asClass}" style={asStyle} onclick={() => { modalOpen = true; }}>
-  <span class="label">{buttonText}{#if buttonIcon}<!-- @material-ui/icons/AddCircleOutline at Colors.white30 --><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px; color: rgba(255, 255, 255, 0.3)" class="shrink-0" aria-hidden="true"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg>{/if}</span>
+  <span class="label">{buttonText}{#if buttonIcon}<svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px; color: rgba(255, 255, 255, 0.3)" class="shrink-0" aria-hidden="true"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg>{/if}</span>
 </button>
 
 {#if modalOpen}
@@ -303,7 +294,6 @@
     aria-modal="true"
     aria-labelledby="add-device-modal"
   >
-    <!-- MUI Backdrop: z-index -1 inside the modal's stacking context -->
     <div
       class="fixed inset-0 z-[-1] bg-black/50"
       role="presentation"
@@ -311,7 +301,6 @@
       onkeydown={(e) => e.key === 'Escape' && modalClose()}
     ></div>
 
-    <!-- MUI Paper, backgroundColor overridden to #30373B by the theme -->
     <div
       role="document"
       tabindex="-1"
@@ -320,19 +309,14 @@
              shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]"
     >
       <div class="mb-[5px] flex items-baseline justify-between">
-        <!-- MUI Typography variant="title": lineHeight 24.5/21 -->
         <h2 class="text-[1.3125rem] font-medium" style="line-height: 1.16667em">Pair device</h2>
-        <!-- MUI Typography variant="caption": 12px, lineHeight 16.5/12, palette.text.secondary -->
         <span class="block text-[0.75rem] text-white/70" style="line-height: 1.375em">scan QR code</span>
       </div>
 
-      <!-- MUI Divider, with styles.divider -->
       <div class="mb-[10px] h-px bg-white/12"></div>
 
       {#if hasCamera === false}
-        <!-- MUI Typography body1: 0.875rem, not the browser's 16px default -->
         <p class="mb-[5px] text-[0.875rem]" style="line-height: 1.46429em">{cameraError || 'Camera not found, please enable camera access.'}</p>
-        <!-- React's <br>: an empty line box sized by the panel's inherited 1.5 -->
         <br />
         <p class="text-[0.875rem]" style="line-height: 1.46429em">You can also scan the QR code using any other QR code reader application.</p>
       {:else}
@@ -340,7 +324,6 @@
           <canvas class="qrCanvas" bind:this={canvasEl}></canvas>
           <div class="videoOverlay">
             {#if pairLoading}
-              <!-- MUI CircularProgress size="10vw" -->
               <div class="progress" role="progressbar" style="width: 10vw; height: 10vw; color: #525E66">
                 <svg viewBox="22 22 44 44">
                   <circle class="progressCircle" cx="44" cy="44" r="20.2" fill="none" stroke-width="3.6" />
@@ -369,11 +352,6 @@
 {/if}
 
 <style>
-  /**
-   * MUI ButtonBase root + Button root (the theme drops text-transform) +
-   * styles.addButton, as plain CSS. The caller's buttonStyle stays inline so it
-   * still wins over these, the way React's style prop beat MUI's classes.
-   */
   .muiButton {
     position: relative;
     box-sizing: border-box;
@@ -421,7 +399,6 @@
     margin-top: 10px;
   }
 
-  /* MUI Button's label span */
   .label {
     width: 100%;
     display: inherit;
@@ -470,7 +447,6 @@
     text-align: center;
   }
 
-  /* MUI Typography body1, overridden by styles.videoOverlay */
   .videoOverlay p {
     margin: 0;
     font-size: 1rem;

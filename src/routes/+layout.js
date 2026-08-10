@@ -40,7 +40,6 @@ export async function load({ url }) {
     else if (!localStorage.getItem('authorization')) localStorage.setItem('authorization', 'mock-token');
   }
 
-  // App.jsx's constructor stashed a ?pair= token for the dashboard to redeem.
   const pairToken = url.searchParams.get('pair');
   if (pairToken) {
     try {

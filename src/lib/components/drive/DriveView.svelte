@@ -21,11 +21,10 @@
   const wholeRoute = $derived({ start: 0, end: route?.duration ?? 0, previous: null });
   const zoom = $derived(playback.zoom ?? initialZoom ?? wholeRoute);
 
-  // explorer only mounted DriveView after pushTimelineRange had set the zoom and
-  // the loop. Seed them here so a direct load does not render an empty timeline.
+  // Seed the zoom and loop so a direct load does not render an empty timeline.
   // Only when nothing has set them: zooming the timeline navigates to the range
   // path, and re-deriving from those whole-second params would round the zoom
-  // the user just dragged. ACTION_ROUTES_METADATA seeded the same way, once.
+  // the user just dragged.
   $effect(() => {
     if (!route) return;
     if (!playback.zoom) {
@@ -37,8 +36,6 @@
   });
 
   const currentRouteBoundsSelected = $derived(zoom.start === 0 && zoom.end === route?.duration);
-  // `zoom.previousZoom` is never set — the reducer keeps the stack in `zoom.previous` —
-  // so this only ever means "the whole route is selected".
   const backButtonDisabled = $derived(!zoom.previousZoom && currentRouteBoundsSelected);
 
   const start = $derived((route?.start_time_utc_millis ?? 0) + zoom.start);
@@ -100,7 +97,6 @@
   <div class="flex flex-col rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
     <div>
       <div class="items-center justify-between flex p-3 gap-2">
-        <!-- MUI IconButton -->
         <button
           type="button"
           class="iconButton"
@@ -109,7 +105,6 @@
           onclick={onBack}
         >
           <span class="label">
-            <!-- icons/index.jsx ArrowBackBold -->
             <svg viewBox="0 -960 960 960" fill="currentColor" width="1em" height="1em" style="font-size:24px" aria-hidden="true" focusable="false">
               <path d="M480-149 149-480l331-331 67 66-217 218h481v94H330l217 217-67 67Z" />
             </svg>
@@ -121,7 +116,6 @@
         <!-- IconButton with an href renders a ButtonBase <a> -->
         <a class="iconButton" aria-label="Close" href={`/${dongleId}`} onclick={close}>
           <span class="label">
-            <!-- icons/index.jsx CloseBold -->
             <svg viewBox="0 -960 960 960" fill="currentColor" width="1em" height="1em" style="font-size:24px" aria-hidden="true" focusable="false">
               <path d="m249-183-66-66 231-231-231-231 66-66 231 231 231-231 66 66-231 231 231 231-66 66-231-231-231 231Z" />
             </svg>
@@ -141,7 +135,6 @@
 </div>
 
 <style>
-  /* MuiTypography root + body1 */
   .typography {
     display: block;
     margin: 0;
@@ -154,7 +147,6 @@
     color: #fff;
   }
 
-  /* MuiButtonBase root + MuiIconButton root, palette.action.active on a dark theme */
   .iconButton {
     position: relative;
     display: inline-flex;
@@ -197,7 +189,6 @@
     background-color: transparent;
   }
 
-  /* MuiIconButton label */
   .label {
     width: 100%;
     display: flex;

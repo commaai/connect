@@ -15,7 +15,6 @@
 </script>
 
 {#snippet panel()}
-  <!-- MUI wrapped the title in a Typography (body1); .tooltip's 10px is the bubble only -->
   <p class="text-[14px]" style="line-height: 1.46429em">{title}</p>
   <span class="arrow"></span>
 {/snippet}
@@ -28,7 +27,6 @@
   panelClass="rounded-[4px] bg-[#1e2224] px-2 py-1 text-[10px] text-white"
   {panel}
 >
-  <!-- @material-ui/icons InfoOutline, at theme.spacing.unit marginLeft / fontSize 18 -->
   <svg
     viewBox="0 -960 960 960"
     fill="currentColor"
@@ -47,7 +45,6 @@
 </Tooltip>
 
 <style>
-  /* MUI's popper arrow modifier: a 7px-based triangle hanging off the bubble. */
   .arrow {
     position: absolute;
     bottom: 0;

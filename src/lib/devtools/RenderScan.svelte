@@ -11,7 +11,7 @@
    * list re-keyed into a full teardown all show up as writes nobody asked for.
    *
    * So this watches the DOM rather than the framework, which is also why it
-   * would have worked just as well on the React tree this app replaced.
+   * works on any of them.
    *
    * It draws to a canvas on purpose: an overlay built out of elements would
    * mutate the DOM it is watching, and then observe itself doing it.

@@ -39,10 +39,8 @@ export async function loadDrive({ params, parent }) {
 /**
  * The zoom carried by a `/{dongleId}/{logId}/{start}/{end}` path.
  *
- * urlForState wrote the range as whole seconds of route-relative offset, and
- * url.js getSegmentRange multiplied them back up; the reducer then took that
- * range as the zoom verbatim. Out-of-range values are clamped here, which the
- * reducer did not do — a hand-typed range used to leave the timeline unusable.
+ * The range is whole seconds of route-relative offset. Out-of-range values are
+ * clamped, so a hand-typed range cannot leave the timeline unusable.
  *
  * @returns {{start: number, end: number, previous: null}|null} null when the
  *   range is unusable, meaning "show the whole route".

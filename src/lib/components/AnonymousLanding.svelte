@@ -15,13 +15,9 @@
 
   function onAppleSuccess(event) {
     const { code, state } = event.detail.authorization;
-    // The React version used AuthConfig.APPLE_REDIRECT_PATH, which the auth
-    // package does not export, so this navigated to "/undefined?code=...".
     window.location = `${AuthConfig.AUTH_PATH}?${stringifyQuery({ code, state, provider: PROVIDER_APPLE })}`;
   }
 
-  // anonymous.jsx componentDidMount: whatever path the visitor asked for is
-  // stashed here, because this screen stands in for every one of them.
   onMount(() => rememberRedirect(page.url));
 
   onMount(() => {
