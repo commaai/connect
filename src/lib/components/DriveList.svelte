@@ -2,11 +2,11 @@
   import * as Sentry from '@sentry/browser';
 
   import { devices as Devices } from '$lib/api';
+  import { inView } from '$lib/attachments/in-view';
   import { watchReturn } from '$lib/state/page-active';
   import { isMetric, KM_PER_MI } from '$lib/utils/conversions';
   import DriveListEmpty from './DriveListEmpty.svelte';
   import DriveListItem from './DriveListItem.svelte';
-  import ScrollIntoView from './ScrollIntoView.svelte';
 
   let { dongleId, device, routes, lastRoutes, onfilter, onrefresh, onloadmore } = $props();
 
@@ -95,14 +95,11 @@
   {#if displayRoutes.length}
     <div class="DriveList px-4 flex-1">
       {#each displayRoutes as drive, index (drive.fullname)}
-        {#if index === displayRoutes.length - 1}
-          <!-- fetch the next page of routes once the last entry is reached -->
-          <ScrollIntoView oninview={() => onloadmore?.()}>
-            <DriveListItem {drive} />
-          </ScrollIntoView>
-        {:else}
-          <DriveListItem {drive} />
-        {/if}
+        <!-- fetch the next page once the last entry is reached -->
+        <DriveListItem
+          {drive}
+          {@attach index === displayRoutes.length - 1 && inView(() => onloadmore?.())}
+        />
       {/each}
     </div>
   {/if}

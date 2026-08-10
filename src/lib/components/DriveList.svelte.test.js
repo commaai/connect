@@ -41,14 +41,19 @@ const drive = (n, startMillis) => ({
   distance: 5,
 });
 
+let observed = [];
+
 const JUN_1 = new Date(2026, 5, 1, 9, 0).getTime();
 const DAY = 86400000;
 
 beforeEach(() => {
   isMetric.mockReturnValue(false);
   fetchDeviceStats.mockResolvedValue(stats);
-  globalThis.IntersectionObserver ??= class {
-    observe() {}
+  observed = [];
+  globalThis.IntersectionObserver = class {
+    constructor(callback) { this.callback = callback; }
+
+    observe(node) { observed.push({ node, fire: () => this.callback([{ target: node, isIntersecting: true }]) }); }
 
     unobserve() {}
 
@@ -234,6 +239,50 @@ describe('DriveList', () => {
       await tick();
 
       expect(onrefresh).toHaveBeenCalled();
+    });
+  });
+
+  describe('paging in the next drives', () => {
+    const routes = Array.from({ length: 3 }, (_, i) => drive(i, JUN_1 + (i * DAY)));
+
+    it('watches only the last entry', () => {
+      mount({ routes });
+
+      expect(observed).toHaveLength(1);
+      // newest first, so the last rendered entry is the oldest drive
+      expect(observed[0].node.getAttribute('href')).toBe('/aaaaaaaaaaaaaaaa/0');
+    });
+
+    it('watches the entry itself rather than a box wrapped around it', () => {
+      const { container } = mount({ routes });
+
+      expect(observed[0].node.tagName).toBe('A');
+      // ScrollIntoView used to put a div between the list and every last entry
+      expect(container.querySelectorAll('.DriveList > div')).toHaveLength(0);
+    });
+
+    it('asks for more once it scrolls into view', () => {
+      const onloadmore = vi.fn();
+      mount({ routes, onloadmore });
+
+      observed[0].fire();
+
+      expect(onloadmore).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks only once, however often it crosses the threshold', () => {
+      const onloadmore = vi.fn();
+      mount({ routes, onloadmore });
+
+      observed[0].fire();
+      observed[0].fire();
+
+      expect(onloadmore).toHaveBeenCalledTimes(1);
+    });
+
+    it('watches nothing while the list is empty', () => {
+      mount({ routes: [] });
+      expect(observed).toHaveLength(0);
     });
   });
 

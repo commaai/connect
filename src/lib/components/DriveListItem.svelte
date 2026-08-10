@@ -8,7 +8,8 @@
   import { filterRegularClick } from '$lib/utils';
   import { formatDrive } from './drive-list-item-format';
 
-  let { drive } = $props();
+  // `rest` carries whatever the list attaches to this entry; see DriveList.
+  let { drive, ...rest } = $props();
 
   let el = $state(null);
   let isVisible = $state(false);
@@ -50,6 +51,7 @@
 </script>
 
 <a
+  {...rest}
   class="DriveEntry flex flex-col mb-3 overflow-hidden rounded-lg p-0 no-underline border-t border-white/5"
   style="background: linear-gradient(to bottom, #30373B 0%, #1D2225 100%); transition: background .2s"
   bind:this={el}
