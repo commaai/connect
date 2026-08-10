@@ -5,6 +5,7 @@
   import { playback } from '$lib/state/playback.svelte.js';
   import { getRouteEvents } from '$lib/state/routes.svelte.js';
   import { getSegmentNumber } from '$lib/utils';
+  import { keepTouch } from '$lib/attachments/keep-touch';
 
   let {
     route,
@@ -39,18 +40,6 @@
 
   const zoom = $derived(zoomOverride || playback.zoom);
   const hasRulerCls = $derived(hasRuler ? 'hasRuler' : '');
-
-  // React attached this natively. Svelte delegates touchstart, so a delegated
-  // handler runs only after the event has already passed every ancestor — too
-  // late to stop the native listeners the drawer and maps install on theirs.
-  $effect(() => {
-    const el = rulerEl;
-    if (!el) return;
-
-    const stop = (ev) => ev.stopPropagation();
-    el.addEventListener('touchstart', stop);
-    return () => el.removeEventListener('touchstart', stop);
-  });
 
   const events = $derived(route ? getRouteEvents(route.fullname) : null);
 
@@ -278,7 +267,7 @@
 
     {#if hasRuler}
       <div
-        bind:this={rulerEl}
+        bind:this={rulerEl} {@attach keepTouch()}
         role="presentation"
         class="h-[44px] w-full touch-none"
         style="background-color: rgb(37, 51, 61)"

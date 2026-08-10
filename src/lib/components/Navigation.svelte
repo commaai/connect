@@ -14,6 +14,7 @@
   import { isIos } from '$lib/utils/browser';
   import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '$lib/utils/geocode';
   import WebMercatorViewport from '$lib/utils/mercator';
+  import { keepTouch } from '$lib/attachments/keep-touch';
 
   let { dongleId, device, onprimenav, onanalytics } = $props();
 
@@ -352,17 +353,6 @@
 
   $effect(refreshLocation);
 
-  // Attached natively so it lands before the drawer's own listener; a delegated
-  // handler runs only after the event has already passed every ancestor.
-  $effect(() => {
-    const el = containerEl;
-    if (!el) return;
-
-    const stop = (ev) => ev.stopPropagation();
-    el.addEventListener('touchstart', stop);
-    return () => el.removeEventListener('touchstart', stop);
-  });
-
   // StaticMap observed its container and fed the size into the projection.
   $effect(() => {
     const el = mapContainerEl;
@@ -575,7 +565,7 @@
   </svg>
 {/snippet}
 
-<div bind:this={containerEl} class="navMap border-b border-white/10" style="height: 200px">
+<div bind:this={containerEl} {@attach keepTouch()} class="navMap border-b border-white/10" style="height: 200px">
   {#if mapError}
     <div class="relative mt-5 ml-5">
       <p class="text-[0.875rem] text-white/50" style="line-height: 1.46429em">Could not initialize map.</p>

@@ -7,6 +7,7 @@
   import { playback } from '$lib/state/playback.svelte.js';
   import { fetchDriveCoords, getRouteDriveCoords } from '$lib/state/routes.svelte.js';
   import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '$lib/utils/geocode';
+  import { keepTouch } from '$lib/attachments/keep-touch';
 
   let { route } = $props();
 
@@ -108,16 +109,6 @@
       isInteracting = false;
     }, INTERACTION_TIMEOUT);
   }
-
-  // React attached this natively, so it ran before the drawer's own listener.
-  $effect(() => {
-    const el = containerEl;
-    if (!el) return;
-
-    const stop = (ev) => ev.stopPropagation();
-    el.addEventListener('touchstart', stop);
-    return () => el.removeEventListener('touchstart', stop);
-  });
 
   // StaticMap observed its container and kept the canvas in sync with it;
   // mapbox 1.x only watches window resize on its own.
@@ -346,7 +337,7 @@
   });
 </script>
 
-<div bind:this={containerEl} class="driveMap h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
+<div bind:this={containerEl} {@attach keepTouch()} class="driveMap h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
   <!-- react-map-gl's event canvas, map container and canvas host. -->
   <div style="position: relative; width: 100%; height: 100%; cursor: grab">
     <div bind:this={mapContainerEl} style="position: relative; width: 100%; height: 100%">
