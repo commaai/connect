@@ -334,17 +334,20 @@
         }
       }
     } else if (playback.desiredPlaySpeed === 0) {
-      // Native playback, which is iOS. Setting only the rate is why a paused
-      // video never stopped buffering: an element at rate 0 is not paused, so it
-      // keeps pulling down the stream. Pausing is what stops the fetch.
+      // TODO: fix iOS bug where video doesn't stop buffering while paused
+      //
+      // Half done, and staying a TODO until someone can open a drive on a phone
+      // and watch the qcamera requests stop. Setting only the rate is why it
+      // never stopped: an element at rate 0 is not paused, so it keeps pulling
+      // down the stream. Pausing is what stops the fetch.
       //
       // Deliberately narrower than the hls branch beside it. The stall above
       // zeroes the rate too, and pausing *there* would mean recovering
       // readyState while paused and then resuming with no user gesture behind
       // the play() — neither of which has been tried on a device. Only a pause
       // the user asked for is handled here; resuming from one is a click away,
-      // so autoplay policy is satisfied. The stall path keeps the behaviour it
-      // has always had, below.
+      // so autoplay policy is satisfied. The stall path still idles at rate 0
+      // and still buffers, below.
       if (!videoEl.paused) {
         videoEl.pause();
       }
