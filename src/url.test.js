@@ -18,7 +18,7 @@ describe('URL pathname helpers', () => {
   it('returns null if a pathname segment disappears while it is read', () => {
     let reads = 0;
     const parts = [];
-    Object.defineProperty(parts, 0, { get: () => (++reads === 1 ? DONGLE : '') });
+    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
     const pathname = { split: () => ({ filter: () => parts }) };
     expect(getDongleID(pathname)).toBeNull();
   });
