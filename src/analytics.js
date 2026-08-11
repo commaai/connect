@@ -4,19 +4,21 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { destinationFromUrl } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+  const destination = destinationFromUrl(pathname);
+  if (destination.dongleId) {
+    pageLocation = pageLocation.replace(destination.dongleId, '<dongleId>');
   }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  if (destination.kind === 'legacy') {
+    pageLocation = pageLocation.replace(destination.start.toString(), '<zoomStart>');
+    pageLocation = pageLocation.replace(destination.end.toString(), '<zoomEnd>');
+  } else if (destination.kind === 'drive' && destination.start != null) {
+    pageLocation = pageLocation.replace(String(destination.start / 1000), '<zoomStart>');
+    pageLocation = pageLocation.replace(String(destination.end / 1000), '<zoomEnd>');
   }
 
   if (pageLocation.endsWith('/')) {
@@ -142,7 +144,9 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_APPLY_DESTINATION:
+    case Types.ACTION_SELECT_DRIVE:
+      if (prevState.dongleId === state.dongleId) return;
       gtag('event', 'select_device', {
         ...params,
         device_prime_type: state.device?.prime_type,

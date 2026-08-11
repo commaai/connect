@@ -1,59 +1,38 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+const exactDongleIdRegex = /^[a-f0-9]{16}$/;
+const exactLogIdRegex = /^[a-f0-9-]{20}$/;
+const secondsRegex = /^\d+$/;
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+export function destinationFromUrl(pathname) {
+  const parts = pathname.split('/').filter(Boolean);
+  const [dongleId, branch, start, end] = parts;
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
+  if (parts.length === 0) return { kind: 'root' };
+  if (!exactDongleIdRegex.test(dongleId)) return { kind: 'not-found' };
+  if (parts.length === 1) return { kind: 'dashboard', dongleId };
+  if (parts.length === 2 && branch === 'prime') return { kind: 'prime', dongleId };
+  if (parts.length === 2 && branch === 'stream') return { kind: 'stream', dongleId };
+  if (parts.length === 2 && exactLogIdRegex.test(branch)) {
+    return { kind: 'drive', dongleId, logId: branch, start: null, end: null };
   }
-
-  return parts[0] || null;
+  if (parts.length === 4 && exactLogIdRegex.test(branch)
+      && secondsRegex.test(start) && secondsRegex.test(end)) {
+    return { kind: 'drive', dongleId, logId: branch, start: Number(start) * 1000, end: Number(end) * 1000 };
+  }
+  if (parts.length === 3 && secondsRegex.test(branch) && secondsRegex.test(start)) {
+    return { kind: 'legacy', dongleId, start: Number(branch), end: Number(start) };
+  }
+  return { kind: 'not-found' };
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
+export function urlForDestination(destination) {
+  if (!destination?.dongleId) return '/';
+  const path = [destination.dongleId];
+  if (destination.page === 'prime' || destination.page === 'stream') path.push(destination.page);
+  if (destination.drive?.logId) {
+    path.push(destination.drive.logId);
+    if (destination.drive.start != null && destination.drive.end != null) {
+      path.push(Math.floor(destination.drive.start / 1000), Math.floor(destination.drive.end / 1000));
+    }
   }
-  return null;
-}
-
-export function getSegmentRange(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return {
-      log_id: parts[1],
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
-  }
-  return null;
-}
-
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
-  }
-  return false;
-}
-
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
+  return `/${path.join('/')}`;
 }

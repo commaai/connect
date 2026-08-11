@@ -1,64 +1,201 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getSegmentRange, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index';
-import { drives as Drives } from '../api';
+import { LOCATION_CHANGE, push, replace } from 'connected-react-router';
+import MyCommaAuth from '@commaai/my-comma-auth';
+import * as Sentry from '@sentry/react';
+import { account as Account, devices as Devices, drives as Drives } from '../api';
+import { destinationFromUrl, urlForDestination } from '../url';
+import * as Types from './types';
+import {
+  checkRoutesData,
+  checkLastRoutesData,
+  disconnectWebrtc,
+  fetchDeviceOnline,
+  primeFetchSubscription,
+} from './index';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
+export const navigateTo = (destination) => push(urlForDestination(destination));
+
+export const applyDestination = (destination) => ({
+  type: Types.ACTION_APPLY_DESTINATION,
+  destination,
+});
+
+export const selectDrive = (dongleId, logId, start = null, end = null) => ({
+  type: Types.ACTION_SELECT_DRIVE,
+  dongleId,
+  logId,
+  start,
+  end,
+});
+
+// Own startup loading, URL-tree resolution, branch requests, and the atomic Redux destination synchronized for each terminal node.
+//
+// Route tree:
+// /
+// └── :dongleId
+//     ├── dashboard
+//     ├── :route
+//     │   └── :start/:end
+//     ├── :legacyStart/:legacyEnd
+//     ├── stream
+//     └── prime
+const stateMatches = (state, destination) => {
+  if (state.dongleId !== destination.dongleId) return false;
+  if (destination.page === 'prime') return state.primeNav && !state.streamNav;
+  if (destination.page === 'stream') return state.streamNav && !state.primeNav;
+  if (destination.drive) {
+    return !state.primeNav && !state.streamNav
+      && state.segmentRange?.log_id === destination.drive.logId
+      && state.segmentRange?.start === destination.drive.start
+      && state.segmentRange?.end === destination.drive.end;
+  }
+  return !state.primeNav && !state.streamNav && state.segmentRange == null;
+};
+
+let startupRequest = null;
+
+const loadStartupData = () => {
+  if (!startupRequest) {
+    startupRequest = Promise.all([
+      Account.getProfile().catch(async (err) => {
+        if (err?.resp?.status === 401) await MyCommaAuth.logOut();
+        else Sentry.captureException(err, { fingerprint: 'init_api_get_profile' });
+        return null;
+      }),
+      Devices.listDevices().catch((err) => {
+        if (err?.resp?.status !== 401) Sentry.captureException(err, { fingerprint: 'init_api_list_devices' });
+        return [];
+      }),
+    ]).finally(() => { startupRequest = null; });
+  }
+  return startupRequest;
+};
+
+export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
+  const route = destinationFromUrl(pathname);
+  const isCurrent = () => window.location.pathname === pathname;
+  let profile, devices = null;
+
+  const authenticated = MyCommaAuth.isAuthenticated();
+  if (authenticated && getState().devices === null) {
+    [profile, devices] = await loadStartupData();
+    if (!isCurrent()) return;
+    if (getState().devices === null) {
+      dispatch({ type: Types.ACTION_STARTUP_DATA, profile, devices });
+      if (profile) Sentry.setUser({ id: profile.id });
+    }
+  }
+
+  devices = getState().devices;
+  profile = getState().profile;
+
+  // Root branch: / → remembered device, first sorted device, or the no-device upsell.
+  if (route.kind === 'root') {
+    const remembered = window.localStorage.getItem('selectedDongleId');
+    const device = devices?.find((candidate) => candidate.dongle_id === remembered) || devices?.[0];
+    if (!device) {
+      dispatch(applyDestination({ dongleId: null, page: 'dashboard', drive: null }));
+      return;
+    }
+    dispatch(replace(`/${device.dongle_id}`));
     return;
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathSegmentRange) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      Drives.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, null, null, true));
-          dispatch(updateSegmentRange(log_id, 0, duration));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathSegmentRange !== state.segmentRange) {
-      dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
-      if (pathSegmentRange) {
-        dispatch(updateSegmentRange(pathSegmentRange.log_id, pathSegmentRange.start, pathSegmentRange.end));
-      }
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  if (route.kind === 'not-found') {
+    dispatch(applyDestination({ dongleId: null, page: 'dashboard', drive: null }));
+    return;
   }
+
+  // Device branch: select the dongle, fetching it directly if not in the owned list.
+  const { dongleId } = route;
+  const deviceChanged = getState().dongleId !== dongleId;
+  if (route.kind === 'legacy'
+      && (getState().dongleId !== dongleId || getState().urlTransition !== 'converting-route')) {
+    dispatch(applyDestination({ dongleId, page: 'legacy', drive: null }));
+  }
+  const prevDevice = getState().device;
+  if (deviceChanged && prevDevice) {
+    disconnectWebrtc?.();
+  }
+  let device = devices?.find((candidate) => candidate.dongle_id === dongleId);
+  if (authenticated && device == null) {
+    try {
+      device = await Devices.fetchDevice(dongleId);
+      if (!isCurrent()) return;
+      dispatch({ type: Types.ACTION_UPDATE_DEVICE, device });
+    } catch (err) {
+      if (err?.resp?.status === 404) {
+        dispatch(applyDestination({ dongleId, page: 'dashboard', drive: null }));
+        return;
+      }
+      throw err;
+    }
+  }
+
+  // Route branch: /:dongleId/:logId[/:start/:end]
+  if (route.kind === 'drive') {
+    window.localStorage.setItem('selectedDongleId', dongleId);
+    const destination = { dongleId, page: 'drive', drive: route };
+    if (!stateMatches(getState(), destination)) {
+      dispatch(selectDrive(dongleId, route.logId, route.start, route.end));
+    }
+    dispatch(checkRoutesData());
+    return;
+  }
+
+  // Legacy range branch: /:dongleId/:legacyStart/:legacyEnd → resolve to canonical route URL
+  if (route.kind === 'legacy') {
+    try {
+      const routesData = await Drives.getRoutesSegments(dongleId, route.start, route.end);
+      if (!isCurrent()) return;
+      const logId = routesData?.[0]?.fullname?.split('|')[1];
+      if (logId) {
+        dispatch(replace(`/${dongleId}/${logId}`));
+        return;
+      }
+    } catch (err) {
+      console.error('Error fetching routes data for log ID conversion', err);
+    }
+    return;
+  }
+
+  // Prime branch: /:dongleId/prime
+  if (route.kind === 'prime') {
+    window.localStorage.setItem('selectedDongleId', dongleId);
+    const destination = { dongleId, page: 'prime', drive: null };
+    if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
+    if (deviceChanged) dispatch(primeFetchSubscription(dongleId, device, profile));
+    return;
+  }
+
+  // Stream branch: /:dongleId/stream
+  if (route.kind === 'stream') {
+    window.localStorage.setItem('selectedDongleId', dongleId);
+    const destination = { dongleId, page: 'stream', drive: null };
+    if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
+    if (deviceChanged) dispatch(fetchDeviceOnline(dongleId));
+    return;
+  }
+
+  // Dashboard branch: /:dongleId
+  if (route.kind === 'dashboard') {
+    window.localStorage.setItem('selectedDongleId', dongleId);
+    const destination = { dongleId, page: 'dashboard', drive: null };
+    if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
+    if (deviceChanged || getState().routes == null) dispatch(checkLastRoutesData());
+    return;
+  }
+
+  // 404 for unrecognized paths
+  dispatch(applyDestination({ dongleId: null, page: 'dashboard', drive: null }));
 };
+
+export function onHistoryMiddleware({ dispatch, getState }) {
+  return (next) => (action) => {
+    if (!action) return undefined;
+    const result = next(action);
+    if (action.type === LOCATION_CHANGE) {
+      dispatch(syncStateFromUrl(action.payload.location.pathname));
+    }
+    return result;
+  };
+}
