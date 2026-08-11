@@ -54,7 +54,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       // Required for Sentry
-      sourcemap: true,
+      sourcemap: !process.env.E2E,
     },
     plugins: [
       // TODO: compression plugin

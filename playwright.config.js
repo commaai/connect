@@ -6,7 +6,7 @@ export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
   use: {
     baseURL: 'http://127.0.0.1:3000',
-    trace: 'retain-on-failure',
+    trace: process.env.CI ? 'off' : 'retain-on-failure',
   },
   projects: [{
     name: 'chromium',
@@ -18,7 +18,7 @@ export default defineConfig({
     },
   }],
   webServer: {
-    command: 'bun run start --host 127.0.0.1',
+    command: 'E2E=true bun run build:development && bun run serve --host 127.0.0.1 --port 3000',
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: true,
   },
