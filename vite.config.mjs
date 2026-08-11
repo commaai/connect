@@ -8,6 +8,10 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 function previewBranding() {
   return {
+    esbuild: {
+      loader: 'jsx',
+      include: /src\/.*\.js$/,
+    },
     name: 'preview-branding',
     apply: 'build',
     enforce: 'post',
@@ -66,6 +70,16 @@ export default defineConfig(({ mode }) => {
         define: {
           global: 'globalThis',
         },
+      },
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      include: ['src/**/*.test.{js,jsx,ts,tsx}'],
+      setupFiles: ['./config/vitest/setupTests.js'],
+      coverage: {
+        provider: 'v8',
+        include: ['src/**/*.{js,jsx,ts,tsx}'],
       },
     },
   };

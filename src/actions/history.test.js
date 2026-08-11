@@ -1,5 +1,5 @@
-/* eslint-env jest */
 /* eslint-disable no-import-assign */
+import { vi } from 'vitest';
 import { routerMiddleware, LOCATION_CHANGE } from 'connected-react-router';
 import thunk from 'redux-thunk';
 
@@ -7,19 +7,21 @@ import { history } from '../store';
 import { onHistoryMiddleware } from './history';
 import * as actionsIndex from './index';
 
-jest.mock('./index', () => ({
-  selectDevice: jest.fn(),
-  pushTimelineRange: jest.fn(),
-  primeNav: jest.fn(),
-  streamNav: jest.fn(),
+vi.mock('./index', () => ({
+  selectDevice: vi.fn(),
+  pushTimelineRange: vi.fn(),
+  updateSegmentRange: vi.fn(),
+  checkRoutesData: vi.fn(),
+  primeNav: vi.fn(),
+  streamNav: vi.fn(),
 }));
 
 const create = (initialState) => {
   const store = {
-    getState: jest.fn(() => initialState),
-    dispatch: jest.fn(),
+    getState: vi.fn(() => initialState),
+    dispatch: vi.fn(),
   };
-  const next = jest.fn();
+  const next = vi.fn();
 
   const middleware = (s) => (n) => (action) => {
     routerMiddleware(history)(s)(n)(action);
@@ -32,7 +34,7 @@ const create = (initialState) => {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 describe('history middleware', () => {
@@ -45,7 +47,7 @@ describe('history middleware', () => {
 
   it('calls the function', () => {
     const { invoke } = create();
-    const fn = jest.fn();
+    const fn = vi.fn();
     invoke(fn);
     expect(fn).toHaveBeenCalled();
   });
@@ -79,9 +81,9 @@ describe('history middleware', () => {
     };
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
-    expect(store.dispatch).toHaveBeenCalledTimes(2);
+    expect(store.dispatch).toHaveBeenCalledTimes(3);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
-    expect(actionsIndex.selectDevice).toHaveBeenCalledWith('0000aaaa0000aaaa', false);
+    expect(actionsIndex.selectDevice).toHaveBeenCalledWith('0000aaaa0000aaaa', false, false);
   });
 
   it('should call select zoom with history', async () => {
@@ -104,9 +106,10 @@ describe('history middleware', () => {
     };
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
-    expect(store.dispatch).toHaveBeenCalledTimes(1);
+    expect(store.dispatch).toHaveBeenCalledTimes(2);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
     expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith("00000000--000f00000d", 1230000, 1234000, false);
+    expect(actionsIndex.updateSegmentRange).toHaveBeenCalledWith("00000000--000f00000d", 1230000, 1234000);
   });
 
   it('should call prime nav with history', async () => {

@@ -1,20 +1,26 @@
-/* eslint-env jest */
+import { vi } from 'vitest';
 import { push } from 'connected-react-router';
 import { pushTimelineRange } from './index';
 
-jest.mock('connected-react-router', () => {
-  const originalModule = jest.requireActual('connected-react-router');
+vi.mock('../timeline/playback', () => ({
+  reducer: (state) => state,
+  resetPlayback: vi.fn(),
+  selectLoop: vi.fn(),
+}));
+
+vi.mock('connected-react-router', async () => {
+  const originalModule = await vi.importActual('connected-react-router');
   return {
     __esModule: true,
     ...originalModule,
-    push: jest.fn(),
+    push: vi.fn(),
   };
 });
 
 describe('timeline actions', () => {
   it('should push history state when editing zoom', () => {
-    const dispatch = jest.fn();
-    const getState = jest.fn();
+    const dispatch = vi.fn();
+    const getState = vi.fn();
     const actionThunk = pushTimelineRange("log_id", 123, 1234);
 
     getState.mockImplementationOnce(() => ({

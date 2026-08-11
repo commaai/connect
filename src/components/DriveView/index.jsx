@@ -35,7 +35,15 @@ class DriveView extends Component {
   render() {
     const { dongleId, zoom, currentRoute, routes } = this.props;
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute?.duration;
+    if (!currentRoute) {
+      return (
+        <div className="DriveView p-8">
+          <Typography>Route does not exist.</Typography>
+        </div>
+      );
+    }
+
+    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
     const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time

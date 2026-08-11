@@ -138,6 +138,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             : 'flex items-center px-3 py-2 bg-[#1D2225] border-b border-white/10 min-h-[64px] z-10'}
         >
           <button
+            aria-label="Close teleop"
             className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass cursor-pointer' : 'text-white p-2 cursor-pointer'}
             onClick={handleClose}
           >

@@ -446,6 +446,7 @@ class DeviceInfo extends Component {
             placement="bottom"
           >
             <button
+              aria-label={ bodyTeleopEnabled ? 'Teleop' : 'Livestream' }
               style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
               className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
               onClick={ this.openBodyTeleop }

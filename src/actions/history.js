@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
 import { getDongleID, getZoom, getSegmentRange, getPrimeNav, getStreamNav } from '../url';
-import { primeNav, streamNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index';
+import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index';
 import { drives as Drives } from '../api';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
@@ -15,7 +15,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
 
     const pathDongleId = getDongleID(action.payload.location.pathname);
     if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false));
+      dispatch(selectDevice(pathDongleId, false, false));
     }
 
     const pathZoom = getZoom(action.payload.location.pathname);
@@ -40,6 +40,13 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     
     if (pathSegmentRange !== state.segmentRange) {
       dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
+      if (pathSegmentRange) {
+        dispatch(updateSegmentRange(pathSegmentRange.log_id, pathSegmentRange.start, pathSegmentRange.end));
+      }
+    }
+
+    if (pathDongleId && pathDongleId !== state.dongleId) {
+      dispatch(checkRoutesData());
     }
 
     const pathPrimeNav = getPrimeNav(action.payload.location.pathname);

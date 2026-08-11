@@ -1,4 +1,4 @@
-/* eslint-env jest */
+import { vi } from 'vitest';
 import { priorityGetContext, reverseLookup } from './geocode';
 
 describe('priorityGetContext', () => {
@@ -13,7 +13,7 @@ describe('priorityGetContext', () => {
 });
 
 describe('reverseLookup', () => {
-  jest.setTimeout(10000);
+  vi.setConfig({ testTimeout: 10000 });
 
   it('should return null if coords are [0, 0]', async () => {
     const result = await reverseLookup([0, 0]);

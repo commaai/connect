@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "import", "jest", "typescript", "unicorn", "oxc"],
+  "plugins": ["react", "import", "vitest", "typescript", "unicorn", "oxc"],
   "categories": {
     "correctness": "error"
   },
@@ -8,7 +8,7 @@
     "es6": true,
     "node": true,
     "browser": true,
-    "jest": true
+    "vitest": true
   },
   "globals": {
     "gtag": "readonly"
@@ -60,9 +60,8 @@
     "react/no-did-update-set-state": "off",
     "react/no-unsafe": "off",
     "react-hooks/exhaustive-deps": "off",
-    "jest/expect-expect": "off",
-    "jest/valid-title": "off",
-    "jest/no-export": "off",
+    "vitest/expect-expect": "off",
+    "vitest/valid-title": "off",
     "oxc/double-comparisons": "off"
   }
 }
