@@ -431,6 +431,9 @@ class Timeline extends Component {
           { hasRuler && (
             <>
               <div
+                aria-label="Drive timeline"
+                role="slider"
+                tabIndex={0}
                 ref={ this.onRulerRef }
                 className={classes.ruler}
                 onPointerDown={this.handlePointerDown}

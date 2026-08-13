@@ -272,7 +272,7 @@ export function updateSegmentRange(log_id, start, end) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true) {
+export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
@@ -300,7 +300,9 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dispatch(fetchDeviceOnline(dongleId));
     }
 
-    dispatch(checkRoutesData());
+    if (fetchRoutes) {
+      dispatch(checkRoutesData());
+    }
 
     if (allowPathChange) {
       const desiredPath = urlForState(dongleId, null, null, null, null);
