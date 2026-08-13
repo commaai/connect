@@ -19,14 +19,6 @@ export const applyDestination = (destination) => ({
   destination,
 });
 
-export const selectDrive = (dongleId, logId, start = null, end = null) => ({
-  type: Types.ACTION_SELECT_DRIVE,
-  dongleId,
-  logId,
-  start,
-  end,
-});
-
 // Route tree:
 // /
 // └── :dongleId
@@ -134,9 +126,10 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   // route branch: /:dongleId/:logId[/:start/:end]
   if (route.kind === 'drive') {
     window.localStorage.setItem('selectedDongleId', dongleId);
-    const destination = { dongleId, page: 'drive', drive: route };
+    const drive = { logId: route.logId, start: route.start, end: route.end };
+    const destination = { dongleId, page: 'drive', drive };
     if (!stateMatches(getState(), destination)) {
-      dispatch(selectDrive(dongleId, route.logId, route.start, route.end));
+      dispatch(applyDestination(destination));
     }
     dispatch(checkRoutesData());
     return;
