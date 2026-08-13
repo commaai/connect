@@ -106,6 +106,8 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
 
   const { dongleId } = route;
   const deviceChanged = getState().dongleId !== dongleId;
+  
+  // TODO: write better redux and move this out
   if (deviceChanged) webrtcConnectionManager.disconnect();
 
   // device branch: select the dongle, fetching it directly if not in the owned list.
