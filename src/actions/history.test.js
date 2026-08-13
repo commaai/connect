@@ -3,6 +3,7 @@ import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { account as Account, drives as Drives, devices as Devices } from '../api';
+import { webrtcConnectionManager } from '../utils/webrtc';
 import * as Types from './types';
 import { onHistoryMiddleware, syncStateFromUrl } from './history';
 import * as actions from './index';
@@ -12,6 +13,9 @@ vi.mock('../api', () => ({
   account: { getProfile: vi.fn() },
   devices: { listDevices: vi.fn(), fetchDevice: vi.fn() },
   drives: { getRoutesSegments: vi.fn() },
+}));
+vi.mock('../utils/webrtc', () => ({
+  webrtcConnectionManager: { disconnect: vi.fn() },
 }));
 vi.mock('./index', () => ({
   checkRoutesData: vi.fn(() => ({ type: 'CHECK_ROUTES' })),
@@ -99,6 +103,20 @@ describe('syncStateFromUrl', () => {
       end: 20000,
     });
     expect(actions.checkRoutesData).toHaveBeenCalledOnce();
+  });
+
+  it('disconnects WebRTC when the URL changes to another dongle', async () => {
+    const { promise } = run(`/${OTHER}`);
+    await promise;
+
+    expect(webrtcConnectionManager.disconnect).toHaveBeenCalledOnce();
+  });
+
+  it('keeps WebRTC connected when the URL stays on the same dongle', async () => {
+    const { promise } = run(`/${DONGLE}`);
+    await promise;
+
+    expect(webrtcConnectionManager.disconnect).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -3,6 +3,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import * as Sentry from '@sentry/react';
 import { account as Account, devices as Devices, drives as Drives } from '../api';
 import { destinationFromUrl, urlForDestination } from '../url';
+import { webrtcConnectionManager } from '../utils/webrtc';
 import * as Types from './types';
 import {
   checkRoutesData,
@@ -26,8 +27,6 @@ export const selectDrive = (dongleId, logId, start = null, end = null) => ({
   end,
 });
 
-// Own startup loading, URL-tree resolution, branch requests, and the atomic Redux destination synchronized for each terminal node.
-//
 // Route tree:
 // /
 // └── :dongleId
@@ -107,22 +106,24 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
 
   const { dongleId } = route;
   const deviceChanged = getState().dongleId !== dongleId;
+  if (deviceChanged) webrtcConnectionManager.disconnect();
 
   // device branch: select the dongle, fetching it directly if not in the owned list.
   let device = devices?.find((candidate) => candidate.dongle_id === dongleId);
-  if (authenticated && device == null) {
-    try {
-      // try to fetch, maybe its a shared device!
-      device = await Devices.fetchDevice(dongleId);
-      if (!isCurrent()) return;
-      dispatch({ type: Types.ACTION_UPDATE_DEVICE, device });
-    } catch (err) {
-      if (err?.resp?.status === 404) {
-        dispatch({ type: Types.ACTION_DEVICE_NOT_FOUND });
-        return;
+  if (authenticated) {
+    if (device == null) {
+      try {
+        device = await Devices.fetchDevice(dongleId); // try to fetch, maybe its a shared device!
+        if (!isCurrent()) return;
+      } catch (err) {
+        if (err?.resp?.status === 404) {
+          dispatch({ type: Types.ACTION_DEVICE_NOT_FOUND });
+          return;
+        }
+        throw err;
       }
-      throw err;
     }
+    dispatch({ type: Types.ACTION_UPDATE_DEVICE, device });
   }
 
   // online state is intentionally refreshed on every device URL synchronization.
