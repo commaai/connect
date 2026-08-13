@@ -7,6 +7,7 @@ import rootReducer from './reducers';
 import composeEnhancers from './devtools';
 import { onHistoryMiddleware } from './actions/history';
 import { analyticsMiddleware } from './analytics';
+import { webrtcMiddleware } from './webrtcMiddleware';
 
 export const history = createBrowserHistory();
 
@@ -17,6 +18,7 @@ const store = Redux.createStore(
     onHistoryMiddleware,
     routerMiddleware(history),
     analyticsMiddleware,
+    webrtcMiddleware,
   )),
 );
 

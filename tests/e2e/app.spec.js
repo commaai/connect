@@ -169,6 +169,12 @@ test('device dashboards', async ({ context }) => {
     await page.getByRole('button', { name: 'Cancel' }).click();
     expect(api.requests.some(({ url }) => url.includes('routes_segments'))).toBe(true);
   });
+
+  await scenario(context, 'an unrecognized URL shows a 404', {}, async (page) => {
+    await page.goto(`/${FIRST}/not/a/route`);
+    await expect(page.getByText('Error 404')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+  });
 });
 
 test('drive cold entry', async ({ context }) => {
@@ -227,11 +233,19 @@ test('legacy timestamps', async ({ context }) => {
   for (const [name, options] of [
     ['empty', { emptyRoutes: true }],
     ['failed', { failedRoutes: true }],
-  ]) await scenario(context, `legacy timestamp URL remains loading after ${name === 'empty' ? 'an empty' : 'a failed'} lookup`, options, async (page) => {
+  ]) await scenario(context, `legacy timestamp URL shows not found after ${name === 'empty' ? 'an empty' : 'a failed'} lookup`, options, async (page) => {
     const pathname = `/${FIRST}/${START}/${START + 60_000}`;
     await page.goto(pathname);
     await expect(page).toHaveURL(pathname);
-    await expect(page.getByText('Loading...')).toBeVisible();
+    await expect(page.getByText('Error 404')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+  });
+
+  await scenario(context, 'a nonsensical legacy timestamp URL shows not found', {}, async (page) => {
+    const pathname = `/${FIRST}/${START + 60_000}/${START}`;
+    await page.goto(pathname);
+    await expect(page).toHaveURL(pathname);
+    await expect(page.getByText('Error 404')).toBeVisible();
   });
 });
 

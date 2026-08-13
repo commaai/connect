@@ -7,10 +7,7 @@ import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
-import { webrtcConnectionManager } from '../utils/webrtc';
 import { urlForDestination } from '../url';
-
-export const disconnectWebrtc = () => webrtcConnectionManager.disconnect();
 
 let routesRequest = null;
 let routesRequestPromise = null;

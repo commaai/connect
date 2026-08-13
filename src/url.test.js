@@ -19,11 +19,25 @@ describe('destinationFromUrl', () => {
   });
 
   it.each([
+    [`/${DONGLE}/${LOG}/20/10`],
+    [`/${DONGLE}/${LOG}/10/10`],
+    [`/${DONGLE}/${LOG}/9007199254741/9007199254742`],
+    [`/${DONGLE}/${LOG}/${'9'.repeat(400)}/${'9'.repeat(401)}`],
+  ])('drops an invalid range from %s', (pathname) => {
+    expect(destinationFromUrl(pathname)).toEqual({
+      kind: 'drive', dongleId: DONGLE, logId: LOG, start: null, end: null,
+    });
+  });
+
+  it.each([
     '/not-a-device',
     `/${DONGLE}/prime/extra`,
     `/${DONGLE}/${LOG}/10`,
     `/${DONGLE}/${LOG}/ten/20`,
     `/${DONGLE}/10/20/extra`,
+    `/${DONGLE}/20/10`,
+    `/${DONGLE}/10/10`,
+    `/${DONGLE}/9007199254740992/9007199254740993`,
   ])('rejects %s', (pathname) => {
     expect(destinationFromUrl(pathname)).toEqual({ kind: 'not-found' });
   });

@@ -2,6 +2,20 @@ const exactDongleIdRegex = /^[a-f0-9]{16}$/;
 const exactLogIdRegex = /^[a-f0-9-]{20}$/;
 const secondsRegex = /^\d+$/;
 
+const driveRange = (start, end) => {
+  const startMillis = Number(start) * 1000;
+  const endMillis = Number(end) * 1000;
+  if (!Number.isSafeInteger(startMillis) || !Number.isSafeInteger(endMillis) || endMillis <= startMillis) return null;
+  return { start: startMillis, end: endMillis };
+};
+
+const legacyRange = (start, end) => {
+  const startMillis = Number(start);
+  const endMillis = Number(end);
+  if (!Number.isSafeInteger(startMillis) || !Number.isSafeInteger(endMillis) || endMillis <= startMillis) return null;
+  return { start: startMillis, end: endMillis };
+};
+
 export function destinationFromUrl(pathname) {
   const parts = pathname.split('/').filter(Boolean);
   const [dongleId, branch, start, end] = parts;
@@ -16,10 +30,12 @@ export function destinationFromUrl(pathname) {
   }
   if (parts.length === 4 && exactLogIdRegex.test(branch)
       && secondsRegex.test(start) && secondsRegex.test(end)) {
-    return { kind: 'drive', dongleId, logId: branch, start: Number(start) * 1000, end: Number(end) * 1000 };
+    const range = driveRange(start, end);
+    return { kind: 'drive', dongleId, logId: branch, start: range?.start ?? null, end: range?.end ?? null };
   }
   if (parts.length === 3 && secondsRegex.test(branch) && secondsRegex.test(start)) {
-    return { kind: 'legacy', dongleId, start: Number(branch), end: Number(start) };
+    const range = legacyRange(branch, start);
+    if (range) return { kind: 'legacy', dongleId, ...range };
   }
   return { kind: 'not-found' };
 }

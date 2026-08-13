@@ -27,6 +27,7 @@ export default {
 
   profile: null,
   devices: null,
+  deviceNotFound: false,
 
   primeNav: false,
   streamNav: false,

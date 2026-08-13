@@ -26,6 +26,7 @@ export default function reducer(_state, action) {
       const { dongleId, page } = action.destination;
       const deviceChanged = state.dongleId !== dongleId;
       state.dongleId = dongleId;
+      state.deviceNotFound = false;
       state.primeNav = page === 'prime';
       state.streamNav = page === 'stream';
       state.urlTransition = page === 'legacy' ? 'converting-route' : null;
@@ -48,6 +49,7 @@ export default function reducer(_state, action) {
     case Types.ACTION_SELECT_DRIVE: {
       const deviceChanged = state.dongleId !== action.dongleId;
       state.dongleId = action.dongleId;
+      state.deviceNotFound = false;
       state.primeNav = false;
       state.streamNav = false;
       state.urlTransition = null;
@@ -67,6 +69,14 @@ export default function reducer(_state, action) {
       state.zoom = action.start != null && action.end != null
         ? { start: action.start, end: action.end, previous: state.zoom }
         : (route ? { start: 0, end: route.duration, previous: state.zoom } : null);
+      state.loop = state.zoom
+        ? { startTime: state.zoom.start, duration: state.zoom.end - state.zoom.start }
+        : null;
+      break;
+    }
+    case Types.ACTION_DEVICE_NOT_FOUND: {
+      state.deviceNotFound = true;
+      state.device = null;
       break;
     }
     case Types.ACTION_STARTUP_DATA: {

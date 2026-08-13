@@ -7,7 +7,6 @@ import * as Types from './types';
 import {
   checkRoutesData,
   checkLastRoutesData,
-  disconnectWebrtc,
   fetchDeviceOnline,
   primeFetchSubscription,
 } from './index';
@@ -76,6 +75,7 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   let profile, devices = null;
 
   const authenticated = MyCommaAuth.isAuthenticated();
+
   if (authenticated && getState().devices === null) {
     [profile, devices] = await loadStartupData();
     if (!isCurrent()) return;
@@ -88,8 +88,8 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   devices = getState().devices;
   profile = getState().profile;
 
-  // Root branch: / → remembered device, first sorted device, or the no-device upsell.
-  if (route.kind === 'root') {
+  // root branch: / → remembered device, first sorted device, or the no-device upsell.
+  if (authenticated && route.kind === 'root') {
     const remembered = window.localStorage.getItem('selectedDongleId');
     const device = devices?.find((candidate) => candidate.dongle_id === remembered) || devices?.[0];
     if (!device) {
@@ -105,33 +105,30 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
     return;
   }
 
-  // Device branch: select the dongle, fetching it directly if not in the owned list.
   const { dongleId } = route;
   const deviceChanged = getState().dongleId !== dongleId;
-  if (route.kind === 'legacy'
-      && (getState().dongleId !== dongleId || getState().urlTransition !== 'converting-route')) {
-    dispatch(applyDestination({ dongleId, page: 'legacy', drive: null }));
-  }
-  const prevDevice = getState().device;
-  if (deviceChanged && prevDevice) {
-    disconnectWebrtc?.();
-  }
+
+  // device branch: select the dongle, fetching it directly if not in the owned list.
   let device = devices?.find((candidate) => candidate.dongle_id === dongleId);
   if (authenticated && device == null) {
     try {
+      // try to fetch, maybe its a shared device!
       device = await Devices.fetchDevice(dongleId);
       if (!isCurrent()) return;
       dispatch({ type: Types.ACTION_UPDATE_DEVICE, device });
     } catch (err) {
       if (err?.resp?.status === 404) {
-        dispatch(applyDestination({ dongleId, page: 'dashboard', drive: null }));
+        dispatch({ type: Types.ACTION_DEVICE_NOT_FOUND });
         return;
       }
       throw err;
     }
   }
 
-  // Route branch: /:dongleId/:logId[/:start/:end]
+  // online state is intentionally refreshed on every device URL synchronization.
+  if (authenticated) dispatch(fetchDeviceOnline(dongleId));
+
+  // route branch: /:dongleId/:logId[/:start/:end]
   if (route.kind === 'drive') {
     window.localStorage.setItem('selectedDongleId', dongleId);
     const destination = { dongleId, page: 'drive', drive: route };
@@ -149,17 +146,20 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
       if (!isCurrent()) return;
       const logId = routesData?.[0]?.fullname?.split('|')[1];
       if (logId) {
+        // resolve to new url
         dispatch(replace(`/${dongleId}/${logId}`));
         return;
       }
     } catch (err) {
       console.error('Error fetching routes data for log ID conversion', err);
+      if (!isCurrent()) return;
     }
+    dispatch(applyDestination({ dongleId: null, page: 'dashboard', drive: null }));
     return;
   }
 
   // Prime branch: /:dongleId/prime
-  if (route.kind === 'prime') {
+  if (authenticated && route.kind === 'prime') {
     window.localStorage.setItem('selectedDongleId', dongleId);
     const destination = { dongleId, page: 'prime', drive: null };
     if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
@@ -168,19 +168,19 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   }
 
   // Stream branch: /:dongleId/stream
-  if (route.kind === 'stream') {
+  if (authenticated && route.kind === 'stream') {
     window.localStorage.setItem('selectedDongleId', dongleId);
     const destination = { dongleId, page: 'stream', drive: null };
     if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
-    if (deviceChanged) dispatch(fetchDeviceOnline(dongleId));
     return;
   }
 
   // Dashboard branch: /:dongleId
-  if (route.kind === 'dashboard') {
+  if (authenticated && route.kind === 'dashboard') {
     window.localStorage.setItem('selectedDongleId', dongleId);
     const destination = { dongleId, page: 'dashboard', drive: null };
     if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
+    dispatch(primeFetchSubscription(dongleId, device, profile));
     if (deviceChanged || getState().routes == null) dispatch(checkLastRoutesData());
     return;
   }
