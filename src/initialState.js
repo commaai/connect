@@ -31,7 +31,6 @@ export default {
 
   primeNav: false,
   streamNav: false,
-  urlTransition: null,
   subscription: null,
   subscribeInfo: null,
 

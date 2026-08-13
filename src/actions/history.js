@@ -142,7 +142,7 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
     return;
   }
 
-  // Legacy range branch: /:dongleId/:legacyStart/:legacyEnd → resolve to canonical route URL
+  // legacy range branch: /:dongleId/:legacyStart/:legacyEnd → resolve to canonical route URL
   if (route.kind === 'legacy') {
     try {
       const routesData = await Drives.getRoutesSegments(dongleId, route.start, route.end);
@@ -161,7 +161,7 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
     return;
   }
 
-  // Prime branch: /:dongleId/prime
+  // prime branch: /:dongleId/prime
   if (authenticated && route.kind === 'prime') {
     window.localStorage.setItem('selectedDongleId', dongleId);
     const destination = { dongleId, page: 'prime', drive: null };
@@ -170,7 +170,7 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
     return;
   }
 
-  // Stream branch: /:dongleId/stream
+  // stream branch: /:dongleId/stream
   if (authenticated && route.kind === 'stream') {
     window.localStorage.setItem('selectedDongleId', dongleId);
     const destination = { dongleId, page: 'stream', drive: null };
@@ -178,7 +178,7 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
     return;
   }
 
-  // Dashboard branch: /:dongleId
+  // dashboard branch: /:dongleId
   if (authenticated && route.kind === 'dashboard') {
     window.localStorage.setItem('selectedDongleId', dongleId);
     const destination = { dongleId, page: 'dashboard', drive: null };

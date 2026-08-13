@@ -23,17 +23,13 @@ export default function reducer(_state, action) {
   let deviceIndex = null;
   switch (action.type) {
     case Types.ACTION_APPLY_DESTINATION: {
-      const { dongleId, page } = action.destination;
+      const { dongleId, page, drive } = action.destination;
       const deviceChanged = state.dongleId !== dongleId;
       state.dongleId = dongleId;
       state.deviceNotFound = false;
       state.primeNav = page === 'prime';
       state.streamNav = page === 'stream';
       state.urlTransition = page === 'legacy' ? 'converting-route' : null;
-      state.segmentRange = null;
-      state.currentRoute = null;
-      state.zoom = null;
-      state.loop = null;
       if (deviceChanged) {
         state.device = state.devices?.find((device) => device.dongle_id === dongleId) || null;
         state.subscription = null;
@@ -44,30 +40,14 @@ export default function reducer(_state, action) {
         state.limit = 0;
         state.routesMeta = { dongleId: null, start: null, end: null };
       }
-      break;
-    }
-    case Types.ACTION_SELECT_DRIVE: {
-      const deviceChanged = state.dongleId !== action.dongleId;
-      state.dongleId = action.dongleId;
-      state.deviceNotFound = false;
-      state.primeNav = false;
-      state.streamNav = false;
-      state.urlTransition = null;
-      state.segmentRange = { log_id: action.logId, start: action.start, end: action.end };
-      if (deviceChanged) {
-        state.device = state.devices?.find((device) => device.dongle_id === action.dongleId) || null;
-        state.subscription = null;
-        state.subscribeInfo = null;
-        state.files = null;
-        state.routes = null;
-        state.lastRoutes = null;
-        state.limit = 0;
-        state.routesMeta = { dongleId: null, start: null, end: null };
-      }
-      const route = state.routes?.find((candidate) => candidate.log_id === action.logId);
+
+      state.segmentRange = drive
+        ? { log_id: drive.logId, start: drive.start, end: drive.end }
+        : null;
+      const route = drive && state.routes?.find((candidate) => candidate.log_id === drive.logId);
       state.currentRoute = route || null;
-      state.zoom = action.start != null && action.end != null
-        ? { start: action.start, end: action.end, previous: state.zoom }
+      state.zoom = drive?.start != null && drive?.end != null
+        ? { start: drive.start, end: drive.end, previous: state.zoom }
         : (route ? { start: 0, end: route.duration, previous: state.zoom } : null);
       state.loop = state.zoom
         ? { startTime: state.zoom.start, duration: state.zoom.end - state.zoom.start }

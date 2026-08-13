@@ -12,12 +12,7 @@ const devices = [
   { alias: 'Alpha', dongle_id: SECOND, device_type: 'threex', is_owner: true, prime: false },
 ];
 
-const SORTED_FIRST = [...devices].sort((a, b) => {
-  if (a.is_owner !== b.is_owner) return b.is_owner - a.is_owner;
-  if (a.alias && b.alias) return a.alias.localeCompare(b.alias);
-  if (!a.alias && !b.alias) return a.dongle_id.localeCompare(b.dongle_id);
-  return Boolean(b.alias) - Boolean(a.alias);
-})[0].dongle_id;
+const SORTED_FIRST = SECOND;
 
 function route(dongleId, logId = RECENT_LOG) {
   const start = logId === LOG ? START : START + 3_600_000;
@@ -111,6 +106,11 @@ async function assertHandled(unhandled) {
   expect(unhandled, `Unhandled application requests:\n${unhandled.join('\n')}`).toEqual([]);
 }
 
+async function expectPageNotFound(page) {
+  await expect(page.getByText('Error 404')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+}
+
 async function scenario(context, name, options, run) {
   await test.step(name, async () => {
     const page = await context.newPage();
@@ -172,8 +172,7 @@ test('device dashboards', async ({ context }) => {
 
   await scenario(context, 'an unrecognized URL shows a 404', {}, async (page) => {
     await page.goto(`/${FIRST}/not/a/route`);
-    await expect(page.getByText('Error 404')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    await expectPageNotFound(page);
   });
 });
 
@@ -237,15 +236,14 @@ test('legacy timestamps', async ({ context }) => {
     const pathname = `/${FIRST}/${START}/${START + 60_000}`;
     await page.goto(pathname);
     await expect(page).toHaveURL(pathname);
-    await expect(page.getByText('Error 404')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    await expectPageNotFound(page);
   });
 
   await scenario(context, 'a nonsensical legacy timestamp URL shows not found', {}, async (page) => {
     const pathname = `/${FIRST}/${START + 60_000}/${START}`;
     await page.goto(pathname);
     await expect(page).toHaveURL(pathname);
-    await expect(page.getByText('Error 404')).toBeVisible();
+    await expectPageNotFound(page);
   });
 });
 

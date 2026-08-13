@@ -145,7 +145,6 @@ function logAction(action, prevState, state) {
       return;
 
     case Types.ACTION_APPLY_DESTINATION:
-    case Types.ACTION_SELECT_DRIVE:
       if (prevState.dongleId === state.dongleId) return;
       gtag('event', 'select_device', {
         ...params,

@@ -30,7 +30,9 @@ vi.mock('connected-react-router', async () => {
 
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
+const UNKNOWN = '2222cccc2222cccc';
 const LOG = '2026-08-06--12-00-00';
+const NOT_FOUND_DESTINATION = { dongleId: null, page: 'dashboard', drive: null };
 
 const baseState = {
   dongleId: DONGLE,
@@ -53,6 +55,17 @@ function run(url, state = baseState) {
   });
   return { dispatched, dispatch, promise: dispatch(syncStateFromUrl(pathname)) };
 }
+
+async function dispatchedFor(url, state) {
+  const { dispatched, promise } = run(url, state);
+  await promise;
+  return dispatched;
+}
+
+const expectDestination = (dispatched, destination) => expect(dispatched).toContainEqual({
+  type: Types.ACTION_APPLY_DESTINATION,
+  destination,
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -82,8 +95,7 @@ describe('syncStateFromUrl', () => {
   it('does not request private data for a signed-out private route', async () => {
     MyCommaAuth.isAuthenticated.mockReturnValue(false);
     const signedOutState = { ...baseState, devices: null };
-    const { promise } = run(`/${DONGLE}`, signedOutState);
-    await promise;
+    await dispatchedFor(`/${DONGLE}`, signedOutState);
 
     expect(Account.getProfile).not.toHaveBeenCalled();
     expect(Devices.listDevices).not.toHaveBeenCalled();
@@ -92,88 +104,65 @@ describe('syncStateFromUrl', () => {
   });
 
   it('atomically selects a drive and starts its route load', async () => {
-    const { dispatched, promise } = run(`/${OTHER}/${LOG}/10/20`);
-    await promise;
+    const dispatched = await dispatchedFor(`/${OTHER}/${LOG}/10/20`);
 
     expect(dispatched).toContainEqual({
-      type: Types.ACTION_SELECT_DRIVE,
-      dongleId: OTHER,
-      logId: LOG,
-      start: 10000,
-      end: 20000,
+      type: Types.ACTION_APPLY_DESTINATION,
+      destination: {
+        dongleId: OTHER,
+        page: 'drive',
+        drive: { logId: LOG, start: 10000, end: 20000 },
+      },
     });
     expect(actions.checkRoutesData).toHaveBeenCalledOnce();
   });
 
-  it('disconnects WebRTC when the URL changes to another dongle', async () => {
-    const { promise } = run(`/${OTHER}`);
-    await promise;
-
-    expect(webrtcConnectionManager.disconnect).toHaveBeenCalledOnce();
-  });
-
-  it('keeps WebRTC connected when the URL stays on the same dongle', async () => {
-    const { promise } = run(`/${DONGLE}`);
-    await promise;
-
-    expect(webrtcConnectionManager.disconnect).not.toHaveBeenCalled();
+  it.each([
+    ['disconnects', OTHER, 1],
+    ['keeps the connection', DONGLE, 0],
+  ])('%s WebRTC when navigating to %s', async (_behavior, dongleId, calls) => {
+    await dispatchedFor(`/${dongleId}`);
+    expect(webrtcConnectionManager.disconnect).toHaveBeenCalledTimes(calls);
   });
 
   it.each([
-    ['Prime', 'prime', Types.ACTION_APPLY_DESTINATION, 'FETCH_SUBSCRIPTION'],
-    ['stream', 'stream', Types.ACTION_APPLY_DESTINATION, 'FETCH_ONLINE'],
-  ])('selects the %s destination and starts branch data', async (_name, page, actionType, fetchType) => {
-    const { dispatched, promise } = run(`/${OTHER}/${page}`);
-    await promise;
+    ['Prime', 'prime', 'FETCH_SUBSCRIPTION'],
+    ['stream', 'stream', 'FETCH_ONLINE'],
+    ['dashboard', 'dashboard', 'CHECK_LAST_ROUTES'],
+  ])('selects the %s destination and starts branch data', async (_name, page, fetchType) => {
+    const suffix = page === 'dashboard' ? '' : `/${page}`;
+    const dispatched = await dispatchedFor(`/${OTHER}${suffix}`);
 
-    expect(dispatched).toContainEqual({
-      type: actionType,
-      destination: { dongleId: OTHER, page, drive: null },
-    });
-    expect(dispatched).toContainEqual({ type: fetchType, dongleId: OTHER });
+    expectDestination(dispatched, { dongleId: OTHER, page, drive: null });
+    expect(dispatched).toContainEqual(expect.objectContaining({ type: fetchType }));
   });
 
   it('preserves Stripe Checkout return parameters on the Prime route', async () => {
     const sessionId = 'cs_test_123';
-    const { dispatched, promise } = run(`/${OTHER}/prime?stripe_success=${sessionId}`);
-    await promise;
+    const dispatched = await dispatchedFor(`/${OTHER}/prime?stripe_success=${sessionId}`);
 
-    expect(dispatched).toContainEqual({
-      type: Types.ACTION_APPLY_DESTINATION,
-      destination: { dongleId: OTHER, page: 'prime', drive: null },
-    });
+    expectDestination(dispatched, { dongleId: OTHER, page: 'prime', drive: null });
     expect(window.location.search).toBe(`?stripe_success=${sessionId}`);
   });
 
   it('converts a legacy timestamp range to the canonical drive URL', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}` }]);
-    const { dispatched, promise } = run(`/${DONGLE}/1000/2000`);
-    await promise;
+    const dispatched = await dispatchedFor(`/${DONGLE}/1000/2000`);
 
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
     expect(replace).toHaveBeenCalledWith(`/${DONGLE}/${LOG}`);
     expect(dispatched).toContainEqual({ type: 'REPLACE', pathname: `/${DONGLE}/${LOG}` });
   });
 
-  it.each([null, []])('shows not found after an empty legacy lookup (%j)', async (routes) => {
-    Drives.getRoutesSegments.mockResolvedValue(routes);
-    const { dispatched, promise } = run(`/${DONGLE}/1000/2000`);
-    await promise;
+  it.each([
+    ['null', () => Drives.getRoutesSegments.mockResolvedValue(null)],
+    ['empty', () => Drives.getRoutesSegments.mockResolvedValue([])],
+    ['rejected', () => Drives.getRoutesSegments.mockRejectedValue(new Error('request failed'))],
+  ])('shows not found after a %s legacy lookup', async (_outcome, arrangeLookup) => {
+    arrangeLookup();
+    const dispatched = await dispatchedFor(`/${DONGLE}/1000/2000`);
     expect(replace).not.toHaveBeenCalled();
-    expect(dispatched).toContainEqual({
-      type: Types.ACTION_APPLY_DESTINATION,
-      destination: { dongleId: null, page: 'dashboard', drive: null },
-    });
-  });
-
-  it('shows not found after a failed legacy lookup', async () => {
-    Drives.getRoutesSegments.mockRejectedValue(new Error('request failed'));
-    const { dispatched, promise } = run(`/${DONGLE}/1000/2000`);
-    await promise;
-    expect(dispatched).toContainEqual({
-      type: Types.ACTION_APPLY_DESTINATION,
-      destination: { dongleId: null, page: 'dashboard', drive: null },
-    });
+    expectDestination(dispatched, NOT_FOUND_DESTINATION);
   });
 
   it('ignores a legacy lookup after navigation moves elsewhere', async () => {
@@ -187,13 +176,13 @@ describe('syncStateFromUrl', () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it('shows device not found when fetchDevice returns 404', async () => {
-    MyCommaAuth.isAuthenticated.mockReturnValue(true);
-    const UNKNOWN = '2222cccc2222cccc';
-    Devices.fetchDevice.mockRejectedValue({ resp: { status: 404 } });
-    const { dispatched, promise } = run(`/${UNKNOWN}`);
-    await promise;
+  it.each([
+    ['an invalid route', '/invalid', null, { type: Types.ACTION_APPLY_DESTINATION, destination: NOT_FOUND_DESTINATION }],
+    ['a missing device', `/${UNKNOWN}`, () => Devices.fetchDevice.mockRejectedValue({ resp: { status: 404 } }), { type: Types.ACTION_DEVICE_NOT_FOUND }],
+  ])('handles %s', async (_outcome, url, arrange, expectedAction) => {
+    arrange?.();
+    const dispatched = await dispatchedFor(url);
 
-    expect(dispatched).toContainEqual({ type: Types.ACTION_DEVICE_NOT_FOUND });
+    expect(dispatched).toContainEqual(expectedAction);
   });
 });

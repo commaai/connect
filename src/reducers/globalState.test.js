@@ -20,30 +20,22 @@ const baseState = {
   loop: null,
 };
 
-describe('ACTION_SELECT_DRIVE', () => {
-  it('selects the whole route when the URL has no time range', () => {
+describe('ACTION_APPLY_DESTINATION drive', () => {
+  it.each([
+    ['selects the whole route when the URL has no time range', null, null, 0, route.duration],
+    ['uses the time range from the URL as the loop', 10000, 30000, 10000, 20000],
+  ])('%s', (_description, start, end, startTime, duration) => {
     const state = reducer(baseState, {
-      type: Types.ACTION_SELECT_DRIVE,
-      dongleId: DONGLE,
-      logId: LOG,
-      start: null,
-      end: null,
+      type: Types.ACTION_APPLY_DESTINATION,
+      destination: {
+        dongleId: DONGLE,
+        page: 'drive',
+        drive: { logId: LOG, start, end },
+      },
     });
 
     expect(state.currentRoute).toBe(route);
-    expect(state.zoom).toMatchObject({ start: 0, end: route.duration });
-    expect(state.loop).toEqual({ startTime: 0, duration: route.duration });
-  });
-
-  it('uses the time range from the URL as the loop', () => {
-    const state = reducer(baseState, {
-      type: Types.ACTION_SELECT_DRIVE,
-      dongleId: DONGLE,
-      logId: LOG,
-      start: 10000,
-      end: 30000,
-    });
-
-    expect(state.loop).toEqual({ startTime: 10000, duration: 20000 });
+    expect(state.zoom).toMatchObject({ start: startTime, end: startTime + duration });
+    expect(state.loop).toEqual({ startTime, duration });
   });
 });

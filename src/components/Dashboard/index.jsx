@@ -13,24 +13,12 @@ export const Dashboard = ({ primeNav, device, devices, dongleId, deviceNotFound 
     return <FullPageLoading />;
   }
 
-  if (deviceNotFound) {
+  if (deviceNotFound || !dongleId) {
     return (
       <main className="flex min-h-[calc(100vh-66px)] w-full items-center justify-center p-8 text-center">
         <div>
           <p className="text-sm text-white/60">Error 404</p>
-          <h1 className="mt-2 text-2xl font-medium text-white">Device not found</h1>
-          <p className="mt-2 text-sm text-white/60">You don&apos;t have access to this device.</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (!dongleId) {
-    return (
-      <main className="flex min-h-[calc(100vh-66px)] w-full items-center justify-center p-8 text-center">
-        <div>
-          <p className="text-sm text-white/60">Error 404</p>
-          <h1 className="mt-2 text-2xl font-medium text-white">Page not found</h1>
+          <h1 className="mt-2 text-2xl font-medium text-white">{deviceNotFound ? "Device not found" : "Page not found"}</h1>
         </div>
       </main>
     );
