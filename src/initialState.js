@@ -1,5 +1,3 @@
-import { getDongleID, getSegmentRange, getPrimeNav, getStreamNav } from './url';
-
 export function getDefaultFilter() {
   const d = new Date();
   d.setHours(d.getHours() + 1, 0, 0, 0);
@@ -11,7 +9,7 @@ export function getDefaultFilter() {
 }
 
 export default {
-  dongleId: getDongleID(window.location.pathname),
+  dongleId: null,
 
   desiredPlaySpeed: 1,    // speed set by user
   isBufferingVideo: true, // if we're currently buffering for more data
@@ -29,9 +27,10 @@ export default {
 
   profile: null,
   devices: null,
+  deviceNotFound: false,
 
-  primeNav: getPrimeNav(window.location.pathname),
-  streamNav: getStreamNav(window.location.pathname),
+  primeNav: false,
+  streamNav: false,
   subscription: null,
   subscribeInfo: null,
 
@@ -45,6 +44,6 @@ export default {
   filter: getDefaultFilter(),
   zoom: null,
   loop: null,
-  segmentRange: getSegmentRange(window.location.pathname),
+  segmentRange: null,
   limit: 0,
 };

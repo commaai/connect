@@ -12,6 +12,8 @@ const devices = [
   { alias: 'Alpha', dongle_id: SECOND, device_type: 'threex', is_owner: true, prime: false },
 ];
 
+const SORTED_FIRST = SECOND;
+
 function route(dongleId, logId = RECENT_LOG) {
   const start = logId === LOG ? START : START + 3_600_000;
   return {
@@ -104,6 +106,11 @@ async function assertHandled(unhandled) {
   expect(unhandled, `Unhandled application requests:\n${unhandled.join('\n')}`).toEqual([]);
 }
 
+async function expectPageNotFound(page) {
+  await expect(page.getByText('Error 404')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+}
+
 async function scenario(context, name, options, run) {
   await test.step(name, async () => {
     const page = await context.newPage();
@@ -134,8 +141,8 @@ test('root device selection', async ({ context }) => {
   ]) await scenario(context, `root selects the first device with ${name}`, { selected }, async (page) => {
     await page.goto('/');
     await expect(page.getByText('Mock recent route start')).toBeVisible();
-    await expect(page).toHaveURL(`/${FIRST}`);
-    expect(await page.evaluate(() => localStorage.getItem('selectedDongleId'))).toBe(FIRST);
+    await expect(page).toHaveURL(`/${SORTED_FIRST}`);
+    expect(await page.evaluate(() => localStorage.getItem('selectedDongleId'))).toBe(SORTED_FIRST);
   });
 
   await scenario(context, 'root with no devices shows pairing', { devices: [] }, async (page) => {
@@ -161,6 +168,11 @@ test('device dashboards', async ({ context }) => {
     await page.getByRole('button', { name: 'Filter' }).click();
     await page.getByRole('button', { name: 'Cancel' }).click();
     expect(api.requests.some(({ url }) => url.includes('routes_segments'))).toBe(true);
+  });
+
+  await scenario(context, 'an unrecognized URL shows a 404', {}, async (page) => {
+    await page.goto(`/${FIRST}/not/a/route`);
+    await expectPageNotFound(page);
   });
 });
 
@@ -205,23 +217,33 @@ test('signed-out routing', async ({ context }) => {
 
 test('legacy timestamps', async ({ context }) => {
   await scenario(context, 'legacy timestamp URL converts after a successful lookup', {}, async (page) => {
+    const conversion = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === `/v1/devices/${FIRST}/routes_segments`
+        && url.searchParams.get('start') === String(START)
+        && url.searchParams.get('end') === String(START + 60_000);
+    });
     await page.goto(`/${FIRST}/${START}/${START + 60_000}`);
-    await expect(page.getByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    await conversion;
     await expect(page).toHaveURL(`/${FIRST}/${LOG}`);
+    await expect(page.getByRole('slider', { name: 'Drive timeline' })).toBeVisible();
   });
 
-  for (const [name, options, fallback] of [
-    ['empty', { emptyRoutes: true }, 'empty'],
-    ['failed', { failedRoutes: true }, 'loading'],
-  ]) await scenario(context, `legacy timestamp URL remains unchanged after ${name === 'empty' ? 'an empty' : 'a failed'} lookup`, options, async (page) => {
+  for (const [name, options] of [
+    ['empty', { emptyRoutes: true }],
+    ['failed', { failedRoutes: true }],
+  ]) await scenario(context, `legacy timestamp URL shows not found after ${name === 'empty' ? 'an empty' : 'a failed'} lookup`, options, async (page) => {
     const pathname = `/${FIRST}/${START}/${START + 60_000}`;
     await page.goto(pathname);
     await expect(page).toHaveURL(pathname);
-    if (fallback === 'empty') {
-      await expect(page.getByText('No routes found in selected time range.')).toBeVisible();
-    } else {
-      await expect(page.getByText('Loading...')).toBeVisible();
-    }
+    await expectPageNotFound(page);
+  });
+
+  await scenario(context, 'a nonsensical legacy timestamp URL shows not found', {}, async (page) => {
+    const pathname = `/${FIRST}/${START + 60_000}/${START}`;
+    await page.goto(pathname);
+    await expect(page).toHaveURL(pathname);
+    await expectPageNotFound(page);
   });
 });
 

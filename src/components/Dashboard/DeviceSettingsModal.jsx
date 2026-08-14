@@ -19,7 +19,8 @@ import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
 
 import { devices as Devices } from '../../api';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { updateDevice } from '../../actions';
+import { navigateTo } from '../../actions/history';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -230,10 +231,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
+    this.props.dispatch(navigateTo({ dongleId: this.props.dongleId, page: 'prime' }));
     this.props.onClose();
   }
 
@@ -446,7 +444,6 @@ const stateToProps = (state, ownProps) => {
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
   };
 };
 
