@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, CircularProgress } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
-
-import { usePinchZoom } from '../../utils/usePinchZoom';
 
 const CONNECTION_TIME_VISIBLE_MS = 1500;
 
@@ -41,14 +39,10 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
 
 const Video = ({
   videoRef, connectionState, error, connectionTotalMs,
-  onConnect, onFirstFrame, className, started
+  onConnect, onFirstFrame, className
 }) => {
   const connected = connectionState === 'connected';
   const [showConnectionTime, setShowConnectionTime] = useState(false);
-  const containerRef = useRef(null);
-
-  // Disable pinch-zoom once ignition is on so it doesn't fight the joystick.
-  usePinchZoom(containerRef, videoRef, !started);
 
   useEffect(() => {
     if (connectionState !== 'connected') {
@@ -70,29 +64,31 @@ const Video = ({
   }, [connectionTimeLabel]);
 
   return (
-    <div ref={containerRef} className={`relative w-full ${className} bg-black overflow-hidden`} style={{ touchAction: 'none' }}>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        onPlaying={() => {
-          onFirstFrame?.();
-        }}
-        className={`w-full h-full pointer-events-none object-contain`}
-      />
-      {connected && connectionTimeLabel && (
-        <div className={`absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-sm leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
-          {`connected in ${connectionTimeLabel}`}
-        </div>
-      )}
-      {!connected && (
-        <ConnectOverlay
-          connectionState={connectionState}
-          error={error}
-          onConnect={onConnect}
+    <div className={`relative flex w-full flex-col items-center ${className} bg-black overflow-hidden`} style={{ touchAction: 'none' }}>
+      <div className="relative min-h-0 w-full flex-1">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          onPlaying={() => {
+            onFirstFrame?.();
+          }}
+          className="h-full w-full pointer-events-none object-contain"
         />
-      )}
+        {connected && connectionTimeLabel && (
+          <div className={`absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-sm leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
+            {`connected in ${connectionTimeLabel}`}
+          </div>
+        )}
+        {!connected && (
+          <ConnectOverlay
+            connectionState={connectionState}
+            error={error}
+            onConnect={onConnect}
+          />
+        )}
+      </div>
     </div>
   );
 };
