@@ -1,4 +1,4 @@
-/* eslint-env jest */
+import { vi } from 'vitest';
 import { fireEvent, waitFor } from '@testing-library/react';
 
 import { subscribeWindowSize } from './window';
@@ -10,7 +10,7 @@ describe('subscribeWindowSize', () => {
     let aResizeEventListenerWasRemovedFromWindow = false;
 
     const originalAddMethod = window.addEventListener;
-    const addSpy = jest.spyOn(window, 'addEventListener');
+    const addSpy = vi.spyOn(window, 'addEventListener');
 
     addSpy.mockImplementation((...args) => {
       originalAddMethod(...args);
@@ -22,7 +22,7 @@ describe('subscribeWindowSize', () => {
     });
 
     const originalRemoveMethod = window.removeEventListener;
-    const removeSpy = jest.spyOn(window, 'removeEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
 
     removeSpy.mockImplementation((...args) => {
       const [eventType] = args;
@@ -33,7 +33,7 @@ describe('subscribeWindowSize', () => {
       originalRemoveMethod(...args);
     });
 
-    const callback = jest.fn();
+    const callback = vi.fn();
     const unsubscribe = subscribeWindowSize(callback);
 
     await waitFor(() => expect(aResizeEventListenerWasAddedToWindow).toBeTruthy());

@@ -190,7 +190,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, currentRoute, devices, dongleId, bodyTeleopOpen } = this.props;
+    const { classes, currentRoute, devices, dongleId, bodyTeleopOpen, segmentRange } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
@@ -236,7 +236,7 @@ class ExplorerApp extends Component {
             <div className={ classes.window } style={ containerStyles }>
               { noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : (currentRoute ? <DriveView /> : <Dashboard />)}
+                : ((currentRoute || segmentRange) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -270,6 +270,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
+  segmentRange: state.segmentRange,
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
 });

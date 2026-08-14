@@ -1,11 +1,12 @@
-/* eslint-env jest */
+import { vi } from 'vitest';
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Thumbnails from './thumbnails';
 
 const screenHeight = 1000;
 const screenWidth = 1600;
 const gutter = 20;
-const percentToOffsetMock = jest.fn();
+const percentToOffsetMock = vi.fn();
 const mockRoute = {
   offset: 1600,
   segment_numbers: Array.from(Array(4).keys()),
@@ -26,18 +27,16 @@ const heightWithBlackBorder = 120;
 
 describe('timeline thumbnails', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     percentToOffsetMock.mockImplementation((percent) => Math.round(percent * 30000));
   });
 
   it('should check the segment for every image', () => {
-    render(
-      <Thumbnails
-        thumbnail={thumbnailBounds}
-        percentToOffset={percentToOffsetMock}
-        currentRoute={mockRoute}
-      />,
-    );
+    render(React.createElement(Thumbnails, {
+      thumbnail: thumbnailBounds,
+      percentToOffset: percentToOffsetMock,
+      currentRoute: mockRoute,
+    }));
 
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
     const imageEntries = screen.getAllByRole('img');
@@ -55,20 +54,18 @@ describe('timeline thumbnails', () => {
   });
 
   it('doesn\'t render before bounds are set', () => {
-    render(
-      <Thumbnails
-        thumbnail={{
+    render(React.createElement(Thumbnails, {
+      thumbnail: {
           width: 0,
           height: 0,
           left: 0,
           right: 0,
           top: 0,
           bottom: 0,
-        }}
-        percentToOffset={percentToOffsetMock}
-        currentRoute={mockRoute}
-      />,
-    );
+      },
+      percentToOffset: percentToOffsetMock,
+      currentRoute: mockRoute,
+    }));
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
@@ -80,13 +77,11 @@ describe('timeline thumbnails', () => {
       segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
     };
 
-    render(
-      <Thumbnails
-        thumbnail={thumbnailBounds}
-        percentToOffset={percentToOffsetMock}
-        currentRoute={route}
-      />,
-    );
+    render(React.createElement(Thumbnails, {
+      thumbnail: thumbnailBounds,
+      percentToOffset: percentToOffsetMock,
+      currentRoute: route,
+    }));
 
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
     const imageEntries = screen.getAllByRole('img');
@@ -105,20 +100,18 @@ describe('timeline thumbnails', () => {
   });
 
   it('works when it\'s supermegaskinny', () => {
-    render(
-      <Thumbnails
-        thumbnail={{
+    render(React.createElement(Thumbnails, {
+      thumbnail: {
           width: 0,
           height: 100,
           left: 10,
           right: 10,
           top: 100,
           bottom: 100,
-        }}
-        percentToOffset={percentToOffsetMock}
-        currentRoute={mockRoute}
-      />,
-    );
+      },
+      percentToOffset: percentToOffsetMock,
+      currentRoute: mockRoute,
+    }));
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(percentToOffsetMock.mock.calls.length).toBe(0);

@@ -1,4 +1,3 @@
-/* eslint-env jest */
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
 import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';

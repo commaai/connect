@@ -1,4 +1,4 @@
-/* eslint-env jest */
+import { afterEach, vi } from 'vitest';
 import { priorityGetContext, reverseLookup } from './geocode';
 
 describe('priorityGetContext', () => {
@@ -13,7 +13,7 @@ describe('priorityGetContext', () => {
 });
 
 describe('reverseLookup', () => {
-  jest.setTimeout(10000);
+  afterEach(() => vi.unstubAllGlobals());
 
   it('should return null if coords are [0, 0]', async () => {
     const result = await reverseLookup([0, 0]);
@@ -21,6 +21,30 @@ describe('reverseLookup', () => {
   });
 
   it('should return place names', async () => {
+    const locations = [
+      ['E Market Street', 'San Diego', 'CA', '92101', 'United States'],
+      ['W Laurel Street', 'San Diego', 'CA', '92101', 'United States'],
+      ['Fleet Street', 'London', '', 'EC4A 2BJ', 'United Kingdom'],
+      ['Montpellier Drive', 'Cheltenham', '', 'GL50 1SD', 'United Kingdom'],
+    ];
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      const [text, place, region, postcode, country] = locations.shift();
+      return {
+        ok: true,
+        json: async () => ({
+          features: [{
+            text,
+            context: [
+              { id: 'place.1', text: place },
+              { id: 'region.1', short_code: region ? `US-${region}` : undefined, text: region },
+              { id: 'postcode.1', text: postcode },
+              { id: 'country.1', text: country },
+            ],
+          }],
+        }),
+      };
+    }));
+
     expect(await reverseLookup([-117.12547, 32.71137], true)).toEqual({
       details: expect.stringMatching(/^San Diego, CA \d{5}, United States$/),
       place: 'E Market St',
