@@ -138,14 +138,14 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             : 'flex items-center px-3 py-2 bg-[#1D2225] border-b border-white/10 min-h-[64px] z-10'}
         >
           <button
-            className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass cursor-pointer' : 'text-white p-2 cursor-pointer'}
+            className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-9 h-9 bg-glass cursor-pointer' : 'text-white p-2 cursor-pointer'}
             onClick={handleClose}
           >
             <ArrowBackBold style={{ fontSize: 20 }} />
           </button>
           <div
             className={isLandscape
-              ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0'
+              ? 'rounded-[20px] px-3.5 h-9 flex items-center text-base font-medium text-white bg-glass border-0'
               : 'text-base font-medium ml-2 flex-1'}
           >
             {deviceName}
@@ -156,7 +156,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             <StatusBar
               battery={battery}
               className={isLandscape
-                ? 'absolute top-3 right-3 z-30 flex items-center gap-2'
+                ? 'absolute top-2 right-3 z-30 flex items-center gap-2'
                 : 'relative z-30 flex items-center justify-end p-2 gap-2'}
               isLandscape={isLandscape}
               connection={connection}
