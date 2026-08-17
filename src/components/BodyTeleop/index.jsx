@@ -116,7 +116,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
   const notCar = Boolean(device?.rpc?.not_car);
-  const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
+  const deviceName = device ? deviceNamePretty(device) : "livestream";
 
   const videoProps = {
     videoRef, connectionState, error, connectionTotalMs,
@@ -146,7 +146,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           </button>
           <div
             className={isLandscape
-              ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0'
+              ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0 opacity-90'
               : 'text-base font-medium ml-2 flex-1'}
           >
             {deviceName}
