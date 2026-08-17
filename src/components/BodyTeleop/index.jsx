@@ -139,7 +139,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         >
           <button
             aria-label="Close teleop"
-            className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass cursor-pointer' : 'text-white p-2 cursor-pointer'}
+            className={isLandscape ? 'flex items-center justify-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass cursor-pointer' : 'text-white p-2 cursor-pointer'}
             onClick={handleClose}
           >
             <ArrowBackBold style={{ fontSize: 20 }} />
