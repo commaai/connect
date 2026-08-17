@@ -265,7 +265,7 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
 
   return (
     <div className={
-      `absolute z-30 right-2 mt-2 flex bg-glass-dark backdrop-blur-[3px] rounded-[5px] md:rounded-[10px] font-mono
+      `absolute z-30 right-2 mt-2 flex bg-glass-dark rounded-[5px] md:rounded-[10px] font-mono
       ${compact ? "flex-row gap-2 items-center p-[6px_8px]" : "flex-col w-[150px] md:w-[240px] p-[3px_6px] md:p-[10px_16px]"}
     `}>
       <div className="flex flex-col">

@@ -134,19 +134,19 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       `}>
         <div
           className={isLandscape
-            ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
+            ? 'absolute left-3 top-3.5 z-20 flex items-center gap-1'
             : 'flex items-center px-3 py-2 bg-[#1D2225] border-b border-white/10 min-h-[64px] z-10'}
         >
           <button
             aria-label="Close teleop"
-            className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass cursor-pointer' : 'text-white p-2 cursor-pointer'}
+            className={isLandscape ? 'flex items-center justify-center rounded-full hover:text-white/90 text-white/60 p-2 w-9 h-9 bg-glass cursor-pointer' : 'text-white p-2 cursor-pointer'}
             onClick={handleClose}
           >
             <ArrowBackBold style={{ fontSize: 20 }} />
           </button>
           <div
             className={isLandscape
-              ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0 opacity-90'
+              ? 'rounded-[20px] px-3.5 h-9 flex items-center text-base font-medium text-white bg-glass border-0 opacity-90'
               : 'text-base font-medium ml-2 flex-1'}
           >
             {deviceName}
