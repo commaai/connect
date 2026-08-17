@@ -134,7 +134,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       `}>
         <div
           className={isLandscape
-            ? 'absolute left-2 top-3.5 z-20 flex items-center gap-1'
+            ? 'absolute left-3 top-3.5 z-20 flex items-center gap-1'
             : 'flex items-center px-3 py-2 bg-[#1D2225] border-b border-white/10 min-h-[64px] z-10'}
         >
           <button
