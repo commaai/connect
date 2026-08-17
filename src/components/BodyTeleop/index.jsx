@@ -116,7 +116,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
   const notCar = Boolean(device?.rpc?.not_car);
-  const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const videoProps = {
     videoRef, connectionState, error, connectionTotalMs,
@@ -144,13 +143,15 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           >
             <ArrowBackBold style={{ fontSize: 20 }} />
           </button>
-          <div
-            className={isLandscape
-              ? 'rounded-[20px] px-3.5 h-9 flex items-center text-base font-medium text-white bg-glass border-0'
-              : 'text-base font-medium ml-2 flex-1'}
-          >
-            {deviceName}
-          </div>
+          {device ? (
+            <div
+              className={isLandscape
+                ? 'rounded-[20px] px-3.5 h-9 flex items-center text-base font-medium text-white bg-glass border-0 opacity-90'
+                : 'text-base font-medium ml-2 flex-1'}
+            >
+              {deviceNamePretty(device)}
+            </div>
+           ) : <></>}
         </div>
         {connected && (
           <div className='relative'>
