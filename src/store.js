@@ -10,14 +10,19 @@ import { analyticsMiddleware } from './analytics';
 
 export const history = createBrowserHistory();
 
-const store = Redux.createStore(
-  connectRouter(history)(rootReducer),
-  composeEnhancers(Redux.applyMiddleware(
-    thunk,
-    onHistoryMiddleware,
-    routerMiddleware(history),
-    analyticsMiddleware,
-  )),
-);
+export function createAppStore(appHistory, preloadedState) {
+  return Redux.createStore(
+    connectRouter(appHistory)(rootReducer),
+    preloadedState,
+    composeEnhancers(Redux.applyMiddleware(
+      thunk,
+      onHistoryMiddleware,
+      routerMiddleware(appHistory),
+      analyticsMiddleware,
+    )),
+  );
+}
+
+const store = createAppStore(history);
 
 export default store;

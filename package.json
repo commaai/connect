@@ -10,8 +10,7 @@
     "lint": "oxlint src",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test-coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test-coverage": "vitest run --coverage"
   },
   "repository": "https://github.com/commaai/connect.git",
   "author": "Chris Vickery <chrisinajar@gmail.com>",
@@ -51,7 +50,6 @@
     "redux-thunk": "^2.4.2"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4",
     "@testing-library/jest-dom": "^6.6.3",

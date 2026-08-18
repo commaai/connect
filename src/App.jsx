@@ -11,7 +11,7 @@ import { athena as Athena, auth as Auth, billing as Billing, request as Request 
 import { getZoom, getSegmentRange, getDongleID, getStreamNav } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
-import store, { history } from './store';
+import defaultStore, { history as defaultHistory } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
 import FullPageLoading from './components/FullPageLoading';
@@ -122,7 +122,9 @@ class App extends Component {
       return <FullPageLoading />;
     }
 
-    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
+    const { store = defaultStore, history = defaultHistory } = this.props;
+    const pathname = history.location.pathname;
+    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(pathname) && !getSegmentRange(pathname);
     let content = (
       <Suspense fallback={<FullPageLoading />}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }

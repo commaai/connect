@@ -23,11 +23,6 @@ jobs:
       - name: Run unit tests
         run: bun run test
 
-      - name: Run end-to-end tests
-        run: bun run test:e2e
-        env:
-          PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/google-chrome
-
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 1
