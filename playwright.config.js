@@ -18,7 +18,7 @@ export default defineConfig({
     },
   }],
   webServer: {
-    command: 'E2E=true bun run build:development && bun run serve --host 127.0.0.1 --port 3000',
+    command: 'E2E=true bun run start --host 127.0.0.1 --port 3000',
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: true,
   },
