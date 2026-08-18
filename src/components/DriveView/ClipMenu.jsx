@@ -6,6 +6,7 @@ import {
 import Colors from '../../colors';
 import { clipDevice } from '../../api/clips';
 import { CloseBold, Download as DownloadIcon, PlayArrow, Trash } from '../../icons';
+import { shareOrDownload } from '../../utils/file';
 import InfoTooltip from '../utils/InfoTooltip';
 
 const MAX_CLIP_DURATION = 30 * 60;
@@ -329,16 +330,13 @@ class ClipMenu extends Component {
     }
   }
 
-  downloadViewedClip() {
+  async downloadViewedClip() {
     const { previewUrl, viewingClip } = this.state;
     if (!previewUrl || !viewingClip) return;
     const defaultName = `comma-clip-${viewingClip.camera}-${formatTime(viewingClip.source_start_time).replaceAll(':', '-')}-${formatTime(viewingClip.source_end_time).replaceAll(':', '-')}`;
-    const link = document.createElement('a');
-    link.href = previewUrl;
-    link.download = `${(viewingClip.filename || defaultName).replace(/\.mp4$/i, '')}.mp4`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    const filename = `${(viewingClip.filename || defaultName).replace(/\.mp4$/i, '')}.mp4`;
+    const mobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    await shareOrDownload({ url: previewUrl, filename, mimeType: 'video/mp4', share: mobile });
   }
 
   async removeClip(clip) {
