@@ -3,8 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
-  // GitHub-hosted runners become CPU-bound with four Chromium processes.
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.CI ? 4 : undefined,
+  reporter: process.env.CI ? 'list' : undefined,
   use: {
     baseURL: 'http://127.0.0.1:3000',
     trace: process.env.CI ? 'off' : 'retain-on-failure',
