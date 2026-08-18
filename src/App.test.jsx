@@ -131,9 +131,7 @@ async function renderApp(pathname, options = {}) {
   // details, stats, routes, and clip support). Let their promise chains finish
   // while React is inside act before handing control back to each test.
   await act(async () => {
-    for (let i = 0; i < 3; i += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
   return { ...view, history, store };
 }
