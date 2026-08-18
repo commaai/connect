@@ -18,6 +18,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Cache pinned Chrome for Puppeteer
+        if: github.event_name == 'pull_request'
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/puppeteer-cache
@@ -26,11 +27,20 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      - name: Build app
+        if: github.event_name != 'pull_request'
+        env:
+          VITE_APP_GIT_SHA: ${{ github.sha }}
+        run: |
+          export VITE_APP_GIT_TIMESTAMP="$(git show -s --format=%cI)"
+          bun run build:production
+
       - name: Build app and gallery report
+        if: github.event_name == 'pull_request'
         env:
           PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer-cache
-          BASELINE_URL: ${{ github.event_name == 'pull_request' && 'https://latest.connect-d5y.pages.dev' || '' }}
-          VITE_APP_GIT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          BASELINE_URL: https://latest.connect-d5y.pages.dev
+          VITE_APP_GIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           export VITE_APP_GIT_TIMESTAMP="$(git show -s --format=%cI)"
           args=(--output ./dist --artifact-output "$RUNNER_TEMP/connect-gallery.html" --head-sha "$VITE_APP_GIT_SHA")
@@ -47,6 +57,7 @@ jobs:
           name: build-artifacts-${{ github.run_id }}
 
       - name: Upload directly viewable gallery report
+        if: github.event_name == 'pull_request'
         id: gallery-artifact
         uses: actions/upload-artifact@v7
         with:
@@ -56,4 +67,5 @@ jobs:
           retention-days: 14
 
       - name: Add gallery link to build summary
+        if: github.event_name == 'pull_request'
         run: echo "### [Open connect gallery](${{ steps.gallery-artifact.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
