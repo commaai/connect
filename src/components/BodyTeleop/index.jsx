@@ -184,10 +184,10 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               isLandscape={isLandscape}
               controlsDisabled={inputActive}
             />
-            { started && (
+            {/* { started && ( */}
               <div
                 className={isLandscape
-                  ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
+                  ? 'absolute bottom-3 right-3 z-10 w-[160px] h-[160px]'
                   : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
               >
                 <Joystick
@@ -202,7 +202,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
                   onInputActiveChange={setInputActive}
                 />
               </div>
-            )}
+            {/* )} */}
           </>
         )}
       </div>

@@ -11,7 +11,7 @@ const btnInactive = `${btnBase} bg-white/10 text-white/60`;
 const btnActive = `${btnBase} bg-white/30 text-white`;
 
 const controlsGroupBase = 'z-10 flex flex-row items-stretch gap-3.5 rounded-[20px] p-4 bg-glass-dark';
-const controlsGroupLandscape = 'absolute bottom-3.5 left-3';
+const controlsGroupLandscape = 'absolute bottom-3 left-3';
 const controlsGroupPortrait = 'relative self-stretch rounded-none shrink-0 justify-between gap-2';
 
 const ControlsBar = ({
