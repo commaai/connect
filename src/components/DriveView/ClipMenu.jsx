@@ -229,6 +229,7 @@ class ClipMenu extends Component {
       clips: [], camera: 'fcamera.hevc', bitrate: 5, speedup: 1, filename: '',
       cameraRanges: null, loading: false, creating: false, error: null,
       autoDownloadFilename: null,
+      downloadedClips: new Set(),
       viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0,
       deletingClip: null, deleteDialogOpen: false, deleting: false,
     };
@@ -282,8 +283,14 @@ class ClipMenu extends Component {
       const state = await clipDevice.getClipState(dongleId, routeName ? { route: this.props.route.fullname } : {});
       if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
       const { clips } = state;
+      const downloadedClips = new Set((await Promise.all(clips
+        .filter(clip => clip.status === 'ready')
+        .map(async clip => ([clip.filename, await clipDevice.hasClipBlob(dongleId, clip.filename, clip.requested_at)]))))
+        .filter(([, downloaded]) => downloaded)
+        .map(([filename]) => filename));
+      if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
       const cameraRanges = routeName ? state.cameras || {} : null;
-      this.setState({ clips, cameraRanges, loading: false }, () => {
+      this.setState({ clips, downloadedClips, cameraRanges, loading: false }, () => {
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
         if (this.props.open && autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
       });
@@ -375,7 +382,13 @@ class ClipMenu extends Component {
         return;
       }
       if (this.props.open) {
-        this.setState({ viewingClip: clip, previewingClip: null, previewUrl, previewProgress: 0 });
+        this.setState(({ downloadedClips }) => ({
+          viewingClip: clip,
+          previewingClip: null,
+          previewUrl,
+          previewProgress: 0,
+          downloadedClips: new Set(downloadedClips).add(clip.filename),
+        }));
       } else {
         URL.revokeObjectURL(previewUrl);
         this.setState({ previewingClip: null, previewProgress: 0 });
@@ -464,6 +477,7 @@ class ClipMenu extends Component {
         : clip.route);
     const title = clip.filename?.replace(/\.mp4$/i, '') || 'Clip';
     const previewing = this.state.previewingClip === clip.filename;
+    const downloaded = this.state.downloadedClips.has(clip.filename);
     return (
       <div key={clip.filename} className={classes.clip}>
         <div className={classes.clipTop}>
@@ -477,13 +491,15 @@ class ClipMenu extends Component {
           <div className={classes.clipActions}>
             {clip.status === 'ready' && (
               <IconButton
-                aria-label="Play clip"
+                aria-label={downloaded ? 'Play clip' : 'Download clip'}
                 className={classes.clipAction}
                 disabled={!this.props.deviceOnline || previewing}
-                title={this.props.deviceOnline ? (previewing ? 'Downloading' : 'Play clip') : 'Device offline'}
+                title={this.props.deviceOnline ? (previewing ? 'Downloading' : (downloaded ? 'Play clip' : 'Download clip')) : 'Device offline'}
                 onClick={() => this.openViewer(clip)}
               >
-                <PlayArrow className={classes.playIcon} />
+                {downloaded
+                  ? <PlayArrow className={classes.playIcon} />
+                  : <DownloadIcon className={classes.downloadIcon} />}
               </IconButton>
             )}
             {clip.status === 'encoding' && <Typography className={classes.clipMeta}>Encoding</Typography>}

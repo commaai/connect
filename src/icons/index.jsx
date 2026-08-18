@@ -44,8 +44,8 @@ export const ContentCopy = (props) => (
 );
 
 export const Download = (props) => (
-  <SvgIcon {...props} viewBox="0 -960 960 960">
-    <path d="M480-313 287-506l43-43 120 120v-371h60v371l120-120 43 43-193 193ZM220-160q-24 0-42-18t-18-42v-143h60v143h520v-143h60v143q0 24-18 42t-42 18H220Z" />
+  <SvgIcon {...props} viewBox="0 0 24 24">
+    <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
   </SvgIcon>
 );
 
