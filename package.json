@@ -37,6 +37,7 @@
     "connected-react-router": "^4.5.0",
     "dayjs": "^1.11.9",
     "history": "^4.10.1",
+    "immutable": "4.3.9",
     "jwt-decode": "^3.1.2",
     "localforage": "^1.10.0",
     "mapbox-gl": "^1.13.3",
