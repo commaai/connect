@@ -160,6 +160,7 @@ const styles = () => ({
   viewerPaper: { background: Colors.grey900, maxWidth: 800, width: 'calc(100vw - 32px)' },
   viewerTitle: { alignItems: 'flex-start', display: 'flex', justifyContent: 'space-between', padding: '16px 12px 12px 20px' },
   viewerDetails: { minWidth: 0, paddingTop: 1 },
+  viewerHeader: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   viewerMeta: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, marginTop: 3 },
   viewerActions: { alignItems: 'center', display: 'flex', flex: '0 0 auto', marginTop: -4 },
   viewerContent: { padding: '0 20px 20px' },
@@ -408,7 +409,6 @@ class ClipMenu extends Component {
     const { previewUrl, viewingClip } = this.state;
     const title = viewingClip?.filename?.replace(/\.mp4$/i, '') || 'Clip';
     const camera = CAMERAS.find(([value]) => value === viewingClip?.camera)?.[1] || viewingClip?.camera;
-    const routeId = viewingClip?.route ? `${this.props.dongleId}/${viewingClip.route}` : this.props.dongleId;
     const duration = viewingClip
       ? formatDuration((viewingClip.source_end_time - viewingClip.source_start_time) / (viewingClip.speedup || 1))
       : '';
@@ -416,9 +416,9 @@ class ClipMenu extends Component {
       <Dialog open={Boolean(viewingClip)} onClose={() => this.closeViewer()} classes={{ paper: classes.viewerPaper }} maxWidth="md">
         <DialogTitle disableTypography className={classes.viewerTitle}>
           <div className={classes.viewerDetails}>
-            <Typography className={classes.header}>{title}</Typography>
+            <Typography className={`${classes.header} ${classes.viewerHeader}`}>{title}</Typography>
             <Typography className={classes.viewerMeta}>
-              {[routeId, camera, duration, formatSize(viewingClip?.size)].filter(Boolean).join(' · ')}
+              {[camera, duration, formatSize(viewingClip?.size)].filter(Boolean).join(' · ')}
             </Typography>
           </div>
           <div className={classes.viewerActions}>
