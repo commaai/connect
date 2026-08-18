@@ -127,6 +127,14 @@ async function renderApp(pathname, options = {}) {
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
     { timeout: 5000 },
   );
+  // Explorer initialization starts several independent async updates (device
+  // details, stats, routes, and clip support). Let their promise chains finish
+  // while React is inside act before handing control back to each test.
+  await act(async () => {
+    for (let i = 0; i < 3; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  });
   return { ...view, history, store };
 }
 
