@@ -17,14 +17,6 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: oven-sh/setup-bun@v2
 
-      - name: Cache pinned Chrome for Puppeteer
-        if: github.event_name == 'pull_request'
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/puppeteer-cache
-          key: puppeteer-${{ runner.os }}-${{ hashFiles('package.json') }}
-          restore-keys: puppeteer-${{ runner.os }}-
-
       - run: bun install --frozen-lockfile
 
       - name: Build app
@@ -38,7 +30,8 @@ jobs:
       - name: Build app and gallery report
         if: github.event_name == 'pull_request'
         env:
-          PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer-cache
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
           BASELINE_URL: https://latest.connect-d5y.pages.dev
           VITE_APP_GIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
