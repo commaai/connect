@@ -96,6 +96,11 @@ async function getClipBlob(dongleId, filename, requestedAt, onProgress) {
   return entry.promise.finally(() => entry.listeners.delete(onProgress));
 }
 
+async function hasClipBlob(dongleId, filename, requestedAt) {
+  const stored = await clipStorage.getItem(cacheKey(dongleId, filename, requestedAt)).catch(() => null);
+  return stored instanceof Blob;
+}
+
 async function call(dongleId, method, params) {
   const payload = await Athena.postJsonRpcPayload(dongleId, { jsonrpc: '2.0', id: crypto.randomUUID(), method, params });
   if (!payload) throw new Error('Athena request failed');
@@ -150,4 +155,6 @@ export const clipDevice = {
   async getClipUrl(dongleId, filename, requestedAt, onProgress) {
     return URL.createObjectURL(await getClipBlob(dongleId, filename, requestedAt, onProgress));
   },
+
+  hasClipBlob,
 };
