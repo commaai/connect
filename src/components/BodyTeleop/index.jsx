@@ -184,7 +184,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               isLandscape={isLandscape}
               controlsDisabled={inputActive}
             />
-            {/* { started && ( */}
+            { started && (
               <div
                 className={isLandscape
                   ? 'absolute bottom-3 right-3 z-10 w-[160px] h-[160px]'
@@ -202,7 +202,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
                   onInputActiveChange={setInputActive}
                 />
               </div>
-            {/* )} */}
+            )}
           </>
         )}
       </div>
