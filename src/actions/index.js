@@ -14,6 +14,7 @@ let routesRequest = null;
 let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
+const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -58,7 +59,8 @@ export function checkRoutesData() {
       }
       if (routesData && routesData.length === 0
         && !MyCommaAuth.isAuthenticated()) {
-        hardNavigate(`/?r=${encodeURI(window.location.pathname)}`); // redirect to login
+        routesRequest = null;
+        hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
         return;
       }
 
@@ -169,7 +171,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 
   if (allowPathChange) {
     const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
-    if (window.location.pathname !== desiredPath) {
+    if (currentPathname(state) !== desiredPath) {
       dispatch(push(desiredPath));
     }
   }
@@ -307,7 +309,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
 
     if (allowPathChange) {
       const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (window.location.pathname !== desiredPath) {
+      if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
     }
@@ -329,7 +331,7 @@ export function primeNav(nav, allowPathChange = true) {
     }
 
     if (allowPathChange) {
-      const curPath = document.location.pathname;
+      const curPath = currentPathname(state);
       const desiredPath = urlForState(state.dongleId, null, null, null, nav);
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
@@ -353,7 +355,7 @@ export function streamNav(nav, allowPathChange = true) {
     }
 
     if (allowPathChange) {
-      const curPath = document.location.pathname;
+      const curPath = currentPathname(state);
       const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
