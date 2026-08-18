@@ -153,9 +153,8 @@ const styles = () => ({
     color: Colors.white, flex: '0 0 auto', height: 32, padding: 7, width: 32,
     '&:disabled': { color: Colors.white40 },
   },
-  downloadIcon: { fontSize: 25 },
+  actionIcon: { fontSize: 24 },
   clipActions: { alignItems: 'center', display: 'flex', flex: '0 0 auto', gap: 2, margin: '-4px -7px -4px 0' },
-  secondaryActionIcon: { fontSize: 20 },
   playIcon: { fontSize: 27 },
   viewerPaper: { background: Colors.grey900, maxWidth: 800, width: 'calc(100vw - 32px)' },
   viewerTitle: { alignItems: 'flex-start', display: 'flex', justifyContent: 'space-between', padding: '16px 12px 12px 20px' },
@@ -426,9 +425,11 @@ class ClipMenu extends Component {
           </div>
           <div className={classes.viewerActions}>
             <IconButton aria-label="Download clip" title="Download clip" onClick={() => this.downloadViewedClip()}>
-              <DownloadIcon className={classes.downloadIcon} />
+              <DownloadIcon className={classes.actionIcon} />
             </IconButton>
-            <IconButton aria-label="Close video" title="Close" onClick={() => this.closeViewer()}><CloseBold /></IconButton>
+            <IconButton aria-label="Close video" title="Close" onClick={() => this.closeViewer()}>
+              <CloseBold className={classes.actionIcon} />
+            </IconButton>
           </div>
         </DialogTitle>
         <DialogContent className={classes.viewerContent}>
@@ -499,7 +500,7 @@ class ClipMenu extends Component {
               >
                 {downloaded
                   ? <PlayArrow className={classes.playIcon} />
-                  : <DownloadIcon className={classes.downloadIcon} />}
+                  : <DownloadIcon className={classes.actionIcon} />}
               </IconButton>
             )}
             {clip.status === 'encoding' && <Typography className={classes.clipMeta}>Encoding</Typography>}
@@ -514,8 +515,8 @@ class ClipMenu extends Component {
                 : this.setState({ deletingClip: clip, deleteDialogOpen: true }))}
             >
               {ACTIVE_STATUSES.has(clip.status)
-                ? <CloseBold className={classes.secondaryActionIcon} />
-                : <Trash className={classes.secondaryActionIcon} />}
+                ? <CloseBold className={classes.actionIcon} />
+                : <Trash className={classes.actionIcon} />}
             </IconButton>
           </div>
         </div>

@@ -32,8 +32,8 @@ export const CheckCircle = (props) => (
 );
 
 export const CloseBold = (props) => (
-  <SvgIcon {...props} viewBox="0 -960 960 960">
-    <path d="m249-183-66-66 231-231-231-231 66-66 231 231 231-231 66 66-231 231 231 231-66 66-231-231-231 231Z" />
+  <SvgIcon {...props} viewBox="0 0 24 24">
+    <path d="m6.225 19.425-1.65-1.65L10.35 12 4.575 6.225l1.65-1.65L12 10.35l5.775-5.775 1.65 1.65L13.65 12l5.775 5.775-1.65 1.65L12 13.65l-5.775 5.775Z" />
   </SvgIcon>
 );
 
@@ -45,7 +45,7 @@ export const ContentCopy = (props) => (
 
 export const Download = (props) => (
   <SvgIcon {...props} viewBox="0 0 24 24">
-    <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
+    <path d="m12 16.175-4.825-4.825 1.075-1.075 3 3V4h1.5v9.275l3-3 1.075 1.075L12 16.175ZM5.5 20q-.6 0-1.05-.45T4 18.5v-3.575h1.5V18.5h13v-3.575H20V18.5q0 .6-.45 1.05T18.5 20h-13Z" />
   </SvgIcon>
 );
 
