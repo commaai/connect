@@ -30,7 +30,8 @@ const ControlsBar = ({
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0);
 
-      const filename = `screenshot_${activeCamera}_${Date.now()}.png`;
+      const cameraLabel = CAMERAS.find((camera) => camera.key === activeCamera)?.label || activeCamera;
+      const filename = `screenshot_${cameraLabel}_${Date.now()}.png`;
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) return;
 
