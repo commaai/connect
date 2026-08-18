@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from 'react';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
+import { shareOrDownload } from '../../utils/file';
 
 const CAMERAS = [
   { key: 'wideRoad', label: 'road', num: '1' },
@@ -35,22 +36,7 @@ const ControlsBar = ({
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) return;
 
-      const file = new File([blob], filename, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] });
-          return;
-        } catch (err) {
-          if (err?.name === 'AbortError') return;
-        }
-      }
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
+      await shareOrDownload({ blob, filename, mimeType: 'image/png' });
     } finally {
       screenshotInProgress.current = false;
     }
