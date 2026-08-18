@@ -8,6 +8,7 @@ import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
+import { hardNavigate } from '../utils/navigation';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -57,7 +58,7 @@ export function checkRoutesData() {
       }
       if (routesData && routesData.length === 0
         && !MyCommaAuth.isAuthenticated()) {
-        window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
+        hardNavigate(`/?r=${encodeURI(window.location.pathname)}`); // redirect to login
         return;
       }
 
