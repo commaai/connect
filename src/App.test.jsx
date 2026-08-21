@@ -107,6 +107,13 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
+  if (url.pathname === '/v1/referrals') {
+    if (options.forbiddenReferrals) return json({}, 403);
+    if (options.failedReferrals) return json({}, 500);
+    return json({
+      code: 'COMMA-TEST', referral_url: 'https://comma.ai/shop/comma-four?ref=COMMA-TEST', referrals: options.referrals ?? [],
+    });
+  }
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
@@ -174,6 +181,112 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp('/', { devices: [] });
     expect(await screen.findByRole('heading', { name: 'Pair your device' })).toBeVisible();
     expect(history.location.pathname).toBe('/');
+  });
+
+  test('referrals route is retained while devices initialize', async () => {
+    const referrals = [{
+      order_id: 'gid://shopify/Order/1', order_name: '#1001',
+      ordered_at: 1767225600, status: 'pending', reward_cents: 5000,
+    }];
+    const { history } = await renderApp('/referrals', { referrals });
+    expect(await screen.findByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
+    expect(screen.getByDisplayValue('https://comma.ai/shop/comma-four?ref=COMMA-TEST')).toBeVisible();
+    expect(screen.queryByText('friend@example.com')).not.toBeInTheDocument();
+    expect(screen.queryByText('Order #1001')).not.toBeInTheDocument();
+    expect(screen.getByText(`Order date: ${new Date(1767225600 * 1000).toLocaleDateString()}`)).toBeVisible();
+    expect(screen.getByText(`Expected claim date: ${new Date((1767225600 + 60 * 24 * 60 * 60) * 1000).toLocaleDateString()}`)).toBeVisible();
+    expect(mocks.requests.some(({ url }) => url.endsWith('/v1/prime/subscription') || url.includes('/v1/prime/subscribe_info'))).toBe(false);
+    expect(history.location.pathname).toBe('/referrals');
+  });
+
+  test('referrals are newest first with claims under the heading and old referrals separated', async () => {
+    const referrals = [
+      {
+        order_id: 'gid://shopify/Order/1', order_name: '#1001',
+        ordered_at: 1767225600, status: 'pending', reward_cents: 5000,
+      },
+      {
+        order_id: 'gid://shopify/Order/2', order_name: '#1002',
+        ordered_at: 1772323200, status: 'claim', reward_cents: 5000,
+      },
+      {
+        order_id: 'gid://shopify/Order/3', order_name: '#1003',
+        ordered_at: 1769904000, status: 'pending', reward_cents: 5000,
+      },
+      {
+        order_id: 'gid://shopify/Order/4', order_name: '#1004',
+        ordered_at: 1775001600, status: 'returned', reward_cents: 5000,
+      },
+      {
+        order_id: 'gid://shopify/Order/5', order_name: '#1005',
+        ordered_at: 1764547200, status: 'cancelled', reward_cents: 5000,
+      },
+      {
+        order_id: 'gid://shopify/Order/6', order_name: '#1006',
+        ordered_at: 1777593600, status: 'claimed', reward_cents: 5000,
+      },
+    ];
+    await renderApp('/referrals', { referrals });
+
+    const claimAction = screen.getByRole('link', { name: 'Claim 1 referral' });
+    const referralsHeading = screen.getByRole('heading', { name: 'Your referrals' });
+    const newestReferral = screen.getByText(`Order date: ${new Date(1772323200 * 1000).toLocaleDateString()}`);
+    expect(referralsHeading.compareDocumentPosition(claimAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(claimAction.compareDocumentPosition(newestReferral) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByText(/Expected claim date:/)).toHaveLength(2);
+    const history = screen.getByText('Referral history').closest('details');
+    expect(history).not.toHaveAttribute('open');
+    fireEvent.click(screen.getByText('Referral history'));
+    expect(history).toHaveAttribute('open');
+    expect(screen.getByText('Claimed')).toBeVisible();
+    expect(screen.getByText('Returned')).toBeVisible();
+    expect(screen.getByText('Cancelled')).toBeVisible();
+    fireEvent.click(screen.getByText('Referral history'));
+    expect(history).not.toHaveAttribute('open');
+  });
+
+  test('referral history is hidden when there are no claimed, cancelled, or returned orders', async () => {
+    await renderApp('/referrals', { referrals: [] });
+    expect(screen.queryByText('Referral history')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ready to claim')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Claim .*referrals?/ })).not.toBeInTheDocument();
+  });
+
+  test('account menu opens referrals without a page reload', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(screen.getByRole('button', { name: 'account menu' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Refer a friend' }));
+    expect(await screen.findByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
+    expect(history.location.pathname).toBe('/referrals');
+  });
+
+  test('referrals back button returns to the selected device', async () => {
+    const { history } = await renderApp('/referrals', { selected: FIRST });
+    fireEvent.click(await screen.findByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('failed referrals request replaces the loader with an error', async () => {
+    await renderApp('/referrals', { failedReferrals: true });
+    expect(await screen.findByText('Could not load your referral program. Please try again.')).toBeVisible();
+    expect(screen.queryByText('Loading referrals…')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
+  });
+
+  test('forbidden referrals request explains comma 4 ownership requirement', async () => {
+    await renderApp('/referrals', { forbiddenReferrals: true });
+    expect(await screen.findByText('Referrals are only available for comma four owners')).toBeVisible();
+    expect(screen.queryByText('Could not load your referral program. Please try again.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
+  });
+
+  test('failed referrals request can be retried', async () => {
+    await renderApp('/referrals', { failedReferrals: true });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    mocks.options.failedReferrals = false;
+    fireEvent.click(retry);
+    expect(await screen.findByText('No referrals yet.')).toBeVisible();
+    expect(mocks.requests.filter(({ url }) => url.endsWith('/v1/referrals'))).toHaveLength(2);
   });
 
   test.each([['owned', FIRST], ['shared', SHARED]])('direct entry opens %s device dashboard', async (_name, dongleId) => {

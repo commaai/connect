@@ -222,6 +222,8 @@ export function primeFetchSubscription(dongleId, device, profile) {
   return (dispatch, getState) => {
     const state = getState();
 
+    if (state.router.location.pathname === '/referrals') return;
+
     if (!device && state.device && state.device === dongleId) {
       device = state.device;
     }

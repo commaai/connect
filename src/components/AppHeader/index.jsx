@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, AppBar } from '@material-ui/core';
@@ -73,6 +74,10 @@ const AppHeader = ({
     setMenuOpen(false);
   }, []);
 
+  const openReferrals = useCallback(() => {
+    dispatch(push('/referrals'));
+  }, [dispatch]);
+
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
   }, [drawerIsOpen, handleDrawerStateChanged]);
@@ -123,6 +128,7 @@ const AppHeader = ({
                 <AccountMenu
                   open={open}
                   onClose={handleClose}
+                  onReferrals={openReferrals}
                   profile={profile}
                 />
               )}

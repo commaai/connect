@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { replace } from 'connected-react-router';
+import { push, replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -23,12 +23,19 @@ import { subscribeWindowSize } from '../hooks/window';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
+import Referrals from './Referrals';
 
 const styles = (theme) => ({
+  app: {
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+  },
   window: {
     background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
     display: 'flex',
     flexDirection: 'column',
+    flex: 1,
   },
   modal: {
     position: 'absolute',
@@ -190,10 +197,13 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, currentRoute, devices, dongleId, bodyTeleopOpen, segmentRange } = this.props;
+    const {
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, segmentRange, pathname, profile,
+    } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
+    const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -208,13 +218,12 @@ class ExplorerApp extends Component {
         marginLeft: sidebarWidth,
       };
     }
-
     const drawerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
 
     return (
-      <div>
+      <div className={classes.app}>
         { bodyTeleopOpen ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
@@ -234,7 +243,9 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { noDevicesUpsell
+              { referralsOpen
+                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || segmentRange) ? <DriveView /> : <Dashboard />)}
             </div>
@@ -273,6 +284,7 @@ const stateToProps = (state) => ({
   segmentRange: state.segmentRange,
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
+  profile: state.profile,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
