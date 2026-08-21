@@ -1,29 +1,39 @@
-import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
+} from 'react';
 import * as Sentry from '@sentry/react';
-import { IconButton } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
+import {
+  Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
+} from '@material-ui/core';
 
 import { billing } from '../../api';
-import { claimMailto, claimTotalCents, claimableReferrals } from './utils';
+import { ContentCopy } from '../../icons';
+import { claimMailto, referralTotals } from './utils';
 
-const statusStyle = {
-  pending: 'bg-yellow-500/15 text-yellow-300',
-  cancelled: 'bg-red-500/15 text-red-300',
-  returned: 'bg-red-500/15 text-red-300',
-  claimed: 'bg-blue-500/15 text-blue-300',
-  claim: 'bg-green-500/15 text-green-300',
-};
+const referralSteps = [
+  {
+    title: 'Share your link',
+    detail: 'Send it to a friend who is interested in a comma four.',
+  },
+  {
+    title: 'They save $50',
+    detail: 'Your link takes $50 off their comma four order.',
+  },
+  {
+    title: 'You earn $50 cash',
+    detail: 'Every successful referral puts $50 in your pocket.',
+  },
+];
 
-const statusLabel = {
-  pending: 'Pending', cancelled: 'Cancelled', returned: 'Returned', claimed: 'Claimed', claim: 'Ready to claim',
-};
-const historicalStatuses = ['cancelled', 'returned', 'claimed'];
-const referralWaitMilliseconds = 60 * 24 * 60 * 60 * 1000;
-
-export default function Referrals({ profile, onBack }) {
+export default function Referrals({ profile }) {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [shareStatus, setShareStatus] = useState(null);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [claimOpening, setClaimOpening] = useState(false);
+  const claimOpeningTimer = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(claimOpeningTimer.current), []);
 
   const loadReferrals = useCallback(async () => {
     setError(null);
@@ -50,29 +60,66 @@ export default function Referrals({ profile, onBack }) {
     loadReferrals();
   }, [loadReferrals]);
 
-  const claimable = useMemo(() => claimableReferrals(summary?.referrals || []), [summary]);
-  const totalCents = useMemo(() => claimTotalCents(summary?.referrals || []), [summary]);
-  const referralsByOrderDate = useMemo(
-    () => [...(summary?.referrals || [])].sort((a, b) => b.ordered_at - a.ordered_at),
-    [summary],
-  );
-  const activeReferrals = useMemo(
-    () => referralsByOrderDate.filter((referral) => !historicalStatuses.includes(referral.status)),
-    [referralsByOrderDate],
-  );
-  const oldReferrals = useMemo(
-    () => referralsByOrderDate.filter((referral) => historicalStatuses.includes(referral.status)),
-    [referralsByOrderDate],
-  );
-
   const copyLink = async () => {
-    await navigator.clipboard.writeText(summary.referral_url);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(summary.referral_url);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = summary.referral_url;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+    }
+    setShareStatus('copied');
+    window.setTimeout(() => setShareStatus(null), 1500);
   };
 
+  const shareLink = async () => {
+    if (!navigator.share) {
+      await copyLink();
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: 'Give $50, Get $50 with comma',
+        text: 'Get $50 off your comma four purchase using my referral link.',
+        url: summary.referral_url,
+      });
+      setShareStatus('shared');
+      window.setTimeout(() => setShareStatus(null), 1500);
+    } catch (err) {
+      // Closing the native share sheet is expected and does not need reporting.
+      if (err?.name !== 'AbortError') {
+        Sentry.captureException(err, { fingerprint: 'referrals_navigator_share' });
+        try {
+          await copyLink();
+        } catch (copyError) {
+          setShareStatus('unable to share');
+          window.setTimeout(() => setShareStatus(null), 2000);
+          Sentry.captureException(copyError, { fingerprint: 'referrals_clipboard_copy' });
+        }
+      }
+    }
+  };
+
+  const openClaim = (event) => {
+    if (claimOpening) {
+      event.preventDefault();
+      return;
+    }
+    setClaimOpening(true);
+    claimOpeningTimer.current = window.setTimeout(() => setClaimOpening(false), 1500);
+  };
+
+  const totals = useMemo(() => referralTotals(summary?.referrals || []), [summary]);
+
   if (error) return (
-    <main className="max-w-[430px] mx-3 my-1.5 min-[521px]:mx-6 min-[521px]:my-[18px] text-white">
+    <main className="max-w-[430px] mx-5 my-1.5 min-[521px]:mx-6 min-[521px]:my-[18px] text-white">
       <p>{error.message}</p>
       {error.retryable && (
         <button type="button" onClick={loadReferrals} className="mt-4 h-[42px] rounded-full bg-white px-5 font-semibold text-[#16181a]">
@@ -81,89 +128,139 @@ export default function Referrals({ profile, onBack }) {
       )}
     </main>
   );
-  if (!summary) return <main className="max-w-[430px] mx-3 my-1.5 min-[521px]:mx-6 min-[521px]:my-[18px] text-white"><p>Loading referrals…</p></main>;
+  if (!summary) return (
+    <main className="flex min-h-[240px] w-full max-w-[430px] items-center justify-center text-white">
+      <CircularProgress aria-label="Loading referrals" size={40} style={{ color: 'white' }} />
+    </main>
+  );
 
   return (
-    <main className="w-[calc(100%-24px)] max-w-[430px] mx-3 my-1.5 min-[521px]:w-[calc(100%-48px)] min-[521px]:mx-6 min-[521px]:my-[18px] text-white">
-      <IconButton aria-label="Go Back" onClick={onBack}>
-        <KeyboardBackspaceIcon />
-      </IconButton>
-      <h1 className="text-2xl font-semibold">Refer a friend, Get $50.</h1>
-      <p className="mt-2 text-sm text-white/70">You get $50 cash, your friend gets $50 off at checkout. <br></br>Your reward becomes claimable 60 days after their order.</p>
+    <main className="w-[calc(100%-40px)] max-w-[430px] mx-5 mb-3 min-[521px]:w-[calc(100%-48px)] min-[521px]:mx-6 min-[521px]:my-[18px] text-white">
+      <h1 className="my-10 whitespace-nowrap text-[clamp(2.5rem,12.5vw,4rem)] font-bold leading-none tracking-[-0.055em]">
+        Refer a friend, <br></br>
+        Get $50.
+      </h1>
 
-      <section className="mt-6 rounded-xl bg-white/8 p-4">
-        <label className="block text-sm text-white/50 mb-2">Your referral link</label>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input readOnly value={summary.referral_url} className="min-w-0 h-[42px] flex-1 rounded-[20px] bg-black/20 px-4 text-white" />
-          <button onClick={copyLink} className="h-[42px] rounded-full bg-white text-[#16181a] font-semibold px-5">
-            {copied ? 'Copied' : 'Copy link'}
-          </button>
-        </div>
-        <p className="mt-2 text-xs text-white/40">Discount Code: {summary.code}</p>
+      <section>
+        <ol>
+          {referralSteps.map((step, index) => (
+            <li key={step.title} className="group relative flex gap-3.5 pb-[18px] last:pb-0">
+              <div className="relative z-10 flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-white text-[13px] font-bold text-[#16181a]">
+                {index + 1}
+              </div>
+              <div className="min-w-0 pt-0.5">
+                <span className="sr-only">Step {index + 1}: </span>
+                <h2 className="text-base font-bold leading-snug text-white">{step.title}</h2>
+                <p className="mt-0.5 text-xs leading-[1.45] text-white/55">{step.detail}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <section className="mt-6">
-        <h2 className="text-xl font-semibold">Your referrals</h2>
-
-        {claimable.length > 0 && (
-          <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl bg-white/10 p-4">
-            <div>
-              <p className="text-sm text-white/50">Ready to claim</p>
-              <p className="text-2xl font-bold">${(totalCents / 100).toFixed(2)}</p>
-            </div>
-            <a
-              href={claimMailto(profile, summary.code, summary.referrals)}
-              className="flex h-[42px] items-center justify-center rounded-full bg-white px-6 text-center font-semibold text-[#16181a]"
-            >
-              Claim {claimable.length} referral{claimable.length === 1 ? '' : 's'}
-            </a>
-          </div>
-        )}
-
-        <div className="mt-3 space-y-3">
-          {activeReferrals.length === 0 && <p className="rounded-xl bg-white/5 p-4 text-white/50">No referrals yet.</p>}
-          {activeReferrals.map((referral) => (
-            <article key={referral.order_id} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 p-4">
-              <div>
-                <p className="mt-1 text-sm text-white/50">
-                  Order date: {new Date(referral.ordered_at * 1000).toLocaleDateString()}
-                </p>
-                {referral.status === 'pending' && (
-                  <p className="mt-1 text-sm text-white/50">
-                    Expected claim date: {new Date(referral.ordered_at * 1000 + referralWaitMilliseconds).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-              <span className={`rounded-full px-3 py-1 text-sm ${statusStyle[referral.status]}`}>
-                {statusLabel[referral.status]}
-              </span>
-            </article>
-          ))}
+        <button
+          type="button"
+          onClick={shareLink}
+          className="h-[52px] w-full rounded-full border border-white bg-white px-6 font-bold text-[#16181a] transition duration-150 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]"
+        >
+          <span key={shareStatus || 'share'} className={shareStatus ? 'inline-block animate-pulse' : ''}>
+            {shareStatus || 'share your link'}
+          </span>
+        </button>
+        <div className="mt-2.5 flex items-center justify-center gap-1.5 px-4 text-[11px] leading-4 text-white/45">
+          <span className="min-w-0 truncate">
+            {summary.referral_url}
+          </span>
+          <button
+            type="button"
+            onClick={copyLink}
+            aria-label="Copy referral link"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
+          >
+            <ContentCopy aria-hidden="true" className="!h-3.5 !w-3.5" />
+          </button>
         </div>
       </section>
-
-      {oldReferrals.length > 0 && (
-        <details className="group mt-6">
-          <summary className="flex cursor-pointer select-none list-none items-center justify-between rounded-xl bg-white/5 p-4">
-            <h2 className="text-base font-semibold">Referral history</h2>
-            <span aria-hidden="true" className="text-white/50 transition-transform group-open:rotate-180">▼</span>
-          </summary>
-          <div className="mt-3 space-y-3">
-            {oldReferrals.map((referral) => (
-              <article key={referral.order_id} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 p-4">
-                <div>
-                  <p className="mt-1 text-sm text-white/50">
-                    Order date: {new Date(referral.ordered_at * 1000).toLocaleDateString()}
-                  </p>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-sm ${statusStyle[referral.status]}`}>
-                  {statusLabel[referral.status]}
-                </span>
-              </article>
-            ))}
+      <Dialog
+        open={termsOpen}
+        onClose={() => setTermsOpen(false)}
+        aria-labelledby="referral-terms-title"
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{ className: '!mx-8 !w-[calc(100%-64px)] !bg-[#242729] !text-white' }}
+      >
+        <DialogTitle id="referral-terms-title" className="!text-white">Referral terms and conditions</DialogTitle>
+        <DialogContent>
+          <div className="space-y-3 text-sm leading-relaxed text-white/80">
+            <p>Referral rewards are available to eligible comma customers who share their unique referral link.</p>
+            <p>A referral qualifies when a new customer uses that link to purchase a comma four and keeps the order for at least 30 days. Rewards become available to claim 30 days after the order is placed. Cancelled, returned, refunded, fraudulent, or self-referred orders do not qualify.</p>
+            <p>Each qualifying referral provides $50 off the referred customer’s order and a $50 cash reward for the referrer. Rewards must be claimed through the process shown on this page and may require account or order verification.</p>
+            <p>comma may limit, suspend, or change the referral program, or withhold rewards where misuse is suspected. Referral rewards have no cash value until approved and paid.</p>
           </div>
-        </details>
-      )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTermsOpen(false)} className="!text-white">Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      <section className="mt-8">
+        <h2 className="text-xl font-semibold">Your Referrals Summary</h2>
+
+        <div className="mt-3 overflow-hidden rounded-[14px] bg-white/5">
+          <dl className="divide-y divide-white/10">
+            <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
+              <dt className="text-[13px] text-white/60">Already claimed:</dt>
+              <dd className="text-lg font-bold">${totals.claimed.reward_dollars.toFixed(0)}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
+              <dt className="text-[13px] text-white/60">Pending rewards:</dt>
+              <dd className="text-lg font-bold">${totals.pending.reward_dollars.toFixed(0)}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
+              <dt className="text-[13px] text-white/60">Available to claim:</dt>
+              <dd className={`text-lg font-bold ${totals.claimable.count > 0 ? 'text-green-300' : ''}`}>
+                ${totals.claimable.reward_dollars.toFixed(0)}
+              </dd>
+            </div>
+          </dl>
+
+        </div>
+        {totals.claimable.count > 0 && profile ? (
+          <a
+            href={claimMailto(profile, summary.code, totals.claimable)}
+            onClick={openClaim}
+            aria-disabled={claimOpening}
+            className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-full border border-white bg-white px-6 text-center text-lg font-bold text-[#16181a] transition duration-150 ${claimOpening ? 'cursor-wait opacity-80' : 'hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]'}`}
+          >
+            {claimOpening ? (
+              <>
+                <CircularProgress size={20} aria-hidden="true" style={{ color: '#16181a' }} />
+                Opening mail app…
+              </>
+            ) : `claim rewards ($${totals.claimable.reward_dollars.toFixed(0)})`}
+          </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="mt-4 h-14 w-full cursor-not-allowed rounded-full border border-white/10 bg-white/10 px-6 text-lg font-bold text-white/35"
+          >
+            claim rewards (${totals.claimable.reward_dollars.toFixed(0)})
+          </button>
+        )}
+      </section>
+      <p className="mt-3 text-center text-xs text-white/50">
+        Referral rewards are subject to certain{' '}
+        <button
+          type="button"
+          className="cursor-pointer bg-transparent p-0 text-inherit underline underline-offset-2"
+          onClick={() => setTermsOpen(true)}
+        >
+          terms
+        </button>
+        .
+      </p>
     </main>
   );
 }

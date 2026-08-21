@@ -64,7 +64,7 @@ const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
             onReferrals();
           })}
         >
-          Refer a friend
+          Referrals
         </a>
         <a
           className="block px-4 py-3 text-white hover:bg-white/10"

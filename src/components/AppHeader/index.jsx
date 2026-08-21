@@ -9,7 +9,7 @@ import MenuIcon from '@material-ui/icons/Menu';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { selectDevice } from '../../actions';
-import { AccountIcon } from '../../icons';
+import { AccountIcon, GiftIcon, GiftOpenIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
 
@@ -54,11 +54,19 @@ const styles = () => ({
     height: 34,
     width: 34,
   },
+  giftIcon: {
+    color: Colors.white30,
+    height: 28,
+    width: 28,
+  },
+  activeGiftIcon: {
+    color: Colors.white,
+  },
 });
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId,
+  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -75,14 +83,21 @@ const AppHeader = ({
   }, []);
 
   const openReferrals = useCallback(() => {
+    if (pathname === '/referrals') return;
     dispatch(push('/referrals'));
-  }, [dispatch]);
+  }, [dispatch, pathname]);
+
+  const toggleReferrals = useCallback(() => {
+    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
+  }, [dispatch, dongleId, pathname]);
 
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
   }, [drawerIsOpen, handleDrawerStateChanged]);
 
   const open = menuOpen;
+  const referralsOpen = pathname === '/referrals';
+  const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
 
   return (
     <>
@@ -115,6 +130,14 @@ const AppHeader = ({
             </a>
           </div>
           <div className="flex flex-row gap-2">
+            <IconButton
+              component="a"
+              href={referralsOpen ? `/${dongleId}` : '/referrals'}
+              aria-label="referrals"
+              onClick={filterRegularClick(toggleReferrals)}
+            >
+              <ReferralsIcon className={`${classes.giftIcon} ${referralsOpen ? classes.activeGiftIcon : ''}`} />
+            </IconButton>
             <div className="relative">
               <IconButton
                 aria-expanded={open}
@@ -145,6 +168,7 @@ const stateToProps = (state) => ({
   filter: state.filter,
   profile: state.profile,
   primeNav: state.primeNav,
+  pathname: state.router.location.pathname,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));
