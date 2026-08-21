@@ -8,7 +8,10 @@ import {
 
 import { billing } from '../../api';
 import { ContentCopy } from '../../icons';
-import { claimMailto, referralTotals } from './utils';
+import { claimMailto } from './utils';
+
+const REFERRAL_URL = import.meta.env.VITE_REFERRAL_URL || 'https://refer.comma.ai';
+const referralUrl = (code) => `${REFERRAL_URL}?ref=${encodeURIComponent(code)}`;
 
 const referralSteps = [
   {
@@ -32,8 +35,13 @@ export default function Referrals({ profile }) {
   const [termsOpen, setTermsOpen] = useState(false);
   const [claimOpening, setClaimOpening] = useState(false);
   const claimOpeningTimer = useRef(null);
+  const shareUrl = summary ? referralUrl(summary.code) : null;
 
   useEffect(() => () => window.clearTimeout(claimOpeningTimer.current), []);
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, []);
 
   const loadReferrals = useCallback(async () => {
     setError(null);
@@ -62,10 +70,10 @@ export default function Referrals({ profile }) {
 
   const copyLink = async () => {
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(summary.referral_url);
+      await navigator.clipboard.writeText(shareUrl);
     } else {
       const textarea = document.createElement('textarea');
-      textarea.value = summary.referral_url;
+      textarea.value = shareUrl;
       textarea.setAttribute('readonly', '');
       textarea.style.position = 'fixed';
       textarea.style.opacity = '0';
@@ -75,7 +83,6 @@ export default function Referrals({ profile }) {
       textarea.remove();
     }
     setShareStatus('copied');
-    window.setTimeout(() => setShareStatus(null), 1500);
   };
 
   const shareLink = async () => {
@@ -88,7 +95,7 @@ export default function Referrals({ profile }) {
       await navigator.share({
         title: 'Give $50, Get $50 with comma',
         text: 'Get $50 off your comma four purchase using my referral link.',
-        url: summary.referral_url,
+        url: shareUrl,
       });
       setShareStatus('shared');
       window.setTimeout(() => setShareStatus(null), 1500);
@@ -116,7 +123,10 @@ export default function Referrals({ profile }) {
     claimOpeningTimer.current = window.setTimeout(() => setClaimOpening(false), 1500);
   };
 
-  const totals = useMemo(() => referralTotals(summary?.referrals || []), [summary]);
+  const claimableReferrals = useMemo(
+    () => (summary?.referrals || []).filter(({ status }) => status === 'claim'),
+    [summary],
+  );
 
   if (error) return (
     <main className="max-w-[430px] mx-5 my-1.5 min-[521px]:mx-6 min-[521px]:my-[18px] text-white">
@@ -129,7 +139,7 @@ export default function Referrals({ profile }) {
     </main>
   );
   if (!summary) return (
-    <main className="flex min-h-[240px] w-full max-w-[430px] items-center justify-center text-white">
+    <main className="flex w-full flex-1 items-center justify-center text-white">
       <CircularProgress aria-label="Loading referrals" size={40} style={{ color: 'white' }} />
     </main>
   );
@@ -164,13 +174,13 @@ export default function Referrals({ profile }) {
           onClick={shareLink}
           className="h-[52px] w-full rounded-full border border-white bg-white px-6 font-bold text-[#16181a] transition duration-150 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]"
         >
-          <span key={shareStatus || 'share'} className={shareStatus ? 'inline-block animate-pulse' : ''}>
+          <span>
             {shareStatus || 'share your link'}
           </span>
         </button>
         <div className="mt-2.5 flex items-center justify-center gap-1.5 px-4 text-[11px] leading-4 text-white/45">
           <span className="min-w-0 truncate">
-            {summary.referral_url}
+            {shareUrl}
           </span>
           <button
             type="button"
@@ -211,24 +221,24 @@ export default function Referrals({ profile }) {
           <dl className="divide-y divide-white/10">
             <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
               <dt className="text-[13px] text-white/60">Already claimed:</dt>
-              <dd className="text-lg font-bold">${totals.claimed.reward_dollars.toFixed(0)}</dd>
+              <dd className="text-lg font-bold">${summary.cash.claimed.toFixed(0)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
               <dt className="text-[13px] text-white/60">Pending rewards:</dt>
-              <dd className="text-lg font-bold">${totals.pending.reward_dollars.toFixed(0)}</dd>
+              <dd className="text-lg font-bold">${summary.cash.pending.toFixed(0)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
               <dt className="text-[13px] text-white/60">Available to claim:</dt>
-              <dd className={`text-lg font-bold ${totals.claimable.count > 0 ? 'text-green-300' : ''}`}>
-                ${totals.claimable.reward_dollars.toFixed(0)}
+              <dd className={`text-lg font-bold ${summary.cash.available > 0 ? 'text-green-300' : ''}`}>
+                ${summary.cash.available.toFixed(0)}
               </dd>
             </div>
           </dl>
 
         </div>
-        {totals.claimable.count > 0 && profile ? (
+        {summary.cash.available > 0 && claimableReferrals.length > 0 && profile ? (
           <a
-            href={claimMailto(profile, summary.code, totals.claimable)}
+            href={claimMailto(profile, summary.code, claimableReferrals, summary.cash.available)}
             onClick={openClaim}
             aria-disabled={claimOpening}
             className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-full border border-white bg-white px-6 text-center text-lg font-bold text-[#16181a] transition duration-150 ${claimOpening ? 'cursor-wait opacity-80' : 'hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]'}`}
@@ -238,7 +248,7 @@ export default function Referrals({ profile }) {
                 <CircularProgress size={20} aria-hidden="true" style={{ color: '#16181a' }} />
                 Opening mail app…
               </>
-            ) : `claim rewards ($${totals.claimable.reward_dollars.toFixed(0)})`}
+            ) : `claim rewards ($${summary.cash.available.toFixed(0)})`}
           </a>
         ) : (
           <button
@@ -246,7 +256,7 @@ export default function Referrals({ profile }) {
             disabled
             className="mt-4 h-14 w-full cursor-not-allowed rounded-full border border-white/10 bg-white/10 px-6 text-lg font-bold text-white/35"
           >
-            claim rewards (${totals.claimable.reward_dollars.toFixed(0)})
+            claim rewards (${summary.cash.available.toFixed(0)})
           </button>
         )}
       </section>

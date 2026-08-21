@@ -119,11 +119,8 @@ async function mockFetch(input, init = {}) {
     if (options.failedReferrals) return json({}, 500);
     return json({
       code: 'COMMA-TEST',
-      referral_url: 'https://comma.ai/shop/comma-four?ref=COMMA-TEST',
-      referrals: (options.referrals ?? []).map((referral) => ({
-        ...referral,
-        reward_dollars: Number(referral.reward_dollars ?? (referral.reward_cents ?? 5000) / 100),
-      })),
+      cash: options.cash ?? { pending: 0, available: 0, claimed: 0 },
+      referrals: options.referrals ?? [],
     });
   }
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
@@ -212,18 +209,31 @@ describe('whole-app behavior', () => {
     expect(screen.getByText('comma prime')).toBeVisible();
   });
 
+  test('scrolls to the top when navigating to referrals', async () => {
+    await renderApp(`/${FIRST}`);
+    const referralButton = await screen.findByRole('button', { name: 'referrals' });
+    window.scrollTo.mockClear();
+
+    fireEvent.click(referralButton);
+
+    expect(await screen.findByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0 });
+  });
+
   test('referrals route is retained while devices initialize', async () => {
     const referrals = [{
-      order_id: 'gid://shopify/Order/1', order_name: '#1001',
-      ordered_at: 1767225600, status: 'pending', reward_cents: 5000,
+      ordered_at: 1767225600, status: 'pending',
     }];
-    const { history } = await renderApp('/referrals', { referrals });
+    const { history } = await renderApp('/referrals', {
+      referrals,
+      cash: { pending: 50, available: 0, claimed: 0 },
+    });
     expect(await screen.findByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'They save $50' })).toBeVisible();
     expect(screen.getByText('Your link takes $50 off their comma four order.')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'You earn $50 cash' })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Refer a friend' })).not.toBeInTheDocument();
-    expect(screen.queryByDisplayValue('https://comma.ai/shop/comma-four?ref=COMMA-TEST')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('https://refer.comma.ai?ref=COMMA-TEST')).not.toBeInTheDocument();
     expect(screen.queryByText('friend@example.com')).not.toBeInTheDocument();
     expect(screen.queryByText('Order #1001')).not.toBeInTheDocument();
     expect(screen.getByText('Pending rewards:').nextSibling).toHaveTextContent('$50');
@@ -233,7 +243,7 @@ describe('whole-app behavior', () => {
 
   test('referral link opens in the native share sheet', async () => {
     await renderApp('/referrals');
-    const referralUrl = 'https://comma.ai/shop/comma-four?ref=COMMA-TEST';
+    const referralUrl = 'https://refer.comma.ai?ref=COMMA-TEST';
 
     expect(screen.getByText(referralUrl)).toBeVisible();
     expect(screen.queryByRole('link', { name: referralUrl })).not.toBeInTheDocument();
@@ -244,7 +254,9 @@ describe('whole-app behavior', () => {
       text: 'Get $50 off your comma four purchase using my referral link.',
       url: referralUrl,
     }));
-    expect(screen.getByRole('button', { name: 'shared' })).toBeVisible();
+    const sharedButton = screen.getByRole('button', { name: 'shared' });
+    expect(sharedButton).toBeVisible();
+    expect(sharedButton.firstChild).not.toHaveClass('animate-pulse');
   });
 
   test('referral link can be copied directly', async () => {
@@ -252,8 +264,15 @@ describe('whole-app behavior', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy referral link' }));
 
-    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://comma.ai/shop/comma-four?ref=COMMA-TEST'));
+    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://refer.comma.ai?ref=COMMA-TEST'));
+    const copiedButton = screen.getByRole('button', { name: 'copied' });
+    expect(copiedButton).toBeVisible();
+    expect(copiedButton.firstChild).not.toHaveClass('animate-pulse');
+
+    vi.useFakeTimers();
+    act(() => vi.advanceTimersByTime(5000));
     expect(screen.getByRole('button', { name: 'copied' })).toBeVisible();
+    vi.useRealTimers();
   });
 
   test('referral link is copied when native sharing fails', async () => {
@@ -262,7 +281,7 @@ describe('whole-app behavior', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'share your link' }));
 
-    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://comma.ai/shop/comma-four?ref=COMMA-TEST'));
+    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://refer.comma.ai?ref=COMMA-TEST'));
     expect(screen.getByRole('button', { name: 'copied' })).toBeVisible();
   });
 
@@ -283,31 +302,28 @@ describe('whole-app behavior', () => {
   test('referral receipt totals rewards by status', async () => {
     const referrals = [
       {
-        order_id: 'gid://shopify/Order/1', order_name: '#1001',
-        ordered_at: 1767225600, status: 'pending', reward_cents: 5000,
+        ordered_at: 1767225600, status: 'pending',
       },
       {
-        order_id: 'gid://shopify/Order/2', order_name: '#1002',
-        ordered_at: 1772323200, status: 'claim', reward_cents: 5000,
+        ordered_at: 1772323200, status: 'claim',
       },
       {
-        order_id: 'gid://shopify/Order/3', order_name: '#1003',
         ordered_at: 1769904000, status: 'pending',
       },
       {
-        order_id: 'gid://shopify/Order/4', order_name: '#1004',
-        ordered_at: 1775001600, status: 'returned', reward_cents: 5000,
+        ordered_at: 1775001600, status: 'returned',
       },
       {
-        order_id: 'gid://shopify/Order/5', order_name: '#1005',
-        ordered_at: 1764547200, status: 'cancelled', reward_cents: 5000,
+        ordered_at: 1764547200, status: 'cancelled',
       },
       {
-        order_id: 'gid://shopify/Order/6', order_name: '#1006',
-        ordered_at: 1777593600, status: 'claimed', reward_cents: 5000,
+        ordered_at: 1777593600, status: 'claimed',
       },
     ];
-    await renderApp('/referrals', { referrals });
+    await renderApp('/referrals', {
+      referrals,
+      cash: { pending: 100, available: 50, claimed: 50 },
+    });
 
     const claimAction = screen.getByRole('link', { name: 'claim rewards ($50)' });
     const referralsHeading = screen.getByRole('heading', { name: 'Your Referrals Summary' });
@@ -317,8 +333,7 @@ describe('whole-app behavior', () => {
     expect(screen.getByText('Pending rewards:').nextSibling).toHaveTextContent('$100');
     expect(screen.getByText('Already claimed:').nextSibling).toHaveTextContent('$50');
     expect(screen.getByText('Already claimed:').nextSibling).not.toHaveClass('text-green-300');
-    expect(decodeURIComponent(claimAction.getAttribute('href'))).toContain('- #1002');
-    expect(decodeURIComponent(claimAction.getAttribute('href'))).not.toContain('#1001');
+    expect(decodeURIComponent(claimAction.getAttribute('href'))).toContain('for 1 referral.');
 
     fireEvent.click(claimAction);
     expect(screen.getByRole('link', { name: 'Opening mail app…' })).toHaveAttribute('aria-disabled', 'true');
