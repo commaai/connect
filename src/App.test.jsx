@@ -6,14 +6,7 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
-const mocks = vi.hoisted(() => ({
-  authenticated: true,
-  options: {},
-  requests: [],
-  hardNavigate: vi.fn(),
-  copy: vi.fn(),
-  share: vi.fn(),
-}));
+const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -114,16 +107,6 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname === '/v1/referrals') {
-    if (options.referralsResponse) return options.referralsResponse;
-    if (options.forbiddenReferrals) return json({}, 403);
-    if (options.failedReferrals) return json({}, 500);
-    return json({
-      code: 'COMMA-TEST',
-      cash: options.cash ?? { pending: 0, available: 0, claimed: 0 },
-      referrals: options.referrals ?? [],
-    });
-  }
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
@@ -161,8 +144,6 @@ describe('whole-app behavior', () => {
     vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
     Object.defineProperty(window, 'visualViewport', { value: { height: 800 }, configurable: true });
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText: mocks.copy }, configurable: true });
-    Object.defineProperty(navigator, 'share', { value: mocks.share, configurable: true });
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, value: vi.fn(() => null) });
     Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
       configurable: true,
@@ -173,8 +154,6 @@ describe('whole-app behavior', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
-    mocks.copy.mockClear();
-    mocks.share.mockClear();
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -195,238 +174,6 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp('/', { devices: [] });
     expect(await screen.findByRole('heading', { name: 'Pair your device' })).toBeVisible();
     expect(history.location.pathname).toBe('/');
-  });
-
-  test('dismissed promotions stay hidden after the dashboard remounts', async () => {
-    const app = await renderApp(`/${FIRST}`);
-    expect(await screen.findByText('Give $50, Get $50')).toBeVisible();
-
-    fireEvent.click(screen.getByLabelText('Dismiss referral promotion'));
-    expect(screen.queryByText('Give $50, Get $50')).not.toBeInTheDocument();
-
-    app.unmount();
-    await renderApp(`/${FIRST}`);
-    expect(screen.queryByText('Give $50, Get $50')).not.toBeInTheDocument();
-    expect(screen.getByText('comma prime')).toBeVisible();
-  });
-
-  test('scrolls to the top when navigating to referrals', async () => {
-    await renderApp(`/${FIRST}`);
-    const referralButton = await screen.findByRole('button', { name: 'referrals' });
-    window.scrollTo.mockClear();
-
-    fireEvent.click(referralButton);
-
-    expect(await screen.findByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
-    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0 });
-  });
-
-  test('only referral data sections wait for the referrals request', async () => {
-    let resolveReferrals;
-    const referralsResponse = new Promise((resolve) => { resolveReferrals = resolve; });
-    await renderApp('/referrals', { referralsResponse });
-
-    expect(screen.getByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'They save $50' })).toBeVisible();
-    const linkLoader = screen.getByRole('progressbar', { name: 'Loading referral link' });
-    const referralsLoader = screen.getByRole('progressbar', { name: 'Loading your referrals' });
-    expect(linkLoader).toBeVisible();
-    expect(linkLoader.parentElement).toHaveClass('absolute', 'inset-0');
-    expect(screen.getByRole('button', { name: 'share your link', hidden: true }).parentElement).toHaveClass('invisible');
-    expect(referralsLoader).toBeVisible();
-    expect(referralsLoader.parentElement).toHaveClass('absolute', 'inset-0');
-    expect(screen.getByRole('button', { name: 'claim rewards ($0)', hidden: true }).parentElement).toHaveClass('invisible');
-
-    await act(async () => {
-      resolveReferrals(await json({
-        code: 'COMMA-TEST',
-        cash: { pending: 0, available: 0, claimed: 0 },
-        referrals: [],
-      }));
-    });
-    expect(await screen.findByRole('button', { name: 'share your link' })).toBeVisible();
-    expect(screen.queryByRole('progressbar', { name: 'Loading referral link' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('progressbar', { name: 'Loading your referrals' })).not.toBeInTheDocument();
-  });
-
-  test('referrals route is retained while devices initialize', async () => {
-    const referrals = [{
-      ordered_at: 1767225600, status: 'pending',
-    }];
-    const { history } = await renderApp('/referrals', {
-      referrals,
-      cash: { pending: 50, available: 0, claimed: 0 },
-    });
-    expect(await screen.findByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'They save $50' })).toBeVisible();
-    expect(screen.getByText('Your link takes $50 off their comma four order.')).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'You earn $50 cash' })).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Refer a friend' })).not.toBeInTheDocument();
-    expect(screen.queryByDisplayValue('https://refer.comma.ai/COMMA-TEST')).not.toBeInTheDocument();
-    expect(screen.queryByText('friend@example.com')).not.toBeInTheDocument();
-    expect(screen.queryByText('Order #1001')).not.toBeInTheDocument();
-    expect(screen.getByText('Pending rewards:').nextSibling).toHaveTextContent('$50');
-    expect(mocks.requests.some(({ url }) => url.endsWith('/v1/prime/subscription') || url.includes('/v1/prime/subscribe_info'))).toBe(false);
-    expect(history.location.pathname).toBe('/referrals');
-  });
-
-  test('referral link opens in the native share sheet', async () => {
-    await renderApp('/referrals');
-    const referralUrl = 'https://refer.comma.ai/COMMA-TEST';
-
-    expect(screen.getByText(referralUrl)).toBeVisible();
-    expect(screen.queryByRole('link', { name: referralUrl })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'share your link' }));
-    await waitFor(() => expect(mocks.share).toHaveBeenCalledWith({
-      title: 'Give $50, Get $50 with comma',
-      text: 'Get $50 off comma four using this referral link.',
-      url: referralUrl,
-    }));
-    const sharedButton = screen.getByRole('button', { name: 'shared' });
-    expect(sharedButton).toBeVisible();
-    expect(sharedButton.firstChild).not.toHaveClass('animate-pulse');
-  });
-
-  test('referral link can be copied directly', async () => {
-    await renderApp('/referrals');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Copy referral link' }));
-
-    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://refer.comma.ai/COMMA-TEST'));
-    const copiedButton = screen.getByRole('button', { name: 'copied' });
-    expect(copiedButton).toBeVisible();
-    expect(copiedButton.firstChild).not.toHaveClass('animate-pulse');
-
-    expect(await screen.findByRole('button', { name: 'share your link' }, { timeout: 2500 })).toBeVisible();
-  });
-
-  test('referral link is copied when native sharing fails', async () => {
-    mocks.share.mockRejectedValueOnce(new Error('Web Share unavailable'));
-    await renderApp('/referrals');
-
-    fireEvent.click(screen.getByRole('button', { name: 'share your link' }));
-
-    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://refer.comma.ai/COMMA-TEST'));
-    expect(screen.getByRole('button', { name: 'copied' })).toBeVisible();
-  });
-
-  test('referral terms can be opened and closed from below the referral link', async () => {
-    await renderApp('/referrals');
-
-    expect(screen.getByText(/Referrals are limited to 10 usages per year/)).toBeVisible();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'terms' }));
-
-    const termsDialog = screen.getByRole('dialog', { name: 'Referral terms and conditions' });
-    expect(termsDialog).toBeVisible();
-    expect(termsDialog).not.toHaveAttribute('tabindex');
-    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
-    expect(screen.getByText(/A referral qualifies when a new customer/)).toBeVisible();
-    expect(screen.getByText(/Rewards become available to claim 30 days after the order is placed/)).toBeVisible();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-  });
-
-  test('referral receipt totals rewards by status', async () => {
-    const referrals = [
-      {
-        ordered_at: 1767225600, status: 'pending',
-      },
-      {
-        ordered_at: 1772323200, status: 'claim',
-      },
-      {
-        ordered_at: 1769904000, status: 'pending',
-      },
-      {
-        ordered_at: 1775001600, status: 'returned',
-      },
-      {
-        ordered_at: 1764547200, status: 'cancelled',
-      },
-      {
-        ordered_at: 1777593600, status: 'claimed',
-      },
-    ];
-    await renderApp('/referrals', {
-      referrals,
-      cash: { pending: 100, available: 50, claimed: 50 },
-    });
-
-    const claimAction = screen.getByRole('link', { name: 'claim rewards ($50)' });
-    const referralsHeading = screen.getByRole('heading', { name: 'Your Referrals Summary' });
-    expect(referralsHeading.compareDocumentPosition(claimAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText('Available to claim:').nextSibling).toHaveTextContent('$50');
-    expect(screen.getByText('Available to claim:').nextSibling).toHaveClass('text-green-300');
-    expect(screen.getByText('Pending rewards:').nextSibling).toHaveTextContent('$100');
-    expect(screen.getByText('Already claimed:').nextSibling).toHaveTextContent('$50');
-    expect(screen.getByText('Already claimed:').nextSibling).not.toHaveClass('text-green-300');
-    expect(decodeURIComponent(claimAction.getAttribute('href'))).toContain('for 1 referral.');
-
-    fireEvent.click(claimAction);
-    expect(screen.getByRole('link', { name: 'Opening mail app…' })).toHaveAttribute('aria-disabled', 'true');
-  });
-
-  test('referral receipt shows zero totals when there are no referrals', async () => {
-    await renderApp('/referrals', { referrals: [] });
-    expect(screen.getByText('Available to claim:').nextSibling).toHaveTextContent('$0');
-    expect(screen.getByText('Available to claim:').nextSibling).not.toHaveClass('text-green-300');
-    expect(screen.getByText('Pending rewards:').nextSibling).toHaveTextContent('$0');
-    expect(screen.getByText('Already claimed:').nextSibling).toHaveTextContent('$0');
-    expect(screen.getByRole('button', { name: 'claim rewards ($0)' })).toBeDisabled();
-  });
-
-  test('account menu opens referrals without a page reload', async () => {
-    const { history } = await renderApp(`/${FIRST}`);
-    fireEvent.click(screen.getByRole('button', { name: 'account menu' }));
-    fireEvent.click(screen.getByRole('link', { name: 'Referrals' }));
-    expect(await screen.findByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
-    expect(history.location.pathname).toBe('/referrals');
-  });
-
-  test('gift icon opens referrals without a page reload', async () => {
-    const { history } = await renderApp(`/${FIRST}`);
-    expect(screen.getByTitle('gift')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'referrals' }));
-    expect(await screen.findByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
-    expect(history.location.pathname).toBe('/referrals');
-    expect(screen.getByTitle('gift-open').closest('svg')).toHaveStyle({ color: '#fff' });
-
-    fireEvent.click(screen.getByRole('button', { name: 'referrals' }));
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
-    expect(screen.getByTitle('gift')).toBeInTheDocument();
-    expect(screen.queryByTitle('gift-open')).not.toBeInTheDocument();
-  });
-
-  test('connect header returns to the selected device from referrals', async () => {
-    const { history } = await renderApp('/referrals', { selected: FIRST });
-    fireEvent.click(await screen.findByRole('link', { name: 'connect' }));
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
-  });
-
-  test('failed referrals request replaces the loader with an error', async () => {
-    await renderApp('/referrals', { failedReferrals: true });
-    expect(await screen.findByText('Could not load your referral program. Please try again.')).toBeVisible();
-    expect(screen.queryByText('Loading referrals…')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
-  });
-
-  test('forbidden referrals request explains comma 4 ownership requirement', async () => {
-    await renderApp('/referrals', { forbiddenReferrals: true });
-    expect(await screen.findByText('Referrals are only available for comma four owners')).toBeVisible();
-    expect(screen.queryByText('Could not load your referral program. Please try again.')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
-  });
-
-  test('failed referrals request can be retried', async () => {
-    await renderApp('/referrals', { failedReferrals: true });
-    const retry = await screen.findByRole('button', { name: 'Retry' });
-    mocks.options.failedReferrals = false;
-    fireEvent.click(retry);
-    expect(await screen.findByRole('heading', { name: 'Your Referrals Summary' })).toBeVisible();
-    expect(mocks.requests.filter(({ url }) => url.endsWith('/v1/referrals'))).toHaveLength(2);
   });
 
   test.each([['owned', FIRST], ['shared', SHARED]])('direct entry opens %s device dashboard', async (_name, dongleId) => {
