@@ -16,7 +16,7 @@ const referralUrl = (code) => `${REFERRAL_URL.replace(/\/$/, '')}/${encodeURICom
 const referralSteps = [
   {
     title: 'Share your link',
-    detail: 'Send it to a friend who is interested in a comma four.',
+    detail: 'Send it to a friend who is interested in comma four.',
   },
   {
     title: 'They save $50',
