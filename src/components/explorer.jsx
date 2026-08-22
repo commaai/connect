@@ -32,7 +32,7 @@ const styles = (theme) => ({
     flexDirection: 'column',
   },
   window: {
-    background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
+    background: '#1D2225',
     display: 'flex',
     flexDirection: 'column',
     flex: 1,
