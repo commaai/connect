@@ -156,7 +156,7 @@ export default function Referrals({ profile }) {
           {referralSteps.map((step, index) => (
             <li key={step.title} className="group relative flex gap-3.5 pb-[18px] last:pb-0">
               <div className="relative z-10 flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-white text-base font-bold leading-none text-[#16181a]">
-                {index + 1}
+                <span className={`block leading-[0.75] ${index === 0 ? 'relative -left-px' : ''}`}>{index + 1}</span>
               </div>
               <div className="min-w-0 pt-0.5">
                 <span className="sr-only">Step {index + 1}: </span>
