@@ -213,10 +213,10 @@ export default function Referrals({ profile }) {
         <DialogTitle id="referral-terms-title" className="!shrink-0 !text-white">Referral terms and conditions</DialogTitle>
         <DialogContent className="!min-h-0 !flex-1 !overflow-y-auto">
           <div className="space-y-3 text-sm leading-relaxed text-white/80">
-            <p>Referral rewards are available to eligible comma customers who share their unique referral link.</p>
-            <p>A referral qualifies when a new customer uses that link to purchase a comma four and keeps the order for at least 30 days. Rewards become available to claim 30 days after the order is placed. Cancelled, returned, refunded, fraudulent, or self-referred orders do not qualify.</p>
-            <p>Each qualifying referral provides $50 off the referred customer’s order and a $50 cash reward for the referrer. Each referral code is limited to 10 uses per year. If you would like to refer more than 10 people per year, message <a className="text-white underline" href="mailto:community@comma.ai">community@comma.ai</a>.</p>
-            <p>comma may limit, suspend, or change the referral program, or withhold rewards where misuse is suspected. Referral rewards have no cash value until approved and paid.</p>
+            <p>A “new customer” is someone who has not previously purchased a comma product. comma determines eligibility and whether a referral qualifies in its sole discretion. In general, comma considers whether the new customer purchased a comma four through the referral link and whether the applicable return period expired without the order being cancelled, returned, refunded, charged back, or identified as fraudulent or self-referred.</p>
+            <p>Subject to these terms and comma’s approval, a qualifying referral may provide $50 off the referred customer’s order and a $50 cash reward for the referrer. Each referral code may generate rewards for up to 10 referrals per calendar year. comma may adjust or waive this limit in its discretion. To request a higher limit, contact <a className="text-white underline" href="mailto:community@comma.ai">community@comma.ai</a>.</p>
+            <p>Rewards must be claimed through the process shown on this page. comma may require verification, determine the method of payment, and approve, deny, revoke, or adjust any reward in its sole discretion. A reward is not earned, vested, transferable, or payable until it is actually paid by comma.</p>
+            <p>comma may modify, suspend, limit, or terminate the referral program, these terms, referral eligibility, reward amounts, or program limits at any time, with or without notice. Referrers are solely responsible for any taxes associated with referral rewards and must provide tax information if requested by comma.</p>
           </div>
         </DialogContent>
         <DialogActions className="!shrink-0">
