@@ -176,6 +176,11 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe('/');
   });
 
+  test('referrals URL opens the referrals page', async () => {
+    await renderApp('/referrals');
+    expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
+  });
+
   test.each([['owned', FIRST], ['shared', SHARED]])('direct entry opens %s device dashboard', async (_name, dongleId) => {
     const { history } = await renderApp(`/${dongleId}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
