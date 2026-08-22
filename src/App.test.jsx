@@ -288,6 +288,7 @@ describe('whole-app behavior', () => {
   test('referral terms can be opened and closed from below the referral link', async () => {
     await renderApp('/referrals');
 
+    expect(screen.getByText(/Referrals are limited to 10 usages/)).toBeVisible();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'terms' }));
 
