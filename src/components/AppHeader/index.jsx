@@ -15,6 +15,8 @@ import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
 
+const REFERRALS_SEEN_KEY = 'referralsGiftClicked';
+
 const styles = () => ({
   header: {
     backgroundColor: '#1D2225',
@@ -59,6 +61,18 @@ const styles = () => ({
     height: 28,
     width: 28,
   },
+  giftButton: {
+    position: 'relative',
+  },
+  newReferralsDot: {
+    position: 'absolute',
+    top: 7,
+    right: 7,
+    width: 9,
+    height: 9,
+    borderRadius: '50%',
+    backgroundColor: Colors.red50,
+  },
   activeGiftIcon: {
     color: Colors.white,
   },
@@ -69,6 +83,9 @@ const AppHeader = ({
   forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
+    window.localStorage.getItem(REFERRALS_SEEN_KEY) !== 'true'
+  ));
 
   const handleClickedAccount = useCallback(() => {
     if (MyCommaAuth.isAuthenticated()) {
@@ -88,6 +105,8 @@ const AppHeader = ({
   }, [dispatch, pathname]);
 
   const toggleReferrals = useCallback(() => {
+    window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
+    setShowNewReferralsDot(false);
     dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
   }, [dispatch, dongleId, pathname]);
 
@@ -134,9 +153,11 @@ const AppHeader = ({
               component="a"
               href={referralsOpen ? `/${dongleId}` : '/referrals'}
               aria-label="referrals"
+              className={classes.giftButton}
               onClick={filterRegularClick(toggleReferrals)}
             >
               <ReferralsIcon className={`${classes.giftIcon} ${referralsOpen ? classes.activeGiftIcon : ''}`} />
+              {showNewReferralsDot && <span aria-label="New referrals" className={classes.newReferralsDot} />}
             </IconButton>
             <div className="relative">
               <IconButton

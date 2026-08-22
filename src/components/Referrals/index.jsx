@@ -2,9 +2,7 @@ import React, {
   useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
 import * as Sentry from '@sentry/react';
-import {
-  Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
-} from '@material-ui/core';
+import { CircularProgress } from '@material-ui/core';
 
 import { billing } from '../../api';
 import { ContentCopy } from '../../icons';
@@ -32,7 +30,6 @@ export default function Referrals({ profile }) {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
   const [shareStatus, setShareStatus] = useState(null);
-  const [termsOpen, setTermsOpen] = useState(false);
   const [claimOpening, setClaimOpening] = useState(false);
   const claimOpeningTimer = useRef(null);
   const shareStatusTimer = useRef(null);
@@ -198,32 +195,6 @@ export default function Referrals({ profile }) {
           <p className="py-4 text-center text-sm text-white/55">Your share link is unavailable.</p>
         )}
       </section>
-      <Dialog
-        open={termsOpen}
-        onClose={() => setTermsOpen(false)}
-        aria-labelledby="referral-terms-title"
-        disableAutoFocus
-        disableEnforceFocus
-        fullWidth
-        maxWidth="xs"
-        PaperProps={{
-          className: '!mx-8 !my-6 !flex !max-h-[calc(100%-48px)] !w-[calc(100%-64px)] !max-w-[430px] !flex-col !overflow-hidden !bg-[#242729] !text-white',
-        }}
-      >
-        <DialogTitle id="referral-terms-title" className="!shrink-0 !text-white">Referral terms and conditions</DialogTitle>
-        <DialogContent className="!min-h-0 !flex-1 !overflow-y-auto">
-          <div className="space-y-3 text-sm leading-relaxed text-white/80">
-            <p>A “new customer” is someone who has not previously purchased a comma product. comma determines eligibility and whether a referral qualifies in its sole discretion. In general, comma considers whether the new customer purchased a comma four through the referral link and whether the applicable return period expired without the order being cancelled, returned, refunded, charged back, or identified as fraudulent or self-referred.</p>
-            <p>Subject to these terms and comma’s approval, a qualifying referral may provide $50 off the referred customer’s order and a $50 cash reward for the referrer. Each referral code may generate rewards for up to 10 referrals per calendar year. comma may adjust or waive this limit in its discretion. To request a higher limit, contact <a className="text-white underline" href="mailto:community@comma.ai">community@comma.ai</a>.</p>
-            <p>Rewards must be claimed through the process shown on this page. comma may require verification, determine the method of payment, and approve, deny, revoke, or adjust any reward in its sole discretion. A reward is not earned, vested, transferable, or payable until it is actually paid by comma.</p>
-            <p>comma may modify, suspend, limit, or terminate the referral program, these terms, referral eligibility, reward amounts, or program limits at any time, with or without notice. Referrers are solely responsible for any taxes associated with referral rewards and must provide tax information if requested by comma.</p>
-          </div>
-        </DialogContent>
-        <DialogActions className="!shrink-0">
-          <Button autoFocus onClick={() => setTermsOpen(false)} className="!text-white">Close</Button>
-        </DialogActions>
-      </Dialog>
-
       <section className="mt-8">
         <h2 className="text-xl font-semibold">Your Referrals</h2>
 
@@ -296,13 +267,14 @@ export default function Referrals({ profile }) {
       </p>
       <p className="mt-3 text-center text-xs text-white/50">
         Referrals are subject to certain{' '}
-        <button
-          type="button"
-          className="cursor-pointer bg-transparent p-0 text-inherit underline underline-offset-2"
-          onClick={() => setTermsOpen(true)}
+        <a
+          href="https://comma.ai/terms#referral-terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-inherit underline underline-offset-2"
         >
           terms
-        </button>
+        </a>
         .
       </p>
     </main>

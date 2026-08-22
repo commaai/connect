@@ -6,14 +6,7 @@ import { withStyles } from '@material-ui/core';
 import { primeNav } from '../../actions';
 import Notification from '../Notification';
 
-const promotionDismissalKey = (promotion) => `dismissedPromotion:${promotion}`;
-
-const isDismissed = (promotion) => window.localStorage.getItem(promotionDismissalKey(promotion)) === 'true';
-
-const dismiss = (promotion, setVisible) => {
-  window.localStorage.setItem(promotionDismissalKey(promotion), 'true');
-  setVisible(false);
-};
+const dismissedPromotionKey = (promotion) => `dismissedPromotion:${promotion}`;
 
 const styles = () => ({
   container: {
@@ -32,14 +25,32 @@ const styles = () => ({
 });
 
 const Promotions = ({ classes, device, dispatch }) => {
-  const [showPrime, setShowPrime] = useState(() => !isDismissed('prime'));
-  const [showReferral, setShowReferral] = useState(() => !isDismissed('referral-50'));
+  const [dismissedPromotions, setDismissedPromotions] = useState(() => (
+    window.localStorage.getItem(dismissedPromotionKey('referral-50')) === 'true' ? ['referral-50'] : []
+  ));
 
   if (!device.is_owner) return null;
 
+  const dismiss = (promotion, saveClosed = false) => {
+    setDismissedPromotions((dismissed) => [...dismissed, promotion]);
+    if (saveClosed) window.localStorage.setItem(dismissedPromotionKey(promotion), 'true');
+  };
+
+  const showPrime = !device.prime && !dismissedPromotions.includes('prime');
+  const showReferral = !dismissedPromotions.includes('referral-50');
+
   return (
     <div className={classes.container}>
-      {showPrime && !device.prime && (
+      {showReferral ? (
+        <Notification
+          heading="Refer a friend. Get $50."
+          subtitle="Earn $50 when your referral link is used to purchase a comma four."
+          buttonText="refer"
+          onButtonClick={() => dispatch(push('/referrals'))}
+          dismissLabel="Dismiss referral promotion"
+          onDismiss={() => dismiss('referral-50', true)}
+        />
+      ) : showPrime ? (
         <Notification
           heading="comma prime"
           subtitle={device.eligible_features?.commacare
@@ -49,19 +60,9 @@ const Promotions = ({ classes, device, dispatch }) => {
           buttonClassName="primeSignUp"
           onButtonClick={() => dispatch(primeNav(true))}
           dismissLabel="Dismiss prime promotion"
-          onDismiss={() => dismiss('prime', setShowPrime)}
+          onDismiss={() => dismiss('prime')}
         />
-      )}
-      {showReferral && (
-        <Notification
-          heading="Give $50, Get $50"
-          subtitle="Give a friend $50 off a comma four and get $50 cash."
-          buttonText="refer"
-          onButtonClick={() => dispatch(push('/referrals'))}
-          dismissLabel="Dismiss referral promotion"
-          onDismiss={() => dismiss('referral-50', setShowReferral)}
-        />
-      )}
+      ) : null}
     </div>
   );
 };
