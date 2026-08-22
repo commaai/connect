@@ -30,7 +30,7 @@ const styles = () => ({
     fontWeight: 600,
   },
   subtitle: {
-    color: Colors.white40,
+    color: Colors.white90,
   },
   button: {
     marginLeft: 8,

@@ -48,6 +48,7 @@
 html {
   font-size: 16px;
   -webkit-tap-highlight-color: transparent;
+  scrollbar-gutter: stable;
   
   margin-top: env(safe-area-inset-top);
   margin-bottom: env(safe-area-inset-bottom);
@@ -58,7 +59,6 @@ html {
 body {
   background: #1D2225;
   font-family: 'Inter', sans-serif;
-  scrollbar-gutter: stable;
   overflow-y: auto;
   margin: 0;
   padding: 0;

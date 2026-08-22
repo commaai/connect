@@ -35,9 +35,13 @@ export default function Referrals({ profile }) {
   const [termsOpen, setTermsOpen] = useState(false);
   const [claimOpening, setClaimOpening] = useState(false);
   const claimOpeningTimer = useRef(null);
+  const shareStatusTimer = useRef(null);
   const shareUrl = summary ? referralUrl(summary.code) : null;
 
-  useEffect(() => () => window.clearTimeout(claimOpeningTimer.current), []);
+  useEffect(() => () => {
+    window.clearTimeout(claimOpeningTimer.current);
+    window.clearTimeout(shareStatusTimer.current);
+  }, []);
 
   useLayoutEffect(() => {
     window.scrollTo({ top: 0 });
@@ -83,6 +87,8 @@ export default function Referrals({ profile }) {
       textarea.remove();
     }
     setShareStatus('copied');
+    window.clearTimeout(shareStatusTimer.current);
+    shareStatusTimer.current = window.setTimeout(() => setShareStatus(null), 2000);
   };
 
   const shareLink = async () => {
@@ -129,7 +135,7 @@ export default function Referrals({ profile }) {
   );
 
   if (error) return (
-    <main className="max-w-[430px] mx-5 my-1.5 min-[521px]:mx-6 min-[521px]:my-[18px] text-white">
+    <main className="mx-auto my-1.5 w-[calc(100%-40px)] max-w-[430px] min-[521px]:my-[18px] min-[521px]:w-[calc(100%-48px)] min-[1081px]:mx-6 text-white">
       <p>{error.message}</p>
       {error.retryable && (
         <button type="button" onClick={loadReferrals} className="mt-4 h-[42px] rounded-full bg-white px-5 font-semibold text-[#16181a]">
@@ -145,7 +151,7 @@ export default function Referrals({ profile }) {
   );
 
   return (
-    <main className="w-[calc(100%-40px)] max-w-[430px] mx-5 mb-3 min-[521px]:w-[calc(100%-48px)] min-[521px]:mx-6 min-[521px]:my-[18px] text-white">
+    <main className="mx-auto mb-3 w-[calc(100%-40px)] max-w-[430px] min-[521px]:my-[18px] min-[521px]:w-[calc(100%-48px)] min-[1081px]:mx-6 text-white">
       <h1 className="my-10 whitespace-nowrap text-[clamp(2.5rem,12.5vw,4rem)] font-bold leading-none tracking-[-0.055em]">
         Refer a friend, <br></br>
         Get $50.
@@ -172,7 +178,7 @@ export default function Referrals({ profile }) {
         <button
           type="button"
           onClick={shareLink}
-          className="h-[52px] w-full rounded-full border border-white bg-white px-6 font-bold text-[#16181a] transition duration-150 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]"
+          className="h-[52px] w-full cursor-pointer rounded-full border border-white bg-white px-6 font-bold text-[#16181a] transition duration-150 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]"
         >
           <span>
             {shareStatus || 'share your link'}
@@ -196,26 +202,30 @@ export default function Referrals({ profile }) {
         open={termsOpen}
         onClose={() => setTermsOpen(false)}
         aria-labelledby="referral-terms-title"
+        disableAutoFocus
+        disableEnforceFocus
         fullWidth
         maxWidth="xs"
-        PaperProps={{ className: '!mx-8 !w-[calc(100%-64px)] !max-w-[430px] !bg-[#242729] !text-white' }}
+        PaperProps={{
+          className: '!mx-8 !my-6 !flex !max-h-[calc(100%-48px)] !w-[calc(100%-64px)] !max-w-[430px] !flex-col !overflow-hidden !bg-[#242729] !text-white',
+        }}
       >
-        <DialogTitle id="referral-terms-title" className="!text-white">Referral terms and conditions</DialogTitle>
-        <DialogContent>
+        <DialogTitle id="referral-terms-title" className="!shrink-0 !text-white">Referral terms and conditions</DialogTitle>
+        <DialogContent className="!min-h-0 !flex-1 !overflow-y-auto">
           <div className="space-y-3 text-sm leading-relaxed text-white/80">
             <p>Referral rewards are available to eligible comma customers who share their unique referral link.</p>
             <p>A referral qualifies when a new customer uses that link to purchase a comma four and keeps the order for at least 30 days. Rewards become available to claim 30 days after the order is placed. Cancelled, returned, refunded, fraudulent, or self-referred orders do not qualify.</p>
-            <p>Each qualifying referral provides $50 off the referred customer’s order and a $50 cash reward for the referrer. Each referral code is limited to 10 uses. If you would like to refer more than 10 people, message <a className="text-white underline" href="mailto:community@comma.ai">community@comma.ai</a>.</p>
+            <p>Each qualifying referral provides $50 off the referred customer’s order and a $50 cash reward for the referrer. Each referral code is limited to 10 uses per year. If you would like to refer more than 10 people per year, message <a className="text-white underline" href="mailto:community@comma.ai">community@comma.ai</a>.</p>
             <p>comma may limit, suspend, or change the referral program, or withhold rewards where misuse is suspected. Referral rewards have no cash value until approved and paid.</p>
           </div>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTermsOpen(false)} className="!text-white">Close</Button>
+        <DialogActions className="!shrink-0">
+          <Button autoFocus onClick={() => setTermsOpen(false)} className="!text-white">Close</Button>
         </DialogActions>
       </Dialog>
 
       <section className="mt-8">
-        <h2 className="text-xl font-semibold">Your Referrals Summary</h2>
+        <h2 className="text-xl font-semibold">Your Referrals</h2>
 
         <div className="mt-3 overflow-hidden rounded-[14px] bg-white/5">
           <dl className="divide-y divide-white/10">
@@ -241,7 +251,7 @@ export default function Referrals({ profile }) {
             href={claimMailto(profile, summary.code, claimableReferrals, summary.cash.available)}
             onClick={openClaim}
             aria-disabled={claimOpening}
-            className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-full border border-white bg-white px-6 text-center text-lg font-bold text-[#16181a] transition duration-150 ${claimOpening ? 'cursor-wait opacity-80' : 'hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]'}`}
+            className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-full border border-white bg-white px-6 text-center text-lg font-bold text-[#16181a] transition duration-150 ${claimOpening ? 'cursor-wait opacity-80' : 'cursor-pointer hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]'}`}
           >
             {claimOpening ? (
               <>
@@ -261,7 +271,7 @@ export default function Referrals({ profile }) {
         )}
       </section>
       <p className="mt-3 text-center text-xs text-white/50">
-        Referrals are limited to 10 usages. They are also subject to certain{' '}
+        Referrals are subject to certain{' '}
         <button
           type="button"
           className="cursor-pointer bg-transparent p-0 text-inherit underline underline-offset-2"

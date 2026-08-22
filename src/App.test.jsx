@@ -269,10 +269,7 @@ describe('whole-app behavior', () => {
     expect(copiedButton).toBeVisible();
     expect(copiedButton.firstChild).not.toHaveClass('animate-pulse');
 
-    vi.useFakeTimers();
-    act(() => vi.advanceTimersByTime(5000));
-    expect(screen.getByRole('button', { name: 'copied' })).toBeVisible();
-    vi.useRealTimers();
+    expect(await screen.findByRole('button', { name: 'share your link' }, { timeout: 2500 })).toBeVisible();
   });
 
   test('referral link is copied when native sharing fails', async () => {
@@ -288,11 +285,14 @@ describe('whole-app behavior', () => {
   test('referral terms can be opened and closed from below the referral link', async () => {
     await renderApp('/referrals');
 
-    expect(screen.getByText(/Referrals are limited to 10 usages/)).toBeVisible();
+    expect(screen.getByText(/Referrals are limited to 10 usages per year/)).toBeVisible();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'terms' }));
 
-    expect(screen.getByRole('dialog', { name: 'Referral terms and conditions' })).toBeVisible();
+    const termsDialog = screen.getByRole('dialog', { name: 'Referral terms and conditions' });
+    expect(termsDialog).toBeVisible();
+    expect(termsDialog).not.toHaveAttribute('tabindex');
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
     expect(screen.getByText(/A referral qualifies when a new customer/)).toBeVisible();
     expect(screen.getByText(/Rewards become available to claim 30 days after the order is placed/)).toBeVisible();
 
