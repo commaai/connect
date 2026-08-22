@@ -292,6 +292,9 @@ export default function Referrals({ profile }) {
         </div>
       </section>
       <p className="mt-3 text-center text-xs text-white/50">
+        Referral rewards become available to claim after the order's return period.
+      </p>
+      <p className="mt-3 text-center text-xs text-white/50">
         Referrals are subject to certain{' '}
         <button
           type="button"
