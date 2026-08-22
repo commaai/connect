@@ -133,22 +133,9 @@ export default function Referrals({ profile }) {
     () => (summary?.referrals || []).filter(({ status }) => status === 'claim'),
     [summary],
   );
-
-  if (error) return (
-    <main className="mx-auto my-1.5 w-[calc(100%-40px)] max-w-[430px] min-[521px]:my-[18px] min-[521px]:w-[calc(100%-48px)] min-[1081px]:mx-6 text-white">
-      <p>{error.message}</p>
-      {error.retryable && (
-        <button type="button" onClick={loadReferrals} className="mt-4 h-[42px] rounded-full bg-white px-5 font-semibold text-[#16181a]">
-          Retry
-        </button>
-      )}
-    </main>
-  );
-  if (!summary) return (
-    <main className="flex w-full flex-1 items-center justify-center text-white">
-      <CircularProgress aria-label="Loading referrals" size={40} style={{ color: 'white' }} />
-    </main>
-  );
+  const displayedSummary = summary || {
+    cash: { available: 0, claimed: 0, pending: 0 },
+  };
 
   return (
     <main className="mx-auto mb-3 w-[calc(100%-40px)] max-w-[430px] min-[521px]:my-[18px] min-[521px]:w-[calc(100%-48px)] min-[1081px]:mx-6 text-white">
@@ -174,29 +161,42 @@ export default function Referrals({ profile }) {
         </ol>
       </section>
 
-      <section className="mt-6">
-        <button
-          type="button"
-          onClick={shareLink}
-          className="h-[52px] w-full cursor-pointer rounded-full border border-white bg-white px-6 font-bold text-[#16181a] transition duration-150 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]"
-        >
-          <span>
-            {shareStatus || 'share your link'}
-          </span>
-        </button>
-        <div className="mt-2.5 flex items-center justify-center gap-1.5 px-4 text-[11px] leading-4 text-white/45">
-          <span className="min-w-0 truncate">
-            {shareUrl}
-          </span>
-          <button
-            type="button"
-            onClick={copyLink}
-            aria-label="Copy referral link"
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
-          >
-            <ContentCopy aria-hidden="true" className="!h-3.5 !w-3.5" />
-          </button>
-        </div>
+      <section className="relative mt-6">
+        {!error && (
+          <div className={!summary ? 'invisible pointer-events-none' : ''} aria-hidden={!summary || undefined}>
+            <button
+              type="button"
+              onClick={shareLink}
+              disabled={!summary}
+              className="h-[52px] w-full cursor-pointer rounded-full border border-white bg-white px-6 font-bold text-[#16181a] transition duration-150 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]"
+            >
+              <span>
+                {shareStatus || 'share your link'}
+              </span>
+            </button>
+            <div className="mt-2.5 flex items-center justify-center gap-1.5 px-4 text-[11px] leading-4 text-white/45">
+              <span className="min-w-0 truncate">
+                {shareUrl}
+              </span>
+              <button
+                type="button"
+                onClick={copyLink}
+                aria-label="Copy referral link"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
+              >
+                <ContentCopy aria-hidden="true" className="!h-3.5 !w-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+        {!summary && !error && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <CircularProgress aria-label="Loading referral link" size={28} style={{ color: 'white' }} />
+          </div>
+        )}
+        {error && (
+          <p className="py-4 text-center text-sm text-white/55">Your share link is unavailable.</p>
+        )}
       </section>
       <Dialog
         open={termsOpen}
@@ -227,48 +227,69 @@ export default function Referrals({ profile }) {
       <section className="mt-8">
         <h2 className="text-xl font-semibold">Your Referrals</h2>
 
-        <div className="mt-3 overflow-hidden rounded-[14px] bg-white/5">
-          <dl className="divide-y divide-white/10">
-            <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
-              <dt className="text-[13px] text-white/60">Already claimed:</dt>
-              <dd className="text-lg font-bold">${summary.cash.claimed.toFixed(0)}</dd>
+        <div className="relative mt-3">
+          {error && (
+            <div className="rounded-[14px] bg-white/5 p-4">
+              <p>{error.message}</p>
+              {error.retryable && (
+                <button type="button" onClick={loadReferrals} className="mt-4 h-[42px] rounded-full bg-white px-5 font-semibold text-[#16181a]">
+                  Retry
+                </button>
+              )}
             </div>
-            <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
-              <dt className="text-[13px] text-white/60">Pending rewards:</dt>
-              <dd className="text-lg font-bold">${summary.cash.pending.toFixed(0)}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
-              <dt className="text-[13px] text-white/60">Available to claim:</dt>
-              <dd className={`text-lg font-bold ${summary.cash.available > 0 ? 'text-green-300' : ''}`}>
-                ${summary.cash.available.toFixed(0)}
-              </dd>
-            </div>
-          </dl>
+          )}
+          {!error && (
+            <div className={!summary ? 'invisible pointer-events-none' : ''} aria-hidden={!summary || undefined}>
+            <div className="overflow-hidden rounded-[14px] bg-white/5">
+              <dl className="divide-y divide-white/10">
+                <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
+                  <dt className="text-[13px] text-white/60">Already claimed:</dt>
+                  <dd className="text-lg font-bold">${displayedSummary.cash.claimed.toFixed(0)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
+                  <dt className="text-[13px] text-white/60">Pending rewards:</dt>
+                  <dd className="text-lg font-bold">${displayedSummary.cash.pending.toFixed(0)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-4 px-[15px] py-[13px]">
+                  <dt className="text-[13px] text-white/60">Available to claim:</dt>
+                  <dd className={`text-lg font-bold ${displayedSummary.cash.available > 0 ? 'text-green-300' : ''}`}>
+                    ${displayedSummary.cash.available.toFixed(0)}
+                  </dd>
+                </div>
+              </dl>
 
+            </div>
+            {summary && summary.cash.available > 0 && claimableReferrals.length > 0 && profile ? (
+              <a
+                href={claimMailto(profile, summary.code, claimableReferrals, summary.cash.available)}
+                onClick={openClaim}
+                aria-disabled={claimOpening}
+                className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-full border border-white bg-white px-6 text-center text-lg font-bold text-[#16181a] transition duration-150 ${claimOpening ? 'cursor-wait opacity-80' : 'cursor-pointer hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]'}`}
+              >
+                {claimOpening ? (
+                  <>
+                    <CircularProgress size={20} aria-hidden="true" style={{ color: '#16181a' }} />
+                    Opening mail app…
+                  </>
+                ) : `claim rewards ($${summary.cash.available.toFixed(0)})`}
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="mt-4 h-14 w-full cursor-not-allowed rounded-full border border-white/10 bg-white/10 px-6 text-lg font-bold text-white/35"
+              >
+                claim rewards (${displayedSummary.cash.available.toFixed(0)})
+              </button>
+            )}
+            </div>
+          )}
+          {!summary && !error && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <CircularProgress aria-label="Loading your referrals" size={32} style={{ color: 'white' }} />
+            </div>
+          )}
         </div>
-        {summary.cash.available > 0 && claimableReferrals.length > 0 && profile ? (
-          <a
-            href={claimMailto(profile, summary.code, claimableReferrals, summary.cash.available)}
-            onClick={openClaim}
-            aria-disabled={claimOpening}
-            className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-full border border-white bg-white px-6 text-center text-lg font-bold text-[#16181a] transition duration-150 ${claimOpening ? 'cursor-wait opacity-80' : 'cursor-pointer hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]'}`}
-          >
-            {claimOpening ? (
-              <>
-                <CircularProgress size={20} aria-hidden="true" style={{ color: '#16181a' }} />
-                Opening mail app…
-              </>
-            ) : `claim rewards ($${summary.cash.available.toFixed(0)})`}
-          </a>
-        ) : (
-          <button
-            type="button"
-            disabled
-            className="mt-4 h-14 w-full cursor-not-allowed rounded-full border border-white/10 bg-white/10 px-6 text-lg font-bold text-white/35"
-          >
-            claim rewards (${summary.cash.available.toFixed(0)})
-          </button>
-        )}
       </section>
       <p className="mt-3 text-center text-xs text-white/50">
         Referrals are subject to certain{' '}

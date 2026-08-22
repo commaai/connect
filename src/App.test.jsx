@@ -115,6 +115,7 @@ async function mockFetch(input, init = {}) {
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
   if (url.pathname === '/v1/referrals') {
+    if (options.referralsResponse) return options.referralsResponse;
     if (options.forbiddenReferrals) return json({}, 403);
     if (options.failedReferrals) return json({}, 500);
     return json({
@@ -218,6 +219,34 @@ describe('whole-app behavior', () => {
 
     expect(await screen.findByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0 });
+  });
+
+  test('only referral data sections wait for the referrals request', async () => {
+    let resolveReferrals;
+    const referralsResponse = new Promise((resolve) => { resolveReferrals = resolve; });
+    await renderApp('/referrals', { referralsResponse });
+
+    expect(screen.getByRole('heading', { name: 'Refer a friend, Get $50.' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'They save $50' })).toBeVisible();
+    const linkLoader = screen.getByRole('progressbar', { name: 'Loading referral link' });
+    const referralsLoader = screen.getByRole('progressbar', { name: 'Loading your referrals' });
+    expect(linkLoader).toBeVisible();
+    expect(linkLoader.parentElement).toHaveClass('absolute', 'inset-0');
+    expect(screen.getByRole('button', { name: 'share your link', hidden: true }).parentElement).toHaveClass('invisible');
+    expect(referralsLoader).toBeVisible();
+    expect(referralsLoader.parentElement).toHaveClass('absolute', 'inset-0');
+    expect(screen.getByRole('button', { name: 'claim rewards ($0)', hidden: true }).parentElement).toHaveClass('invisible');
+
+    await act(async () => {
+      resolveReferrals(await json({
+        code: 'COMMA-TEST',
+        cash: { pending: 0, available: 0, claimed: 0 },
+        referrals: [],
+      }));
+    });
+    expect(await screen.findByRole('button', { name: 'share your link' })).toBeVisible();
+    expect(screen.queryByRole('progressbar', { name: 'Loading referral link' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('progressbar', { name: 'Loading your referrals' })).not.toBeInTheDocument();
   });
 
   test('referrals route is retained while devices initialize', async () => {
