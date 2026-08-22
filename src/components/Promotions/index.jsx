@@ -44,7 +44,7 @@ const Promotions = ({ classes, device, dispatch }) => {
       {showReferral ? (
         <Notification
           heading="Refer a friend. Get $50."
-          subtitle="Earn $50 when your referral link is used to purchase a comma four."
+          subtitle="Earn $50 for each comma four purchased with your referral link."
           buttonText="refer"
           onButtonClick={() => dispatch(push('/referrals'))}
           dismissLabel="Dismiss referral promotion"
