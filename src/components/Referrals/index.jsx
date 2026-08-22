@@ -94,7 +94,7 @@ export default function Referrals({ profile }) {
     try {
       await navigator.share({
         title: 'Give $50, Get $50 with comma',
-        text: 'Get $50 off your comma four purchase using my referral link.',
+        text: 'Get $50 off comma four using this referral link.',
         url: shareUrl,
       });
       setShareStatus('shared');

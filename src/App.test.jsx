@@ -251,7 +251,7 @@ describe('whole-app behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'share your link' }));
     await waitFor(() => expect(mocks.share).toHaveBeenCalledWith({
       title: 'Give $50, Get $50 with comma',
-      text: 'Get $50 off your comma four purchase using my referral link.',
+      text: 'Get $50 off comma four using this referral link.',
       url: referralUrl,
     }));
     const sharedButton = screen.getByRole('button', { name: 'shared' });
