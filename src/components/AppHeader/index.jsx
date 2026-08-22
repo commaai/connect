@@ -71,7 +71,7 @@ const styles = () => ({
     width: 9,
     height: 9,
     borderRadius: '50%',
-    backgroundColor: Colors.red50,
+    backgroundColor: Colors.primeBlue50,
   },
   activeGiftIcon: {
     color: Colors.white,
