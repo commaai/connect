@@ -54,7 +54,7 @@ export default function Referrals({ profile }) {
       const forbidden = err?.resp?.status === 403;
       setError({
         message: forbidden
-          ? 'Referrals are only available for comma four owners'
+          ? 'Referrals are only available for comma device owners'
           : 'Could not load your referral program. Please try again.',
         retryable: !forbidden,
       });
@@ -200,7 +200,7 @@ export default function Referrals({ profile }) {
 
         <div className="relative mt-3">
           {error && (
-            <div className="rounded-[14px] bg-white/5 p-4">
+            <div className="rounded-[14px] bg-white/5 p-4 text-center">
               <p>{error.message}</p>
               {error.retryable && (
                 <button type="button" onClick={loadReferrals} className="mt-4 h-[42px] rounded-full bg-white px-5 font-semibold text-[#16181a]">
