@@ -233,7 +233,7 @@ describe('whole-app behavior', () => {
     expect(screen.getByText('Your link takes $50 off their comma four order.')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'You earn $50 cash' })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Refer a friend' })).not.toBeInTheDocument();
-    expect(screen.queryByDisplayValue('https://refer.comma.ai?ref=COMMA-TEST')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('https://refer.comma.ai/COMMA-TEST')).not.toBeInTheDocument();
     expect(screen.queryByText('friend@example.com')).not.toBeInTheDocument();
     expect(screen.queryByText('Order #1001')).not.toBeInTheDocument();
     expect(screen.getByText('Pending rewards:').nextSibling).toHaveTextContent('$50');
@@ -243,7 +243,7 @@ describe('whole-app behavior', () => {
 
   test('referral link opens in the native share sheet', async () => {
     await renderApp('/referrals');
-    const referralUrl = 'https://refer.comma.ai?ref=COMMA-TEST';
+    const referralUrl = 'https://refer.comma.ai/COMMA-TEST';
 
     expect(screen.getByText(referralUrl)).toBeVisible();
     expect(screen.queryByRole('link', { name: referralUrl })).not.toBeInTheDocument();
@@ -264,7 +264,7 @@ describe('whole-app behavior', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy referral link' }));
 
-    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://refer.comma.ai?ref=COMMA-TEST'));
+    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://refer.comma.ai/COMMA-TEST'));
     const copiedButton = screen.getByRole('button', { name: 'copied' });
     expect(copiedButton).toBeVisible();
     expect(copiedButton.firstChild).not.toHaveClass('animate-pulse');
@@ -281,7 +281,7 @@ describe('whole-app behavior', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'share your link' }));
 
-    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://refer.comma.ai?ref=COMMA-TEST'));
+    await waitFor(() => expect(mocks.copy).toHaveBeenCalledWith('https://refer.comma.ai/COMMA-TEST'));
     expect(screen.getByRole('button', { name: 'copied' })).toBeVisible();
   });
 

@@ -11,7 +11,7 @@ import { ContentCopy } from '../../icons';
 import { claimMailto } from './utils';
 
 const REFERRAL_URL = import.meta.env.VITE_REFERRAL_URL || 'https://refer.comma.ai';
-const referralUrl = (code) => `${REFERRAL_URL}?ref=${encodeURIComponent(code)}`;
+const referralUrl = (code) => `${REFERRAL_URL.replace(/\/$/, '')}/${encodeURIComponent(code)}`;
 
 const referralSteps = [
   {
@@ -205,7 +205,7 @@ export default function Referrals({ profile }) {
           <div className="space-y-3 text-sm leading-relaxed text-white/80">
             <p>Referral rewards are available to eligible comma customers who share their unique referral link.</p>
             <p>A referral qualifies when a new customer uses that link to purchase a comma four and keeps the order for at least 30 days. Rewards become available to claim 30 days after the order is placed. Cancelled, returned, refunded, fraudulent, or self-referred orders do not qualify.</p>
-            <p>Each qualifying referral provides $50 off the referred customer’s order and a $50 cash reward for the referrer. Rewards must be claimed through the process shown on this page and may require account or order verification.</p>
+            <p>Each qualifying referral provides $50 off the referred customer’s order and a $50 cash reward for the referrer. Each referral code is limited to 10 uses. If you would like to refer more than 10 people, message <a className="text-white underline" href="mailto:community@comma.ai">community@comma.ai</a>. Rewards must be claimed through the process shown on this page and may require account or order verification.</p>
             <p>comma may limit, suspend, or change the referral program, or withhold rewards where misuse is suspected. Referral rewards have no cash value until approved and paid.</p>
           </div>
         </DialogContent>
