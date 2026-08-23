@@ -7,7 +7,8 @@ import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 
-import { drives as Drives, USERADMIN_URL_ROOT } from '../../api';
+import { USERADMIN_URL_ROOT } from '../../api';
+import { api } from '../../api/backend';
 import { deviceSupportsClips } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
@@ -499,7 +500,7 @@ class Media extends Component {
   async onPublicToggle(ev) {
     const isPublic = ev.target.checked;
     try {
-      const resp = await Drives.setRoutePublic(this.props.currentRoute.fullname, isPublic);
+      const resp = await api.routes.setRoutePublic(this.props.currentRoute.fullname, isPublic);
       if (resp && resp.fullname === this.props.currentRoute.fullname) {
         this.props.dispatch(updateRoute(this.props.currentRoute.fullname, { is_public: resp.is_public }));
         if (resp.is_public !== isPublic) {
@@ -516,7 +517,7 @@ class Media extends Component {
 
   async fetchRoutePreserved() {
     try {
-      const resp = await Drives.getPreservedRoutes(this.props.dongleId);
+      const resp = await api.routes.getPreservedRoutes(this.props.dongleId);
       if (resp && Array.isArray(resp) && this.props.currentRoute) {
         if (resp.find((r) => r.fullname === this.props.currentRoute.fullname)) {
           this.setState({ routePreserved: true });
@@ -533,7 +534,7 @@ class Media extends Component {
   async onPreserveToggle(ev) {
     const preserved = ev.target.checked;
     try {
-      const resp = await Drives.setRoutePreserved(this.props.currentRoute.fullname, preserved);
+      const resp = await api.routes.setRoutePreserved(this.props.currentRoute.fullname, preserved);
       if (resp && resp.success) {
         this.setState({ routePreserved: preserved });
         return null;
