@@ -19,6 +19,11 @@ export function createRealBackend() {
     account: { ...commaApi.account },
     devices,
     routes: { ...commaApi.drives, ...commaApi.raw },
+    routeAssets: {
+      thumbnail: (route, segment) => `${route.url}/${segment}/sprite.jpg`,
+      events: (route, segment) => `${route.url}/${segment}/events.json`,
+      coords: (route, segment) => `${route.url}/${segment}/coords.json`,
+    },
     stats: { fetchDeviceStats },
     video: { ...commaApi.video },
   };
@@ -49,6 +54,7 @@ export const api = {
   get account() { return initBackend().account; },
   get devices() { return initBackend().devices; },
   get routes() { return initBackend().routes; },
+  get routeAssets() { return initBackend().routeAssets; },
   get stats() { return initBackend().stats; },
   get video() { return initBackend().video; },
 };

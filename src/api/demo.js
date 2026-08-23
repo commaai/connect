@@ -30,54 +30,101 @@ const DEMO_PROFILE = {
   superuser: false,
 };
 
+const AFFECTED_SEGMENT = 1;
+
 // One clone per test case. Each case mutates a fresh clone of the real public
 // data on its way into the frontend.
-const TEST_CASES = [
-  { // missing date/time
-    route(route) {
-      delete route.start_time;
-      delete route.end_time;
-      delete route.start_time_utc_millis;
-      delete route.end_time_utc_millis;
+const MISSING_DATA_CASES = [
+  {
+    title: 'Epoch date/time (no clock)',
+    // A route recorded without a valid clock only counts time from boot, so
+    // its segment times are relative to the unix epoch (no real date).
+    route(route, affectedSegment) {
+      const bootTime = route.segment_start_times[0];
+      if (affectedSegment !== undefined) {
+        route.segment_start_times[affectedSegment] -= bootTime;
+        route.segment_end_times[affectedSegment] -= bootTime;
+      } else {
+        delete route.start_time;
+        delete route.end_time;
+        delete route.start_time_utc_millis;
+        delete route.end_time_utc_millis;
+        route.segment_start_times = route.segment_start_times.map((time) => time - bootTime);
+        route.segment_end_times = route.segment_end_times.map((time) => time - bootTime);
+      }
     },
   },
-  { // missing GPS: a route without GPS has no coords (or any other files)
-    route(route, logId) {
-      delete route.start_lat;
-      delete route.start_lng;
-      delete route.end_lat;
-      delete route.end_lng;
-      route.url = route.url.replace(PUBLIC_ROUTE_LOG_ID, logId);
+  {
+    title: 'Missing start/end GPS',
+    // Summary coordinates are route-level; per-segment coordinates are served
+    // from the derived coords asset.
+    missingRouteAssets: ['coords'],
+    route(route, affectedSegment) {
+      if (affectedSegment === undefined) {
+        delete route.start_lat;
+        delete route.start_lng;
+        delete route.end_lat;
+        delete route.end_lng;
+      }
     },
-    files: () => ({}),
   },
-  { // missing qlog
-    route(route) {
-      delete route.maxqlog;
+  {
+    title: 'Missing qlog',
+    missingRouteAssets: ['events', 'coords'],
+    route(route, affectedSegment) {
+      if (affectedSegment === undefined) {
+        delete route.maxqlog;
+      }
     },
-    files(files) {
-      delete files.qlogs;
+    files(files, affectedSegment) {
+      removeFileSegments(files, 'qlogs', affectedSegment);
       return files;
     },
   },
-  { // missing qcamera: no share credentials, so its stream cannot resolve
-    route(route) {
-      delete route.share_exp;
-      delete route.share_sig;
+  {
+    title: 'Missing qcamera',
+    // No share credentials, so this route's stream cannot resolve.
+    route(route, affectedSegment) {
+      if (affectedSegment === undefined) {
+        delete route.share_exp;
+        delete route.share_sig;
+      }
     },
-    files(files) {
-      delete files.qcameras;
+    files(files, affectedSegment) {
+      removeFileSegments(files, 'qcameras', affectedSegment);
       return files;
     },
   },
-  { // missing thumbnail: files live under the route's own storage path, so
-    // this route has no uploaded thumbnails (or any other files) yet
-    route(route, logId) {
-      route.url = route.url.replace(PUBLIC_ROUTE_LOG_ID, logId);
-    },
-    files: () => ({}),
+  {
+    title: 'Missing thumbnails',
+    missingThumbnails: true,
+    route() {},
   },
 ];
+
+// Keep two full-length routes for every case: one where the whole route is
+// affected and one where only a single segment is affected.
+const TEST_CASES = MISSING_DATA_CASES.flatMap((testCase) => [
+  testCase,
+  {
+    ...testCase,
+    title: `${testCase.title} (1 segment)`,
+    affectedSegment: AFFECTED_SEGMENT,
+  },
+]);
+
+function fileSegmentNumber(file) {
+  const pathParts = new URL(file).pathname.split('/');
+  return Number(pathParts[pathParts.length - 2]);
+}
+
+function removeFileSegments(files, type, affectedSegment) {
+  if (affectedSegment === undefined) {
+    delete files[type];
+  } else if (Array.isArray(files[type])) {
+    files[type] = files[type].filter((url) => fileSegmentNumber(url) !== affectedSegment);
+  }
+}
 
 function demoRouteLogId(index) {
   return `00000000--${String(index + 1).padStart(10, '0')}`;
@@ -122,25 +169,44 @@ export function createDemoBackend(realBackend) {
 
   // Clone the cached public route into fresh demo routes on every call, each
   // with a unique demo route ID and one mutation per test case.
-  async function listDemoRoutes() {
+  async function listDemoRoutes(routeStr) {
     const publicRoute = await fetchPublicRoute();
-    return TEST_CASES.map((testCase, index) => {
+    const routes = TEST_CASES.map((testCase, index) => {
       const logId = demoRouteLogId(index);
       const route = structuredClone(publicRoute);
       route.dongle_id = DEMO_DONGLE_ID;
       route.fullname = `${DEMO_DONGLE_ID}|${logId}`;
-      testCase.route(route, logId);
+      route.demo_title = testCase.title;
+      testCase.route(route, testCase.affectedSegment);
       return route;
     });
+    return routeStr ? routes.filter((route) => route.fullname === routeStr) : routes;
   }
 
   // Clone the cached public files on every call, applying the same mutation
   // as the route the files belong to.
   async function getDemoRouteFiles(routeName) {
     const index = demoRouteIndex(routeName);
+    const testCase = TEST_CASES[index];
     const files = structuredClone(await fetchPublicFiles());
-    const { files: mutateFiles } = TEST_CASES[index];
-    return mutateFiles ? mutateFiles(files) : files;
+    const { files: mutateFiles } = testCase;
+    return mutateFiles ? mutateFiles(files, testCase.affectedSegment) : files;
+  }
+
+  function missingAssetUrl(route, segment, fileName) {
+    const logId = route.fullname.split('|')[1];
+    const missingUrl = route.url.replace(PUBLIC_ROUTE_LOG_ID, logId);
+    return `${missingUrl}/${segment}/${fileName}`;
+  }
+
+  function routeAsset(type, route, segment, fileName) {
+    const testCase = TEST_CASES[demoRouteIndex(route.fullname)];
+    const missingForRoute = testCase && testCase.missingRouteAssets?.includes(type);
+    const missingForSegment = testCase?.affectedSegment === undefined
+      || testCase?.affectedSegment === segment;
+    return missingForRoute && missingForSegment
+      ? missingAssetUrl(route, segment, fileName)
+      : realBackend.routeAssets[type](route, segment);
   }
 
   return {
@@ -161,7 +227,7 @@ export function createDemoBackend(realBackend) {
       ...realBackend.routes,
       getRoutesSegments(dongleId, start, end, limit, routeStr) {
         if (dongleId === DEMO_DONGLE_ID) {
-          return listDemoRoutes();
+          return listDemoRoutes(routeStr);
         }
         return realBackend.routes.getRoutesSegments(dongleId, start, end, limit, routeStr);
       },
@@ -172,6 +238,24 @@ export function createDemoBackend(realBackend) {
           return getDemoRouteFiles(routeName);
         }
         return realBackend.routes.getRouteFiles(routeName, nocache, params);
+      },
+    },
+    routeAssets: {
+      ...realBackend.routeAssets,
+      events(route, segment) {
+        return routeAsset('events', route, segment, 'events.json');
+      },
+      coords(route, segment) {
+        return routeAsset('coords', route, segment, 'coords.json');
+      },
+      thumbnail(route, segment) {
+        const index = demoRouteIndex(route.fullname);
+        const testCase = TEST_CASES[index];
+        if (testCase?.missingThumbnails
+          && (testCase.affectedSegment === undefined || testCase.affectedSegment === segment)) {
+          return missingAssetUrl(route, segment, 'sprite.jpg');
+        }
+        return realBackend.routeAssets.thumbnail(route, segment);
       },
     },
     video: {
