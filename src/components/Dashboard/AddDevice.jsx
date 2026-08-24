@@ -5,7 +5,7 @@ import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
-import { devices as Devices } from '../../api';
+import { api } from '../../api/backend';
 import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';
@@ -351,9 +351,9 @@ class AddDevice extends Component {
 
     const { devices, dispatch } = this.props;
     try {
-      const resp = await Devices.pilotPair(pairToken);
+      const resp = await api.devices.pilotPair(pairToken);
       if (resp.dongle_id) {
-        const deviceList = await Devices.listDevices();
+        const deviceList = await api.devices.listDevices();
         if (devices.length > 0) { // state change from no device to a device requires reload.
           dispatch(updateDevices(deviceList));
           dispatch(analyticsEvent('pair_device', { method: 'add_device_sidebar' }));

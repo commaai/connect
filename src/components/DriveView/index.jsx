@@ -65,9 +65,16 @@ class DriveView extends Component {
               >
                 <ArrowBackBold />
               </IconButton>
-              <div className="text-white text-lg font-medium">
-                <span className="hidden sm:inline">{`${startDay} `}</span>
-                {`${startTime} - ${endTime}`}
+              <div className="flex flex-col items-center gap-1 text-white text-lg font-medium">
+                {currentRoute.demo_title ? (
+                  <div className="w-fit rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                    {currentRoute.demo_title}
+                  </div>
+                ) : null}
+                <div>
+                  <span className="hidden sm:inline">{`${startDay} `}</span>
+                  {`${startTime} - ${endTime}`}
+                </div>
               </div>
               <IconButton
                 onClick={ filterRegularClick(this.close) }

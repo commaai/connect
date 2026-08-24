@@ -6,7 +6,14 @@ import { drives as Drives } from '../api';
 import { onHistoryMiddleware } from './history';
 import * as actions from './index';
 
-vi.mock('../api', () => ({ drives: { getRoutesSegments: vi.fn() } }));
+vi.mock('../api', () => ({
+  account: {},
+  auth: {},
+  devices: { fetchDeviceStats: vi.fn() },
+  drives: { getRoutesSegments: vi.fn() },
+  raw: {},
+  video: {},
+}));
 vi.mock('./index', () => ({
   selectDevice: vi.fn(), pushTimelineRange: vi.fn(), updateSegmentRange: vi.fn(),
   checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),

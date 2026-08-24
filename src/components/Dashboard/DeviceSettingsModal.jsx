@@ -18,7 +18,7 @@ import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
 
-import { devices as Devices } from '../../api';
+import { api } from '../../api/backend';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
@@ -189,7 +189,7 @@ class DeviceSettingsModal extends Component {
       hasSavedAlias: false,
     });
     try {
-      const device = await Devices.setDeviceAlias(dongleId, this.state.deviceAlias.trim());
+      const device = await api.devices.setDeviceAlias(dongleId, this.state.deviceAlias.trim());
       this.props.dispatch(updateDevice(device));
       this.setState({
         loadingDeviceAlias: false,
@@ -211,7 +211,7 @@ class DeviceSettingsModal extends Component {
       hasShared: false,
     });
     try {
-      await Devices.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
+      await api.devices.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',
@@ -240,7 +240,7 @@ class DeviceSettingsModal extends Component {
   async unpairDevice() {
     this.setState({ loadingUnpair: true });
     try {
-      const resp = await Devices.unpair(this.props.device.dongle_id);
+      const resp = await api.devices.unpair(this.props.device.dongle_id);
       if (resp.success) {
         this.setState({ loadingUnpair: false, unpaired: true });
       } else if (resp.error) {

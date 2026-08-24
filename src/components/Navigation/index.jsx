@@ -6,7 +6,7 @@ import { withStyles, Typography, Button } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
-import { devices as Devices } from '../../api';
+import { api } from '../../api/backend';
 import { primeNav, analyticsEvent } from '../../actions';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
@@ -246,7 +246,7 @@ class Navigation extends Component {
       return;
     }
     try {
-      const resp = await Devices.fetchLocation(dongleId);
+      const resp = await api.devices.fetchLocation(dongleId);
       if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({
           carLastLocation: [resp.lng, resp.lat],

@@ -6,7 +6,8 @@ import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
-import { athena as Athena, auth as Auth, billing as Billing, request as Request } from './api';
+import { athena as Athena, billing as Billing, request as Request } from './api';
+import { api, initBackend } from './api/backend';
 
 import { getZoom, getSegmentRange, getDongleID, getStreamNav } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
@@ -48,11 +49,15 @@ class App extends Component {
   }
 
   async componentDidMount() {
+    // Select the API backend once during startup: /demo gets the demo backend,
+    // everything else the real backend.
+    initBackend();
+
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
           const authParams = new URLSearchParams(window.location.search);
-          const token = await Auth.refreshAccessToken(authParams.get('code'), authParams.get('provider'));
+          const token = await api.auth.refreshAccessToken(authParams.get('code'), authParams.get('provider'));
           if (token) {
             AuthStorage.setCommaAccessToken(token);
           }
@@ -124,7 +129,7 @@ class App extends Component {
 
     const { store = defaultStore, history = defaultHistory } = this.props;
     const pathname = history.location.pathname;
-    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(pathname) && !getSegmentRange(pathname);
+    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getSegmentRange(pathname);
     let content = (
       <Suspense fallback={<FullPageLoading />}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }
