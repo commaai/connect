@@ -8,40 +8,11 @@ import { api } from '../../api/backend';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { bufferVideo, setPlaybackSpeed, resetPlayback, play, pause, seek } from '../../timeline/playback';
+import {
+  bufferVideo, setPlaybackSpeed, resetPlayback, play, pause, seek, setVideoStatus, VideoStatus,
+} from '../../timeline/playback';
 import { setVideoPlayer, seekVideoPlayer, getVideoPlayerCurrentTime } from '../../timeline/videoPlayer';
 import { isIos } from '../../utils/browser.js';
-
-// Leading-edge debounce: run immediately, then ignore calls until `wait` ms after the last one.
-function debounceLeading(func, wait) {
-  let timeout = null;
-  let args;
-  let context;
-  let timestamp;
-
-  function later() {
-    const last = Date.now() - timestamp;
-    if (last < wait && last >= 0) {
-      timeout = setTimeout(later, wait - last);
-    } else {
-      timeout = null;
-    }
-  }
-
-  return function debounced(...nextArgs) {
-    context = this;
-    args = nextArgs;
-    timestamp = Date.now();
-    const callNow = !timeout;
-    if (!timeout) {
-      timeout = setTimeout(later, wait);
-    }
-    if (callNow) {
-      return func.apply(context, args);
-    }
-    return undefined;
-  };
-}
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -138,11 +109,15 @@ class DriveVideo extends Component {
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
 
-    if (!e.fatal) return;
-    else if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
+    if (!e.fatal) {
+      return;
+    }
+    if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
       // buffer but no error
       return;
-    } else if (e.type === 'networkError' && (e.response?.code === 404)) {
+    }
+    dispatch(setVideoStatus(VideoStatus.FAILED));
+    if (e.type === 'networkError' && (e.response?.code === 404)) {
       this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
     } else {
       const message =
@@ -189,6 +164,7 @@ class DriveVideo extends Component {
 
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
+    dispatch(setVideoStatus(VideoStatus.FAILED));
 
     if (e.type === 'networkError') {
       console.error('Network error', { e, data });
@@ -214,6 +190,9 @@ class DriveVideo extends Component {
     }
     
     const videoTime = getVideoPlayerCurrentTime(currentRoute);
+    if (videoTime === null) {
+      return;
+    }
     if (videoTime >= loop.startTime + loop.duration) {
       seekVideoPlayer(loop.startTime, currentRoute);
       return;
@@ -227,15 +206,17 @@ class DriveVideo extends Component {
 
   updateVideoSource(prevProps) {
     let { src } = this.state;
-    const { currentRoute } = this.props;
+    const { currentRoute, dispatch } = this.props;
     if (!currentRoute) {
       if (src !== '') {
+        dispatch(setVideoStatus(VideoStatus.LOADING));
         this.setState({ src: '', videoError: null });
       }
       return;
     }
 
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
+      dispatch(setVideoStatus(VideoStatus.LOADING));
       src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
       this.setState({ src, videoError: null });
       this.firstSeek = true;
@@ -258,7 +239,7 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { isPlaying, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
+    const { isPlaying, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted, dispatch } = this.props;
     const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
@@ -270,6 +251,7 @@ class DriveVideo extends Component {
         video.currentTime = startSeconds;
         this.firstSeek = false;
       }
+      dispatch(setVideoStatus(VideoStatus.READY));
       
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
         const videoElement = player.getInternalPlayer();

@@ -10,6 +10,7 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
+import { seek, VideoStatus } from '../../timeline/playback';
 import { getVideoPlayerCurrentTime, seekVideoPlayer } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
@@ -153,6 +154,7 @@ class Timeline extends Component {
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
+    this.seekToOffset = this.seekToOffset.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.segmentNum = this.segmentNum.bind(this);
     this.onRulerRef = this.onRulerRef.bind(this);
@@ -181,7 +183,7 @@ class Timeline extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    this.rafId = raf(this.getOffset);
+    this.rafId = requestAnimationFrame(this.getOffset);
     this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
@@ -207,7 +209,7 @@ class Timeline extends Component {
   componentWillUnmount() {
     this.mounted = false;
     if (this.rafId) {
-      raf.cancel(this.rafId);
+      cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
     if (this.resizeObserver) {
@@ -216,12 +218,21 @@ class Timeline extends Component {
     }
   }
 
+  seekToOffset(offset) {
+    const { dispatch, route, videoStatus } = this.props;
+    if (videoStatus === VideoStatus.FAILED) {
+      dispatch(seek(offset));
+      return;
+    }
+    seekVideoPlayer(offset, route);
+  }
+
   handleClick(ev) {
     const { dragging } = this.state;
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(ev);
       const offset = this.percentToOffset(percent);
-      seekVideoPlayer(offset, this.props.route);
+      this.seekToOffset(offset);
     }
   }
 
@@ -276,7 +287,7 @@ class Timeline extends Component {
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       if (offset < startOffset || offset > endOffset) {
-        seekVideoPlayer(startOffset, route)
+        this.seekToOffset(startOffset);
       }
       const { dispatch } = this.props;
       const startTime = startOffset;
@@ -304,7 +315,7 @@ class Timeline extends Component {
       return;
     }
     let offset;
-    if (this.props.hasAudio && isIos()) {
+    if (this.props.videoStatus === VideoStatus.FAILED || (this.props.hasAudio && isIos())) {
       // video with audio doesn't report currentTime properly so we must use onTimeUpdate reported time
       offset = this.props.offset;
     } else {
@@ -319,7 +330,7 @@ class Timeline extends Component {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
       this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
     }
-    this.rafId = raf(this.getOffset);
+    this.rafId = requestAnimationFrame(this.getOffset);
   }
 
   percentToOffset(perc) {
@@ -479,6 +490,7 @@ const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   isPlaying: state.isPlaying,
   hasAudio: state.hasAudio,
+  videoStatus: state.videoStatus,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

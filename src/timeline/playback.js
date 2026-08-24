@@ -1,5 +1,11 @@
 import * as Types from '../actions/types';
 
+export const VideoStatus = {
+  LOADING: 'loading',
+  READY: 'ready',
+  FAILED: 'failed',
+};
+
 export function reducer(_state, action) {
   let state = { ..._state };
   switch (action.type) {
@@ -49,12 +55,19 @@ export function reducer(_state, action) {
         offset: 0,
         desiredPlaySpeed: 1,
         hasAudio: false,
+        videoStatus: VideoStatus.LOADING,
       };
       break;
     case Types.ACTION_HAS_AUDIO:
       state = {
         ...state,
         hasAudio: action.hasAudio,
+      };
+      break;
+    case Types.ACTION_VIDEO_STATUS:
+      state = {
+        ...state,
+        videoStatus: action.status,
       };
       break;
     default:
@@ -114,5 +127,12 @@ export function setHasAudio(hasAudio) {
   return {
     type: Types.ACTION_HAS_AUDIO,
     hasAudio,
+  };
+}
+
+export function setVideoStatus(status) {
+  return {
+    type: Types.ACTION_VIDEO_STATUS,
+    status,
   };
 }

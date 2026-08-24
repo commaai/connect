@@ -10,6 +10,7 @@ import VolumeOff from '@material-ui/icons/VolumeOff';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
+import { VideoStatus } from '../../timeline/playback';
 import { seekVideoPlayer, playVideo, pauseVideo, setVideoPlaybackRate, isVideoPaused } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
@@ -213,16 +214,20 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, isThin, onMuteToggle, isMuted, hasAudio, desiredPlaySpeed, isPlaying } = this.props;
+    const {
+      classes, zoom, isThin, onMuteToggle, isMuted, hasAudio, desiredPlaySpeed, isPlaying, videoStatus,
+    } = this.props;
     const { displayTime } = this.state;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
+    const controlsDisabled = videoStatus === VideoStatus.FAILED;
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.rightBorderBox }>
           <IconButton
             className={ classes.iconButton }
             onClick={ () => this.jumpBack(10000) }
+            disabled={controlsDisabled}
             aria-label="Jump back 10 seconds"
           >
             <Replay10 className={`${classes.icon} small dim`} />
@@ -232,6 +237,7 @@ class TimeDisplay extends Component {
           <IconButton
             className={ classes.iconButton }
             onClick={ () => this.jumpForward(10000) }
+            disabled={controlsDisabled}
             aria-label="Jump forward 10 seconds"
           >
             <Forward10 className={`${classes.icon} small dim`} />
@@ -250,7 +256,7 @@ class TimeDisplay extends Component {
             <IconButton
               className={classes.tinyArrowIcon}
               onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
+              disabled={controlsDisabled || !this.canIncreaseSpeed()}
               aria-label="Increase play speed by 1 step"
             >
               <UpArrow className={classes.tinyArrowIcon} />
@@ -262,7 +268,7 @@ class TimeDisplay extends Component {
             <IconButton
               className={classes.tinyArrowIcon}
               onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
+              disabled={controlsDisabled || !this.canDecreaseSpeed()}
               aria-label="Decrease play speed by 1 step"
             >
               <DownArrow className={classes.tinyArrowIcon} />
@@ -275,7 +281,7 @@ class TimeDisplay extends Component {
               <IconButton
                 className={ classes.iconButton }
                 onClick={onMuteToggle}
-                disabled={!hasAudio}
+                disabled={controlsDisabled || !hasAudio}
                 aria-label={isMuted ? 'Unmute' : 'Mute'}
               >
                 {isMuted
@@ -288,6 +294,7 @@ class TimeDisplay extends Component {
         <div className={ classes.leftBorderBox }>
           <IconButton
             onClick={this.togglePause}
+            disabled={controlsDisabled}
             aria-label={!isPlaying ? 'Unpause' : 'Pause'}
           >
             {!isPlaying
@@ -306,6 +313,7 @@ const stateToProps = (state) => ({
   desiredPlaySpeed: state.desiredPlaySpeed,
   isPlaying: state.isPlaying,
   offset: state.offset,
+  videoStatus: state.videoStatus,
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

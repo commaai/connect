@@ -32,8 +32,6 @@ const DEMO_PROFILE = {
 
 const AFFECTED_SEGMENT = 1;
 
-// One clone per test case. Each case mutates a fresh clone of the real public
-// data on its way into the frontend.
 const MISSING_DATA_CASES = [
   {
     title: 'Epoch date/time (no clock)',
@@ -102,16 +100,21 @@ const MISSING_DATA_CASES = [
   },
 ];
 
-// Keep two full-length routes for every case: one where the whole route is
-// affected and one where only a single segment is affected.
-const TEST_CASES = MISSING_DATA_CASES.flatMap((testCase) => [
-  testCase,
+
+const TEST_CASES = [
   {
-    ...testCase,
-    title: `${testCase.title} (1 segment)`,
-    affectedSegment: AFFECTED_SEGMENT,
+    title: 'Public route (no issues)',
+    route() {},
   },
-]);
+  ...MISSING_DATA_CASES.flatMap((testCase) => [
+    testCase,
+    {
+      ...testCase,
+      title: `${testCase.title} (1 segment)`,
+      affectedSegment: AFFECTED_SEGMENT,
+    },
+  ]),
+];
 
 function fileSegmentNumber(file) {
   const pathParts = new URL(file).pathname.split('/');
@@ -168,7 +171,7 @@ export function createDemoBackend(realBackend) {
   }
 
   // Clone the cached public route into fresh demo routes on every call, each
-  // with a unique demo route ID and one mutation per test case.
+  // with a unique demo route ID and its test case's mutation, if any.
   async function listDemoRoutes(routeStr) {
     const publicRoute = await fetchPublicRoute();
     const routes = TEST_CASES.map((testCase, index) => {

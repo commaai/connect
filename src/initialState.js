@@ -1,4 +1,5 @@
 import { getDongleID, getSegmentRange, getPrimeNav, getStreamNav } from './url';
+import { VideoStatus } from './timeline/playback';
 
 export function getDefaultFilter() {
   const d = new Date();
@@ -17,6 +18,7 @@ export function createInitialState(pathname = window.location.pathname) {
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
     isPlaying: true,        // if the video is currently playing
+    videoStatus: VideoStatus.LOADING,
     offset: null,           // in miliseconds, relative to state.zoom.start
 
     routes: null,
