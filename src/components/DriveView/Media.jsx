@@ -547,7 +547,6 @@ class Media extends Component {
     }
 
     const showMapAlways = windowWidth >= 1536;
-    const mediaContainerStyle = showMapAlways ? { width: '60%' } : { width: '100%' };
     const mapContainerStyle = showMapAlways
       ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 }
       : { width: '100%' };
@@ -569,9 +568,11 @@ class Media extends Component {
               </div>
             )}
           </div>
-          <div className={`w-full 2xl:w-[40%] ${(inView === MediaType.VIDEO && showMapAlways) ? "" : "hidden"}`}>
-            <DriveMap />
-          </div>
+          {(inView === MediaType.VIDEO && showMapAlways) &&
+            <div className={`w-full 2xl:w-[40%]`}>
+              <DriveMap />
+            </div>
+          }
         </div>
         <div className="w-full 2xl:w-[60%] self-start flex justify-center">
           <TimeDisplay

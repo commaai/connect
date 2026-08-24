@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import * as Types from './types';
+import { api } from '../api/backend';
 import { reverseLookup } from '../utils/geocode';
 
 const USE_LOCAL_COORDS_DATA = import.meta.env.VITE_APP_LOCAL_COORDS_DATA === 'true';
