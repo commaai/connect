@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
-import { athena as Athena, devices as Devices, raw as Raw } from '../api';
+import { athena as Athena } from '../api';
+import { api } from '../api/backend';
 
 import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
 import * as Types from './types';
@@ -73,7 +74,7 @@ export function setRouteViewed(dongleId, route) {
 
 export async function fetchUploadUrls(dongleId, paths) {
   try {
-    const resp = await Raw.getUploadUrls(dongleId, paths, 7);
+    const resp = await api.routes.getUploadUrls(dongleId, paths, 7);
     if (resp && !resp.error) {
       return resp.map((r) => r.url);
     }
@@ -99,7 +100,7 @@ export function fetchFiles(routeName, nocache = false) {
   return async (dispatch) => {
     let files;
     try {
-      files = await Raw.getRouteFiles(routeName, nocache);
+      files = await api.routes.getRouteFiles(routeName, nocache);
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
@@ -312,7 +313,7 @@ export function fetchAthenaQueue(dongleId) {
   return async (dispatch) => {
     let queue;
     try {
-      queue = await Devices.getAthenaQueue(dongleId);
+      queue = await api.devices.getAthenaQueue(dongleId);
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_athena_queue' });

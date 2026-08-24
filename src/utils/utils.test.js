@@ -1,4 +1,3 @@
-/* eslint-env jest */
 import { deviceVersionAtLeast, formatDriveDuration } from '.';
 
 test('formats durations correctly', () => {

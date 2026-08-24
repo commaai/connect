@@ -2,14 +2,16 @@ import { copyFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
+import tailwindcss from '@tailwindcss/vite';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
 
 
 function previewBranding() {
   return {
+    esbuild: {
+      loader: 'jsx',
+      include: /src\/.*\.js$/,
+    },
     name: 'preview-branding',
     apply: 'build',
     enforce: 'post',
@@ -41,27 +43,23 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       port: 3000,
+      // Local development can use the same Athena client through a same-origin path.
+      proxy: {
+        '/athena': {
+          target: 'https://athena.comma.ai',
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/athena/, ''),
+        },
+      },
     },
     build: {
       // Required for Sentry
-      sourcemap: true,
-    },
-    css: {
-      postcss: {
-        plugins: [tailwindcss, autoprefixer],
-      },
+      sourcemap: !process.env.E2E,
     },
     plugins: [
       // TODO: compression plugin
+      tailwindcss(),
       react(),
-      VitePWA({
-        workbox: {
-          globPatterns: ['**/*.{js,css,html,png,webp,svg,ico}'],
-          // TODO: revisit, throw error during build if too large?
-          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-          sourcemap: true,
-        },
-      }),
       sentryPlugin,
       process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),
@@ -72,6 +70,16 @@ export default defineConfig(({ mode }) => {
         define: {
           global: 'globalThis',
         },
+      },
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      include: ['src/**/*.test.{js,jsx,ts,tsx}'],
+      setupFiles: ['./config/vitest/setupTests.js'],
+      coverage: {
+        provider: 'v8',
+        include: ['src/**/*.{js,jsx,ts,tsx}'],
       },
     },
   };

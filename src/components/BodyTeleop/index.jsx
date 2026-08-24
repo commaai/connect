@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 
 import { ArrowBackBold } from '../../icons';
-import { deviceNamePretty } from '../../utils';
+import { fetchDeviceNotCar } from '../../actions';
+import { deviceIsOnline, deviceNamePretty } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
 import { useIsLandscape } from '../../hooks/window';
 import StatusBar from './StatusBar';
@@ -11,7 +11,7 @@ import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
 
-const BodyTeleop = ({ dongleId, device, onClose }) => {
+export const BodyTeleop = ({ dongleId, device, onClose, dispatch }) => {
   const [connectionState, setConnectionState] = useState('none');
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
@@ -30,6 +30,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const firstFrameMeasuredRef = useRef(false);
 
   const isLandscape = useIsLandscape();
+  const isDeviceOnline = deviceIsOnline(device);
 
   const resetConnectionTiming = useCallback(() => {
     setConnectionTotalMs(null);
@@ -42,6 +43,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
+
+  useEffect(() => {
+    if (dongleId && isDeviceOnline && device.rpc?.not_car === undefined) {
+      dispatch(fetchDeviceNotCar(dongleId));
+    }
+  }, [dispatch, dongleId, isDeviceOnline, device?.rpc?.not_car]);
 
   useEffect(() => {
     const callbacks = {
@@ -116,14 +123,14 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
-  const notCar = Boolean(device?.rpc?.not_car);
-  const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
+  const isBody = device?.rpc?.not_car === true;
+  const bodyStarted = isBody && started;
 
   const videoProps = {
     videoRef, connectionState, error, connectionTotalMs,
     onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
-    started,
+    started: bodyStarted,
   };
 
   return (
@@ -135,22 +142,25 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       `}>
         <div
           className={isLandscape
-            ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
+            ? 'absolute left-3 top-3.5 z-20 flex items-center gap-1'
             : 'flex items-center px-3 py-2 bg-[#1D2225] border-b border-white/10 min-h-[64px] z-10'}
         >
           <button
-            className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
+            aria-label="Close teleop"
+            className={isLandscape ? 'flex items-center justify-center rounded-full hover:text-white/90 text-white/60 p-2 w-9 h-9 bg-glass cursor-pointer' : 'text-white p-2 cursor-pointer'}
             onClick={handleClose}
           >
             <ArrowBackBold style={{ fontSize: 20 }} />
           </button>
-          <div
-            className={isLandscape
-              ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0'
-              : 'text-base font-medium ml-2 flex-1'}
-          >
-            {deviceName}
-          </div>
+          {device ? (
+            <div
+              className={isLandscape
+                ? 'rounded-[20px] px-3.5 h-9 flex items-center text-base font-medium text-white bg-glass border-0 opacity-90'
+                : 'text-base font-medium ml-2 flex-1'}
+            >
+              {deviceNamePretty(device)}
+            </div>
+           ) : <></>}
         </div>
         {connected && (
           <div className='relative'>
@@ -167,8 +177,8 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             />
           </div>
         )}
-        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : started ? "aspect-[16/9]" : "flex-1"} />
-        { connected && notCar && !started && (
+        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : bodyStarted ? "aspect-[16/9]" : "flex-1"} />
+        { connected && isBody && !bodyStarted && (
           <div className="absolute w-full bottom-36 2xl:bottom-12 pointer-events-none text-center select-none">
             <span className="text-sm md:text-base text-white/70">Turn on comma body ignition to remote control</span>
           </div>
@@ -183,10 +193,10 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               isLandscape={isLandscape}
               controlsDisabled={inputActive}
             />
-            { started && (
+            { bodyStarted && (
               <div
                 className={isLandscape
-                  ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
+                  ? 'absolute bottom-3 right-3 z-10 w-[160px] h-[160px]'
                   : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
               >
                 <Joystick
@@ -209,9 +219,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   );
 };
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
 });
 
 export default connect(stateToProps)(BodyTeleop);

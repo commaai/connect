@@ -2,13 +2,12 @@ import * as Sentry from '@sentry/react';
 
 import * as Types from './types';
 import { reverseLookup } from '../utils/geocode';
-import { toBool } from '../utils';
 
-const USE_LOCAL_COORDS_DATA = toBool(import.meta.env.VITE_APP_LOCAL_COORDS_DATA);
+const USE_LOCAL_COORDS_DATA = import.meta.env.VITE_APP_LOCAL_COORDS_DATA === 'true';
 if (USE_LOCAL_COORDS_DATA) {
   console.warn('using local coords data');
 }
-const USE_LOCAL_EVENTS_DATA = toBool(import.meta.env.VITE_APP_LOCAL_EVENTS_DATA);
+const USE_LOCAL_EVENTS_DATA = import.meta.env.VITE_APP_LOCAL_EVENTS_DATA === 'true';
 if (USE_LOCAL_EVENTS_DATA) {
   console.warn('using local events data');
 }
@@ -308,7 +307,7 @@ export function fetchEvents(route) {
     const promises = [];
     for (let i = 0; i <= route.maxqlog; i++) {
       promises.push((async (j) => {
-        const url = new URL(`${route.url}/${j}/events.json`);
+        const url = new URL(api.routeAssets.events(route, j));
         if (USE_LOCAL_EVENTS_DATA) {
           url.hostname = 'chffrprivate.azureedge.local';
         }
@@ -467,7 +466,7 @@ export function fetchDriveCoords(route) {
     const promises = [];
     for (let i = 0; i <= route.maxqlog; i++) {
       promises.push((async (j) => {
-        const url = new URL(`${route.url}/${j}/coords.json`);
+        const url = new URL(api.routeAssets.coords(route, j));
         if (USE_LOCAL_COORDS_DATA) {
           url.hostname = 'chffrprivate.azureedge.local';
         }

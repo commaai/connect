@@ -23,24 +23,24 @@ export const ACTION_PRIME_SUBSCRIPTION = 'ACTION_PRIME_SUBSCRIPTION';
 export const ACTION_PRIME_SUBSCRIBE_INFO = 'ACTION_PRIME_SUBSCRIBE_INFO';
 
 // playback
-export const ACTION_SEEK = 'action_seek';
-export const ACTION_PAUSE = 'action_pause';
-export const ACTION_PLAY = 'action_play';
-export const ACTION_PLAYBACK_SPEED = 'action_playback_speed';
-export const ACTION_LOOP = 'action_loop';
-export const ACTION_BUFFER_VIDEO = 'action_buffer_video';
-export const ACTION_RESET = 'action_reset';
-export const ACTION_HAS_AUDIO = 'action_has_audio';
+export const ACTION_SEEK = 'ACTION_SEEK';
+export const ACTION_PAUSE = 'ACTION_PAUSE';
+export const ACTION_PLAY = 'ACTION_PLAY';
+export const ACTION_PLAYBACK_SPEED = 'ACTION_PLAYBACK_SPEED';
+export const ACTION_LOOP = 'ACTION_LOOP';
+export const ACTION_BUFFER_VIDEO = 'ACTION_BUFFER_VIDEO';
+export const ACTION_RESET = 'ACTION_RESET';
+export const ACTION_HAS_AUDIO = 'ACTION_HAS_AUDIO';
 
 // segments
-export const ACTION_UPDATE_SEGMENT_RANGE = 'update_segment_range';
-export const ACTION_ROUTES_METADATA = 'routes_metadata';
+export const ACTION_UPDATE_SEGMENT_RANGE = 'ACTION_UPDATE_SEGMENT_RANGE';
+export const ACTION_ROUTES_METADATA = 'ACTION_ROUTES_METADATA';
 
 // files
-export const ACTION_FILES_URLS = 'files_urls';
-export const ACTION_FILES_UPDATE = 'files_update';
-export const ACTION_FILES_UPLOADING = 'files_uploading';
-export const ACTION_FILES_CANCELLED_UPLOADS = 'files_cancelled_uploads';
+export const ACTION_FILES_URLS = 'ACTION_FILES_URLS';
+export const ACTION_FILES_UPDATE = 'ACTION_FILES_UPDATE';
+export const ACTION_FILES_UPLOADING = 'ACTION_FILES_UPLOADING';
+export const ACTION_FILES_CANCELLED_UPLOADS = 'ACTION_FILES_CANCELLED_UPLOADS';
 
 // analytics
-export const ANALYTICS_EVENT = 'analytics_event';
+export const ANALYTICS_EVENT = 'ANALYTICS_EVENT';

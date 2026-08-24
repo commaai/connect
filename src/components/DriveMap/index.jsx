@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import raf from 'raf';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
@@ -113,7 +111,7 @@ class DriveMap extends Component {
       }
     }
 
-    raf(this.updateMarkerPos);
+    requestAnimationFrame(this.updateMarkerPos);
   }
 
   moveViewportTo(pos) {
@@ -302,9 +300,9 @@ class DriveMap extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  offset: 'offset',
-  currentRoute: 'currentRoute',
+const stateToProps = (state) => ({
+  offset: state.offset,
+  currentRoute: state.currentRoute,
 });
 
 export default connect(stateToProps)(DriveMap);

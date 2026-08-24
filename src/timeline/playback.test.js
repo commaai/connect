@@ -1,4 +1,3 @@
-/* eslint-env jest */
 import {
   bufferVideo,
   reducer,
@@ -11,10 +10,10 @@ import {
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
     desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
+    isBufferingVideo: true,
+    isPlaying: true,
     offset: 0, // in miliseconds from the start
-    startTime: Date.now(), // millisecond timestamp in which play began
-
-    isBuffering: true,
+    hasAudio: false,
   };
 };
 

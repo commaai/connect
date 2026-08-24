@@ -1,9 +1,10 @@
 import React, { useCallback, useRef } from 'react';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
+import { shareOrDownload } from '../../utils/file';
 
 const CAMERAS = [
   { key: 'wideRoad', label: 'road', num: '1' },
-  { key: 'driver', label: 'driver', num: '2' },
+  { key: 'driver', label: 'cabin', num: '2' },
 ];
 
 const btnBase = `h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
@@ -11,7 +12,7 @@ const btnInactive = `${btnBase} bg-white/10 text-white/60`;
 const btnActive = `${btnBase} bg-white/30 text-white`;
 
 const controlsGroupBase = 'z-10 flex flex-row items-stretch gap-3.5 rounded-[20px] p-4 bg-glass-dark';
-const controlsGroupLandscape = 'absolute bottom-4 left-4';
+const controlsGroupLandscape = 'absolute bottom-3 left-3';
 const controlsGroupPortrait = 'relative self-stretch rounded-none shrink-0 justify-between gap-2';
 
 const ControlsBar = ({
@@ -30,26 +31,12 @@ const ControlsBar = ({
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0);
 
-      const filename = `screenshot_${activeCamera}_${Date.now()}.png`;
+      const cameraLabel = CAMERAS.find((camera) => camera.key === activeCamera)?.label || activeCamera;
+      const filename = `screenshot_${cameraLabel}_${Date.now()}.png`;
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) return;
 
-      const file = new File([blob], filename, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] });
-          return;
-        } catch (err) {
-          if (err?.name === 'AbortError') return;
-        }
-      }
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
+      await shareOrDownload({ blob, filename, mimeType: 'image/png' });
     } finally {
       screenshotInProgress.current = false;
     }

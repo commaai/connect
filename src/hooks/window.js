@@ -1,35 +1,49 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { isIos } from '../utils/browser';
 
 const RESIZE_DEBOUNCE = 150; // ms
 
-export const useWindowWidth = () => {
-  const [width, setWidth] = useState(window.innerWidth);
-  const resizeTimeout = useRef(null);
+export function getWindowSize() {
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+}
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (resizeTimeout.current) {
-        window.clearTimeout(resizeTimeout.current);
-      }
+/** Debounced window size subscription. Returns unsubscribe. Does not fire initially. */
+export function subscribeWindowSize(listener) {
+  let resizeTimeout = null;
 
-      resizeTimeout.current = window.setTimeout(() => {
-        setWidth(window.innerWidth);
-        resizeTimeout.current = null;
-      }, RESIZE_DEBOUNCE);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (resizeTimeout.current) {
-        window.clearTimeout(resizeTimeout.current);
-      }
-    };
-  }, []);
+  const handleResize = () => {
+    if (resizeTimeout) {
+      window.clearTimeout(resizeTimeout);
+    }
 
-  return width;
+    resizeTimeout = window.setTimeout(() => {
+      listener(getWindowSize());
+      resizeTimeout = null;
+    }, RESIZE_DEBOUNCE);
+  };
+
+  window.addEventListener('resize', handleResize);
+  return () => {
+    window.removeEventListener('resize', handleResize);
+    if (resizeTimeout) {
+      window.clearTimeout(resizeTimeout);
+    }
+  };
+}
+
+export const useWindowSize = () => {
+  const [size, setSize] = useState(getWindowSize);
+
+  useEffect(() => subscribeWindowSize(setSize), []);
+
+  return size;
 };
+
+export const useWindowWidth = () => useWindowSize().width;
 
 // Use the Screen Orientation API on iOS
 export const getOrientationSource = () => (

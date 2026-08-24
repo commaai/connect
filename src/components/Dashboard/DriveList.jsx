@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
 import FilterList from '@material-ui/icons/FilterList';
 
-import { devices as Devices } from '../../api';
+import { api } from '../../api/backend';
 import { checkRoutesData, checkLastRoutesData } from '../../actions';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import VisibilityHandler from '../VisibilityHandler';
@@ -46,7 +45,7 @@ const DriveList = (props) => {
     }
     setDeviceStats({ fetching: true });
     try {
-      const resp = await Devices.fetchDeviceStats(dongleId);
+      const resp = await api.stats.fetchDeviceStats(dongleId);
       setDeviceStats({ result: resp });
     } catch (err) {
       console.error(err);
@@ -142,7 +141,7 @@ const DriveList = (props) => {
       <div className="flex flex-row justify-between mx-4 pb-2 gap-2 flex-wrap">
         { renderStats() }
         <button
-          className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]"
+          className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98] cursor-pointer"
           style={{ background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 150%)' }}
           onClick={() => setIsTimeSelectOpen(true)}
         >
@@ -157,11 +156,11 @@ const DriveList = (props) => {
   );
 };
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  routes: 'routes',
-  lastRoutes : 'lastRoutes',
-  device: 'device',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  routes: state.routes,
+  lastRoutes: state.lastRoutes,
+  device: state.device,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));

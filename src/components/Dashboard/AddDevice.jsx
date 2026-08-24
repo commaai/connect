@@ -1,13 +1,11 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import qs from 'query-string';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
 import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
-import { devices as Devices } from '../../api';
+import { api } from '../../api/backend';
 import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';
@@ -315,7 +313,7 @@ class AddDevice extends Component {
     let pairToken;
     if (fromUrl) {
       try {
-        pairToken = qs.parse(result.split('?')[1]).pair;
+        pairToken = new URL(result).searchParams.get('pair');
         if (!pairToken) {
           throw new Error('empty pairToken from url qr code');
         }
@@ -353,9 +351,9 @@ class AddDevice extends Component {
 
     const { devices, dispatch } = this.props;
     try {
-      const resp = await Devices.pilotPair(pairToken);
+      const resp = await api.devices.pilotPair(pairToken);
       if (resp.dongle_id) {
-        const deviceList = await Devices.listDevices();
+        const deviceList = await api.devices.listDevices();
         if (devices.length > 0) { // state change from no device to a device requires reload.
           dispatch(updateDevices(deviceList));
           dispatch(analyticsEvent('pair_device', { method: 'add_device_sidebar' }));
@@ -444,9 +442,9 @@ class AddDevice extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  profile: 'profile',
-  devices: 'devices',
+const stateToProps = (state) => ({
+  profile: state.profile,
+  devices: state.devices,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));

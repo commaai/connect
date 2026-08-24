@@ -1,13 +1,12 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
-import { devices as Devices } from '../api';
+import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
@@ -19,8 +18,7 @@ import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, strea
 import init from '../actions/startup';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
-
-import ResizeHandler from './ResizeHandler';
+import { subscribeWindowSize } from '../hooks/window';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -85,6 +83,10 @@ class ExplorerApp extends Component {
   async componentDidMount() {
     const { pairLoading, pairError, pairDongleId } = this.state;
 
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
+      this.setState({ windowWidth: width });
+    });
+
     window.scrollTo({ top: 0 }); // for ios header
 
     const q = new URLSearchParams(window.location.search);
@@ -112,7 +114,7 @@ class ExplorerApp extends Component {
       }
 
       try {
-        const resp = await Devices.pilotPair(pairToken);
+        const resp = await api.devices.pilotPair(pairToken);
         if (resp.dongle_id) {
           await localforage.removeItem('pairToken');
           this.setState({
@@ -121,7 +123,7 @@ class ExplorerApp extends Component {
             pairDongleId: resp.dongle_id,
           });
 
-          const devices = await Devices.listDevices();
+          const devices = await api.devices.listDevices();
           this.props.dispatch(updateDevices(devices));
           this.props.dispatch(analyticsEvent('pair_device', { method: 'url_string' }));
         } else {
@@ -137,6 +139,10 @@ class ExplorerApp extends Component {
     }
 
     this.componentDidUpdate({});
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeWindowSize?.();
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -176,7 +182,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, currentRoute, devices, dongleId, bodyTeleopOpen } = this.props;
+    const { classes, currentRoute, devices, dongleId, bodyTeleopOpen, segmentRange } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
@@ -201,7 +207,6 @@ class ExplorerApp extends Component {
 
     return (
       <div>
-        <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />
         { bodyTeleopOpen ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
@@ -223,7 +228,7 @@ class ExplorerApp extends Component {
             <div className={ classes.window } style={ containerStyles }>
               { noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : (currentRoute ? <DriveView /> : <Dashboard />)}
+                : ((currentRoute || segmentRange) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -251,14 +256,15 @@ class ExplorerApp extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  zoom: 'zoom',
-  pathname: 'router.location.pathname',
-  dongleId: 'dongleId',
-  devices: 'devices',
-  currentRoute: 'currentRoute',
-  limit: 'limit',
-  bodyTeleopOpen: 'streamNav',
+const stateToProps = (state) => ({
+  zoom: state.zoom,
+  pathname: state.router.location.pathname,
+  dongleId: state.dongleId,
+  devices: state.devices,
+  currentRoute: state.currentRoute,
+  segmentRange: state.segmentRange,
+  limit: state.limit,
+  bodyTeleopOpen: state.streamNav,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

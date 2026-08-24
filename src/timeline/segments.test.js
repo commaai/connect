@@ -1,4 +1,3 @@
-/* eslint-env jest */
 import { hasRoutesData } from './segments';
 import { getSegmentNumber } from '../utils';
 

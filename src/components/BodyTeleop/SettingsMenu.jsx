@@ -72,7 +72,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
       </div>
 
       <div
-        className={`absolute right-0 top-full mt-2 z-50 origin-top-right overflow-hidden rounded-[12px] bg-glass-dark transition-all duration-200 ease-out ${
+        className={`absolute right-2 top-full mt-2 z-50 origin-top-right overflow-hidden rounded-[12px] bg-glass-dark transition-all duration-200 ease-out ${
           open ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
         }`}
         style={dims ? { width: dims.width, height: dims.height } : undefined}

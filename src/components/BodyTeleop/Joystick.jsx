@@ -37,7 +37,7 @@ const ControllerOverlay = ({ gamepadSteering, gamepadGas, gamepadBrake, gamepadL
   return (
     <div className="absolute bottom-4 right-4 z-10 flex items-center justify-center gap-6 pointer-events-none">
       <TriggerGroup
-        bumperActive={gamepadLB} bumperLabel="Driver Camera" bumperKey="L1"
+        bumperActive={gamepadLB} bumperLabel="Cabin Camera" bumperKey="L1"
         cameraActive={activeCamera === 'driver'} triggerValue={gamepadBrake}
         triggerColor="rgba(239,68,68,0.45)" triggerKey="LT" directionLabel="Backward"
       />

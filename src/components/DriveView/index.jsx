@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
@@ -36,7 +35,15 @@ class DriveView extends Component {
   render() {
     const { dongleId, zoom, currentRoute, routes } = this.props;
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute?.duration;
+    if (!currentRoute) {
+      return (
+        <div className="DriveView p-8">
+          <Typography>Route does not exist.</Typography>
+        </div>
+      );
+    }
+
+    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
     const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
@@ -58,9 +65,16 @@ class DriveView extends Component {
               >
                 <ArrowBackBold />
               </IconButton>
-              <div className="text-white text-lg font-medium">
-                <span className="hidden sm:inline">{`${startDay} `}</span>
-                {`${startTime} - ${endTime}`}
+              <div className="flex flex-col items-center gap-1 text-white text-lg font-medium">
+                {currentRoute.demo_title ? (
+                  <div className="w-fit rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                    {currentRoute.demo_title}
+                  </div>
+                ) : null}
+                <div>
+                  <span className="hidden sm:inline">{`${startDay} `}</span>
+                  {`${startTime} - ${endTime}`}
+                </div>
               </div>
               <IconButton
                 onClick={ filterRegularClick(this.close) }
@@ -83,11 +97,11 @@ class DriveView extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  routes: 'routes',
-  zoom: 'zoom',
-  currentRoute: 'currentRoute',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  routes: state.routes,
+  zoom: state.zoom,
+  currentRoute: state.currentRoute,
 });
 
 export default connect(stateToProps)(DriveView);

@@ -9,10 +9,13 @@
 
 # testing
 /coverage
+/test-results
 
 # production
 /build
 /dist
+/dist-gallery
+/src/gallery-fixtures/
 
 # misc
 .DS_Store

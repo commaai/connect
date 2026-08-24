@@ -3,13 +3,8 @@
 // rapid seeking, etc
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core/styles';
-import raf from 'raf';
-import document from 'global/document';
 import dayjs from 'dayjs';
-
-import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
@@ -167,6 +162,7 @@ class Timeline extends Component {
     this.rulerRef = React.createRef();
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
+    this.thumbnailsRef = React.createRef();
 
     this.currentOffset = null;
     this.lastOffset = null;
@@ -187,6 +183,18 @@ class Timeline extends Component {
     this.mounted = true;
     this.rafId = raf(this.getOffset);
     this.componentDidUpdate({});
+
+    if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) {
+          return;
+        }
+        const { width, height } = entry.contentRect;
+        this.setState({ thumbnail: { width, height } });
+      });
+      this.resizeObserver.observe(this.thumbnailsRef.current);
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -201,6 +209,10 @@ class Timeline extends Component {
     if (this.rafId) {
       raf.cancel(this.rafId);
       this.rafId = null;
+    }
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
     }
   }
 
@@ -418,24 +430,23 @@ class Timeline extends Component {
             { route && this.renderRoute() }
             <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
           </div>
-          <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
-            { (options) => (
-              <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                { thumbnailsVisible && (
-                  <Thumbnails
-                    className={classes.thumbnail}
-                    currentRoute={route}
-                    percentToOffset={this.percentToOffset}
-                    thumbnail={thumbnail}
-                    hasRuler={hasRuler}
-                  />
-                ) }
-              </div>
+          <div ref={this.thumbnailsRef} className={`${classes.thumbnails} ${hasRulerCls}`}>
+            {thumbnailsVisible && (
+              <Thumbnails
+                className={classes.thumbnail}
+                currentRoute={route}
+                percentToOffset={this.percentToOffset}
+                thumbnail={thumbnail}
+                hasRuler={hasRuler}
+              />
             )}
-          </Measure>
+          </div>
           { hasRuler && (
             <>
               <div
+                aria-label="Drive timeline"
+                role="slider"
+                tabIndex={0}
                 ref={ this.onRulerRef }
                 className={classes.ruler}
                 onPointerDown={this.handlePointerDown}
@@ -459,15 +470,15 @@ class Timeline extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  offset: 'offset',
-  zoom: 'zoom',
-  loop: 'loop',
-  desiredPlaySpeed: 'desiredPlaySpeed',
-  isBufferingVideo: 'isBufferingVideo',
-  currentRoute: 'currentRoute',
-  isPlaying: 'isPlaying',
-  hasAudio: 'hasAudio',
+const stateToProps = (state) => ({
+  offset: state.offset,
+  zoom: state.zoom,
+  loop: state.loop,
+  desiredPlaySpeed: state.desiredPlaySpeed,
+  isBufferingVideo: state.isBufferingVideo,
+  currentRoute: state.currentRoute,
+  isPlaying: state.isPlaying,
+  hasAudio: state.hasAudio,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

@@ -1,19 +1,20 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
-import document from 'global/document';
-import { athena as Athena, billing as Billing, devices as Devices, drives as Drives } from '../api';
-import MyCommaAuth from '@commaai/my-comma-auth';
+import { athena as Athena, billing as Billing } from '../api';
+import { api } from '../api/backend';
 
 import * as Types from './types';
 import { selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
+import { hardNavigate } from '../utils/navigation';
 
 let routesRequest = null;
 let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
+const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -36,12 +37,12 @@ export function checkRoutesData() {
     // if requested segment range not in loaded routes, fetch it explicitly
     if (state.segmentRange) {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
+        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
         dongleId,
       };
     } else {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
+        req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
         dongleId,
       };
     }
@@ -57,8 +58,9 @@ export function checkRoutesData() {
         return;
       }
       if (routesData && routesData.length === 0
-        && !MyCommaAuth.isAuthenticated()) {
-        window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
+        && !api.auth.isAuthenticated()) {
+        routesRequest = null;
+        hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
         return;
       }
 
@@ -168,7 +170,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 
   if (allowPathChange) {
     const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
-    if (window.location.pathname !== desiredPath) {
+    if (currentPathname(state) !== desiredPath) {
       dispatch(push(desiredPath));
     }
   }
@@ -252,7 +254,7 @@ export function primeFetchSubscription(dongleId, device, profile) {
 
 export function fetchDeviceOnline(dongleId) {
   return (dispatch) => {
-    Devices.fetchDevice(dongleId).then((resp) => {
+    api.devices.fetchDevice(dongleId).then((resp) => {
       dispatch({
         type: Types.ACTION_UPDATE_DEVICE_ONLINE,
         dongleId,
@@ -272,7 +274,7 @@ export function updateSegmentRange(log_id, start, end) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true) {
+export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
@@ -300,11 +302,13 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dispatch(fetchDeviceOnline(dongleId));
     }
 
-    dispatch(checkRoutesData());
+    if (fetchRoutes) {
+      dispatch(checkRoutesData());
+    }
 
     if (allowPathChange) {
       const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (window.location.pathname !== desiredPath) {
+      if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
     }
@@ -326,7 +330,7 @@ export function primeNav(nav, allowPathChange = true) {
     }
 
     if (allowPathChange) {
-      const curPath = document.location.pathname;
+      const curPath = currentPathname(state);
       const desiredPath = urlForState(state.dongleId, null, null, null, nav);
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
@@ -350,7 +354,7 @@ export function streamNav(nav, allowPathChange = true) {
     }
 
     if (allowPathChange) {
-      const curPath = document.location.pathname;
+      const curPath = currentPathname(state);
       const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
@@ -362,7 +366,7 @@ export function streamNav(nav, allowPathChange = true) {
 export function fetchSharedDevice(dongleId) {
   return async (dispatch) => {
     try {
-      const resp = await Devices.fetchDevice(dongleId);
+      const resp = await api.devices.fetchDevice(dongleId);
       dispatch({
         type: Types.ACTION_UPDATE_SHARED_DEVICE,
         dongleId,

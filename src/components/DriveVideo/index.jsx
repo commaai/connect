@@ -2,16 +2,46 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
-import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player/file';
 
-import { video as Video } from '../../api';
+import { api } from '../../api/backend';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { bufferVideo, setPlaybackSpeed, resetPlayback, play, pause, seek } from '../../timeline/playback';
 import { setVideoPlayer, seekVideoPlayer, getVideoPlayerCurrentTime } from '../../timeline/videoPlayer';
 import { isIos } from '../../utils/browser.js';
+
+// Leading-edge debounce: run immediately, then ignore calls until `wait` ms after the last one.
+function debounceLeading(func, wait) {
+  let timeout = null;
+  let args;
+  let context;
+  let timestamp;
+
+  function later() {
+    const last = Date.now() - timestamp;
+    if (last < wait && last >= 0) {
+      timeout = setTimeout(later, wait - last);
+    } else {
+      timeout = null;
+    }
+  }
+
+  return function debounced(...nextArgs) {
+    context = this;
+    args = nextArgs;
+    timestamp = Date.now();
+    const callNow = !timeout;
+    if (!timeout) {
+      timeout = setTimeout(later, wait);
+    }
+    if (callNow) {
+      return func.apply(context, args);
+    }
+    return undefined;
+  };
+}
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -206,7 +236,7 @@ class DriveVideo extends Component {
     }
 
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
-      src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
+      src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
       this.setState({ src, videoError: null });
       this.firstSeek = true;
     }
@@ -292,14 +322,16 @@ class DriveVideo extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  isPlaying: 'isPlaying',
-  offset: 'offset',
-  isBufferingVideo: 'isBufferingVideo',
-  routes: 'routes',
-  currentRoute: 'currentRoute',
-  loop: 'loop',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  desiredPlaySpeed: state.desiredPlaySpeed,
+  offset: state.offset,
+  startTime: state.startTime,
+  isBufferingVideo: state.isBufferingVideo,
+  routes: state.routes,
+  currentRoute: state.currentRoute,
+  loop: state.loop,
+  isPlaying: state.isPlaying,
 });
 
 export default connect(stateToProps)(DriveVideo);
