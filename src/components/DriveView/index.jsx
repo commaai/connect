@@ -55,7 +55,7 @@ class DriveView extends Component {
 
     return (
       <div className="DriveView">
-        <div className="flex flex-col rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
+        <div className="flex flex-col gap-4 rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
@@ -86,7 +86,7 @@ class DriveView extends Component {
             </div>
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
-          <div className="p-3 md:p-8">
+          <div className='px-3 pb-3 md:px-8 md:pb-8'>
             {(routes && routes.length === 0)
               ? <Typography>Route does not exist.</Typography>
               : <Media />}
