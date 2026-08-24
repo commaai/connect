@@ -539,7 +539,6 @@ class Media extends Component {
   }
 
   render() {
-    const { classes } = this.props;
     const { inView, windowWidth, isMuted, hasAudio } = this.state;
 
     if (this.props.menusOnly) { // for test
@@ -547,9 +546,6 @@ class Media extends Component {
     }
 
     const showMapAlways = windowWidth >= 1536;
-    const mapContainerStyle = showMapAlways
-      ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 }
-      : { width: '100%' };
 
     return (
       <div className="flex flex-col gap-4">
@@ -563,7 +559,7 @@ class Media extends Component {
               />
             )}
             {(inView === MediaType.MAP && !showMapAlways) && (
-              <div style={mapContainerStyle}>
+              <div className="w-full">
                 <DriveMap />
               </div>
             )}
@@ -591,7 +587,7 @@ class Media extends Component {
     const { inView, clipsSupported } = this.state;
     return (
       <>
-        <div className="flex justify-between 2xl:justify-center wrap">
+        <div className="flex flex-wrap justify-between 2xl:justify-center">
           { !showMapAlways && (
             <div className={classes.mediaOptions}>
               <div
