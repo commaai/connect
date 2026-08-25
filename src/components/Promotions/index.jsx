@@ -26,7 +26,7 @@ const styles = () => ({
 
 const Promotions = ({ classes, device, dispatch }) => {
   const [dismissedPromotions, setDismissedPromotions] = useState(() => (
-    window.localStorage.getItem(dismissedPromotionKey('referral-50')) === 'true' ? ['referral-50'] : []
+    window.localStorage.getItem(dismissedPromotionKey('referral')) === 'true' ? ['referral'] : []
   ));
 
   if (!device.is_owner) return null;
@@ -37,7 +37,7 @@ const Promotions = ({ classes, device, dispatch }) => {
   };
 
   const showPrime = !device.prime && !dismissedPromotions.includes('prime');
-  const showReferral = !dismissedPromotions.includes('referral-50');
+  const showReferral = !dismissedPromotions.includes('referral');
 
   return (
     <div className={classes.container}>
@@ -46,9 +46,9 @@ const Promotions = ({ classes, device, dispatch }) => {
           heading="Refer a friend. Get $50."
           subtitle="Earn $50 for each comma four purchased with your referral link."
           buttonText="refer"
-          onButtonClick={() => dispatch(push('/referrals'))}
+          onButtonClick={() => { dispatch(push('/referrals')); dismiss('referral'); }}
           dismissLabel="Dismiss referral promotion"
-          onDismiss={() => dismiss('referral-50', true)}
+          onDismiss={() => dismiss('referral', true)}
         />
       ) : showPrime ? (
         <Notification

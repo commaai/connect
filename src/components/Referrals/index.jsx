@@ -55,7 +55,7 @@ export default function Referrals({ profile }) {
       setError({
         message: forbidden
           ? 'Referrals are only available for comma device owners'
-          : 'Could not load your referral program. Please try again.',
+          : 'Could not load referrals. Please try again.',
         retryable: !forbidden,
       });
       Sentry.captureException(err, { fingerprint: 'referrals_load' });
@@ -263,17 +263,17 @@ export default function Referrals({ profile }) {
         </div>
       </section>
       <p className="mt-3 text-center text-xs text-white/50">
-        Referral rewards become available to claim after the order's return period.
+        Referral rewards become available to claim after each order's return period ends.
       </p>
       <p className="mt-3 text-center text-xs text-white/50">
-        Referrals are subject to certain{' '}
+        Referrals are subject to{' '}
         <a
           href="https://comma-web--pr16-gpidiflj.web.app/terms#referral-terms"
           target="_blank"
           rel="noopener noreferrer"
           className="text-inherit underline underline-offset-2"
         >
-          terms
+          terms and conditions
         </a>
         .
       </p>
