@@ -1,30 +1,13 @@
 import { useState } from 'react';
 import { connect } from 'react-redux';
 import { push } from 'connected-react-router';
-import { withStyles } from '@material-ui/core';
 
 import { primeNav } from '../../actions';
 import Notification from '../Notification';
 
 const dismissedPromotionKey = (promotion) => `dismissedPromotion:${promotion}`;
 
-const styles = () => ({
-  container: {
-    position: 'absolute',
-    zIndex: 4,
-    top: 8,
-    right: 10,
-    display: 'flex',
-    flexDirection: 'row',
-    gap: '10px',
-    '@media (max-width: 599px)': {
-      left: 8,
-      flexDirection: 'column',
-    },
-  },
-});
-
-const Promotions = ({ classes, device, dispatch }) => {
+const Promotions = ({ device, dispatch }) => {
   const [dismissedPromotions, setDismissedPromotions] = useState(() => (
     window.localStorage.getItem(dismissedPromotionKey('referral')) === 'true' ? ['referral'] : []
   ));
@@ -40,7 +23,7 @@ const Promotions = ({ classes, device, dispatch }) => {
   const showReferral = !dismissedPromotions.includes('referral');
 
   return (
-    <div className={classes.container}>
+    <div className="absolute right-2.5 top-2 z-[4] flex flex-row gap-2.5 max-[599px]:left-2 max-[599px]:flex-col">
       {showReferral ? (
         <Notification
           heading="Refer a friend. Get $50."
@@ -67,4 +50,4 @@ const Promotions = ({ classes, device, dispatch }) => {
   );
 };
 
-export default connect((state) => ({ device: state.device }))(withStyles(styles)(Promotions));
+export default connect((state) => ({ device: state.device }))(Promotions);

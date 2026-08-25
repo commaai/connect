@@ -1,82 +1,26 @@
-import { Button, Typography, withStyles } from '@material-ui/core';
+import { Button, Typography } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
 
-import Colors from '../../colors';
-
-const styles = () => ({
-  card: {
-    position: 'relative',
-    boxSizing: 'border-box',
-    width: 360,
-    padding: '12px 16px',
-    borderRadius: 22,
-    border: `1px solid ${Colors.grey700}`,
-    backgroundColor: Colors.grey500,
-    color: Colors.white,
-    '@media (max-width: 599px)': {
-      width: '100%',
-    },
-  },
-  header: {
-    display: 'flex',
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  title: {
-    lineHeight: '31px',
-    fontSize: 20,
-    fontWeight: 600,
-  },
-  subtitle: {
-    color: Colors.white90,
-  },
-  button: {
-    marginLeft: 8,
-    padding: '6px 24px',
-    minWidth: 90,
-    minHeight: 'unset',
-    borderRadius: 15,
-    color: Colors.white,
-    backgroundColor: Colors.primeBlue50,
-    textTransform: 'none',
-    '&:hover': {
-      color: Colors.white,
-      backgroundColor: Colors.primeBlue200,
-    },
-  },
-  dismiss: {
-    position: 'absolute',
-    left: -6,
-    top: -8,
-    width: 24,
-    height: 24,
-    padding: 5,
-    border: `1px solid ${Colors.grey600}`,
-    borderRadius: 12,
-    backgroundColor: Colors.grey900,
-    color: Colors.white,
-    cursor: 'pointer',
-    '&:hover': {
-      backgroundColor: Colors.grey700,
-    },
-  },
-});
-
 const Notification = ({
-  buttonClassName = '', buttonText, classes, dismissLabel, heading, onButtonClick, onDismiss, subtitle,
+  buttonClassName = '', buttonText, dismissLabel, heading, onButtonClick, onDismiss, subtitle,
 }) => (
-  <div className={classes.card}>
-    <Clear aria-label={dismissLabel} className={classes.dismiss} onClick={onDismiss} />
-    <div className={classes.header}>
-      <Typography className={classes.title}>{heading}</Typography>
-      <Button onClick={onButtonClick} className={`${classes.button} ${buttonClassName}`}>
+  <div className="relative box-border w-[360px] max-[599px]:w-full rounded-[22px] border border-[#303639] bg-[#424a4f] px-4 py-3 text-white">
+    <Clear
+      aria-label={dismissLabel}
+      className="absolute -left-1.5 -top-2 h-6 w-6 cursor-pointer rounded-xl border border-[#394044] bg-[#1e2224] p-[5px] text-white hover:bg-[#303639]"
+      onClick={onDismiss}
+    />
+    <div className="mb-2.5 flex w-full items-start justify-between">
+      <Typography className="text-xl font-semibold leading-[31px]">{heading}</Typography>
+      <Button
+        onClick={onButtonClick}
+        className={`ml-2 min-h-[unset] min-w-[90px] rounded-[15px] bg-[#5e8bff] px-6 py-1.5 normal-case text-white hover:bg-[#547de6] hover:text-white ${buttonClassName}`}
+      >
         {buttonText}
       </Button>
     </div>
-    <Typography className={classes.subtitle}>{subtitle}</Typography>
+    <Typography className="text-white/90">{subtitle}</Typography>
   </div>
 );
 
-export default withStyles(styles)(Notification);
+export default Notification;
