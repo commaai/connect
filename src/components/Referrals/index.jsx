@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import { CircularProgress } from '@material-ui/core';
 import posthog from 'posthog-js';
 
-import { billing } from '../../api';
+import { api } from '../../api/backend';
 import { ContentCopy } from '../../icons';
 import { isMobileDevice } from '../../utils/browser';
 import { claimMailto, referralUrl } from './utils';
@@ -52,7 +52,7 @@ export default function Referrals({ profile }) {
   const loadReferrals = useCallback(async () => {
     setError(null);
     try {
-      const nextSummary = await billing.createReferralCode();
+      const nextSummary = await api.billing.createReferralCode();
       if (!nextSummary) throw new Error('Referral request returned no data');
       setSummary(nextSummary);
     } catch (err) {

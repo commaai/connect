@@ -17,6 +17,7 @@ export function createRealBackend() {
       refreshAccessToken: (code, provider) => commaApi.auth.refreshAccessToken(code, provider),
     },
     account: { ...commaApi.account },
+    billing: { ...commaApi.billing },
     devices,
     routes: { ...commaApi.drives, ...commaApi.raw },
     routeAssets: {
@@ -52,6 +53,7 @@ export function initBackend(pathname = window.location.pathname) {
 export const api = {
   get auth() { return initBackend().auth; },
   get account() { return initBackend().account; },
+  get billing() { return initBackend().billing; },
   get devices() { return initBackend().devices; },
   get routes() { return initBackend().routes; },
   get routeAssets() { return initBackend().routeAssets; },
