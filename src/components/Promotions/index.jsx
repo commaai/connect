@@ -29,7 +29,7 @@ const Promotions = ({ device, dispatch }) => {
           heading="Refer a friend. Get $50."
           subtitle="Earn $50 for each comma four purchased with your referral link."
           buttonText="refer"
-          onButtonClick={() => { dispatch(push('/referrals')); dismiss('referral'); }}
+          onButtonClick={() => { dispatch(push('/referrals')); dismiss('referral', true); }}
           dismissLabel="Dismiss referral promotion"
           onDismiss={() => dismiss('referral', true)}
         />
