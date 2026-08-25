@@ -1,7 +1,7 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
-import { athena as Athena, billing as Billing, devices as Devices, drives as Drives } from '../api';
-import MyCommaAuth from '@commaai/my-comma-auth';
+import { athena as Athena, billing as Billing } from '../api';
+import { api } from '../api/backend';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
@@ -37,12 +37,12 @@ export function checkRoutesData() {
     // if requested segment range not in loaded routes, fetch it explicitly
     if (state.segmentRange) {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
+        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
         dongleId,
       };
     } else {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
+        req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
         dongleId,
       };
     }
@@ -58,7 +58,7 @@ export function checkRoutesData() {
         return;
       }
       if (routesData && routesData.length === 0
-        && !MyCommaAuth.isAuthenticated()) {
+        && !api.auth.isAuthenticated()) {
         routesRequest = null;
         hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
         return;
@@ -257,7 +257,7 @@ export function primeFetchSubscription(dongleId, device, profile) {
 
 export function fetchDeviceOnline(dongleId) {
   return (dispatch) => {
-    Devices.fetchDevice(dongleId).then((resp) => {
+    api.devices.fetchDevice(dongleId).then((resp) => {
       dispatch({
         type: Types.ACTION_UPDATE_DEVICE_ONLINE,
         dongleId,
@@ -369,7 +369,7 @@ export function streamNav(nav, allowPathChange = true) {
 export function fetchSharedDevice(dongleId) {
   return async (dispatch) => {
     try {
-      const resp = await Devices.fetchDevice(dongleId);
+      const resp = await api.devices.fetchDevice(dongleId);
       dispatch({
         type: Types.ACTION_UPDATE_SHARED_DEVICE,
         dongleId,

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
 import FilterList from '@material-ui/icons/FilterList';
 
-import { devices as Devices } from '../../api';
+import { api } from '../../api/backend';
 import { checkRoutesData, checkLastRoutesData } from '../../actions';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import VisibilityHandler from '../VisibilityHandler';
@@ -45,7 +45,7 @@ const DriveList = (props) => {
     }
     setDeviceStats({ fetching: true });
     try {
-      const resp = await Devices.fetchDeviceStats(dongleId);
+      const resp = await api.stats.fetchDeviceStats(dongleId);
       setDeviceStats({ result: resp });
     } catch (err) {
       console.error(err);

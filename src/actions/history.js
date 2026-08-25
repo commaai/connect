@@ -1,7 +1,7 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
 import { getDongleID, getZoom, getSegmentRange, getPrimeNav, getStreamNav } from '../url';
 import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index';
-import { drives as Drives } from '../api';
+import { api } from '../api/backend';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
   if (!action) {
@@ -24,7 +24,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     if ((pathZoom !== state.zoom) && pathZoom && !pathSegmentRange) {
       const [start, end] = [pathZoom.start, pathZoom.end];
 
-      Drives.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
+      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
         if (routesData && routesData.length > 0) {
           const log_id = routesData[0].fullname.split('|')[1]; 
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;

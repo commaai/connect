@@ -123,6 +123,11 @@ const DriveListItem = (props) => {
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
+        {drive.demo_title ? (
+          <div className="mb-3 w-fit rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+            {drive.demo_title}
+          </div>
+        ) : null}
         <Grid container>
           <div className={classes.driveGridItem} style={gridStyle.date}>
             <Typography className={classes.firstLine}>{startDate}</Typography>

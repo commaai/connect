@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
 import ReactPlayer from 'react-player/file';
 
-import { video as Video } from '../../api';
+import { api } from '../../api/backend';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
@@ -223,7 +223,7 @@ class DriveVideo extends Component {
     }
 
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
-      src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
+      src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
       this.setState({ src, videoError: null });
       this.syncVideo();
     }

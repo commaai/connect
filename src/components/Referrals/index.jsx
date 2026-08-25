@@ -3,6 +3,7 @@ import React, {
 } from 'react';
 import * as Sentry from '@sentry/react';
 import { CircularProgress } from '@material-ui/core';
+import posthog from 'posthog-js';
 
 import { billing } from '../../api';
 import { ContentCopy } from '../../icons';
@@ -38,6 +39,10 @@ export default function Referrals({ profile }) {
   useEffect(() => () => {
     window.clearTimeout(claimOpeningTimer.current);
     window.clearTimeout(shareStatusTimer.current);
+  }, []);
+
+  useEffect(() => {
+    posthog.capture('referrals_page_visit');
   }, []);
 
   useLayoutEffect(() => {

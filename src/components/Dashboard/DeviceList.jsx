@@ -6,7 +6,7 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { devices as Devices } from '../../api';
+import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
 import Colors from '../../colors';
@@ -112,7 +112,7 @@ class DeviceList extends Component {
     const { dispatch } = this.props;
     if (MyCommaAuth.isAuthenticated()) {
       try {
-        const devices = await Devices.listDevices();
+        const devices = await api.devices.listDevices();
         dispatch(updateDevices(devices));
       } catch (err) {
         console.error(err);

@@ -7,7 +7,8 @@ import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 
-import { drives as Drives, USERADMIN_URL_ROOT } from '../../api';
+import { USERADMIN_URL_ROOT } from '../../api';
+import { api } from '../../api/backend';
 import { deviceSupportsClips } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
@@ -31,18 +32,7 @@ const publicTooltip = 'Making a route public allows anyone with the route name o
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
 
 const styles = () => ({
-  root: {
-    display: 'flex',
-  },
-  mediaOptionsRoot: {
-    maxWidth: 964,
-    margin: '0 auto',
-    display: 'flex',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-  },
   mediaOptions: {
-    marginBottom: 12,
     display: 'flex',
     width: 'max-content',
     alignItems: 'center',
@@ -499,7 +489,7 @@ class Media extends Component {
   async onPublicToggle(ev) {
     const isPublic = ev.target.checked;
     try {
-      const resp = await Drives.setRoutePublic(this.props.currentRoute.fullname, isPublic);
+      const resp = await api.routes.setRoutePublic(this.props.currentRoute.fullname, isPublic);
       if (resp && resp.fullname === this.props.currentRoute.fullname) {
         this.props.dispatch(updateRoute(this.props.currentRoute.fullname, { is_public: resp.is_public }));
         if (resp.is_public !== isPublic) {
@@ -516,7 +506,7 @@ class Media extends Component {
 
   async fetchRoutePreserved() {
     try {
-      const resp = await Drives.getPreservedRoutes(this.props.dongleId);
+      const resp = await api.routes.getPreservedRoutes(this.props.dongleId);
       if (resp && Array.isArray(resp) && this.props.currentRoute) {
         if (resp.find((r) => r.fullname === this.props.currentRoute.fullname)) {
           this.setState({ routePreserved: true });
@@ -533,7 +523,7 @@ class Media extends Component {
   async onPreserveToggle(ev) {
     const preserved = ev.target.checked;
     try {
-      const resp = await Drives.setRoutePreserved(this.props.currentRoute.fullname, preserved);
+      const resp = await api.routes.setRoutePreserved(this.props.currentRoute.fullname, preserved);
       if (resp && resp.success) {
         this.setState({ routePreserved: preserved });
         return null;
@@ -549,7 +539,6 @@ class Media extends Component {
   }
 
   render() {
-    const { classes } = this.props;
     const { inView, windowWidth, isMuted, hasAudio } = this.state;
 
     if (this.props.menusOnly) { // for test
@@ -557,40 +546,38 @@ class Media extends Component {
     }
 
     const showMapAlways = windowWidth >= 1536;
-    const mediaContainerStyle = showMapAlways ? { width: '60%' } : { width: '100%' };
-    const mapContainerStyle = showMapAlways
-      ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 }
-      : { width: '100%' };
 
     return (
-      <div className={classes.root}>
-        <div style={mediaContainerStyle}>
-          {this.renderMediaOptions(showMapAlways)}
-          {inView === MediaType.VIDEO && (
-            <DriveVideo
-              isMuted={isMuted}
-              onAudioStatusChange={this.handleAudioStatusChange}
-            />
-          )}
-          {(inView === MediaType.MAP && !showMapAlways) && (
-            <div style={mapContainerStyle}>
+      <div className="flex flex-col gap-4">
+        {this.renderMediaOptions(showMapAlways)}
+        <div className="flex flex-row gap-5">
+          <div className="w-full 2xl:w-[60%]">
+            {inView === MediaType.VIDEO && (
+              <DriveVideo
+                isMuted={isMuted}
+                onAudioStatusChange={this.handleAudioStatusChange}
+              />
+            )}
+            {(inView === MediaType.MAP && !showMapAlways) && (
+              <div className="w-full">
+                <DriveMap />
+              </div>
+            )}
+          </div>
+          {(inView === MediaType.VIDEO && showMapAlways) &&
+            <div className={`w-full 2xl:w-[40%]`}>
               <DriveMap />
             </div>
-          )}
-          <div className="mt-3">
-            <TimeDisplay
-              isThin
-              isMuted={isMuted}
-              hasAudio={hasAudio}
-              onMuteToggle={this.handleMuteToggle}
-            />
-          </div>
+          }
         </div>
-        {(inView === MediaType.VIDEO && showMapAlways) && (
-          <div style={mapContainerStyle}>
-            <DriveMap />
-          </div>
-        )}
+        <div className="w-full 2xl:w-[60%] self-start flex justify-center">
+          <TimeDisplay
+            isThin
+            isMuted={isMuted}
+            hasAudio={hasAudio}
+            onMuteToggle={this.handleMuteToggle}
+          />
+        </div>
       </div>
     );
   }
@@ -600,27 +587,25 @@ class Media extends Component {
     const { inView, clipsSupported } = this.state;
     return (
       <>
-        <div className={classes.mediaOptionsRoot}>
-          { showMapAlways
-            ? <div />
-            : (
-              <div className={classes.mediaOptions}>
-                <div
-                  className={classes.mediaOption}
-                  style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-                  onClick={() => this.setState({ inView: MediaType.VIDEO })}
-                >
-                  <Typography className={classes.mediaOptionText}>Video</Typography>
-                </div>
-                <div
-                  className={classes.mediaOption}
-                  style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                  onClick={() => this.setState({ inView: MediaType.MAP })}
-                >
-                  <Typography className={classes.mediaOptionText}>Map</Typography>
-                </div>
+        <div className="flex flex-wrap justify-between 2xl:justify-center">
+          { !showMapAlways && (
+            <div className={classes.mediaOptions}>
+              <div
+                className={classes.mediaOption}
+                style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
+                onClick={() => this.setState({ inView: MediaType.VIDEO })}
+              >
+                <Typography className={classes.mediaOptionText}>Video</Typography>
               </div>
-            )}
+              <div
+                className={classes.mediaOption}
+                style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
+                onClick={() => this.setState({ inView: MediaType.MAP })}
+              >
+                <Typography className={classes.mediaOptionText}>Map</Typography>
+              </div>
+            </div>
+          )}
           <div className={classes.mediaOptions}>
             {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
               <div
