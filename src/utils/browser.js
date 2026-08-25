@@ -6,11 +6,13 @@ export function isFirefox() {
   return navigator.userAgent.toLowerCase().includes('firefox');
 }
 
-export function isMobilePhone(navigatorLike = navigator) {
-  if (typeof navigatorLike.userAgentData?.mobile === 'boolean') {
-    return navigatorLike.userAgentData.mobile;
-  }
+export function isMobileDevice(navigatorLike = navigator) {
+  if (navigatorLike.userAgentData?.mobile === true) return true;
 
-  return /iPhone|iPod|Android.+Mobile|Windows Phone|IEMobile|Opera Mini/i
-    .test(navigatorLike.userAgent || '');
+  const userAgent = navigatorLike.userAgent || '';
+  const isIpadOs = /Macintosh/i.test(userAgent) && navigatorLike.maxTouchPoints > 1;
+
+  return isIpadOs
+    || /iPhone|iPad|iPod|Android|Windows Phone|IEMobile|Opera Mini|Kindle|Silk|PlayBook/i
+      .test(userAgent);
 }

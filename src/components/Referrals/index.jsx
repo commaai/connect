@@ -6,7 +6,7 @@ import { CircularProgress } from '@material-ui/core';
 
 import { billing } from '../../api';
 import { ContentCopy } from '../../icons';
-import { isMobilePhone } from '../../utils/browser';
+import { isMobileDevice } from '../../utils/browser';
 import { claimMailto, referralUrl } from './utils';
 
 const REFERRAL_URL = import.meta.env.VITE_REFERRAL_URL || 'https://refer.comma.ai';
@@ -89,7 +89,7 @@ export default function Referrals({ profile }) {
   };
 
   const shareLink = async () => {
-    if (!navigator.share || !isMobilePhone()) {
+    if (!navigator.share || !isMobileDevice()) {
       await copyLink();
       return;
     }
