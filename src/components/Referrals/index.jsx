@@ -6,10 +6,9 @@ import { CircularProgress } from '@material-ui/core';
 
 import { billing } from '../../api';
 import { ContentCopy } from '../../icons';
-import { claimMailto } from './utils';
+import { claimMailto, referralUrl } from './utils';
 
 const REFERRAL_URL = import.meta.env.VITE_REFERRAL_URL || 'https://refer.comma.ai';
-const referralUrl = (code) => `${REFERRAL_URL.replace(/\/$/, '')}/${encodeURIComponent(code)}`;
 
 const referralSteps = [
   {
@@ -33,7 +32,7 @@ export default function Referrals({ profile }) {
   const [claimOpening, setClaimOpening] = useState(false);
   const claimOpeningTimer = useRef(null);
   const shareStatusTimer = useRef(null);
-  const shareUrl = summary ? referralUrl(summary.code) : null;
+  const shareUrl = summary ? referralUrl(REFERRAL_URL, summary.code) : null;
 
   useEffect(() => () => {
     window.clearTimeout(claimOpeningTimer.current);

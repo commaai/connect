@@ -1,3 +1,11 @@
+export function referralUrl(baseUrl, code) {
+  const url = new URL(baseUrl);
+  url.pathname = '/shop/comma-four';
+  url.searchParams.set('ref', code);
+  url.searchParams.set('utm_source', 'referral');
+  return url.toString();
+}
+
 export function claimMailto(profile, code, referrals, availableCash) {
   const amount = Number(availableCash || 0).toFixed(2);
   const subject = 'Referral Claim';
