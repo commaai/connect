@@ -1,10 +1,30 @@
 import ReactDOM from 'react-dom/client';
 import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
+import posthog from 'posthog-js';
 import * as Sentry from '@sentry/react';
 
 import './index.css';
 import App from './App';
 import Theme from './theme';
+
+posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
+  api_host: import.meta.env.VITE_POSTHOG_HOST,
+  advanced_disable_flags: true,
+  autocapture: false,
+  capture_dead_clicks: false,
+  capture_exceptions: false,
+  capture_heatmaps: false,
+  capture_pageleave: false,
+  capture_pageview: true,
+  capture_performance: false,
+  disable_conversations: true,
+  disable_product_tours: true,
+  disable_session_recording: true,
+  disable_surveys: true,
+  disable_web_experiments: true,
+  // debug: true,
+  opt_in_site_apps: false,
+});
 
 if (import.meta.env.VITE_SENTRY_ENV) {
   Sentry.init({
