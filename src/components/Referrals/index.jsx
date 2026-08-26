@@ -137,8 +137,8 @@ export default function Referrals({ profile }) {
   };
 
   return (
-    <main className="mx-auto mb-3 w-[calc(100%-40px)] max-w-[430px] min-[521px]:my-[18px] min-[521px]:w-[calc(100%-48px)] min-[1081px]:mx-6 text-white">
-      <h1 className="my-10 text-[clamp(2.5rem,12.5vw,4rem)] font-bold leading-none tracking-[-0.055em]">
+    <main className="mx-auto mb-4 w-[calc(100%-40px)] max-w-[430px] min-[521px]:w-[calc(100%-48px)] min-[1081px]:mx-6 text-white">
+      <h1 className="my-8 text-[clamp(2.5rem,12.5vw,4rem)] font-bold leading-none tracking-[-0.055em]">
         Refer a friend, <br></br>
         Get $50.
       </h1>
