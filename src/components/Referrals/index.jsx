@@ -71,7 +71,10 @@ export default function Referrals({ profile }) {
     loadReferrals();
   }, [loadReferrals]);
 
-  const copyLink = async () => {
+  const copyLink = async (source) => {
+    if (source) {
+      posthog.capture('referrals_copy_button_click', { source });
+    }
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(shareUrl);
     } else {
@@ -91,6 +94,7 @@ export default function Referrals({ profile }) {
   };
 
   const shareLink = async () => {
+    posthog.capture('referrals_copy_button_click', { source: 'share_button' });
     if (!navigator.share || !isMobileDevice()) {
       await copyLink();
       return;
@@ -179,7 +183,7 @@ export default function Referrals({ profile }) {
               </span>
               <button
                 type="button"
-                onClick={copyLink}
+                onClick={() => copyLink('copy_icon')}
                 aria-label="Copy referral link"
                 className="flex cursor-pointer h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
               >
