@@ -1,8 +1,7 @@
 export function referralUrl(baseUrl, code) {
   const url = new URL(baseUrl);
-  url.pathname = '/shop/comma-four';
-  url.searchParams.set('ref', code);
-  url.searchParams.set('utm_source', 'referral');
+  url.pathname = `/${encodeURIComponent(code)}`;
+  url.search = '';
   return url.toString();
 }
 
