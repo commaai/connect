@@ -181,7 +181,7 @@ export default function Referrals({ profile }) {
                 type="button"
                 onClick={copyLink}
                 aria-label="Copy referral link"
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
+                className="flex cursor-pointer h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
               >
                 <ContentCopy aria-hidden="true" className="!h-3.5 !w-3.5" />
               </button>
@@ -205,7 +205,7 @@ export default function Referrals({ profile }) {
             <div className="rounded-[14px] bg-white/5 p-4 text-center">
               <p>{error.message}</p>
               {error.retryable && (
-                <button type="button" onClick={loadReferrals} className="mt-4 h-[42px] rounded-full bg-white px-5 font-semibold text-[#16181a]">
+                <button type="button" onClick={loadReferrals} className="mt-4 cursor-pointer h-[42px] rounded-full bg-white px-5 font-semibold text-[#16181a]">
                   Retry
                 </button>
               )}
