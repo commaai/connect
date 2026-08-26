@@ -270,7 +270,7 @@ export default function Referrals({ profile }) {
       <p className="mt-3 text-center text-xs text-white/50">
         Referrals are subject to{' '}
         <a
-          href="https://comma-web--pr370-2gkpbx92.web.app/terms#referral-terms"
+          href="https://comma.ai/terms#referral-terms"
           target="_blank"
           rel="noopener noreferrer"
           className="text-inherit underline underline-offset-2"
