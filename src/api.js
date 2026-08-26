@@ -30,7 +30,7 @@ class ApiRequest {
     }
   }
 
-  async request(method, endpoint, params, json = true, responseJson = true) {
+  async request(method, endpoint, params, json = true, responseJson = true, throwOnError = false) {
     const headers = { ...this.headers };
     if (!json) {
       headers['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -54,7 +54,7 @@ class ApiRequest {
     if (!response.ok) {
       if (this.errorResponseCallback) {
         await this.errorResponseCallback(response);
-        return null;
+        if (!throwOnError) return null;
       }
       throw new RequestError(response, `${response.status}: ${await response.text()}`);
     }
@@ -133,6 +133,7 @@ export const billing = {
   switchPrimePlan: (dongle_id, plan, sim_id = null) => (
     billingRequest.post('v1/prime/switch_plan', { dongle_id, plan, sim_id })
   ),
+  getReferrals: () => billingRequest.request('GET', 'v1/referrals', undefined, true, true, true),
 };
 
 export const devices = {

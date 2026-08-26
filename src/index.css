@@ -42,7 +42,7 @@
 
 :root {
   color-scheme: dark;
-  background: #16181A;
+  background: #1D2225;
 }
 
 html {
@@ -56,9 +56,8 @@ html {
 }
 
 body {
-  background: #16181A;
+  background: #1D2225;
   font-family: 'Inter', sans-serif;
-  scrollbar-gutter: stable;
   overflow-y: scroll;
   margin: 0;
   padding: 0;

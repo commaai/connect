@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, AppBar } from '@material-ui/core';
@@ -8,11 +9,13 @@ import MenuIcon from '@material-ui/icons/Menu';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { selectDevice } from '../../actions';
-import { AccountIcon } from '../../icons';
+import { AccountIcon, GiftIcon, GiftOpenIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
+
+const REFERRALS_SEEN_KEY = 'referralsGiftClicked';
 
 const styles = () => ({
   header: {
@@ -53,13 +56,36 @@ const styles = () => ({
     height: 34,
     width: 34,
   },
+  giftIcon: {
+    color: Colors.white30,
+    height: 28,
+    width: 28,
+  },
+  giftButton: {
+    position: 'relative',
+  },
+  newReferralsDot: {
+    position: 'absolute',
+    top: 7,
+    right: 7,
+    width: 9,
+    height: 9,
+    borderRadius: '50%',
+    backgroundColor: Colors.primeBlue50,
+  },
+  activeGiftIcon: {
+    color: Colors.white,
+  },
 });
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId,
+  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
+    window.localStorage.getItem(REFERRALS_SEEN_KEY) !== 'true'
+  ));
 
   const handleClickedAccount = useCallback(() => {
     if (MyCommaAuth.isAuthenticated()) {
@@ -73,11 +99,24 @@ const AppHeader = ({
     setMenuOpen(false);
   }, []);
 
+  const openReferrals = useCallback(() => {
+    if (pathname === '/referrals') return;
+    dispatch(push('/referrals'));
+  }, [dispatch, pathname]);
+
+  const toggleReferrals = useCallback(() => {
+    window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
+    setShowNewReferralsDot(false);
+    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
+  }, [dispatch, dongleId, pathname]);
+
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
   }, [drawerIsOpen, handleDrawerStateChanged]);
 
   const open = menuOpen;
+  const referralsOpen = pathname === '/referrals';
+  const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
 
   return (
     <>
@@ -110,6 +149,16 @@ const AppHeader = ({
             </a>
           </div>
           <div className="flex flex-row gap-2">
+            <IconButton
+              component="a"
+              href={referralsOpen ? `/${dongleId}` : '/referrals'}
+              aria-label="referrals"
+              className={classes.giftButton}
+              onClick={filterRegularClick(toggleReferrals)}
+            >
+              <ReferralsIcon className={`${classes.giftIcon} ${referralsOpen ? classes.activeGiftIcon : ''}`} />
+              {showNewReferralsDot && <span aria-label="New referrals" className={classes.newReferralsDot} />}
+            </IconButton>
             <div className="relative">
               <IconButton
                 aria-expanded={open}
@@ -123,6 +172,7 @@ const AppHeader = ({
                 <AccountMenu
                   open={open}
                   onClose={handleClose}
+                  onReferrals={openReferrals}
                   profile={profile}
                 />
               )}
@@ -139,6 +189,7 @@ const stateToProps = (state) => ({
   filter: state.filter,
   profile: state.profile,
   primeNav: state.primeNav,
+  pathname: state.router.location.pathname,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));
