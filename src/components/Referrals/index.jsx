@@ -167,7 +167,7 @@ export default function Referrals({ profile }) {
               type="button"
               onClick={shareLink}
               disabled={!summary}
-              className="h-[52px] w-full cursor-pointer rounded-full border border-white bg-white px-6 font-bold text-[#16181a] transition duration-150 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]"
+              className="w-full cursor-pointer rounded-full border border-white bg-white px-6 py-3 font-bold text-[#16181a] transition duration-150 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]"
             >
               <span>
                 {shareStatus || 'share your link'}
@@ -237,7 +237,7 @@ export default function Referrals({ profile }) {
                 href={claimMailto(profile, summary.code, claimableReferrals, summary.cash.available)}
                 onClick={openClaim}
                 aria-disabled={claimOpening}
-                className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-full border border-white bg-white px-6 text-center text-lg font-bold text-[#16181a] transition duration-150 ${claimOpening ? 'cursor-wait opacity-80' : 'cursor-pointer hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]'}`}
+                className={`mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-white bg-white px-6 py-4 text-center text-lg font-bold text-[#16181a] transition duration-150 ${claimOpening ? 'cursor-wait opacity-80' : 'cursor-pointer hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]'}`}
               >
                 {claimOpening ? (
                   <>
@@ -250,7 +250,7 @@ export default function Referrals({ profile }) {
               <button
                 type="button"
                 disabled
-                className="mt-4 h-14 w-full cursor-not-allowed rounded-full border border-white/10 bg-white/10 px-6 text-lg font-bold text-white/35"
+                className="mt-4 w-full cursor-not-allowed rounded-full border border-white/10 bg-white/10 px-6 py-4 text-lg font-bold text-white/35"
               >
                 claim rewards (${displayedSummary.cash.available.toFixed(0)})
               </button>
