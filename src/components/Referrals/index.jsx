@@ -52,7 +52,7 @@ export default function Referrals({ profile }) {
   const loadReferrals = useCallback(async () => {
     setError(null);
     try {
-      const nextSummary = await api.billing.createReferralCode();
+      const nextSummary = await api.billing.getReferrals();
       if (!nextSummary) throw new Error('Referral request returned no data');
       setSummary(nextSummary);
     } catch (err) {

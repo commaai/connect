@@ -133,8 +133,7 @@ export const billing = {
   switchPrimePlan: (dongle_id, plan, sim_id = null) => (
     billingRequest.post('v1/prime/switch_plan', { dongle_id, plan, sim_id })
   ),
-  getReferrals: () => billingRequest.get('v1/referrals'),
-  createReferralCode: () => billingRequest.request('POST', 'v1/referrals', undefined, true, true, true),
+  getReferrals: () => billingRequest.request('GET', 'v1/referrals', undefined, true, true, true),
 };
 
 export const devices = {

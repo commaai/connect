@@ -91,6 +91,15 @@ async function mockFetch(input, init = {}) {
   if (url.pathname === '/v1/me/turn') return json(null);
   if (url.pathname === '/v1/me/') return json({ id: 'test-user', superuser: false });
   if (url.pathname === '/v1/me/devices/') return json(deviceList);
+  if (url.pathname === '/v1/referrals') return json(options.referrals ?? {
+    code: 'ABC1234',
+    cash: { available: 50, claimed: 50, pending: 50 },
+    referrals: [
+      { ordered_at: 1_777_000_000, status: 'available' },
+      { ordered_at: 1_778_000_000, status: 'pending' },
+      { ordered_at: 1_779_000_000, status: 'claimed' },
+    ],
+  });
   const segments = url.pathname.match(/^\/v1\/devices\/([a-f0-9]{16})\/routes_segments$/);
   if (segments) {
     const dongleId = segments[1];
@@ -179,6 +188,11 @@ describe('whole-app behavior', () => {
   test('referrals URL opens the referrals page', async () => {
     await renderApp('/referrals');
     expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
+    expect((await screen.findAllByText('$50', { selector: 'dd' }))).toHaveLength(3);
+    expect(screen.getByRole('link', { name: 'claim rewards ($50)' })).toHaveAttribute(
+      'href', expect.stringContaining('Referral%20coupon%3A%20ABC1234'),
+    );
+    expect(mocks.requests).toContainEqual({ method: 'GET', url: 'https://billing.comma.ai/v1/referrals' });
   });
 
   test.each([['owned', FIRST], ['shared', SHARED]])('direct entry opens %s device dashboard', async (_name, dongleId) => {
