@@ -67,9 +67,6 @@ export default function Referrals({ profile }) {
     }
   }, []);
 
-  // Start the request before painting the loading state. This also avoids a
-  // passive-effect scheduling gap where the page can say "Loading" without a
-  // billing request having been sent yet.
   useLayoutEffect(() => {
     loadReferrals();
   }, [loadReferrals]);
@@ -132,7 +129,7 @@ export default function Referrals({ profile }) {
   };
 
   const claimableReferrals = useMemo(
-    () => (summary?.referrals || []).filter(({ status }) => status === 'claim'),
+    () => (summary?.referrals || []).filter(({ status }) => status === 'available'),
     [summary],
   );
   const displayedSummary = summary || {

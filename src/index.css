@@ -58,7 +58,7 @@ html {
 body {
   background: #1D2225;
   font-family: 'Inter', sans-serif;
-  overflow-y: auto;
+  overflow-y: scroll;
   margin: 0;
   padding: 0;
 }
