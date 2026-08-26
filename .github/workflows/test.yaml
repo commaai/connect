@@ -60,6 +60,8 @@ jobs:
           build-args: |
             VITE_APP_GIT_SHA=${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
             VITE_APP_GIT_TIMESTAMP=${{ env.GIT_TIMESTAMP }}
+            VITE_POSTHOG_KEY=phc_4VfSi5FAChlAt5keSrxVWCaVyZTsYpFKqz2Bw60KLz
+            VITE_POSTHOG_HOST=https://us.i.posthog.com
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
             SENTRY_RELEASE=${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
           builder: ${{ steps.buildx.outputs.name }}
