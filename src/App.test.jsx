@@ -272,7 +272,7 @@ describe('whole-app behavior', () => {
     });
 
     expect(await screen.findByText('comma prime activated')).toBeVisible();
-    expect(screen.getByText(/We’re finishing setup/)).toBeVisible();
+    expect(screen.getByText('Your subscription is active. Your device should be online to finish setup.')).toBeVisible();
   });
 
   test('stream close and browser history restore its view', async () => {

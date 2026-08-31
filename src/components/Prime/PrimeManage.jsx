@@ -435,8 +435,7 @@ export class PrimeManage extends Component {
               <div className={classes.overviewBlockSuccess}>
                 <Typography>comma prime activated</Typography>
                 <Typography>
-                  Your subscription is active. We’re finishing setup and connectivity may take a
-                  few minutes to become available.
+                  Your subscription is active. Your device should be online to finish setup.
                 </Typography>
               </div>
             )}
