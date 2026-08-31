@@ -43,28 +43,11 @@ const styles = (theme) => ({
     cursor: 'pointer',
     '&:hover': {
       background: '#ddd',
-      color: Colors.grey900,
     },
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
+    '&:disabled, &:disabled:hover': {
+      background: Colors.grey400,
+      color: Colors.lightGrey600,
       cursor: 'default',
-    },
-    '&:disabled:hover': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-  },
-  buttonOffline: {
-    background: Colors.grey400,
-    color: Colors.lightGrey600,
-    '&:disabled': {
-      background: Colors.grey400,
-      color: Colors.lightGrey600,
-    },
-    '&:disabled:hover': {
-      background: Colors.grey400,
-      color: Colors.lightGrey600,
     },
   },
   buttonRow: {
@@ -399,7 +382,7 @@ class DeviceInfo extends Component {
     }
     const batteryText = batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A';
 
-    const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
+    const offline = !deviceIsOnline(device);
 
     let error = null;
     if (snapshot.error && snapshot.error.data && snapshot.error.data.message) {
@@ -424,18 +407,17 @@ class DeviceInfo extends Component {
       <div className='flex md:flex-row md:items-stretch justify-end flex-wrap gap-2 min-w-0 shrink'>
         {clipsSupported && <Tooltip
           classes={{ tooltip: classes.popover }}
-          title={deviceIsOnline(device) ? 'Clips' : 'Device offline'}
+          title={offline ? 'Device offline' : 'Clips'}
           placement="bottom"
         >
           <span className="inline-flex">
             <button
-              style={!deviceIsOnline(device) ? { opacity: 0.7 } : {}}
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
               onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
-              disabled={!deviceIsOnline(device)}
+              disabled={offline}
             >
-              <ContentCut className="text-black" />
+              <ContentCut />
             </button>
           </span>
         </Tooltip>}
@@ -447,14 +429,13 @@ class DeviceInfo extends Component {
           >
             <button
               aria-label={ bodyTeleopEnabled ? 'Teleop' : 'Livestream' }
-              style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-              className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
+              className={`${classes.button} ${classes.carBattery}`}
               onClick={ this.openBodyTeleop }
-              disabled={ !deviceIsOnline(device) }
+              disabled={ offline }
             >
               { bodyTeleopEnabled
-                ? <GamepadIcon className='text-black' />
-                : <LivestreamIcon className='text-black' />}
+                ? <GamepadIcon />
+                : <LivestreamIcon />}
             </button>
           </Tooltip>
         )}
@@ -466,21 +447,23 @@ class DeviceInfo extends Component {
           >
             <button
               ref={ this.snapshotButtonRef }
-              className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
+              className={`${classes.button} ${classes.carBattery}`}
               onClick={ this.takeSnapshot }
-              disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
+              disabled={ Boolean(snapshot.fetching) || offline }
             >
               { snapshot.fetching
                 ? <CircularProgress size={ 19 } />
-                : <CameraIcon className='text-black' />}
+                : <CameraIcon />}
             </button>
           </Tooltip>
         )}
         <div
           className={ classes.carBattery }
-          style={{ backgroundColor: batteryBackground }}
+          style={ offline
+            ? { background: Colors.grey400, color: Colors.lightGrey600 }
+            : { backgroundColor: batteryBackground } }
         >
-          { deviceIsOnline(device) ? (
+          { !offline ? (
             <>
               <CarBatteryIcon className="text-[20px] mr-1" />
               <Typography className='w-[45px]'>{ batteryText }</Typography>
@@ -491,7 +474,7 @@ class DeviceInfo extends Component {
               title={pingTooltip}
               placement="bottom"
             >
-              <Typography>device offline</Typography>
+              <Typography color="inherit">device offline</Typography>
             </Tooltip>
           )}
         </div>
