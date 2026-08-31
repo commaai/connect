@@ -116,7 +116,8 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(options.subscribeInfo ?? null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
   if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
@@ -253,6 +254,25 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
+
+  test('Prime shows activation progress while its subscription record is pending', async () => {
+    const primeDevices = devices.map((device) => (
+      device.dongle_id === FIRST ? { ...device, prime: true } : device
+    ));
+    await renderApp(`/${FIRST}/prime`, {
+      devices: primeDevices,
+      subscription: {
+        has_prime: true,
+        is_prime_sim: true,
+        sim_id: '89852351125007202441',
+        sim_type: 'webbing',
+        sim_usable: true,
+      },
+    });
+
+    expect(await screen.findByText('comma prime activated')).toBeVisible();
+    expect(screen.getByText(/We’re finishing setup/)).toBeVisible();
   });
 
   test('stream close and browser history restore its view', async () => {

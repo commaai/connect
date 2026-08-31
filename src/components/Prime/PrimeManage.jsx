@@ -250,6 +250,9 @@ export class PrimeManage extends Component {
     });
     this.componentDidUpdate({}, {});
     this.mounted = true;
+    if (!this.props.subscription?.user_id && !this.props.stripeSuccess) {
+      this.fetchSubscription(true);
+    }
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -400,10 +403,6 @@ export class PrimeManage extends Component {
 
     const hasPrimeSub = subscription && subscription.user_id;
 
-    if (!hasPrimeSub && !stripeStatus) {
-      return null;
-    }
-
     let joinDate;
     let nextPaymentDate;
     let cancelAtDate;
@@ -432,6 +431,15 @@ export class PrimeManage extends Component {
           </div>
           <div className={classes.primeContainer} style={{ padding: `16px ${containerPadding}px` }}>
             <Typography variant="title">comma prime</Typography>
+            {!hasPrimeSub && !stripeStatus && (
+              <div className={classes.overviewBlockSuccess}>
+                <Typography>comma prime activated</Typography>
+                <Typography>
+                  Your subscription is active. We’re finishing setup and connectivity may take a
+                  few minutes to become available.
+                </Typography>
+              </div>
+            )}
             {stripeStatus && (
               <>
                 {stripeStatus.paid !== 'paid'
