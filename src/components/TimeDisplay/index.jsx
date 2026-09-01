@@ -129,11 +129,12 @@ class TimeDisplay extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    requestAnimationFrame(this.updateTime);
+    this.timeUpdateInterval = setInterval(this.updateTime, 250);
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    clearInterval(this.timeUpdateInterval);
   }
 
   getDisplayTime() {
@@ -169,8 +170,6 @@ class TimeDisplay extends Component {
     if (newDisplayTime !== displayTime) {
       this.setState({ displayTime: newDisplayTime });
     }
-
-    requestAnimationFrame(this.updateTime);
   }
 
   decreaseSpeed() {

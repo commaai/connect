@@ -163,23 +163,35 @@ export class WebRTCConnection extends EventTarget {
 
       const offer = await this.pc.createOffer();
       if (this.pc !== pc) return;
-      await this.pc.setLocalDescription(offer);
-      if (this.pc !== pc) return;
-      this._log('create offer and setLocalDescription done');
 
+      let resolveCandidateReady;
       const candidateReady = new Promise((resolve) => {
-        pc.addEventListener('icecandidate', (evt) => {
-          if (!evt.candidate) {
-            this._log('ICE gathering complete');
-            resolve();
-          } else if (['relay'].includes(evt.candidate.type)) {
-            // short cut when at least the relay candidate is added
-            this._log(`Using ${evt.candidate.type} candidate`, evt.candidate);
-            resolve();
-          }
-        });
+        resolveCandidateReady = resolve;
       });
-      await Promise.race([candidateReady, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
+      const onIceCandidate = (evt) => {
+        if (!evt.candidate) {
+          this._log('ICE gathering complete');
+          resolveCandidateReady();
+        } else if (evt.candidate.type === 'relay') {
+          // Short cut when at least the relay candidate is added.
+          this._log(`Using ${evt.candidate.type} candidate`, evt.candidate);
+          resolveCandidateReady();
+        }
+      };
+      pc.addEventListener('icecandidate', onIceCandidate);
+
+      try {
+        await this.pc.setLocalDescription(offer);
+        if (this.pc !== pc) return;
+        this._log('create offer and setLocalDescription done');
+
+        if (pc.iceGatheringState === 'complete') {
+          resolveCandidateReady();
+        }
+        await Promise.race([candidateReady, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
+      } finally {
+        pc.removeEventListener('icecandidate', onIceCandidate);
+      }
       if (this.pc !== pc) throw new Error('Connection torn down during candidate gathering');
 
       this._log('Sending startStream offer to device');

@@ -11,6 +11,7 @@ import { useWindowWidth } from '../../hooks/window';
 import { RightArrow } from '../../icons';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
+import { preloadHls } from '../../utils/video';
 import Timeline from '../Timeline';
 
 const styles = () => ({
@@ -60,28 +61,35 @@ const DriveListItem = (props) => {
   const { classes, dispatch, drive } = props;
 
   useEffect(() => {
-    const onScroll = () => {
-      if (!isVisible && el.current && window && (!window.visualViewport
-          || window.visualViewport.height >= el.current.getBoundingClientRect().y - 300)
-      ) {
+    const makeVisible = () => {
+      if (!isVisible) {
         setVisible(true);
         dispatch(fetchEvents(drive));
         dispatch(fetchLocations(drive));
-
-        window.removeEventListener('scroll', onScroll);
-        window.removeEventListener('resize', onScroll);
       }
     };
 
-    window.addEventListener('scroll', onScroll);
-    window.addEventListener('resize', onScroll);
-    onScroll();
+    if (!el.current) {
+      return undefined;
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+      makeVisible();
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        makeVisible();
+        observer.disconnect();
+      }
+    }, { rootMargin: '300px 0px' });
+    observer.observe(el.current);
 
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      observer.disconnect();
     };
-  }, [drive, dispatch, isVisible, el]);
+  }, [drive.fullname, dispatch, isVisible]);
 
   const onClick = filterRegularClick(
     () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
@@ -121,6 +129,8 @@ const DriveListItem = (props) => {
       ref={el}
       href={`/${drive.dongle_id}/${drive.log_id}`}
       onClick={onClick}
+      onFocus={preloadHls}
+      onMouseEnter={preloadHls}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
         {drive.demo_title ? (

@@ -16,8 +16,46 @@ if (USE_LOCAL_EVENTS_DATA) {
 const eventsRequests = {};
 const coordsRequests = {};
 const driveCoordsRequests = {};
+const MAX_ROUTE_ASSET_REQUESTS = 4;
+const routeAssetQueues = { high: [], low: [] };
+const activeRouteAssetControllers = new Set();
+let activeRouteAssetRequests = 0;
 let hasExpired = false;
 let cacheDB = null;
+
+function drainRouteAssetQueue() {
+  while (activeRouteAssetRequests < MAX_ROUTE_ASSET_REQUESTS) {
+    const task = routeAssetQueues.high.shift() || routeAssetQueues.low.shift();
+    if (!task) {
+      return;
+    }
+    activeRouteAssetRequests += 1;
+    const controller = new AbortController();
+    activeRouteAssetControllers.add(controller);
+    fetch(task.url, { ...task.options, signal: controller.signal })
+      .then(task.resolve, task.reject)
+      .finally(() => {
+        activeRouteAssetControllers.delete(controller);
+        activeRouteAssetRequests -= 1;
+        drainRouteAssetQueue();
+      });
+  }
+}
+
+export function cancelRouteAssetRequests() {
+  const abortError = new DOMException('Route asset request cancelled', 'AbortError');
+  for (const priority of Object.keys(routeAssetQueues)) {
+    routeAssetQueues[priority].splice(0).forEach((task) => task.reject(abortError));
+  }
+  activeRouteAssetControllers.forEach((controller) => controller.abort());
+}
+
+function fetchRouteAsset(url, priority = 'low', options = { method: 'GET' }) {
+  return new Promise((resolve, reject) => {
+    routeAssetQueues[priority].push({ url, options, resolve, reject });
+    drainRouteAssetQueue();
+  });
+}
 
 async function getCacheDB() {
   if (cacheDB !== null) {
@@ -300,6 +338,7 @@ export function fetchEvents(route) {
           events: cacheEvents,
         });
         resolveEvents(cacheEvents);
+        delete eventsRequests[route.fullname];
         return;
       }
     }
@@ -312,7 +351,8 @@ export function fetchEvents(route) {
         if (USE_LOCAL_EVENTS_DATA) {
           url.hostname = 'chffrprivate.azureedge.local';
         }
-        const resp = await fetch(url, { method: 'GET' });
+        const priority = getState().currentRoute?.fullname === route.fullname ? 'high' : 'low';
+        const resp = await fetchRouteAsset(url, priority);
         if (!resp.ok) {
           return [];
         }
@@ -325,6 +365,8 @@ export function fetchEvents(route) {
       driveEvents = [].concat(...(await Promise.all(promises)));
     } catch (err) {
       console.error(err);
+      resolveEvents([]);
+      delete eventsRequests[route.fullname];
       return;
     }
 
@@ -336,6 +378,7 @@ export function fetchEvents(route) {
       events: driveEvents,
     });
     resolveEvents(driveEvents);
+    delete eventsRequests[route.fullname];
     if (!USE_LOCAL_EVENTS_DATA) {
       setCacheItem('events', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveEvents, route.maxqlog);
     }
@@ -460,6 +503,7 @@ export function fetchDriveCoords(route) {
           },
         });
         resolveDriveCoords(cacheDriveCoords);
+        delete driveCoordsRequests[route.fullname];
         return;
       }
     }
@@ -471,7 +515,7 @@ export function fetchDriveCoords(route) {
         if (USE_LOCAL_COORDS_DATA) {
           url.hostname = 'chffrprivate.azureedge.local';
         }
-        const resp = await fetch(url, { method: 'GET' });
+        const resp = await fetchRouteAsset(url, 'high');
         if (!resp.ok) {
           return [];
         }
@@ -485,16 +529,18 @@ export function fetchDriveCoords(route) {
       driveCoords = await Promise.all(promises);
     } catch (err) {
       console.error(err);
+      resolveDriveCoords({});
+      delete driveCoordsRequests[route.fullname];
       return;
     }
 
-    driveCoords = driveCoords.reduce((prev, curr) => ({
-      ...prev,
-      ...curr.reduce((p, cs) => {
-        p[cs.t] = [cs.lng, cs.lat];
-        return p;
-      }, {}),
-    }), {});
+    const mergedDriveCoords = {};
+    driveCoords.forEach((segmentCoords) => {
+      segmentCoords.forEach((coord) => {
+        mergedDriveCoords[coord.t] = [coord.lng, coord.lat];
+      });
+    });
+    driveCoords = mergedDriveCoords;
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE,
@@ -504,6 +550,7 @@ export function fetchDriveCoords(route) {
       },
     });
     resolveDriveCoords(driveCoords);
+    delete driveCoordsRequests[route.fullname];
     if (!USE_LOCAL_COORDS_DATA) {
       setCacheItem('driveCoords', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveCoords, route.maxqlog);
     }

@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { BarcodeDetector } from 'barcode-detector/ponyfill';
 import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
@@ -138,7 +137,7 @@ class AddDevice extends Component {
     let { hasCamera } = this.state;
 
     // Check for camera availability
-    if (hasCamera === null) {
+    if (modalOpen && hasCamera === null) {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         hasCamera = devices.some((d) => d.kind === 'videoinput');
@@ -152,6 +151,10 @@ class AddDevice extends Component {
     // Initialize detector and camera stream
     if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
       try {
+        const { BarcodeDetector } = await import('barcode-detector/ponyfill');
+        if (!this.state.modalOpen || this.detector) {
+          return;
+        }
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },

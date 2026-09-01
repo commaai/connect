@@ -73,6 +73,8 @@ class DriveMap extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    clearTimeout(this.markerUpdateTimer);
+    clearTimeout(this.isInteractingTimeout);
   }
 
   onInteraction(ev) {
@@ -116,7 +118,7 @@ class DriveMap extends Component {
       }
     }
 
-    requestAnimationFrame(this.updateMarkerPos);
+    this.markerUpdateTimer = setTimeout(this.updateMarkerPos, 100);
   }
 
   moveViewportTo(pos) {
@@ -306,7 +308,6 @@ class DriveMap extends Component {
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
   startTime: state.startTime,
 });

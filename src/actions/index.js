@@ -9,10 +9,12 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { cancelRouteAssetRequests } from './cached';
 
-let routesRequest = null;
-let routesRequestPromise = null;
-const LIMIT_INCREMENT = 5
+const routesRequests = new Map();
+const latestRoutesRequest = new Map();
+let routesRequestId = 0;
+const LIMIT_INCREMENT = 20;
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
@@ -26,42 +28,42 @@ export function checkRoutesData() {
       // already has metadata, don't bother
       return;
     }
-    if (routesRequest && routesRequest.dongleId === state.dongleId) {
-      // there is already an pending request
-      return routesRequestPromise;
-    }
     console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
     const fetchRange = state.filter;
-
-    // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.segmentRange) {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
-        dongleId,
-      };
-    } else {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
-        dongleId,
-      };
+    const segmentRange = state.segmentRange;
+    const requestKey = segmentRange
+      ? `${dongleId}|route|${segmentRange.log_id}`
+      : `${dongleId}|range|${fetchRange.start}|${fetchRange.end}|${state.limit}`;
+    if (routesRequests.has(requestKey)) {
+      return routesRequests.get(requestKey);
     }
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    routesRequestId += 1;
+    const requestId = routesRequestId;
+    latestRoutesRequest.set(dongleId, requestId);
+
+    // if requested segment range not in loaded routes, fetch it explicitly
+    const request = segmentRange
+      ? api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${segmentRange.log_id}`)
+      : api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit);
+
+    const requestPromise = request.then((routesData) => {
+      if (latestRoutesRequest.get(dongleId) !== requestId) {
+        return undefined;
+      }
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.dongleId !== dongleId) {
-        routesRequest = null;
         dispatch(checkRoutesData());
-        return;
+        return undefined;
       }
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
-        routesRequest = null;
         hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
-        return;
+        return undefined;
       }
 
       const routes = routesData.map((r) => {
@@ -103,44 +105,49 @@ export function checkRoutesData() {
         routes,
       });
 
-      routesRequest = null;
-
       return routes
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
+      return undefined;
+    }).finally(() => {
+      routesRequests.delete(requestKey);
+      if (latestRoutesRequest.get(dongleId) === requestId) {
+        latestRoutesRequest.delete(dongleId);
+      }
     });
 
-    return routesRequestPromise
+    routesRequests.set(requestKey, requestPromise);
+    return requestPromise
   };
 }
 
 export function checkLastRoutesData() {
   return (dispatch, getState) => {
-    const limit = getState().limit
-    const routes = getState().routes
+    const { limit, routes } = getState();
 
     // if current routes are fewer than limit, that means the last fetch already fetched all the routes
     if (routes && routes.length < limit) {
       return
     }
 
-    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
+    console.log(`fetching ${limit + LIMIT_INCREMENT} routes`)
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
     })
 
-    const d = new Date();
-    const end = d.getTime();
-    const start = end - FIVE_YEARS;
-
-    dispatch({
-      type: Types.ACTION_SELECT_TIME_FILTER,
-      start,
-      end,
-    });
+    // Install the broad initial range once. Pagination only invalidates route
+    // metadata, so the current cards stay mounted while the next page loads.
+    if (limit === 0) {
+      const end = Date.now();
+      const start = end - FIVE_YEARS;
+      dispatch({
+        type: Types.ACTION_SELECT_TIME_FILTER,
+        start,
+        end,
+      });
+    }
 
     dispatch(checkRoutesData());
   };
@@ -275,7 +282,7 @@ export function updateSegmentRange(log_id, start, end) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
+export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = allowPathChange) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
@@ -289,6 +296,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     // tear down existing webrtc connection
     if (state.dongleId && state.dongleId !== dongleId) {
       webrtcConnectionManager.disconnect();
+      cancelRouteAssetRequests();
     }
 
     dispatch({
@@ -304,7 +312,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     }
 
     if (fetchRoutes) {
-      dispatch(checkRoutesData());
+      dispatch(checkLastRoutesData());
     }
 
     if (allowPathChange) {

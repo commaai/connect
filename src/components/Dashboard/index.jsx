@@ -2,12 +2,12 @@ import { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 
 import DriveList from './DriveList';
-import Navigation from '../Navigation';
 import Promotions from '../Promotions';
 import DeviceInfo from '../DeviceInfo';
 import FullPageLoading from '../FullPageLoading';
 
 const Prime = lazy(() => import('../Prime'));
+const Navigation = lazy(() => import('../Navigation'));
 
 const Dashboard = ({ primeNav, device, dongleId }) => {
   if (!device || !dongleId) {
@@ -21,7 +21,9 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
           ? <Prime />
           : (
             <>
-              <Navigation />
+              <Suspense fallback={<div style={{ height: 200 }} />}>
+                <Navigation />
+              </Suspense>
               <Promotions />
               <DeviceInfo />
               <DriveList />

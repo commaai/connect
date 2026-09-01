@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
@@ -34,7 +34,7 @@ const styles = () => ({
 });
 
 const DriveList = (props) => {
-  const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
+  const { dispatch, classes, device, dongleId, routes, lastRoutes, limit } = props;
 
   const [deviceStats, setDeviceStats] = useState({});
   const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
@@ -68,7 +68,7 @@ const DriveList = (props) => {
   let content;
   if (!routes || routes.length === 0) {
     contentStatus = <DriveListEmpty device={device} routes={routes} />;
-  } else if (routes && routes.length > 5) {
+  } else if (routes && routes.length < limit) {
     contentStatus = (
       <div className={classes.endMessage}>
         <Typography>There are no more routes found in selected time range.</Typography>
@@ -77,12 +77,11 @@ const DriveList = (props) => {
   }
 
   // we clean up routes during data fetching, fallback to using lastRoutes to display current data
-  const displayRoutes = routes || lastRoutes;
+  const displayRoutes = useMemo(
+    () => [...(routes || lastRoutes || [])].sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis),
+    [routes, lastRoutes],
+  );
   if (displayRoutes && displayRoutes.length){
-    // sort routes by start_time_utc_millis with the latest drive first
-    // Workaround upstream sorting issue for now
-    // possibly from https://github.com/commaai/connect/issues/451
-    displayRoutes.sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis);
     const routesSize = displayRoutes.length
 
     content = (
@@ -161,6 +160,7 @@ const stateToProps = (state) => ({
   routes: state.routes,
   lastRoutes: state.lastRoutes,
   device: state.device,
+  limit: state.limit,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));

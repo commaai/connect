@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
 import { push, replace } from 'connected-react-router';
@@ -9,21 +9,22 @@ import 'mapbox-gl/src/css/mapbox-gl.css';
 import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
-import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
-import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
-import init from '../actions/startup';
+import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 
-import DriveView from './DriveView';
-import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
-import Referrals from './Referrals';
+import FullPageLoading from './FullPageLoading';
+
+const BodyTeleop = lazy(() => import('./BodyTeleop'));
+const Dashboard = lazy(() => import('./Dashboard'));
+const DriveView = lazy(() => import('./DriveView'));
+const NoDeviceUpsell = lazy(() => import('./DriveView/NoDeviceUpsell'));
+const Referrals = lazy(() => import('./Referrals'));
 
 const styles = (theme) => ({
   app: {
@@ -102,8 +103,6 @@ class ExplorerApp extends Component {
       this.props.dispatch(replace(q.get('r')));
     }
 
-    this.props.dispatch(init());
-
     let pairToken;
     try {
       pairToken = await localforage.getItem('pairToken');
@@ -154,7 +153,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -167,12 +166,6 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
 
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
-    }
   }
 
   async closePair() {
@@ -225,7 +218,9 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.app}>
         { bodyTeleopOpen ? (
-          <BodyTeleop onClose={ this.closeBodyTeleop } />
+          <Suspense fallback={<FullPageLoading />}>
+            <BodyTeleop onClose={ this.closeBodyTeleop } />
+          </Suspense>
         ) : (
           <>
             <AppHeader
@@ -243,11 +238,13 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
-                : noDevicesUpsell
-                ? <NoDeviceUpsell />
-                : ((currentRoute || segmentRange) ? <DriveView /> : <Dashboard />)}
+              <Suspense fallback={<FullPageLoading />}>
+                { referralsOpen
+                  ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                  : noDevicesUpsell
+                  ? <NoDeviceUpsell />
+                  : ((currentRoute || segmentRange) ? <DriveView /> : <Dashboard />)}
+              </Suspense>
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -282,7 +279,6 @@ const stateToProps = (state) => ({
   devices: state.devices,
   currentRoute: state.currentRoute,
   segmentRange: state.segmentRange,
-  limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
 });

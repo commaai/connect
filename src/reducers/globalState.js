@@ -1,9 +1,6 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
 
-const eventsMap = {};
-const locationMap = {};
-
 function populateFetchedAt(d) {
   return {
     ...d,
@@ -102,6 +99,11 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         limit: action.limit,
+        routesMeta: {
+          dongleId: null,
+          start: null,
+          end: null,
+        },
       };
       break;
     case Types.ACTION_UPDATE_DEVICES:
@@ -157,18 +159,13 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_ROUTE_EVENTS: {
       const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
-      eventsMap[action.fullname] = {
-        events: action.events,
-        videoStartOffset,
-      }
       if (state.routes) {
         state.routes = state.routes.map((route) => {
-          const ev = eventsMap[route.fullname];
-          if (ev) {
+          if (route.fullname === action.fullname) {
             return {
               ...route,
-              events: ev.events,
-              videoStartOffset: ev.videoStartOffset,
+              events: action.events,
+              videoStartOffset,
             };
           }
           return route;
@@ -184,17 +181,12 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_UPDATE_ROUTE_LOCATION: {
-      locationMap[action.fullname] = {
-        location: action.location,
-        locationKey: action.locationKey,
-      }
       if (state.routes) {
         state.routes = state.routes.map((route) => {
-          const loc = locationMap[route.fullname];
-          if (loc) {
+          if (route.fullname === action.fullname) {
             return {
               ...route,
-              [loc.locationKey]: loc.location,
+              [action.locationKey]: action.location,
             };
           }
           return route;
@@ -406,11 +398,11 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
+    case Types.ACTION_ROUTES_METADATA: {
       // merge existing routes' event and location info with new routes
+      const existingRoutes = state.routes || state.lastRoutes || [];
       state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+        const existingRoute = existingRoutes.find((r) => r.fullname === route.fullname) || {};
         return {
           ...existingRoute,
           ...route,
@@ -454,6 +446,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     case Types.ACTION_UPDATE_SEGMENT_RANGE: {
       if (!action.log_id) {
         state.segmentRange = null;

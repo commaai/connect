@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
@@ -22,8 +22,9 @@ import { api } from '../../api/backend';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
+
+const UploadQueue = lazy(() => import('../Files/UploadQueue'));
 
 const styles = (theme) => ({
   modal: {
@@ -429,12 +430,16 @@ class DeviceSettingsModal extends Component {
             </div>
           </Paper>
         </Modal>
-        <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
-          device={ device }
-        />
+        { this.state.uploadModal && (
+          <Suspense fallback={null}>
+            <UploadQueue
+              open
+              update
+              onClose={ () => this.setState({ uploadModal: false }) }
+              device={ device }
+            />
+          </Suspense>
+        ) }
       </>
     );
   }

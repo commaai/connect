@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
@@ -11,12 +11,9 @@ import { USERADMIN_URL_ROOT } from '../../api';
 import { api } from '../../api/backend';
 import { deviceSupportsClips } from '../../api/clips';
 
-import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import TimeDisplay from '../TimeDisplay';
 import { subscribeWindowSize } from '../../hooks/window';
-import UploadQueue from '../Files/UploadQueue';
-import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
@@ -27,6 +24,10 @@ import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
+
+const ClipMenu = lazy(() => import('./ClipMenu'));
+const DriveMap = lazy(() => import('../DriveMap'));
+const UploadQueue = lazy(() => import('../Files/UploadQueue'));
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -560,13 +561,17 @@ class Media extends Component {
             )}
             {(inView === MediaType.MAP && !showMapAlways) && (
               <div className="w-full">
-                <DriveMap />
+                <Suspense fallback={<div className="min-h-[300px]" />}>
+                  <DriveMap />
+                </Suspense>
               </div>
             )}
           </div>
           {(inView === MediaType.VIDEO && showMapAlways) &&
             <div className={`w-full 2xl:w-[40%]`}>
-              <DriveMap />
+              <Suspense fallback={<div className="min-h-[300px]" />}>
+                <DriveMap />
+              </Suspense>
             </div>
           }
         </div>
@@ -671,16 +676,20 @@ class Media extends Component {
 
     return (
       <>
-        <ClipMenu
-          open={Boolean(alwaysOpen || clipMenu)}
-          dongleId={this.props.dongleId}
-          anchorEl={clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
-          route={currentRoute}
-          routes={this.props.routes}
-          zoom={this.props.zoom}
-          deviceOnline={deviceIsOnline(device)}
-        />
+        { Boolean(alwaysOpen || clipMenu) && (
+          <Suspense fallback={null}>
+            <ClipMenu
+              open
+              dongleId={this.props.dongleId}
+              anchorEl={clipMenu}
+              onClose={() => this.setState({ clipMenu: null })}
+              route={currentRoute}
+              routes={this.props.routes}
+              zoom={this.props.zoom}
+              deviceOnline={deviceIsOnline(device)}
+            />
+          </Suspense>
+        ) }
         <Menu
           id="menu-download"
           open={ Boolean(alwaysOpen || downloadMenu) }
@@ -825,13 +834,17 @@ class Media extends Component {
             </ListItem>,
           ] }
         </Menu>
-        <UploadQueue
-          open={ uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
-          update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
-          store={ this.props.store }
-          device={ device }
-        />
+        { Boolean(moreInfoMenu || uploadModal || downloadMenu) && (
+          <Suspense fallback={null}>
+            <UploadQueue
+              open={ uploadModal }
+              onClose={ () => this.setState({ uploadModal: false }) }
+              update
+              store={ this.props.store }
+              device={ device }
+            />
+          </Suspense>
+        ) }
         <Popper
           open={ Boolean(dcamUploadInfo) }
           placement="bottom"

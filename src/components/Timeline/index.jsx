@@ -178,7 +178,9 @@ class Timeline extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    requestAnimationFrame(this.getOffset);
+    if (this.props.hasRuler) {
+      this.animationFrame = requestAnimationFrame(this.getOffset);
+    }
     this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
@@ -196,13 +198,25 @@ class Timeline extends Component {
 
   componentDidUpdate(prevProps) {
     const { zoomOverride, zoom } = this.props;
-    if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
+    const zoomOverrideChanged = prevProps.zoomOverride?.start !== zoomOverride?.start
+      || prevProps.zoomOverride?.end !== zoomOverride?.end;
+    if (zoomOverrideChanged || prevProps.zoom !== zoom) {
       this.setState({ zoom: zoomOverride || zoom });
+    }
+    if (!prevProps.hasRuler && this.props.hasRuler && !this.animationFrame) {
+      this.animationFrame = requestAnimationFrame(this.getOffset);
+    } else if (prevProps.hasRuler && !this.props.hasRuler && this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
     }
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
@@ -296,7 +310,7 @@ class Timeline extends Component {
     if (!this.mounted) {
       return;
     }
-    requestAnimationFrame(this.getOffset);
+    this.animationFrame = requestAnimationFrame(this.getOffset);
     let offset = currentOffset();
     if (this.seekIndex) {
       offset = this.seekIndex;

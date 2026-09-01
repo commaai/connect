@@ -171,12 +171,15 @@ export const drives = {
 
 const urlCache = {};
 
-async function getCached(endpoint, params, nocache = false) {
+function getCached(endpoint, params, nocache = false) {
   const url = params === undefined ? endpoint : `${endpoint}?${stringifyQuery(params)}`;
   if (urlCache[url] && !nocache) {
     return urlCache[url];
   }
-  urlCache[url] = await request.get(url);
+  urlCache[url] = request.get(url).catch((err) => {
+    delete urlCache[url];
+    throw err;
+  });
   setTimeout(() => delete urlCache[url], 45 * 60 * 1000);
   return urlCache[url];
 }

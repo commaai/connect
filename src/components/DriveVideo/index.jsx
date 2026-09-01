@@ -11,6 +11,7 @@ import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
 import { isIos, isFirefox } from '../../utils/browser.js';
+import { HLS_VERSION, preloadHls } from '../../utils/video';
 
 // Leading-edge debounce: run immediately, then ignore calls until `wait` ms after the last one.
 function debounceLeading(func, wait) {
@@ -100,11 +101,13 @@ class DriveVideo extends Component {
 
     this.state = {
       src: null,
+      hlsStartPosition: 0,
       videoError: null,
     };
   }
 
   componentDidMount() {
+    preloadHls();
     const { playSpeed } = this.props;
     if (this.videoPlayer.current) {
       this.videoPlayer.current.playbackRate = playSpeed || 1;
@@ -121,7 +124,7 @@ class DriveVideo extends Component {
 
   componentWillUnmount() {
     if (this.videoSyncIntv) {
-      clearTimeout(this.videoSyncIntv);
+      clearInterval(this.videoSyncIntv);
       this.videoSyncIntv = null;
     }
   }
@@ -224,7 +227,8 @@ class DriveVideo extends Component {
 
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
       src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
-      this.setState({ src, videoError: null });
+      this.firstSeek = true;
+      this.setState({ src, hlsStartPosition: this.currentVideoTime(), videoError: null });
       this.syncVideo();
     }
   }
@@ -301,7 +305,7 @@ class DriveVideo extends Component {
 
   render() {
     const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
-    const { src, videoError } = this.state;
+    const { src, hlsStartPosition, videoError } = this.state;
 
     const onPlayerReady = (player) => {
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
@@ -336,9 +340,10 @@ class DriveVideo extends Component {
           playing={Boolean(currentRoute && desiredPlaySpeed)}
           onReady={onPlayerReady}
           config={{
-            hlsVersion: '1.4.8',
+            hlsVersion: HLS_VERSION,
             hlsOptions: {
               maxBufferLength: 40,
+              startPosition: hlsStartPosition,
             },
           }}
           playbackRate={desiredPlaySpeed}
@@ -353,12 +358,8 @@ class DriveVideo extends Component {
 }
 
 const stateToProps = (state) => ({
-  dongleId: state.dongleId,
   desiredPlaySpeed: state.desiredPlaySpeed,
-  offset: state.offset,
-  startTime: state.startTime,
   isBufferingVideo: state.isBufferingVideo,
-  routes: state.routes,
   currentRoute: state.currentRoute,
 });
 

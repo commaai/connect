@@ -3,11 +3,11 @@ import React, {
 } from 'react';
 import * as Sentry from '@sentry/react';
 import { CircularProgress } from '@material-ui/core';
-import posthog from 'posthog-js';
 
 import { api } from '../../api/backend';
 import { ContentCopy } from '../../icons';
 import { isMobileDevice } from '../../utils/browser';
+import { capturePosthog } from '../../utils/posthog';
 import { claimMailto, referralUrl } from './utils';
 
 const REFERRAL_URL = import.meta.env.VITE_REFERRAL_URL || 'https://refer.comma.ai';
@@ -42,7 +42,7 @@ export default function Referrals({ profile }) {
   }, []);
 
   useEffect(() => {
-    posthog.capture('referrals_page_visit');
+    capturePosthog('referrals_page_visit');
   }, []);
 
   useLayoutEffect(() => {
@@ -91,7 +91,7 @@ export default function Referrals({ profile }) {
   };
 
   const shareLink = async () => {
-    posthog.capture('referrals_copy_button_click', { source: 'share_button' });
+    capturePosthog('referrals_copy_button_click', { source: 'share_button' });
     if (!navigator.share || !isMobileDevice()) {
       await copyLink();
       return;

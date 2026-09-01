@@ -12,12 +12,21 @@ import { api, initBackend } from './api/backend';
 import { getZoom, getSegmentRange, getDongleID, getStreamNav } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
+import { preloadHls } from './utils/video';
 import defaultStore, { history as defaultHistory } from './store';
+import init from './actions/startup';
 
 import ErrorFallback from './components/ErrorFallback';
 import FullPageLoading from './components/FullPageLoading';
 
-const Explorer = lazy(() => import('./components/explorer'));
+let explorerImportPromise;
+const loadExplorer = () => {
+  if (!explorerImportPromise) {
+    explorerImportPromise = import('./components/explorer');
+  }
+  return explorerImportPromise;
+};
+const Explorer = lazy(loadExplorer);
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
 
 class App extends Component {
@@ -53,6 +62,15 @@ class App extends Component {
     // everything else the real backend.
     initBackend();
 
+    const pathname = window.location?.pathname || '/';
+    const isPublicRoute = Boolean(getZoom(pathname) || getSegmentRange(pathname));
+    if (isPublicRoute) {
+      preloadHls();
+    }
+    if (isPublicRoute || AuthStorage.getTokenInternal?.()) {
+      loadExplorer();
+    }
+
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
@@ -76,7 +94,6 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { pathname } = window.location;
       const teleopDongleId = getDongleID(pathname);
       if (teleopDongleId && getStreamNav(pathname)) {
         webrtcConnectionManager.reconnect(teleopDongleId);
@@ -86,6 +103,12 @@ class App extends Component {
         console.error('Failed to fetch TURN credentials', err);
         Sentry.captureException(err, { fingerprint: 'app_fetch_turn_credentials' });
       });
+    }
+
+    if (token || isPublicRoute) {
+      loadExplorer();
+      const store = this.props.store || defaultStore;
+      store.dispatch(init());
     }
 
     this.setState({ initialized: true });
