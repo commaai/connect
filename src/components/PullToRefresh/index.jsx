@@ -169,9 +169,11 @@ export default function PullToRefresh({
       current.direction = null;
     };
 
-    const handleTouchEnd = () => {
-      const shouldRefresh = gesture.current?.phase === 'pulling'
-        && gesture.current.armed;
+    const handleTouchEnd = (event) => {
+      const ownsGesture = gesture.current?.phase === 'pulling';
+      if (ownsGesture) event.preventDefault();
+
+      const shouldRefresh = ownsGesture && gesture.current.armed;
       clearGesture();
       if (!shouldRefresh) return;
 
@@ -192,7 +194,7 @@ export default function PullToRefresh({
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
     document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true, capture: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
     document.addEventListener('touchcancel', clearGesture, { passive: true, capture: true });
     window.addEventListener('scroll', handleScroll, { passive: true });
 
