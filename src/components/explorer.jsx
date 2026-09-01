@@ -24,6 +24,7 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import PlateVariants from './Referrals/PlateVariants';
 
 const styles = (theme) => ({
   app: {
@@ -204,6 +205,7 @@ class ExplorerApp extends Component {
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const referralsOpen = pathname === '/referrals';
+    const plateVariantsOpen = pathname === '/referrals-variants';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -243,7 +245,9 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
+              { plateVariantsOpen
+                ? <PlateVariants />
+                : referralsOpen
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />

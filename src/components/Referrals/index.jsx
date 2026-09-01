@@ -34,6 +34,8 @@ export default function Referrals({ profile }) {
   const [claimOpening, setClaimOpening] = useState(false);
   const claimOpeningTimer = useRef(null);
   const shareStatusTimer = useRef(null);
+  const plateRef = useRef(null);
+  const glareRef = useRef(null);
   const shareUrl = summary ? referralUrl(REFERRAL_URL, summary.code) : null;
 
   useEffect(() => () => {
@@ -120,6 +122,34 @@ export default function Referrals({ profile }) {
     }
   };
 
+  // Tilts the plate toward the cursor while it is hovered; the transform is
+  // written straight to the node so pointer movement does not re-render.
+  const tiltPlate = (event) => {
+    const plate = plateRef.current;
+    if (!plate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // Each axis spans -0.5..0.5 across the plate; the pitch is tilted harder
+    // than the yaw so the short vertical travel still reads as a real tilt.
+    const bounds = plate.getBoundingClientRect();
+    const fromCenterX = ((event.clientX - bounds.left) / bounds.width) - 0.5;
+    const fromCenterY = ((event.clientY - bounds.top) / bounds.height) - 0.5;
+    plate.style.transitionDuration = '90ms';
+    plate.style.transform = `perspective(900px) rotateY(${(fromCenterX * 13).toFixed(2)}deg) rotateX(${(fromCenterY * -24).toFixed(2)}deg) scale(1.02)`;
+    const glare = glareRef.current;
+    if (glare) {
+      glare.style.setProperty('--glare-x', `${((fromCenterX + 0.5) * 100).toFixed(1)}%`);
+      glare.style.setProperty('--glare-y', `${((fromCenterY + 0.5) * 100).toFixed(1)}%`);
+      glare.style.opacity = '1';
+    }
+  };
+
+  const restPlate = () => {
+    const plate = plateRef.current;
+    if (!plate) return;
+    plate.style.transitionDuration = '';
+    plate.style.transform = '';
+    if (glareRef.current) glareRef.current.style.opacity = '0';
+  };
+
   const openClaim = (event) => {
     if (claimOpening) {
       event.preventDefault();
@@ -161,23 +191,57 @@ export default function Referrals({ profile }) {
         </ol>
       </section>
 
-      <section className="relative mt-6">
+      <section className="relative mt-7">
         {!error && (
           <div className={!summary ? 'invisible pointer-events-none' : ''} aria-hidden={!summary || undefined}>
             <button
               type="button"
               onClick={shareLink}
               disabled={!summary}
-              className="w-full cursor-pointer rounded-full border border-white bg-white px-6 py-3 font-bold text-[#16181a] transition duration-150 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]"
+              aria-label={`Share your referral link, code ${summary?.code || ''}`}
+              onMouseMove={tiltPlate}
+              onMouseLeave={restPlate}
+              className="group block w-full cursor-pointer select-none"
             >
-              <span>
-                {shareStatus || 'share your link'}
-              </span>
+              <div
+                ref={plateRef}
+                className="relative mx-auto w-full max-w-[330px] rounded-[19px] bg-gradient-to-b from-white/30 to-white/5 p-[2px] shadow-[0_0_40px_-6px_rgba(255,255,255,0.18),0_20px_40px_-20px_rgba(0,0,0,0.95)] transition-transform duration-300 ease-out group-active:scale-[0.99]"
+              >
+                <div className="relative overflow-hidden rounded-[17px] bg-gradient-to-b from-[#1e2123] via-[#141617] to-[#000000] px-5 pb-3 pt-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-6px_16px_rgba(0,0,0,0.8)]">
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-[7px] rounded-[10px] border border-white/12" />
+                  <div
+                    ref={glareRef}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out"
+                    style={{
+                      opacity: 0,
+                      background: 'radial-gradient(200px circle at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255,255,255,0.07), transparent 65%)',
+                    }}
+                  />
+                  <span aria-hidden="true" className="absolute left-[23%] top-2.5 h-[9px] w-[9px] rounded-full bg-black shadow-[inset_0_1px_2px_rgba(0,0,0,1),0_1px_0_rgba(255,255,255,0.15)]" />
+                  <span aria-hidden="true" className="absolute right-[23%] top-2.5 h-[9px] w-[9px] rounded-full bg-black shadow-[inset_0_1px_2px_rgba(0,0,0,1),0_1px_0_rgba(255,255,255,0.15)]" />
+
+                  <p className="relative text-center text-[10px] font-semibold uppercase leading-4 tracking-[0.3em] text-white/45">
+                    comma.ai
+                  </p>
+                  <p className="relative mt-0.5 text-center text-[clamp(2rem,11.5vw,3.25rem)] font-black uppercase leading-[1.1] tracking-[0.06em] text-[#51ff00] [text-shadow:0_0_18px_rgba(81,255,0,0.35),0_2px_4px_rgba(0,0,0,0.9)]">
+                    {summary?.code || '\u00a0'}
+                  </p>
+                  <p className="relative mt-0.5 text-center text-[9px] font-semibold uppercase leading-4 tracking-[0.28em] text-white/35">
+                    referral code
+                  </p>
+
+                  <span
+                    aria-hidden="true"
+                    className={`absolute right-2.5 top-2 rounded-full bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#16181a] transition-opacity duration-150 ${shareStatus ? 'opacity-100' : 'opacity-0'}`}
+                  >
+                    {shareStatus || 'copied'}
+                  </span>
+                </div>
+              </div>
             </button>
-            <div className="mt-2.5 flex items-center justify-center gap-1.5 px-4 text-[11px] leading-4 text-white/45">
-              <span className="min-w-0 truncate">
-                {shareUrl}
-              </span>
+
+            <div className="mt-4 flex justify-center px-4">
               <button
                 type="button"
                 onClick={() => {
@@ -185,9 +249,12 @@ export default function Referrals({ profile }) {
                   copyLink();
                 }}
                 aria-label="Copy referral link"
-                className="flex cursor-pointer h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
+                className="flex max-w-full cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1.5 pl-4 pr-3 text-[12px] leading-4 text-white/50 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white/80"
               >
-                <ContentCopy aria-hidden="true" className="!h-3.5 !w-3.5" />
+                <span className="min-w-0 truncate">
+                  {shareUrl}
+                </span>
+                <ContentCopy aria-hidden="true" className="!h-3.5 !w-3.5 shrink-0" />
               </button>
             </div>
           </div>
