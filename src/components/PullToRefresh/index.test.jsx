@@ -134,6 +134,32 @@ describe('PullToRefresh', () => {
     expect(content.style.transition).toContain('280ms');
   });
 
+  it('does not cap the pull distance', () => {
+    const { container } = render(
+      <PullToRefresh enabled><div>Content</div></PullToRefresh>,
+    );
+    const content = container.firstChild.lastChild;
+
+    fireEvent.touchStart(document, { touches: [touch(0)] });
+    fireEvent.touchMove(document, { touches: [touch(1000)] });
+
+    expect(content.style.transform).toBe('translateY(550px)');
+  });
+
+  it('settles to a compact offset while waiting to reload after a successful pull', () => {
+    const { container } = render(<PullToRefresh enabled threshold={50}><div>Content</div></PullToRefresh>);
+    const content = container.firstChild.lastChild;
+
+    fireEvent.touchStart(document, { touches: [touch(0)] });
+    fireEvent.touchMove(document, { touches: [touch(400)] });
+    expect(content.style.transform).toBe('translateY(220.00000000000003px)');
+
+    fireEvent.touchEnd(document);
+
+    expect(content.style.transform).toBe('translateY(80px)');
+    expect(content.style.transition).toContain('280ms');
+  });
+
   it('grows a circular arc while pulling and spins it at the threshold', () => {
     const { container } = render(<PullToRefresh enabled threshold={50} />);
 

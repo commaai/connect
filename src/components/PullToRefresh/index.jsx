@@ -1,20 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { isIos } from '../../utils/browser';
 
-const DEFAULT_THRESHOLD = 80;
-const DEFAULT_MAX_PULL = 120;
+const DEFAULT_THRESHOLD = 150;
+const REFRESH_OFFSET = 60;
 const DIRECTION_LOCK = 8;
 const RUBBER_BAND = 0.55;
 
 const pageIsScrollLocked = () => window.getComputedStyle(document.body).overflow === 'hidden';
 
-const pullOffset = (distance, maxPull) => {
-  const dimension = maxPull * 6;
-  return Math.min(
-    (distance * dimension * RUBBER_BAND) / (dimension + (distance * RUBBER_BAND)),
-    maxPull,
-  );
-};
+const pullOffset = (distance) => distance * RUBBER_BAND;
 
 function CircularSpinner({ active, progress }) {
   const circumference = 2 * Math.PI * 7.5;
@@ -63,7 +57,6 @@ function CircularSpinner({ active, progress }) {
 export default function PullToRefresh({
   children,
   threshold = DEFAULT_THRESHOLD,
-  maxPull = DEFAULT_MAX_PULL,
   onRefresh,
   enabled = isIos() && window.navigator.standalone === true,
 }) {
@@ -152,7 +145,7 @@ export default function PullToRefresh({
 
       if (current.phase !== 'pulling') return;
 
-      current.distance = pullOffset(Math.max(0, deltaY), maxPull);
+      current.distance = pullOffset(Math.max(0, deltaY));
       current.armed = current.distance >= threshold;
       if (current.armed) {
         setHasStartedSpinning(true);
@@ -193,7 +186,7 @@ export default function PullToRefresh({
             setIsRefreshing(false);
           });
       } else {
-        reloadTimer.current = window.setTimeout(() => window.location.reload(), 400);
+        reloadTimer.current = window.setTimeout(() => window.location.reload(), 250);
       }
     };
 
@@ -211,11 +204,11 @@ export default function PullToRefresh({
       document.removeEventListener('touchcancel', clearGesture, true);
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [enabled, maxPull, onRefresh, threshold]);
+  }, [enabled, onRefresh, threshold]);
 
   if (!enabled) return children || null;
 
-  const offset = isRefreshing ? threshold : distance;
+  const offset = isRefreshing ? REFRESH_OFFSET : distance;
   const progress = Math.min(offset / threshold, 1);
   const visible = offset > 3;
 
