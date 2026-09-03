@@ -5,33 +5,33 @@ import { push } from 'connected-react-router';
 import { primeNav } from '../../actions';
 import Notification from '../Notification';
 
-const dismissedPromotionKey = (promotion) => `dismissedPromotion:${promotion}`;
+// Change the campaign ID to make a new referral promotion appear again.
+const REFERRAL_DISMISSAL_KEY = 'referrals-09-02-2026';
 
 const Promotions = ({ device, dispatch }) => {
-  const [dismissedPromotions, setDismissedPromotions] = useState(() => (
-    window.localStorage.getItem(dismissedPromotionKey('referral')) === 'true' ? ['referral'] : []
-  ));
+  const [showReferral, setShowReferral] = useState(
+    () => window.localStorage.getItem(REFERRAL_DISMISSAL_KEY) !== 'true',
+  );
+  const [primeDismissed, setPrimeDismissed] = useState(false);
 
   if (!device.is_owner) return null;
 
-  const dismiss = (promotion, saveClosed = false) => {
-    setDismissedPromotions((dismissed) => [...dismissed, promotion]);
-    if (saveClosed) window.localStorage.setItem(dismissedPromotionKey(promotion), 'true');
+  const dismissReferral = () => {
+    setShowReferral(false);
+    window.localStorage.setItem(REFERRAL_DISMISSAL_KEY, 'true');
   };
-
-  const showPrime = !device.prime && !dismissedPromotions.includes('prime');
-  const showReferral = !dismissedPromotions.includes('referral');
+  const showPrime = !device.prime && !primeDismissed;
 
   return (
     <div className="absolute right-2.5 top-2 z-[4] flex flex-row gap-2.5 max-[599px]:left-2 max-[599px]:flex-col">
       {showReferral ? (
         <Notification
           heading="Refer a friend. Get $50."
-          subtitle="Earn $50 for each comma four purchased with your referral link."
+          subtitle={<>Referrals stack with sales! Give your friend <b>$150 off</b> with the Labor Day sale!</>}
           buttonText="refer"
-          onButtonClick={() => { dispatch(push('/referrals')); dismiss('referral', true); }}
+          onButtonClick={() => { dispatch(push('/referrals')); dismissReferral(); }}
           dismissLabel="Dismiss referral promotion"
-          onDismiss={() => dismiss('referral', true)}
+          onDismiss={dismissReferral}
         />
       ) : showPrime ? (
         <Notification
@@ -43,7 +43,7 @@ const Promotions = ({ device, dispatch }) => {
           buttonClassName="primeSignUp"
           onButtonClick={() => dispatch(primeNav(true))}
           dismissLabel="Dismiss prime promotion"
-          onDismiss={() => dismiss('prime')}
+          onDismiss={() => setPrimeDismissed(true)}
         />
       ) : null}
     </div>

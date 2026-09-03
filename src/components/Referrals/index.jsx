@@ -18,8 +18,10 @@ const referralSteps = [
     detail: 'Send it to a friend who is interested in comma four.',
   },
   {
-    title: 'They save $50',
-    detail: 'Your link takes $50 off their comma four order.',
+    title: 'They save',
+    detail:
+      <>Right now they save an additional $100 off during our Labor
+      Day sale. That's <b style={{color: "white"}}>15% off!</b></>,
   },
   {
     title: 'You earn $50 cash',
@@ -99,8 +101,8 @@ export default function Referrals({ profile }) {
 
     try {
       await navigator.share({
-        title: 'Give $50, Get $50 with comma',
-        text: 'Get $50 off comma four using this referral link.',
+        title: 'Give $150, Get $50 with comma',
+        text: 'Get $150 off comma four using this referral link. Referrals stack with the Labor Day sale!',
         url: shareUrl,
       });
       setShareStatus('shared');
@@ -151,10 +153,25 @@ export default function Referrals({ profile }) {
               <div className="relative z-10 flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-white text-base font-bold leading-none text-[#16181a]">
                 <span className={`block leading-[0.75] ${index === 0 ? 'relative -left-px' : ''}`}>{index + 1}</span>
               </div>
-              <div className="min-w-0 pt-0.5">
+              <div className={`min-w-0 pt-0.5 ${index === 1 ? 'w-full' : ''}`}>
                 <span className="sr-only">Step {index + 1}: </span>
-                <h2 className="text-base font-bold leading-snug text-white">{step.title}</h2>
-                <p className="mt-0.5 text-xs leading-[1.45] text-white/55">{step.detail}</p>
+                {index === 1 ? (
+                  <div>
+                    <h2 className="flex items-baseline gap-2 whitespace-nowrap font-bold leading-none text-white">
+                      <span className="text-base">{step.title}</span>
+                      <span className="text-xl tracking-[-0.04em] text-[#51ff00]">
+                        $150
+                      </span>
+                      <del className="text-xl font-semibold text-[#808182] decoration-[#b8b9ba] decoration-[2px]">$50</del>
+                    </h2>
+                    <p className="mt-1.5 text-xs leading-[1.45] text-white/55">{step.detail}</p>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-base font-bold leading-snug text-white">{step.title}</h2>
+                    <p className="mt-0.5 text-xs leading-[1.45] text-white/55">{step.detail}</p>
+                  </>
+                )}
               </div>
             </li>
           ))}
