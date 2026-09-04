@@ -51,8 +51,8 @@ class TimeSelect extends Component {
     super(props);
 
     this.state = {
-      start: null,
-      end: null,
+      start: dayjs(props.filter.start).format('YYYY-MM-DD'),
+      end: dayjs(props.filter.end).format('YYYY-MM-DD'),
     }
 
     this.handleClose = this.handleClose.bind(this);
@@ -61,18 +61,11 @@ class TimeSelect extends Component {
     this.handleSave = this.handleSave.bind(this);
   }
 
-  componentDidMount() {
-    this.setState({
-      start: this.props.filter.start,
-      end: this.props.filter.end,
-    });
-  }
-
   componentDidUpdate(prevProps) {
     if (prevProps.filter !== this.props.filter) {
       this.setState({
-        start: this.props.filter.start,
-        end: this.props.filter.end,
+        start: dayjs(this.props.filter.start).format('YYYY-MM-DD'),
+        end: dayjs(this.props.filter.end).format('YYYY-MM-DD'),
       });
     }
   }
@@ -82,26 +75,27 @@ class TimeSelect extends Component {
   }
 
   changeStart(event) {
-    if (event.target.valueAsDate) {
-      const start = new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate()).getTime();
-
+    if (event.target.value) {
       this.setState((state) => ({
-        start,
-        end: state.end < start ? new Date(start).setHours(23,59,59) : state.end,
+        start: event.target.value,
+        end: state.end < event.target.value ? event.target.value : state.end,
       }));
     }
   }
 
   changeEnd(event) {
-    if (event.target.valueAsDate) {
+    if (event.target.value) {
       this.setState({
-        end: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate(),23,59,59).getTime(),
+        end: event.target.value < this.state.start ? this.state.start : event.target.value,
       });
     }
   }
 
   handleSave() {
-    this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
+    const start = dayjs(this.state.start).startOf('day').valueOf();
+    const end = dayjs(this.state.end).endOf('day').valueOf();
+
+    this.props.dispatch(selectTimeFilter(start, end));
     this.props.onClose()
   }
 
@@ -109,8 +103,6 @@ class TimeSelect extends Component {
     const { classes, isOpen } = this.props;
     const minDate = dayjs().subtract(LOOKBACK_WINDOW_MILLIS, 'millisecond').format('YYYY-MM-DD');
     const maxDate = dayjs().format('YYYY-MM-DD');
-    const startDate = dayjs(this.state.start || this.props.filter.start).format('YYYY-MM-DD');
-    const endDate = dayjs(this.state.end || this.props.filter.end).format('YYYY-MM-DD');
 
     return (
       <>
@@ -130,7 +122,7 @@ class TimeSelect extends Component {
                 min={ minDate }
                 max={ maxDate }
                 onChange={this.changeStart}
-                value={ startDate }
+                value={ this.state.start }
               />
             </div>
             <div className={ classes.datePickerContainer }>
@@ -138,10 +130,10 @@ class TimeSelect extends Component {
               <input
                 label="End date"
                 type="date"
-                min={ startDate }
+                min={ this.state.start }
                 max={ maxDate }
                 onChange={this.changeEnd}
-                value={ endDate }
+                value={ this.state.end }
               />
             </div>
             <Divider />
