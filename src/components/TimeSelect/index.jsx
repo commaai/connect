@@ -44,8 +44,6 @@ const styles = (theme) => ({
   },
 });
 
-const LOOKBACK_WINDOW_MILLIS = 365 * 24 * 3600 * 1000; // 365 days
-
 class TimeSelect extends Component {
   constructor(props) {
     super(props);
@@ -55,7 +53,6 @@ class TimeSelect extends Component {
       end: dayjs(props.filter.end).format('YYYY-MM-DD'),
     }
 
-    this.handleClose = this.handleClose.bind(this);
     this.changeStart = this.changeStart.bind(this);
     this.changeEnd = this.changeEnd.bind(this);
     this.handleSave = this.handleSave.bind(this);
@@ -70,13 +67,9 @@ class TimeSelect extends Component {
     }
   }
 
-  handleClose() {
-    this.props.onClose()
-  }
-
   changeStart(event) {
     if (event.target.value) {
-      this.setState((state) => ({
+      this.setState(state => ({
         start: event.target.value,
         end: state.end < event.target.value ? event.target.value : state.end,
       }));
@@ -85,9 +78,9 @@ class TimeSelect extends Component {
 
   changeEnd(event) {
     if (event.target.value) {
-      this.setState({
+      this.setState(state => ({
         end: event.target.value < this.state.start ? this.state.start : event.target.value,
-      });
+      }));
     }
   }
 
@@ -101,54 +94,48 @@ class TimeSelect extends Component {
 
   render() {
     const { classes, isOpen } = this.props;
-    const minDate = dayjs().subtract(LOOKBACK_WINDOW_MILLIS, 'millisecond').format('YYYY-MM-DD');
+    const minDate = dayjs().subtract(365, 'day').format('YYYY-MM-DD');
     const maxDate = dayjs().format('YYYY-MM-DD');
 
     return (
-      <>
-        <Modal
-          aria-labelledby="simple-modal-title"
-          aria-describedby="simple-modal-description"
-          open={isOpen}
-          onClose={this.handleClose}
-          className={classes.modalContainer}
-        >
-          <Paper className={classes.modal}>
-            <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">Start date:</Typography>
-              <input
-                label="Start date"
-                type="date"
-                min={ minDate }
-                max={ maxDate }
-                onChange={this.changeStart}
-                value={ this.state.start }
-              />
-            </div>
-            <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">End date:</Typography>
-              <input
-                label="End date"
-                type="date"
-                min={ this.state.start }
-                max={ maxDate }
-                onChange={this.changeEnd}
-                value={ this.state.end }
-              />
-            </div>
-            <Divider />
-            <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.handleClose}>
-                Cancel
-              </Button>
-              &nbsp;
-              <Button variant="contained" className={ classes.saveButton } onClick={this.handleSave}>
-                Save
-              </Button>
-            </div>
-          </Paper>
-        </Modal>
-      </>
+      <Modal
+        open={isOpen}
+        onClose={this.props.onClose}
+        className={classes.modalContainer}
+      >
+        <Paper className={classes.modal}>
+          <div className={ classes.datePickerContainer }>
+            <Typography variant="body2">Start date:</Typography>
+            <input
+              type="date"
+              min={ minDate }
+              max={ maxDate }
+              onChange={this.changeStart}
+              value={ this.state.start }
+            />
+          </div>
+          <div className={ classes.datePickerContainer }>
+            <Typography variant="body2">End date:</Typography>
+            <input
+              type="date"
+              min={ this.state.start }
+              max={ maxDate }
+              onChange={this.changeEnd}
+              value={ this.state.end }
+            />
+          </div>
+          <Divider />
+          <div className={classes.buttonGroup}>
+            <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+              Cancel
+            </Button>
+            &nbsp;
+            <Button variant="contained" className={ classes.saveButton } onClick={this.handleSave}>
+              Save
+            </Button>
+          </div>
+        </Paper>
+      </Modal>
     );
   }
 }
