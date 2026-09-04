@@ -83,9 +83,12 @@ class TimeSelect extends Component {
 
   changeStart(event) {
     if (event.target.valueAsDate) {
-      this.setState({
-        start: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate()).getTime(),
-      });
+      const start = new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate()).getTime();
+
+      this.setState((state) => ({
+        start,
+        end: state.end < start ? new Date(start).setHours(23,59,59) : state.end,
+      }));
     }
   }
 
@@ -127,7 +130,7 @@ class TimeSelect extends Component {
                 min={ minDate }
                 max={ maxDate }
                 onChange={this.changeStart}
-                defaultValue={ startDate }
+                value={ startDate }
               />
             </div>
             <div className={ classes.datePickerContainer }>
@@ -138,7 +141,7 @@ class TimeSelect extends Component {
                 min={ startDate }
                 max={ maxDate }
                 onChange={this.changeEnd}
-                defaultValue={ endDate }
+                value={ endDate }
               />
             </div>
             <Divider />
