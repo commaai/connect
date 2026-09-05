@@ -15,7 +15,7 @@ const styles = (theme) => ({
   },
   modal: {
     padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    width: theme.spacing.unit * 42,
     maxWidth: '90%',
     outline: 'none',
   },
@@ -25,7 +25,18 @@ const styles = (theme) => ({
   },
   datePickerContainer: {
     display: 'flex',
+    justifyContent: 'space-between',
     marginBottom: 20,
+  },
+  dateField: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    width: 135,
+  },
+  dateInput: {
+    width: '100%',
+    boxSizing: 'border-box',
   },
   cancelButton: {
     backgroundColor: Colors.grey200,
@@ -50,7 +61,7 @@ class TimeSelect extends Component {
     this.state = {
       start: dayjs(props.filter.start).format('YYYY-MM-DD'),
       end: dayjs(props.filter.end).format('YYYY-MM-DD'),
-    }
+    };
 
     this.changeStart = this.changeStart.bind(this);
     this.changeEnd = this.changeEnd.bind(this);
@@ -88,7 +99,7 @@ class TimeSelect extends Component {
     const end = dayjs(this.state.end).endOf('day').valueOf();
 
     this.props.dispatch(selectTimeFilter(start, end));
-    this.props.onClose()
+    this.props.onClose();
   }
 
   render() {
@@ -103,33 +114,37 @@ class TimeSelect extends Component {
         className={classes.modalContainer}
       >
         <Paper className={classes.modal}>
-          <div className={ classes.datePickerContainer }>
-            <Typography variant="body2">Start date:</Typography>
-            <input
-              type="date"
-              min={ minDate }
-              max={ maxDate }
-              onChange={this.changeStart}
-              value={ this.state.start }
-            />
-          </div>
-          <div className={ classes.datePickerContainer }>
-            <Typography variant="body2">End date:</Typography>
-            <input
-              type="date"
-              min={ this.state.start }
-              max={ maxDate }
-              onChange={this.changeEnd}
-              value={ this.state.end }
-            />
+          <div className={classes.datePickerContainer}>
+            <div className={classes.dateField}>
+              <Typography variant="body2">Start date:</Typography>
+              <input
+                className={classes.dateInput}
+                type="date"
+                min={minDate}
+                max={maxDate}
+                onChange={this.changeStart}
+                value={this.state.start}
+              />
+            </div>
+            <div className={classes.dateField}>
+              <Typography variant="body2">End date:</Typography>
+              <input
+                className={classes.dateInput}
+                type="date"
+                min={this.state.start}
+                max={maxDate}
+                onChange={this.changeEnd}
+                value={this.state.end}
+              />
+            </div>
           </div>
           <Divider />
           <div className={classes.buttonGroup}>
-            <Button variant="contained" className={ classes.cancelButton } onClick={onClose}>
+            <Button variant="contained" className={classes.cancelButton} onClick={onClose}>
               Cancel
             </Button>
             &nbsp;
-            <Button variant="contained" className={ classes.saveButton } onClick={this.handleSave}>
+            <Button variant="contained" className={classes.saveButton} onClick={this.handleSave}>
               Save
             </Button>
           </div>
