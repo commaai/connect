@@ -79,7 +79,7 @@ class TimeSelect extends Component {
   changeEnd(event) {
     if (event.target.value) {
       this.setState(state => ({
-        end: event.target.value < this.state.start ? this.state.start : event.target.value,
+        end: event.target.value < state.start ? state.start : event.target.value,
       }));
     }
   }
