@@ -13,7 +13,6 @@ import { hardNavigate } from '../utils/navigation';
 let routesRequest = null;
 let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
-const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
 export function checkRoutesData() {
@@ -131,16 +130,6 @@ export function checkLastRoutesData() {
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
     })
-
-    const d = new Date();
-    const end = d.getTime();
-    const start = end - FIVE_YEARS;
-
-    dispatch({
-      type: Types.ACTION_SELECT_TIME_FILTER,
-      start,
-      end,
-    });
 
     dispatch(checkRoutesData());
   };
