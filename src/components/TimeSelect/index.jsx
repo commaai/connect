@@ -26,7 +26,6 @@ const styles = (theme) => ({
   datePickerContainer: {
     display: 'flex',
     marginBottom: 20,
-    '& aside': { width: 100 },
   },
   cancelButton: {
     backgroundColor: Colors.grey200,
@@ -93,14 +92,14 @@ class TimeSelect extends Component {
   }
 
   render() {
-    const { classes, isOpen } = this.props;
+    const { classes, isOpen, onClose } = this.props;
     const minDate = dayjs().subtract(365, 'day').format('YYYY-MM-DD');
     const maxDate = dayjs().format('YYYY-MM-DD');
 
     return (
       <Modal
         open={isOpen}
-        onClose={this.props.onClose}
+        onClose={onClose}
         className={classes.modalContainer}
       >
         <Paper className={classes.modal}>
@@ -126,7 +125,7 @@ class TimeSelect extends Component {
           </div>
           <Divider />
           <div className={classes.buttonGroup}>
-            <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+            <Button variant="contained" className={ classes.cancelButton } onClick={onClose}>
               Cancel
             </Button>
             &nbsp;
