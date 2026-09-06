@@ -109,6 +109,14 @@ class RouteVideo extends Component {
     dispatch(setVideoStatus(VideoStatus.READY));
   };
 
+  onSeeking = (event) => {
+    this.setState({ videoError: null });
+    this.props.dispatch(setVideoStatus(VideoStatus.LOADING));
+    // A fatal HLS error stops loading even if buffered video can still play.
+    // Each seek starts a new load attempt at the requested media position.
+    this.player.current.getInternalPlayer('hls')?.startLoad(event.target.currentTime);
+  };
+
   onEnded = () => {
     const { isPlaying, loop, dispatch } = this.props;
     if (isPlaying && loop?.duration > 0) {
@@ -172,9 +180,10 @@ class RouteVideo extends Component {
           onError={this.onError}
           config={{
             hlsVersion: '1.4.8',
-            hlsOptions: { maxBufferLength: 40 },
+            hlsOptions: { maxBufferLength: 40, ...api.video.getHlsOptions?.(currentRoute) },
             attributes: {
               onTimeUpdate: (event) => this.updateOffset(event.target),
+              onSeeking: this.onSeeking,
               onCanPlay: this.onPlayable,
             },
           }}
