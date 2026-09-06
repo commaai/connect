@@ -117,8 +117,7 @@ export function checkRoutesData() {
 
 export function checkLastRoutesData() {
   return (dispatch, getState) => {
-    const limit = getState().limit
-    const routes = getState().routes
+    const { limit, routes, filter } = getState();
 
     // if current routes are fewer than limit, that means the last fetch already fetched all the routes
     if (routes && routes.length < limit) {
@@ -130,6 +129,13 @@ export function checkLastRoutesData() {
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
     })
+
+    // invalidate cached routes while keeping the current filter range
+    dispatch({
+      type: Types.ACTION_SELECT_TIME_FILTER,
+      start: filter.start,
+      end: filter.end,
+    });
 
     dispatch(checkRoutesData());
   };
