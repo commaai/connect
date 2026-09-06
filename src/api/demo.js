@@ -7,6 +7,8 @@
 //     response
 //   - video URLs: demo routes stream the underlying public route, except the
 //     clone mutated to be missing qcamera (it has no share credentials)
+//   - segment recording gaps: omit camera files and thumbnails, and return a
+//     simulated 404 from the HLS fragment loader; qlog assets stay available
 // Everything else (billing, athena, ...) passes through.
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
 
@@ -32,8 +34,6 @@ const DEMO_PROFILE = {
 
 const AFFECTED_SEGMENT = 1;
 
-// One clone per test case. Each case mutates a fresh clone of the real public
-// data on its way into the frontend.
 const MISSING_DATA_CASES = [
   {
     title: 'Epoch date/time (no clock)',
@@ -102,16 +102,49 @@ const MISSING_DATA_CASES = [
   },
 ];
 
-// Keep two full-length routes for every case: one where the whole route is
-// affected and one where only a single segment is affected.
-const TEST_CASES = MISSING_DATA_CASES.flatMap((testCase) => [
-  testCase,
+
+const TEST_CASES = [
   {
-    ...testCase,
-    title: `${testCase.title} (1 segment)`,
-    affectedSegment: AFFECTED_SEGMENT,
+    title: 'Public route (no issues)',
+    route() {},
   },
-]);
+  ...MISSING_DATA_CASES.flatMap((testCase) => [
+    testCase,
+    {
+      ...testCase,
+      title: `${testCase.title} (1 segment)`,
+      affectedSegment: AFFECTED_SEGMENT,
+    },
+  ]),
+  {
+    title: 'Video not recorded (first segment, qlog present)',
+    missingVideoSegments: (route) => [route.segment_numbers[0]],
+    route() {},
+  },
+  {
+    title: 'Video not recorded (middle segment, qlog present)',
+    missingVideoSegments: (route) => [route.segment_numbers[Math.floor(route.segment_numbers.length / 2)]],
+    route() {},
+  },
+];
+
+// Use the normal HLS loader for every available fragment. Returning the missing
+// fragment's HTTP error keeps its duration in the playlist, exposing real player
+// behavior around gaps instead of shortening the drive or faking a successful seek.
+function missingVideoLoader(missingSegments) {
+  return function DemoFragmentLoader(config) {
+    const loader = new window.Hls.DefaultConfig.loader(config);
+    const load = loader.load.bind(loader);
+    loader.load = (context, loadConfig, callbacks) => {
+      if (missingSegments.includes(fileSegmentNumber(context.url))) {
+        callbacks.onError({ code: 404, text: 'Video was not recorded for this segment' }, context, null);
+      } else {
+        load(context, loadConfig, callbacks);
+      }
+    };
+    return loader;
+  };
+}
 
 function fileSegmentNumber(file) {
   const pathParts = new URL(file).pathname.split('/');
@@ -138,6 +171,7 @@ function demoRouteIndex(routeName) {
 export function createDemoBackend(realBackend) {
   let publicRoutePromise = null;
   let publicFilesPromise = null;
+  const videoLoaders = new Map();
 
   // Fetch the existing public shared route once and cache it.
   function fetchPublicRoute() {
@@ -168,7 +202,7 @@ export function createDemoBackend(realBackend) {
   }
 
   // Clone the cached public route into fresh demo routes on every call, each
-  // with a unique demo route ID and one mutation per test case.
+  // with a unique demo route ID and its test case's mutation, if any.
   async function listDemoRoutes(routeStr) {
     const publicRoute = await fetchPublicRoute();
     const routes = TEST_CASES.map((testCase, index) => {
@@ -178,6 +212,9 @@ export function createDemoBackend(realBackend) {
       route.fullname = `${DEMO_DONGLE_ID}|${logId}`;
       route.demo_title = testCase.title;
       testCase.route(route, testCase.affectedSegment);
+      if (testCase.missingVideoSegments) {
+        route.demo_missing_video_segments = testCase.missingVideoSegments(route);
+      }
       return route;
     });
     return routeStr ? routes.filter((route) => route.fullname === routeStr) : routes;
@@ -189,6 +226,12 @@ export function createDemoBackend(realBackend) {
     const index = demoRouteIndex(routeName);
     const testCase = TEST_CASES[index];
     const files = structuredClone(await fetchPublicFiles());
+    if (testCase.missingVideoSegments) {
+      const missingSegments = testCase.missingVideoSegments(await fetchPublicRoute());
+      for (const type of ['qcameras', 'cameras', 'dcameras', 'ecameras']) {
+        for (const segment of missingSegments) removeFileSegments(files, type, segment);
+      }
+    }
     const { files: mutateFiles } = testCase;
     return mutateFiles ? mutateFiles(files, testCase.affectedSegment) : files;
   }
@@ -251,8 +294,9 @@ export function createDemoBackend(realBackend) {
       thumbnail(route, segment) {
         const index = demoRouteIndex(route.fullname);
         const testCase = TEST_CASES[index];
-        if (testCase?.missingThumbnails
-          && (testCase.affectedSegment === undefined || testCase.affectedSegment === segment)) {
+        if (route.demo_missing_video_segments?.includes(segment)
+          || (testCase?.missingThumbnails
+            && (testCase.affectedSegment === undefined || testCase.affectedSegment === segment))) {
           return missingAssetUrl(route, segment, 'sprite.jpg');
         }
         return realBackend.routeAssets.thumbnail(route, segment);
@@ -260,6 +304,13 @@ export function createDemoBackend(realBackend) {
     },
     video: {
       ...realBackend.video,
+      getHlsOptions(route) {
+        if (!route.demo_missing_video_segments?.length) return {};
+        if (!videoLoaders.has(route.fullname)) {
+          videoLoaders.set(route.fullname, missingVideoLoader(route.demo_missing_video_segments));
+        }
+        return { fLoader: videoLoaders.get(route.fullname) };
+      },
       getQcameraStreamUrl(routeStr, exp, sig) {
         // demo routes keep the public route's share credentials, so stream the
         // underlying public route; the clone missing qcamera has no credentials
