@@ -9,6 +9,7 @@ import * as actions from './index';
 vi.mock('../api', () => ({
   account: {},
   auth: {},
+  billing: {},
   devices: { fetchDeviceStats: vi.fn() },
   drives: { getRoutesSegments: vi.fn() },
   raw: {},

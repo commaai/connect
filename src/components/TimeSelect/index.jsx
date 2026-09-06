@@ -98,7 +98,6 @@ class TimeSelect extends Component {
   }
 
   handleSave() {
-    console.log({start: this.state.start, end: this.state.end})
     this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
     this.props.onClose()
   }
@@ -128,7 +127,7 @@ class TimeSelect extends Component {
                 min={ minDate }
                 max={ maxDate }
                 onChange={this.changeStart}
-                value={ startDate }
+                defaultValue={ startDate }
               />
             </div>
             <div className={ classes.datePickerContainer }>
@@ -139,7 +138,7 @@ class TimeSelect extends Component {
                 min={ startDate }
                 max={ maxDate }
                 onChange={this.changeEnd}
-                value={ endDate }
+                defaultValue={ endDate }
               />
             </div>
             <Divider />

@@ -117,7 +117,7 @@ const theme = createMuiTheme({
     type: 'dark',
     placeholder: Colors.white30,
     background: {
-      default: Colors.grey999,
+      default: '#1D2225',
     },
     primary: {
       light: Colors.lightBlue700,

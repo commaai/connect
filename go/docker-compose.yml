@@ -10,6 +10,7 @@ services:
         VITE_ATHENA_URL_ROOT: ${VITE_ATHENA_URL_ROOT:-https://athena.comma.ai/}
         VITE_BILLING_URL_ROOT: ${VITE_BILLING_URL_ROOT:-https://billing.comma.ai/}
         VITE_USERADMIN_URL_ROOT: ${VITE_USERADMIN_URL_ROOT:-https://useradmin.comma.ai/}
+        VITE_REFERRAL_URL: ${VITE_REFERRAL_URL:-https://refer.comma.ai/}
         VITE_SENTRY_ENV: ${VITE_SENTRY_ENV:-connect-development}
     ports:
       - "80:80"

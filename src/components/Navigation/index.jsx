@@ -7,7 +7,7 @@ import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
 import { api } from '../../api/backend';
-import { primeNav, analyticsEvent } from '../../actions';
+import { analyticsEvent } from '../../actions';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import { PinCarIcon } from '../../icons';
@@ -58,11 +58,6 @@ const styles = () => ({
   bold: {
     fontWeight: 600,
   },
-  primeAdTitle: {
-    lineHeight: '31px',
-    fontSize: 20,
-    fontWeight: 600,
-  },
   searchSelectButton: {
     marginLeft: 8,
     padding: '6px 12px',
@@ -84,19 +79,6 @@ const styles = () => ({
   },
   searchSelectBoxDetails: {
     color: Colors.white40,
-  },
-  primeAdContainer: {
-    backgroundColor: Colors.grey500,
-    border: `1px solid ${Colors.grey700}`,
-  },
-  primeAdButton: {
-    padding: '6px 24px',
-    color: Colors.white,
-    backgroundColor: Colors.primeBlue50,
-    '&:hover': {
-      color: Colors.white,
-      backgroundColor: Colors.primeBlue200,
-    },
   },
   pin: {
     width: 20,
@@ -139,7 +121,6 @@ const initialState = {
   searchLooking: false,
   noFly: false,
   windowWidth: window.innerWidth,
-  showPrimeAd: true,
 };
 
 class Navigation extends Component {
@@ -158,13 +139,11 @@ class Navigation extends Component {
 
     this.mapContainerRef = React.createRef();
     this.searchSelectBoxRef = React.createRef();
-    this.primeAdBoxRef = React.createRef();
     this.carPinTooltipRef = React.createRef();
 
     this.checkWebGLSupport = this.checkWebGLSupport.bind(this);
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
-    this.renderPrimeAd = this.renderPrimeAd.bind(this);
     this.onGeolocate = this.onGeolocate.bind(this);
     this.onCarSelect = this.onCarSelect.bind(this);
     this.focus = this.focus.bind(this);
@@ -374,22 +353,10 @@ class Navigation extends Component {
       const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200)
         ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
 
-      let rightBoxWidth = 0;
-      let topBoxHeight = 0;
-
-      const primeAdBox = this.primeAdBoxRef.current;
-      if (primeAdBox) {
-        if (windowWidth < 600) {
-          topBoxHeight = Math.max(topBoxHeight, primeAdBox.getBoundingClientRect().height + 10);
-        } else {
-          rightBoxWidth = primeAdBox.getBoundingClientRect().width + 10;
-        }
-      }
-
       const padding = {
         left: (windowWidth < 600 || !search) ? 20 : 390,
-        right: rightBoxWidth + 20,
-        top: topBoxHeight + 20,
+        right: 20,
+        top: 20,
         bottom: bottomBoxHeight + 20,
       };
       if (viewport.width) {
@@ -483,8 +450,10 @@ class Navigation extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
-    const { mapError, hasFocus, searchSelect, viewport, windowWidth, showPrimeAd } = this.state;
+    const { classes } = this.props;
+    const {
+      mapError, hasFocus, searchSelect, viewport, windowWidth,
+    } = this.state;
     const carLocation = this.getCarLocation();
 
     const cardStyle = windowWidth < 600
@@ -595,18 +564,6 @@ class Navigation extends Component {
                 style={{ ...cardStyle, bottom: 10 }}
               />
             )}
-          {showPrimeAd && !device.prime && device.is_owner
-            && (
-              <HTMLOverlay
-                redraw={this.renderPrimeAd}
-                captureScroll
-                captureDrag
-                captureClick
-                captureDoubleClick
-                capturePointerMove
-                style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
-              />
-            )}
         </ReactMapGL>
       </div>
     );
@@ -650,36 +607,6 @@ class Navigation extends Component {
     );
   }
 
-  renderPrimeAd() {
-    const { classes } = this.props;
-
-    return (
-      <div className={`${classes.searchSelectBox} ${classes.primeAdContainer}`} ref={this.primeAdBoxRef}>
-        <Clear
-          className={classes.clearSearchSelect}
-          onClick={() => this.setState({ showPrimeAd: false }, this.flyToMarkers)}
-        />
-        <div className={classes.searchSelectBoxHeader}>
-          <div className={classes.searchSelectBoxTitle}>
-            <Typography className={classes.primeAdTitle}>comma prime</Typography>
-          </div>
-          <div className={classes.searchSelectBoxButtons}>
-            <Button
-              onClick={() => this.props.dispatch(primeNav(true))}
-              className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}
-            >
-              sign up
-            </Button>
-          </div>
-        </div>
-        <Typography className={classes.primeAdDetails}>
-          {this.props.device?.eligible_features?.commacare
-            ? 'Put your car on the internet with comma prime and extend your 1-year limited warranty with commacare'
-            : 'Put your car on the internet with comma prime'}
-        </Typography>
-      </div>
-    );
-  }
 }
 
 const stateToProps = (state) => ({
