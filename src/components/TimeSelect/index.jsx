@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
@@ -15,7 +15,7 @@ const styles = (theme) => ({
   },
   modal: {
     padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    width: theme.spacing.unit * 42,
     maxWidth: '90%',
     outline: 'none',
   },
@@ -25,8 +25,18 @@ const styles = (theme) => ({
   },
   datePickerContainer: {
     display: 'flex',
+    justifyContent: 'space-between',
     marginBottom: 20,
-    '& aside': { width: 100 },
+  },
+  dateField: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    width: 135,
+  },
+  dateInput: {
+    width: '100%',
+    boxSizing: 'border-box',
   },
   cancelButton: {
     backgroundColor: Colors.grey200,
@@ -44,119 +54,83 @@ const styles = (theme) => ({
   },
 });
 
-const LOOKBACK_WINDOW_MILLIS = 365 * 24 * 3600 * 1000; // 30 days
+const TimeSelect = (props) => {
+  const { classes, onClose, filter, dispatch } = props;
 
-class TimeSelect extends Component {
-  constructor(props) {
-    super(props);
+  const [start, setStart] = useState(dayjs(filter.start).format('YYYY-MM-DD'));
+  const [end, setEnd] = useState(dayjs(filter.end).format('YYYY-MM-DD'));
 
-    this.state = {
-      start: null,
-      end: null,
+  const changeStart = (event) => {
+    if (event.target.value) {
+      setStart(event.target.value);
+      setEnd(current => (
+        current < event.target.value ? event.target.value : current
+      ));
     }
+  };
 
-    this.handleClose = this.handleClose.bind(this);
-    this.changeStart = this.changeStart.bind(this);
-    this.changeEnd = this.changeEnd.bind(this);
-    this.handleSave = this.handleSave.bind(this);
-  }
-
-  componentDidMount() {
-    this.setState({
-      start: this.props.filter.start,
-      end: this.props.filter.end,
-    });
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.filter !== this.props.filter) {
-      this.setState({
-        start: this.props.filter.start,
-        end: this.props.filter.end,
-      });
+  const changeEnd = (event) => {
+    if (event.target.value) {
+      setEnd(event.target.value < start ? start : event.target.value);
     }
-  }
+  };
 
-  handleClose() {
-    this.props.onClose()
-  }
+  const handleSave = () => {
+    dispatch(selectTimeFilter(
+      dayjs(start).startOf('day').valueOf(),
+      dayjs(end).endOf('day').valueOf(),
+    ));
+    onClose();
+  };
 
-  changeStart(event) {
-    if (event.target.valueAsDate) {
-      this.setState({
-        start: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate()).getTime(),
-      });
-    }
-  }
+  const minDate = dayjs().subtract(365, 'day').format('YYYY-MM-DD');
+  const maxDate = dayjs().format('YYYY-MM-DD');
 
-  changeEnd(event) {
-    if (event.target.valueAsDate) {
-      this.setState({
-        end: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate(),23,59,59).getTime(),
-      });
-    }
-  }
-
-  handleSave() {
-    this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
-    this.props.onClose()
-  }
-
-  render() {
-    const { classes, isOpen } = this.props;
-    const minDate = dayjs().subtract(LOOKBACK_WINDOW_MILLIS, 'millisecond').format('YYYY-MM-DD');
-    const maxDate = dayjs().format('YYYY-MM-DD');
-    const startDate = dayjs(this.state.start || this.props.filter.start).format('YYYY-MM-DD');
-    const endDate = dayjs(this.state.end || this.props.filter.end).format('YYYY-MM-DD');
-
-    return (
-      <>
-        <Modal
-          aria-labelledby="simple-modal-title"
-          aria-describedby="simple-modal-description"
-          open={isOpen}
-          onClose={this.handleClose}
-          className={classes.modalContainer}
-        >
-          <Paper className={classes.modal}>
-            <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">Start date:</Typography>
-              <input
-                label="Start date"
-                type="date"
-                min={ minDate }
-                max={ maxDate }
-                onChange={this.changeStart}
-                defaultValue={ startDate }
-              />
-            </div>
-            <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">End date:</Typography>
-              <input
-                label="End date"
-                type="date"
-                min={ startDate }
-                max={ maxDate }
-                onChange={this.changeEnd}
-                defaultValue={ endDate }
-              />
-            </div>
-            <Divider />
-            <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.handleClose}>
-                Cancel
-              </Button>
-              &nbsp;
-              <Button variant="contained" className={ classes.saveButton } onClick={this.handleSave}>
-                Save
-              </Button>
-            </div>
-          </Paper>
-        </Modal>
-      </>
-    );
-  }
-}
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      className={classes.modalContainer}
+    >
+      <Paper className={classes.modal}>
+        <div className={classes.datePickerContainer}>
+          <div className={classes.dateField}>
+            <Typography variant="body2">Start date:</Typography>
+            <input
+              className={classes.dateInput}
+              type="date"
+              min={minDate}
+              max={maxDate}
+              onChange={changeStart}
+              value={start}
+            />
+          </div>
+          <div className={classes.dateField}>
+            <Typography variant="body2">End date:</Typography>
+            <input
+              className={classes.dateInput}
+              type="date"
+              min={start}
+              max={maxDate}
+              onChange={changeEnd}
+              value={end}
+            />
+          </div>
+        </div>
+        <Divider />
+        <div className={classes.buttonGroup}>
+          <Button variant="contained" className={classes.cancelButton} onClick={onClose}>
+            Cancel
+          </Button>
+          &nbsp;
+          <Button variant="contained" className={classes.saveButton} onClick={handleSave}>
+            Save
+          </Button>
+        </div>
+      </Paper>
+    </Modal>
+  );
+};
 
 const stateToProps = (state) => ({
   filter: state.filter,

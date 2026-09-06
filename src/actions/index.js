@@ -13,7 +13,6 @@ import { hardNavigate } from '../utils/navigation';
 let routesRequest = null;
 let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
-const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
 export function checkRoutesData() {
@@ -118,8 +117,7 @@ export function checkRoutesData() {
 
 export function checkLastRoutesData() {
   return (dispatch, getState) => {
-    const limit = getState().limit
-    const routes = getState().routes
+    const { limit, routes, filter } = getState();
 
     // if current routes are fewer than limit, that means the last fetch already fetched all the routes
     if (routes && routes.length < limit) {
@@ -132,14 +130,11 @@ export function checkLastRoutesData() {
       limit: limit + LIMIT_INCREMENT,
     })
 
-    const d = new Date();
-    const end = d.getTime();
-    const start = end - FIVE_YEARS;
-
+    // invalidate cached routes while keeping the current filter range
     dispatch({
       type: Types.ACTION_SELECT_TIME_FILTER,
-      start,
-      end,
+      start: filter.start,
+      end: filter.end,
     });
 
     dispatch(checkRoutesData());
