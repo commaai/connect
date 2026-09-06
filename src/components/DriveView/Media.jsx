@@ -18,7 +18,6 @@ import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo, setHasAudio } from '../../timeline/playback';
 import Colors from '../../colors';
 import { InfoOutline } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -219,7 +218,6 @@ class Media extends Component {
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
-    this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
@@ -242,10 +240,6 @@ class Media extends Component {
     this.setState(prevState => ({ isMuted: !prevState.isMuted }));
   }
 
-  handleAudioStatusChange(hasAudio) {
-    this.props.dispatch(setHasAudio(hasAudio));
-  }
-
   componentDidMount() {
     this.mounted = true;
     this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
@@ -265,10 +259,6 @@ class Media extends Component {
     }
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
-    }
-
-    if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
     }
 
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
@@ -555,7 +545,6 @@ class Media extends Component {
             {/* Keep video mounted so it drives playback even under the map. */}
             <DriveVideo
               isMuted={isMuted}
-              onAudioStatusChange={this.handleAudioStatusChange}
             />
             {!showMapAlways && (
               <div className={`absolute inset-0 h-full z-[60] overflow-hidden ${inView === MediaType.MAP ? '' : 'invisible'}`}>
@@ -933,7 +922,6 @@ const stateToProps = (state) => ({
   files: state.files,
   profile: state.profile,
   hasAudio: state.hasAudio,
-  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

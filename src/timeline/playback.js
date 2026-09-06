@@ -6,75 +6,48 @@ export const VideoStatus = {
   FAILED: 'failed',
 };
 
-export function reducer(_state, action) {
-  let state = { ..._state };
+// User seeks are commands; progress only reports the media clock. Keeping them
+// separate prevents feedback seeks and records analytics only for user actions.
+export function reducer(state, action) {
   switch (action.type) {
     case Types.ACTION_SEEK:
-      state = {
-        ...state,
-        offset: action.offset,
-      };
-      break;
+      return { ...state, offset: action.offset, seekRequest: action };
+    case Types.ACTION_VIDEO_PROGRESS:
+      return { ...state, offset: action.offset };
     case Types.ACTION_PLAYBACK_SPEED:
-      state = {
-        ...state,
-        desiredPlaySpeed: action.speed,
-      };
-      break;
+      return { ...state, desiredPlaySpeed: action.speed };
     case Types.ACTION_PLAY:
-      state = {
-        ...state,
-        isPlaying: true,
-      };
-      break;
+      return { ...state, isPlaying: true };
     case Types.ACTION_PAUSE:
-      state = {
-        ...state,
-        isPlaying: false,
-      };
-      break;
+      return { ...state, isPlaying: false };
     case Types.ACTION_LOOP:
-      if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
-        state.loop = {
-          startTime: action.start,
-          duration: action.end - action.start,
-        };
-      } else {
-        state.loop = null;
-      }
-      break;
-    case Types.ACTION_BUFFER_VIDEO:
-      state = {
+      return {
         ...state,
-        isBufferingVideo: action.buffering,
+        loop: action.start != null && action.end != null
+          ? { startTime: action.start, duration: action.end - action.start }
+          : null,
       };
-      break;
     case Types.ACTION_RESET:
-      state = {
+      return {
         ...state,
-        offset: 0,
+        offset: state.loop?.startTime ?? 0,
+        seekRequest: null,
         desiredPlaySpeed: 1,
+        isPlaying: true,
         hasAudio: false,
         videoStatus: VideoStatus.LOADING,
       };
-      break;
     case Types.ACTION_HAS_AUDIO:
-      state = {
-        ...state,
-        hasAudio: action.hasAudio,
-      };
-      break;
+      return { ...state, hasAudio: action.hasAudio };
     case Types.ACTION_VIDEO_STATUS:
-      state = {
-        ...state,
-        videoStatus: action.status,
-      };
-      break;
+      return { ...state, videoStatus: action.status };
     default:
-      break;
+      return state;
   }
+}
 
-  return state;
+export function videoProgress(offset) {
+  return { type: Types.ACTION_VIDEO_PROGRESS, offset };
 }
 
 // seek to a specific offset
@@ -106,14 +79,6 @@ export function selectLoop(start, end) {
     type: Types.ACTION_LOOP,
     start,
     end,
-  };
-}
-
-// update video buffering state
-export function bufferVideo(buffering) {
-  return {
-    type: Types.ACTION_BUFFER_VIDEO,
-    buffering,
   };
 }
 

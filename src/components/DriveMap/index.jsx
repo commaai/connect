@@ -4,9 +4,6 @@ import { connect } from 'react-redux';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
-import { VideoStatus } from '../../timeline/playback';
-import { getVideoPlayerCurrentTime } from '../../timeline/videoPlayer';
-import { isIos } from '../../utils/browser';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
@@ -40,12 +37,11 @@ class DriveMap extends Component {
   }
 
   componentDidMount() {
-    this.mounted = true;
     this.componentDidUpdate({}, {});
-    this.updateMarkerPos();
   }
 
   componentDidUpdate(prevProps) {
+    this.updateMarkerPos();
     const { dispatch, currentRoute } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
@@ -70,11 +66,7 @@ class DriveMap extends Component {
   }
 
   componentWillUnmount() {
-    this.mounted = false;
-    if (this.rafId) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
+    clearTimeout(this.isInteractingTimeout);
   }
 
   onInteraction(ev) {
@@ -92,23 +84,10 @@ class DriveMap extends Component {
   }
 
   updateMarkerPos() {
-    if (!this.mounted) {
-      return;
-    }
-
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        let offset;
-        if (this.props.videoStatus === VideoStatus.FAILED || (this.props.hasAudio && isIos())) {
-          offset = this.props.offset;
-        } else {
-          offset = getVideoPlayerCurrentTime(this.props.currentRoute);
-          if (offset === null) {
-            offset = this.props.offset;
-          }
-        }
-        const pos = this.posAtOffset(offset);
+        const pos = this.posAtOffset(this.props.offset);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -126,8 +105,6 @@ class DriveMap extends Component {
         });
       }
     }
-
-    this.rafId = requestAnimationFrame(this.updateMarkerPos);
   }
 
   moveViewportTo(pos) {
@@ -319,8 +296,6 @@ class DriveMap extends Component {
 const stateToProps = (state) => ({
   offset: state.offset,
   currentRoute: state.currentRoute,
-  hasAudio: state.hasAudio,
-  videoStatus: state.videoStatus,
 });
 
 export default connect(stateToProps)(DriveMap);

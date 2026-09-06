@@ -10,10 +10,8 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { seek, VideoStatus } from '../../timeline/playback';
-import { getVideoPlayerCurrentTime, seekVideoPlayer } from '../../timeline/videoPlayer';
+import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
-import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
   base: {
@@ -148,7 +146,6 @@ class Timeline extends Component {
   constructor(props) {
     super(props);
 
-    this.getOffset = this.getOffset.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -160,14 +157,10 @@ class Timeline extends Component {
     this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
 
-    this.rulerRemaining = React.createRef();
     this.rulerRef = React.createRef();
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
     this.thumbnailsRef = React.createRef();
-
-    this.currentOffset = null;
-    this.lastOffset = null;
 
     const { zoomOverride, zoom } = this.props;
     this.state = {
@@ -182,8 +175,6 @@ class Timeline extends Component {
   }
 
   componentDidMount() {
-    this.mounted = true;
-    this.rafId = requestAnimationFrame(this.getOffset);
     this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
@@ -207,11 +198,6 @@ class Timeline extends Component {
   }
 
   componentWillUnmount() {
-    this.mounted = false;
-    if (this.rafId) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
@@ -219,12 +205,7 @@ class Timeline extends Component {
   }
 
   seekToOffset(offset) {
-    const { dispatch, route, videoStatus } = this.props;
-    if (videoStatus === VideoStatus.FAILED) {
-      dispatch(seek(offset));
-      return;
-    }
-    seekVideoPlayer(offset, route);
+    this.props.dispatch(seek(offset));
   }
 
   handleClick(ev) {
@@ -308,29 +289,6 @@ class Timeline extends Component {
     if (el) {
       el.addEventListener('touchstart', (ev) => ev.stopPropagation());
     }
-  }
-
-  getOffset() {
-    if (!this.mounted) {
-      return;
-    }
-    let offset;
-    if (this.props.videoStatus === VideoStatus.FAILED || (this.props.hasAudio && isIos())) {
-      // video with audio doesn't report currentTime properly so we must use onTimeUpdate reported time
-      offset = this.props.offset;
-    } else {
-      offset = getVideoPlayerCurrentTime(this.props.route);
-      if (offset === null) {
-        offset = this.props.offset;
-      }
-    }
-    let percent = this.offsetToPercent(offset);
-    if (percent >= 1) percent = 1;
-    if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
-      this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
-      this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
-    }
-    this.rafId = requestAnimationFrame(this.getOffset);
   }
 
   percentToOffset(perc) {
@@ -433,6 +391,7 @@ class Timeline extends Component {
     }
 
     const baseWidthStyle = { width: '100%' };
+    const playedPercent = Math.max(0, Math.min(100, 100 * this.offsetToPercent(this.props.offset)));
 
     return (
       <div className={className}>
@@ -465,7 +424,7 @@ class Timeline extends Component {
                 onPointerMove={this.handlePointerMove}
                 onPointerLeave={this.handlePointerLeave}
               >
-                <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                <div className={classes.rulerRemaining} style={{ left: `${playedPercent}%`, width: `${100 - playedPercent}%` }} />
                 { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
               </div>
               { hoverString && (
@@ -481,16 +440,9 @@ class Timeline extends Component {
   }
 }
 
-const stateToProps = (state) => ({
-  offset: state.offset,
+const stateToProps = (state, { hasRuler }) => ({
+  offset: hasRuler ? state.offset : 0,
   zoom: state.zoom,
-  loop: state.loop,
-  desiredPlaySpeed: state.desiredPlaySpeed,
-  isBufferingVideo: state.isBufferingVideo,
-  currentRoute: state.currentRoute,
-  isPlaying: state.isPlaying,
-  hasAudio: state.hasAudio,
-  videoStatus: state.videoStatus,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

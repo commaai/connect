@@ -1,5 +1,9 @@
 import {
-  bufferVideo,
+  setVideoStatus,
+  VideoStatus,
+  pause,
+  play,
+  videoProgress,
   reducer,
   resetPlayback,
   seek,
@@ -9,8 +13,8 @@ import {
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
-    desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
-    isBufferingVideo: true,
+    desiredPlaySpeed: 1,
+    videoStatus: VideoStatus.LOADING,
     isPlaying: true,
     offset: 0, // in miliseconds from the start
     hasAudio: false,
@@ -22,16 +26,22 @@ describe('playback', () => {
     let state = makeDefaultStruct();
 
     // stop playback
-    state = reducer(state, setPlaybackSpeed(0));
-    expect(state.desiredPlaySpeed).toEqual(0);
+    state = reducer(state, pause());
+    expect(state.isPlaying).toBe(false);
+    expect(state.desiredPlaySpeed).toBe(1);
 
     // start playing
-    state = reducer(state, setPlaybackSpeed(1));
-    expect(state.desiredPlaySpeed).toEqual(1);
+    state = reducer(state, play());
+    expect(state.isPlaying).toBe(true);
 
     // seek updates offset
     state = reducer(state, seek(123));
     expect(state.offset).toEqual(123);
+
+    const seekRequest = state.seekRequest;
+    state = reducer(state, videoProgress(456));
+    expect(state.offset).toBe(456);
+    expect(state.seekRequest).toBe(seekRequest);
 
     // reset clears offset
     state = reducer(state, resetPlayback());
@@ -77,24 +87,24 @@ describe('playback', () => {
     expect(state.offset).toEqual(0);
   });
 
-  it('should buffer video and data', () => {
+  it('keeps the chosen speed during buffering', () => {
     let state = makeDefaultStruct();
 
-    state = reducer(state, setPlaybackSpeed(1));
-    expect(state.desiredPlaySpeed).toEqual(1);
+    state = reducer(state, play());
+    expect(state.isPlaying).toBe(true);
 
     // claim the video is buffering
-    state = reducer(state, bufferVideo(true));
+    state = reducer(state, setVideoStatus(VideoStatus.LOADING));
     expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBufferingVideo).toEqual(true);
+    expect(state.videoStatus).toBe(VideoStatus.LOADING);
 
     state = reducer(state, setPlaybackSpeed(0.5));
     expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
+    expect(state.videoStatus).toBe(VideoStatus.LOADING);
 
     state = reducer(state, setPlaybackSpeed(2));
-    state = reducer(state, bufferVideo(false));
+    state = reducer(state, setVideoStatus(VideoStatus.READY));
     expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBufferingVideo).toEqual(false);
+    expect(state.videoStatus).toBe(VideoStatus.READY);
   });
 });

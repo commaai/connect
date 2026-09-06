@@ -10,8 +10,7 @@ import VolumeOff from '@material-ui/icons/VolumeOff';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
-import { VideoStatus } from '../../timeline/playback';
-import { seekVideoPlayer, playVideo, pauseVideo, setVideoPlaybackRate, isVideoPaused } from '../../timeline/videoPlayer';
+import { VideoStatus, seek, play, pause, setPlaybackSpeed } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -99,35 +98,9 @@ const styles = (theme) => ({
 });
 
 class TimeDisplay extends Component {
-  constructor(props) {
-    super(props);
-
-    this.textHolder = React.createRef();
-
-    this.updateTime = this.updateTime.bind(this);
-    this.togglePause = this.togglePause.bind(this);
-    this.increaseSpeed = this.increaseSpeed.bind(this);
-    this.decreaseSpeed = this.decreaseSpeed.bind(this);
-    this.jumpBack = this.jumpBack.bind(this);
-    this.jumpForward = this.jumpForward.bind(this);
-
-    this.state = {
-      displayTime: this.getDisplayTime(),
-    };
-  }
-
-  componentDidMount() {
-    this.mounted = true;
-    requestAnimationFrame(this.updateTime);
-  }
-
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
   getDisplayTime() {
     const { currentRoute, offset } = this.props;
-    const now = new Date(offset + currentRoute.start_time_utc_millis);
+    const now = new Date(offset + currentRoute?.start_time_utc_millis);
     if (Number.isNaN(now.getTime())) {
       return '...';
     }
@@ -140,84 +113,16 @@ class TimeDisplay extends Component {
     return dateString;
   }
 
-  jumpBack(amount) {
-    const { currentRoute } = this.props;
-    const offset = this.props.offset - amount;
-    seekVideoPlayer(offset, currentRoute);
-  }
-
-  jumpForward(amount) {
-    const { currentRoute } = this.props;
-    const offset = this.props.offset + amount;
-    seekVideoPlayer(offset, currentRoute);
-  }
-
-  updateTime() {
-    if (!this.mounted || !this.textHolder.current) {
-      return;
-    }
-    const newDisplayTime = this.getDisplayTime();
-    const { displayTime } = this.state;
-    if (newDisplayTime !== displayTime) {
-      this.setState({ displayTime: newDisplayTime });
-    }
-
-    requestAnimationFrame(this.updateTime);
-  }
-
-  decreaseSpeed() {
-    const { desiredPlaySpeed } = this.props;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.max(0, curIndex - 1);
-    const newSpeed = timerSteps[curIndex];
-    setVideoPlaybackRate(newSpeed);
-  }
-
-  canDecreaseSpeed() {
-    const { desiredPlaySpeed } = this.props;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    return curIndex > 0;
-  }
-
-  increaseSpeed() {
-    const { desiredPlaySpeed } = this.props;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    const newSpeed = timerSteps[curIndex];
-    setVideoPlaybackRate(newSpeed);
-  }
-
-  canIncreaseSpeed() {
-    const { desiredPlaySpeed } = this.props;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    return curIndex < timerSteps.length - 1;
-  }
-
-  togglePause() {
-    if (isVideoPaused()) {
-      playVideo();
-    } else {
-      pauseVideo();
-    }
+  changeSpeed(direction) {
+    const { dispatch, desiredPlaySpeed } = this.props;
+    dispatch(setPlaybackSpeed(timerSteps[timerSteps.indexOf(desiredPlaySpeed) + direction]));
   }
 
   render() {
     const {
-      classes, zoom, isThin, onMuteToggle, isMuted, hasAudio, desiredPlaySpeed, isPlaying, videoStatus,
+      classes, zoom, isThin, onMuteToggle, isMuted, hasAudio, desiredPlaySpeed, isPlaying, videoStatus, dispatch, offset,
     } = this.props;
-    const { displayTime } = this.state;
+    const speedIndex = timerSteps.indexOf(desiredPlaySpeed);
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     const controlsDisabled = videoStatus === VideoStatus.FAILED;
@@ -226,7 +131,7 @@ class TimeDisplay extends Component {
         <div className={ classes.rightBorderBox }>
           <IconButton
             className={ classes.iconButton }
-            onClick={ () => this.jumpBack(10000) }
+            onClick={ () => dispatch(seek(offset - 10000)) }
             disabled={controlsDisabled}
             aria-label="Jump back 10 seconds"
           >
@@ -236,7 +141,7 @@ class TimeDisplay extends Component {
         <div className={ classes.rightBorderBox }>
           <IconButton
             className={ classes.iconButton }
-            onClick={ () => this.jumpForward(10000) }
+            onClick={ () => dispatch(seek(offset + 10000)) }
             disabled={controlsDisabled}
             aria-label="Jump forward 10 seconds"
           >
@@ -249,14 +154,14 @@ class TimeDisplay extends Component {
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+          {this.getDisplayTime()}
         </Typography>
         {!isIos() && (
           <div className={ classes.desiredPlaySpeedContainer }>
             <IconButton
               className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={controlsDisabled || !this.canIncreaseSpeed()}
+              onClick={() => this.changeSpeed(1)}
+              disabled={controlsDisabled || speedIndex >= timerSteps.length - 1}
               aria-label="Increase play speed by 1 step"
             >
               <UpArrow className={classes.tinyArrowIcon} />
@@ -267,8 +172,8 @@ class TimeDisplay extends Component {
             </Typography>
             <IconButton
               className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={controlsDisabled || !this.canDecreaseSpeed()}
+              onClick={() => this.changeSpeed(-1)}
+              disabled={controlsDisabled || speedIndex <= 0}
               aria-label="Decrease play speed by 1 step"
             >
               <DownArrow className={classes.tinyArrowIcon} />
@@ -293,7 +198,7 @@ class TimeDisplay extends Component {
         </div>
         <div className={ classes.leftBorderBox }>
           <IconButton
-            onClick={this.togglePause}
+            onClick={() => dispatch(isPlaying ? pause() : play())}
             disabled={controlsDisabled}
             aria-label={!isPlaying ? 'Unpause' : 'Pause'}
           >
