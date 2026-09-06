@@ -35,8 +35,7 @@ const VideoOverlay = ({ loading, error }) => {
   );
 };
 
-// Each route owns its player and listeners. Changing routes remounts this
-// component, so readiness, errors and pending media events cannot leak across.
+
 class RouteVideo extends Component {
   player = React.createRef();
   ready = false;
@@ -47,10 +46,11 @@ class RouteVideo extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { seekRequest, loop, offset } = this.props;
+    const { seekRequest, loop, offset, currentRoute } = this.props;
     if (seekRequest && seekRequest !== prevProps.seekRequest) {
       this.seekTo(seekRequest.offset);
-    } else if (loop !== prevProps.loop) {
+    } else if (loop !== prevProps.loop
+      || (currentRoute.videoStartOffset || 0) !== (prevProps.currentRoute.videoStartOffset || 0)) {
       this.seekTo(offset);
     }
   }
@@ -83,8 +83,6 @@ class RouteVideo extends Component {
     this.frameId = requestAnimationFrame(this.onAnimationFrame);
   };
 
-  // Sample the media clock at display refresh rate, even for low-frame-rate
-  // videos. Native timeupdate events also cover background and paused seeks.
   onAnimationFrame = () => {
     const video = this.player.current.getInternalPlayer();
     this.updateOffset(video);
@@ -112,8 +110,6 @@ class RouteVideo extends Component {
   onSeeking = (event) => {
     this.setState({ videoError: null });
     this.props.dispatch(setVideoStatus(VideoStatus.LOADING));
-    // A fatal HLS error stops loading even if buffered video can still play.
-    // Each seek starts a new load attempt at the requested media position.
     this.player.current.getInternalPlayer('hls')?.startLoad(event.target.currentTime);
   };
 
