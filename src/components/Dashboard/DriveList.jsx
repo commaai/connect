@@ -151,7 +151,7 @@ const DriveList = (props) => {
       </div>
       {content}
       {contentStatus}
-      {isTimeSelectOpen && <TimeSelect isOpen onClose={() => setIsTimeSelectOpen(false)} />}
+      {isTimeSelectOpen && <TimeSelect onClose={() => setIsTimeSelectOpen(false)} />}
     </div>
   );
 };

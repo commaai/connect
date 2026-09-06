@@ -55,7 +55,7 @@ const styles = (theme) => ({
 });
 
 const TimeSelect = (props) => {
-  const { classes, isOpen, onClose, filter, dispatch } = props;
+  const { classes, onClose, filter, dispatch } = props;
 
   const [start, setStart] = useState(dayjs(filter.start).format('YYYY-MM-DD'));
   const [end, setEnd] = useState(dayjs(filter.end).format('YYYY-MM-DD'));
@@ -88,7 +88,7 @@ const TimeSelect = (props) => {
 
   return (
     <Modal
-      open={isOpen}
+      open
       onClose={onClose}
       className={classes.modalContainer}
     >
