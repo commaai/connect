@@ -271,7 +271,7 @@ export default function Referrals({ profile }) {
             </div>
             {summary && summary.cash.available > 0 && claimableReferrals.length > 0 && profile ? (
               <a
-                href={claimMailto(profile, summary.code, claimableReferrals, summary.cash.available)}
+                href={claimMailto(profile, (summary.codes || [summary.code]).join(', '), claimableReferrals, summary.cash.available)}
                 onClick={openClaim}
                 aria-disabled={claimOpening}
                 className={`mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-white bg-white px-6 py-4 text-center text-lg font-bold text-[#16181a] transition duration-150 ${claimOpening ? 'cursor-wait opacity-80' : 'cursor-pointer hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]'}`}
