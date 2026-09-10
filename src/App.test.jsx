@@ -6,7 +6,7 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), playerProps: null }));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -41,6 +41,7 @@ vi.mock('react-map-gl', () => ({
 }));
 vi.mock('react-player/file', () => ({
   default: React.forwardRef((_props, ref) => {
+    mocks.playerProps = _props;
     React.useImperativeHandle(ref, () => ({
       getCurrentTime: () => 0,
       getDuration: () => 60,
@@ -163,6 +164,7 @@ describe('whole-app behavior', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
+    mocks.playerProps = null;
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -289,5 +291,23 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('a failed video leaves timeline navigation owned by Redux', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+
+    act(() => {
+      mocks.playerProps.onError('hlsError', {
+        fatal: true,
+        type: 'networkError',
+        response: { code: 404 },
+      });
+    });
+    expect(store.getState().videoStatus).toBe('failed');
+
+    fireEvent.pointerDown(timeline, { button: 0, clientX: 500, pageX: 500 });
+    fireEvent.pointerUp(timeline, { button: 0, clientX: 500, pageX: 500 });
+    expect(store.getState().offset).toBe(30000);
   });
 });

@@ -17,7 +17,6 @@ import BodyTeleop from './BodyTeleop';
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
-import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 
@@ -154,17 +153,10 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
-    }
-
-    if (!prevProps.zoom && zoom) {
-      this.props.dispatch(play());
-    }
-    if (prevProps.zoom && !zoom) {
-      this.props.dispatch(pause());
     }
 
     // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
