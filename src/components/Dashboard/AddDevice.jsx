@@ -2,12 +2,12 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
 import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
-import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
 import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
+import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
 
 const styles = (theme) => ({

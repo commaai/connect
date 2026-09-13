@@ -4,14 +4,13 @@ import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
 import { deviceNamePretty, deviceTypePretty } from '../../utils';
 import { billing as Billing } from '../../api';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
-import { ErrorOutline, InfoOutline } from '../../icons';
+import { ErrorOutline, InfoOutline, KeyboardBackspaceIcon } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 import { otherPrimePlan, primePlanName } from './primePlans';

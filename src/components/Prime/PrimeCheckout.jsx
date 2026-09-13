@@ -3,14 +3,13 @@ import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import { deviceNamePretty } from '../../utils';
 import { billing as Billing } from '../../api';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
 import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions';
-import { Check as CheckIcon, ErrorOutline, InfoOutline } from '../../icons';
+import { Check as CheckIcon, ErrorOutline, InfoOutline, KeyboardBackspaceIcon } from '../../icons';
 import CommacareIcon from '../../icons/commacare.png';
 import { COMMACARE_URL } from '../CommacareBadge';
 

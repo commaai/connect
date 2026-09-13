@@ -4,12 +4,11 @@ import { push } from 'connected-react-router';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, AppBar } from '@material-ui/core';
-import MenuIcon from '@material-ui/icons/Menu';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { selectDevice } from '../../actions';
-import { AccountIcon, GiftIcon, GiftOpenIcon } from '../../icons';
+import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
 
