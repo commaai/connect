@@ -1,14 +1,5 @@
 import { getDongleID, getSegmentRange, getPrimeNav, getStreamNav } from './url';
-
-export function getDefaultFilter() {
-  const d = new Date();
-  d.setHours(d.getHours() + 1, 0, 0, 0);
-
-  return {
-    start: (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime(),
-    end: d.getTime(),
-  };
-}
+import { getDefaultFilter } from './utils/filter';
 
 export function createInitialState(pathname = window.location.pathname) {
   return {

@@ -172,6 +172,13 @@ describe('whole-app behavior', () => {
     expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
   });
 
+  test('fetches the initial routes with a nonzero limit', async () => {
+    await renderApp('/', { selected: FIRST });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    const request = mocks.requests.find(({ url }) => url.includes('routes_segments'));
+    expect(new URL(request.url).searchParams.get('limit')).toBe('5');
+  });
+
   test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects first device with %s', async (_name, selected) => {
     const { history } = await renderApp('/', { selected });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();

@@ -1,33 +1,12 @@
-import React, { Component } from 'react';
+import { useState } from 'react';
 import { connect } from 'react-redux';
-import dayjs from 'dayjs';
 
 import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
 
-const styles = (theme) => ({
-  modalContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modal: {
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
-    maxWidth: '90%',
-    outline: 'none',
-  },
-  buttonGroup: {
-    marginTop: 20,
-    textAlign: 'right',
-  },
-  datePickerContainer: {
-    display: 'flex',
-    marginBottom: 20,
-    '& aside': { width: 100 },
-  },
+const styles = {
   cancelButton: {
     backgroundColor: Colors.grey200,
     color: Colors.white,
@@ -42,121 +21,94 @@ const styles = (theme) => ({
       backgroundColor: Colors.white70,
     },
   },
-});
+};
 
-const LOOKBACK_WINDOW_MILLIS = 365 * 24 * 3600 * 1000; // 30 days
+const formatDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
-class TimeSelect extends Component {
-  constructor(props) {
-    super(props);
+const parseDate = (value) => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
 
-    this.state = {
-      start: null,
-      end: null,
+const TimeSelect = ({ classes, onClose, filter, dispatch }) => {
+  const [start, setStart] = useState(formatDate(new Date(filter.start)));
+  const [end, setEnd] = useState(formatDate(new Date(filter.end)));
+
+  const changeStart = (event) => {
+    if (event.target.value) {
+      setStart(event.target.value);
+      setEnd(current => (
+        current < event.target.value ? event.target.value : current
+      ));
     }
+  };
 
-    this.handleClose = this.handleClose.bind(this);
-    this.changeStart = this.changeStart.bind(this);
-    this.changeEnd = this.changeEnd.bind(this);
-    this.handleSave = this.handleSave.bind(this);
-  }
-
-  componentDidMount() {
-    this.setState({
-      start: this.props.filter.start,
-      end: this.props.filter.end,
-    });
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.filter !== this.props.filter) {
-      this.setState({
-        start: this.props.filter.start,
-        end: this.props.filter.end,
-      });
+  const changeEnd = (event) => {
+    if (event.target.value) {
+      setEnd(event.target.value < start ? start : event.target.value);
     }
-  }
+  };
 
-  handleClose() {
-    this.props.onClose()
-  }
+  const handleSave = () => {
+    dispatch(selectTimeFilter(
+      parseDate(start).setHours(0, 0, 0, 0),
+      parseDate(end).setHours(23, 59, 59, 999),
+    ));
+    onClose();
+  };
 
-  changeStart(event) {
-    if (event.target.valueAsDate) {
-      this.setState({
-        start: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate()).getTime(),
-      });
-    }
-  }
+  const max = new Date();
+  const min = new Date(max);
+  min.setDate(min.getDate() - 365);
 
-  changeEnd(event) {
-    if (event.target.valueAsDate) {
-      this.setState({
-        end: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate(),23,59,59).getTime(),
-      });
-    }
-  }
+  const minDate = formatDate(min);
+  const maxDate = formatDate(max);
 
-  handleSave() {
-    this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
-    this.props.onClose()
-  }
-
-  render() {
-    const { classes, isOpen } = this.props;
-    const minDate = dayjs().subtract(LOOKBACK_WINDOW_MILLIS, 'millisecond').format('YYYY-MM-DD');
-    const maxDate = dayjs().format('YYYY-MM-DD');
-    const startDate = dayjs(this.state.start || this.props.filter.start).format('YYYY-MM-DD');
-    const endDate = dayjs(this.state.end || this.props.filter.end).format('YYYY-MM-DD');
-
-    return (
-      <>
-        <Modal
-          aria-labelledby="simple-modal-title"
-          aria-describedby="simple-modal-description"
-          open={isOpen}
-          onClose={this.handleClose}
-          className={classes.modalContainer}
-        >
-          <Paper className={classes.modal}>
-            <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">Start date:</Typography>
-              <input
-                label="Start date"
-                type="date"
-                min={ minDate }
-                max={ maxDate }
-                onChange={this.changeStart}
-                defaultValue={ startDate }
-              />
-            </div>
-            <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">End date:</Typography>
-              <input
-                label="End date"
-                type="date"
-                min={ startDate }
-                max={ maxDate }
-                onChange={this.changeEnd}
-                defaultValue={ endDate }
-              />
-            </div>
-            <Divider />
-            <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.handleClose}>
-                Cancel
-              </Button>
-              &nbsp;
-              <Button variant="contained" className={ classes.saveButton } onClick={this.handleSave}>
-                Save
-              </Button>
-            </div>
-          </Paper>
-        </Modal>
-      </>
-    );
-  }
-}
+  return (
+    <Modal open onClose={onClose} className="flex items-center justify-center">
+      <Paper className="p-4 outline-none">
+        <div className="flex flex-col xs:flex-row gap-6 justify-between mb-5">
+          <div className="flex w-30 flex-col gap-1.5">
+            <Typography variant="subheading">Start date:</Typography>
+            <input
+              className="w-full box-border"
+              type="date"
+              min={minDate}
+              max={maxDate}
+              onChange={changeStart}
+              value={start}
+            />
+          </div>
+          <div className="flex w-30 flex-col gap-1.5">
+            <Typography variant="subheading">End date:</Typography>
+            <input
+              className="w-full box-border"
+              type="date"
+              min={start}
+              max={maxDate}
+              onChange={changeEnd}
+              value={end}
+            />
+          </div>
+        </div>
+        <Divider />
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="contained" className={classes.cancelButton} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="contained" className={classes.saveButton} onClick={handleSave}>
+            Save
+          </Button>
+        </div>
+      </Paper>
+    </Modal>
+  );
+};
 
 const stateToProps = (state) => ({
   filter: state.filter,
