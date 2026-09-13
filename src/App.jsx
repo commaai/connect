@@ -57,9 +57,11 @@ class App extends Component {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
           const authParams = new URLSearchParams(window.location.search);
-          const token = await api.auth.refreshAccessToken(authParams.get('code'), authParams.get('provider'));
+          const provider = authParams.get('provider');
+          const token = await api.auth.refreshAccessToken(authParams.get('code'), provider);
           if (token) {
             AuthStorage.setCommaAccessToken(token);
+            localStorage.setItem('lastLoginProvider', provider);
           }
         } catch (err) {
           console.error(err);
