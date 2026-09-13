@@ -1,8 +1,6 @@
-import React, {
-  useState, useRef, useLayoutEffect, useCallback,
-} from 'react';
-import ChevronRight from '@material-ui/icons/ChevronRight';
-import { ArrowBackBold, Check, SettingsIcon } from '../../icons';
+import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
+
+import { ArrowBackBold, Check, RightArrow, SettingsIcon } from '../../icons';
 import { useClickOutside } from '../../hooks/useClickOutside';
 
 const QUALITY_OPTIONS = [
@@ -89,7 +87,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
             <span className="flex-1">Quality</span>
             <span className="flex items-center gap-1 text-white/45">
               {selected?.label}
-              <ChevronRight style={{ fontSize: 18 }} />
+              <RightArrow style={{ fontSize: 18 }} />
             </span>
           </div>
         </div>

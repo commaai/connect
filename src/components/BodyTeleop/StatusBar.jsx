@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import BatteryFull from '@material-ui/icons/BatteryFull';
-import BatteryChargingFull from '@material-ui/icons/BatteryChargingFull';
+
 import SettingsMenu from './SettingsMenu';
 import { useClickOutside } from '../../hooks/useClickOutside';
+import { BatteryFull, BatteryChargingFull } from '../../icons';
 
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
