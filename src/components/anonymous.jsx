@@ -14,6 +14,7 @@ const AUTH_PROVIDERS = { GOOGLE: 'g', APPLE: 'a', GITHUB: 'h' };
 
 const styles = () => ({
   logInButton: {
+    position: 'relative',
     cursor: 'pointer',
     alignItems: 'center',
     background: '#ffffff',
@@ -30,17 +31,19 @@ const styles = () => ({
     },
   },
   lastUsed: {
-    display: 'inline-block',
-    marginLeft: 6,
-    background: '#b6d0e2',
-    borderRadius: 4,
-    padding: '6px',
-    fontSize: 12,
-    lineHeight: '14px',
-    verticalAlign: 'middle',
-    '@media (max-width: 480px)': {
-      fontSize: 10,
-    },
+    position: 'absolute',
+    right: 22,
+    bottom: -8,
+    background: '#e6ebee',
+    color: '#4a5861',
+    border: '3px solid #1d2225',
+    borderRadius: 99,
+    padding: '1px 10px',
+    fontSize: 11,
+    fontWeight: 500,
+    lineHeight: '16px',
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
   },
 });
 
@@ -97,22 +100,22 @@ const AnonymousLanding = ({ classes, pathname }) => {
           <img className="h-10" src={AuthGoogleIcon} alt="" />
           <Typography className="w-[190px] whitespace-nowrap text-center text-[18px] font-semibold text-black">
             Sign in with Google
-            {lastLoginProvider === AUTH_PROVIDERS.GOOGLE && <span className={classes.lastUsed}>Last used</span>}
           </Typography>
+          {lastLoginProvider === AUTH_PROVIDERS.GOOGLE && <span className={classes.lastUsed}>Last used</span>}
         </a>
         <a onClick={() => AppleID.auth.signIn()} className={classes.logInButton}>
           <img className="h-10" src={AuthAppleIcon} alt="" />
           <Typography className="w-[190px] whitespace-nowrap text-center text-[18px] font-semibold text-black">
             Sign in with Apple
-            {lastLoginProvider === AUTH_PROVIDERS.APPLE && <span className={classes.lastUsed}>Last used</span>}
           </Typography>
+          {lastLoginProvider === AUTH_PROVIDERS.APPLE && <span className={classes.lastUsed}>Last used</span>}
         </a>
         <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={`${classes.logInButton} githubAuth`}>
           <img className="h-10" src={AuthGithubIcon} alt="" />
           <Typography className="w-[190px] whitespace-nowrap text-center text-[18px] font-semibold text-black">
             Sign in with GitHub
-            {lastLoginProvider === AUTH_PROVIDERS.GITHUB && <span className={classes.lastUsed}>Last used</span>}
           </Typography>
+          {lastLoginProvider === AUTH_PROVIDERS.GITHUB && <span className={classes.lastUsed}>Last used</span>}
         </a>
 
         <span className="max-w-sm text-center mt-2 mb-8 text-sm">
