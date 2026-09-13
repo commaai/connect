@@ -71,10 +71,10 @@ const TimeSelect = ({ classes, onClose, filter, dispatch }) => {
 
   return (
     <Modal open onClose={onClose} className="flex items-center justify-center">
-      <Paper className="w-84 max-w-[90%] p-4 outline-none">
-        <div className="flex justify-between mb-5">
-          <div className="flex w-34 flex-col gap-1.5">
-            <Typography variant="body2">Start date:</Typography>
+      <Paper className="p-4 outline-none">
+        <div className="flex flex-col xs:flex-row gap-6 justify-between mb-5">
+          <div className="flex w-30 flex-col gap-1.5">
+            <Typography variant="subheading">Start date:</Typography>
             <input
               className="w-full box-border"
               type="date"
@@ -84,8 +84,8 @@ const TimeSelect = ({ classes, onClose, filter, dispatch }) => {
               value={start}
             />
           </div>
-          <div className="flex w-34 flex-col gap-1.5">
-            <Typography variant="body2">End date:</Typography>
+          <div className="flex w-30 flex-col gap-1.5">
+            <Typography variant="subheading">End date:</Typography>
             <input
               className="w-full box-border"
               type="date"
