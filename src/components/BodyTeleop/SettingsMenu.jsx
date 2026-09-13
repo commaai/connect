@@ -3,8 +3,7 @@ import React, {
 } from 'react';
 import Settings from '@material-ui/icons/Settings';
 import ChevronRight from '@material-ui/icons/ChevronRight';
-import Check from '@material-ui/icons/Check';
-import { ArrowBackBold } from '../../icons';
+import { ArrowBackBold, Check } from '../../icons';
 import { useClickOutside } from '../../hooks/useClickOutside';
 
 const QUALITY_OPTIONS = [
