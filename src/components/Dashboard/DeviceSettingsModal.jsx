@@ -13,13 +13,11 @@ import {
   Typography,
   withStyles,
 } from '@material-ui/core';
-import CheckIcon from '@material-ui/icons/Check';
-import SaveIcon from '@material-ui/icons/Save';
 
 import { api } from '../../api/backend';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
-import { ErrorOutline, ShareIcon, WarningIcon } from '../../icons';
+import { Check as CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 

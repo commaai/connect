@@ -1,9 +1,8 @@
 import React, {
   useState, useRef, useLayoutEffect, useCallback,
 } from 'react';
-import Settings from '@material-ui/icons/Settings';
 import ChevronRight from '@material-ui/icons/ChevronRight';
-import { ArrowBackBold, Check } from '../../icons';
+import { ArrowBackBold, Check, SettingsIcon } from '../../icons';
 import { useClickOutside } from '../../hooks/useClickOutside';
 
 const QUALITY_OPTIONS = [
@@ -61,7 +60,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
         onClick={toggleOpen}
         title="Settings"
       >
-        <Settings
+        <SettingsIcon
           style={{
             fontSize: 20,
             transition: 'transform 0.2s ease',

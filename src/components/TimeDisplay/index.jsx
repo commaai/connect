@@ -5,11 +5,9 @@ import dayjs from 'dayjs';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
-import VolumeUp from '@material-ui/icons/VolumeUp';
-import VolumeOff from '@material-ui/icons/VolumeOff';
 import { Tooltip } from '@material-ui/core';
 
-import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
+import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
