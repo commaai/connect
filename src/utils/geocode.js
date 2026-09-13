@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/react';
 
+import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
+
 import { stringifyQuery } from './query';
 
 export const DEFAULT_LOCATION = {
@@ -9,6 +11,8 @@ export const DEFAULT_LOCATION = {
 
 export const MAPBOX_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 export const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjangyYXV0c20wMGU2NDluMWR4amUydGl5In0.6Vb11S6tdX6Arpj6trRE_g';
+
+const geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
 
 export function getFilteredContexts(context) {
   const includeCtxs = ['region', 'district', 'place', 'locality', 'neighborhood'];
@@ -117,7 +121,7 @@ export function priorityGetContext(contexts) {
 }
 
 export async function reverseLookup(coords, navFormat = false) {
-  if (coords[0] === 0 && coords[1] === 0) {
+  if (geocodingClient === null || (coords[0] === 0 && coords[1] === 0)) {
     return null;
   }
 
