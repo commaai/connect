@@ -1,5 +1,6 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
+import { getDefaultFilter } from '../utils/filter';
 
 const eventsMap = {};
 const locationMap = {};
@@ -55,6 +56,7 @@ export default function reducer(_state, action) {
     case Types.ACTION_SELECT_DEVICE:
       state = {
         ...state,
+        filter: getDefaultFilter(),
         dongleId: action.dongleId,
         primeNav: false,
         streamNav: false,
