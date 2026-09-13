@@ -9,7 +9,7 @@ import { api } from '../../api/backend';
 import { analyticsEvent } from '../../actions';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
-import { Clear, PinCarIcon } from '../../icons';
+import { CloseBold, PinCarIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
 import { subscribeWindowSize } from '../../hooks/window';
@@ -586,7 +586,7 @@ class Navigation extends Component {
 
     return (
       <div className={classes.searchSelectBox} ref={this.searchSelectBoxRef}>
-        <Clear className={classes.clearSearchSelect} onClick={this.clearSearchSelect} />
+        <CloseBold className={classes.clearSearchSelect} onClick={this.clearSearchSelect} />
         <div className={classes.searchSelectBoxHeader}>
           <div className={classes.searchSelectBoxTitle}>
             <Typography className={classes.bold}>{title}</Typography>
