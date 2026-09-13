@@ -2,12 +2,11 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
 import { withStyles, Typography } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import Colors from '../../colors';
-import { IosShareIcon } from '../../icons';
+import { Clear, IosShareIcon } from '../../icons';
 import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
