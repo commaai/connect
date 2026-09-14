@@ -32,6 +32,7 @@ jobs:
       - name: Build app and gallery report
         if: github.event_name == 'pull_request'
         env:
+          PREVIEW: '1'
           PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
           PUPPETEER_SKIP_DOWNLOAD: 'true'
           BASELINE_URL: https://latest.connect-d5y.pages.dev
