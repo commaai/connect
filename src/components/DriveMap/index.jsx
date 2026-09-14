@@ -28,7 +28,7 @@ const DriveMap = (props) => {
   const driveCoordsRange = useRef({ min: null, max: null });
 
   const propsRef = useRef(props);
-  const didMount = useRef(false);
+  const prevStartTime = useRef(props.startTime);
 
   propsRef.current = props;
 
@@ -147,10 +147,6 @@ const DriveMap = (props) => {
   function posAtOffset(offset) {
     const { currentRoute } = propsRef.current;
     const { min: driveCoordsMin, max: driveCoordsMax } = driveCoordsRange.current;
-
-    if (!currentRoute.driveCoords) {
-      return null;
-    }
 
     const offsetSeconds = Math.floor(offset / 1e3);
     const offsetFractionalPart = (offset % 1e3) / 1000.0;
@@ -276,11 +272,10 @@ const DriveMap = (props) => {
   }, [routeFullname, setPath]);
 
   useEffect(() => {
-    if (didMount.current) {
+    if (prevStartTime.current && prevStartTime.current !== props.startTime) {
       shouldFlyTo.current = true;
-    } else {
-      didMount.current = true;
     }
+    prevStartTime.current = props.startTime;
   }, [props.startTime]);
 
   useEffect(() => {
