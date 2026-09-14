@@ -3,14 +3,13 @@ import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
 import { withStyles, Typography, Button } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
 import { api } from '../../api/backend';
 import { analyticsEvent } from '../../actions';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
-import { PinCarIcon } from '../../icons';
+import { Clear, PinCarIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
 import { subscribeWindowSize } from '../../hooks/window';

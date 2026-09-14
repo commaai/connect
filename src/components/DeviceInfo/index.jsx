@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
 import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@material-ui/core';
-import ContentCut from '@material-ui/icons/ContentCut';
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
@@ -16,7 +15,7 @@ import VisibilityHandler from '../VisibilityHandler';
 import { subscribeWindowSize } from '../../hooks/window';
 import CommacareBadge from '../CommacareBadge';
 import ClipMenu from '../DriveView/ClipMenu';
-import { LivestreamIcon, CarBatteryIcon, CameraIcon, GamepadIcon } from '../../icons';
+import { LivestreamIcon, CarBatteryIcon, CameraIcon, ContentCut, GamepadIcon } from '../../icons';
 
 const styles = (theme) => ({
   container: {

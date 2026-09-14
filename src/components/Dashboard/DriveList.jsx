@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
-import FilterList from '@material-ui/icons/FilterList';
 
 import { api } from '../../api/backend';
 import { checkRoutesData, checkLastRoutesData } from '../../actions';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
+import { FilterList } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import TimeSelect from '../TimeSelect';

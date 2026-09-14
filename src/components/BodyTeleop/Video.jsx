@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, CircularProgress } from '@material-ui/core';
-import Refresh from '@material-ui/icons/Refresh';
 
+import { RefreshIcon } from '../../icons';
 import { usePinchZoom } from '../../utils/usePinchZoom';
 
 const CONNECTION_TIME_VISIBLE_MS = 1500;
@@ -25,7 +25,7 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
             onClick={onConnect}
             disableRipple
           >
-            <Refresh style={{ fontSize: 20 }} />
+            <RefreshIcon style={{ fontSize: 20 }} />
             {retryLabel}
           </Button>
         ) : null}

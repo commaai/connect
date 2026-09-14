@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
-import SettingsIcon from '@material-ui/icons/Settings';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
@@ -11,6 +10,7 @@ import { api } from '../../api/backend';
 import { updateDevices } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
+import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
