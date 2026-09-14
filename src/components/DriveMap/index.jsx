@@ -28,9 +28,12 @@ const DriveMap = (props) => {
   const driveCoordsRange = useRef({ min: null, max: null });
 
   const propsRef = useRef(props);
-  const prevPropsRef = useRef({});
+  const didMount = useRef(false);
 
   propsRef.current = props;
+
+  const routeFullname = props.currentRoute?.fullname || null;
+  const driveCoords = props.currentRoute?.driveCoords;
 
   const onInteraction = useCallback((ev) => {
     if (ev.isDragging || ev.isRotating || ev.isZooming) {
@@ -86,7 +89,6 @@ const DriveMap = (props) => {
     }
 
     setState((prevState) => ({
-      ...prevState,
       viewport: {
         ...prevState.viewport,
         ...viewport,
@@ -94,7 +96,7 @@ const DriveMap = (props) => {
     }));
   }
 
-  async function populateMap() {
+  const populateMap = useCallback(() => {
     const { currentRoute } = propsRef.current;
 
     if (!map.current || !currentRoute || !currentRoute.driveCoords) {
@@ -102,7 +104,7 @@ const DriveMap = (props) => {
     }
 
     setPath(Object.values(currentRoute.driveCoords));
-  }
+  }, []);
 
   const stopTouchPropagation = useCallback((ev) => {
     ev.stopPropagation();
@@ -127,7 +129,7 @@ const DriveMap = (props) => {
     }));
   }, []);
 
-  function setPath(coords) {
+  const setPath = useCallback((coords) => {
     const mapInstance = map.current && map.current.getMap();
 
     if (mapInstance) {
@@ -140,7 +142,7 @@ const DriveMap = (props) => {
         },
       });
     }
-  }
+  }, []);
 
   function posAtOffset(offset) {
     const { currentRoute } = propsRef.current;
@@ -266,35 +268,31 @@ const DriveMap = (props) => {
   }, []);
 
   useEffect(() => {
-    const prevProps = prevPropsRef.current;
-    const { dispatch, currentRoute, startTime } = props;
-
-    const prevRoute = prevProps.currentRoute?.fullname || null;
-    const route = currentRoute?.fullname || null;
-    if (prevRoute !== route) {
-      setPath([]);
-      if (route) {
-        dispatch(fetchDriveCoords(currentRoute));
-      }
+    setPath([]);
+    const { dispatch, currentRoute } = propsRef.current;
+    if (currentRoute) {
+      dispatch(fetchDriveCoords(currentRoute));
     }
+  }, [routeFullname, setPath]);
 
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
+  useEffect(() => {
+    if (didMount.current) {
       shouldFlyTo.current = true;
+    } else {
+      didMount.current = true;
     }
+  }, [props.startTime]);
 
-    if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
-      && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
-      shouldFlyTo.current = false;
-      const keys = Object.keys(currentRoute.driveCoords);
-      driveCoordsRange.current = {
-        min: Math.min(...keys),
-        max: Math.max(...keys),
-      };
-      populateMap();
-    }
-
-    prevPropsRef.current = props;
-  }, [props]);
+  useEffect(() => {
+    if (!driveCoords) return;
+    shouldFlyTo.current = false;
+    const keys = Object.keys(driveCoords);
+    driveCoordsRange.current = {
+      min: Math.min(...keys),
+      max: Math.max(...keys),
+    };
+    populateMap();
+  }, [driveCoords, populateMap]);
 
   useEffect(() => {
     updateMarkerPos();
