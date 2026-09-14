@@ -21,7 +21,6 @@ const DriveMap = (props) => {
 
   const map = useRef(null);
   const container = useRef(null);
-  const mounted = useRef(false);
   const shouldFlyTo = useRef(false);
   const isInteracting = useRef(false);
   const isInteractingTimeout = useRef(null);
@@ -52,10 +51,6 @@ const DriveMap = (props) => {
   }, []);
 
   function updateMarkerPos() {
-    if (!mounted.current) {
-      return;
-    }
-
     const markerSource = map.current && map.current.getMap().getSource('seekPoint');
     if (markerSource) {
       const { currentRoute } = propsRef.current;
@@ -272,14 +267,6 @@ const DriveMap = (props) => {
       handler: handleLoad,
     };
     mapInstance.on('load', handleLoad);
-  }, []);
-
-  useEffect(() => {
-    mounted.current = true;
-
-    return () => {
-      mounted.current = false;
-    };
   }, []);
 
   useEffect(() => {
