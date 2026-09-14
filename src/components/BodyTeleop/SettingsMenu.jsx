@@ -1,6 +1,6 @@
 import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
 
-import { ArrowBackBold, Check, RightArrow, SettingsIcon } from '../../icons';
+import { ArrowBackBold, CheckIcon, ChevronRight, SettingsIcon } from '../../icons';
 import { useClickOutside } from '../../hooks/useClickOutside';
 
 const QUALITY_OPTIONS = [
@@ -87,7 +87,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
             <span className="flex-1">Quality</span>
             <span className="flex items-center gap-1 text-white/45">
               {selected?.label}
-              <RightArrow style={{ fontSize: 18 }} />
+              <ChevronRight style={{ fontSize: 18 }} />
             </span>
           </div>
         </div>
@@ -110,7 +110,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
           {options.map((opt) => (
             <div key={opt.key} className={rowClass} onClick={() => selectQuality(opt.key)}>
               <span className="flex w-4 items-center justify-center">
-                {opt.key === quality && <Check style={{ fontSize: 16 }} className="text-white" />}
+                {opt.key === quality && <CheckIcon style={{ fontSize: 16 }} className="text-white" />}
               </span>
               <span className="flex-1">{opt.label}</span>
               {opt.bitrate && <span className="text-[10px] text-white/40">{opt.bitrate}</span>}

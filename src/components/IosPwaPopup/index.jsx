@@ -6,7 +6,7 @@ import { withStyles, Typography } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import Colors from '../../colors';
-import { CloseBold, IosShareIcon } from '../../icons';
+import { Clear, IosShareIcon } from '../../icons';
 import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
@@ -118,7 +118,7 @@ class IosPwaPopup extends Component {
     return (
       <div className="fixed bottom-3 left-3 right-3 z-20">
         <div className={`${classes.box} xs:w-fit`}>
-          <CloseBold className={ classes.hide } onClick={ this.hide } />
+          <Clear className={ classes.hide } onClick={ this.hide } />
           <Typography className={ classes.title }>Add to home screen</Typography>
           <Typography>
             Install this webapp on your home screen:
