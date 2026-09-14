@@ -15,8 +15,6 @@ const DriveMap = (props) => {
       ...DEFAULT_LOCATION,
       zoom: 14,
     },
-    driveCoordsMin: null,
-    driveCoordsMax: null,
   });
 
   const map = useRef(null);
@@ -27,13 +25,12 @@ const DriveMap = (props) => {
   const lastMapPos = useRef([0, 0]);
   const animationFrame = useRef(null);
   const mapLoadListener = useRef(null);
+  const driveCoordsRange = useRef({ min: null, max: null });
 
   const propsRef = useRef(props);
-  const stateRef = useRef(state);
   const prevPropsRef = useRef({});
 
   propsRef.current = props;
-  stateRef.current = state;
 
   const onInteraction = useCallback((ev) => {
     if (ev.isDragging || ev.isRotating || ev.isZooming) {
@@ -147,7 +144,7 @@ const DriveMap = (props) => {
 
   function posAtOffset(offset) {
     const { currentRoute } = propsRef.current;
-    const { driveCoordsMin, driveCoordsMax } = stateRef.current;
+    const { min: driveCoordsMin, max: driveCoordsMax } = driveCoordsRange.current;
 
     if (!currentRoute.driveCoords) {
       return null;
@@ -253,11 +250,10 @@ const DriveMap = (props) => {
       if (currentRoute?.driveCoords) {
         shouldFlyTo.current = false;
         const keys = Object.keys(currentRoute.driveCoords);
-        setState((prevState) => ({
-          ...prevState,
-          driveCoordsMin: Math.min(...keys),
-          driveCoordsMax: Math.max(...keys),
-        }));
+        driveCoordsRange.current = {
+          min: Math.min(...keys),
+          max: Math.max(...keys),
+        };
         populateMap();
       }
     };
@@ -290,11 +286,10 @@ const DriveMap = (props) => {
       && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
       shouldFlyTo.current = false;
       const keys = Object.keys(currentRoute.driveCoords);
-      setState((prevState) => ({
-        ...prevState,
-        driveCoordsMin: Math.min(...keys),
-        driveCoordsMax: Math.max(...keys),
-      }));
+      driveCoordsRange.current = {
+        min: Math.min(...keys),
+        max: Math.max(...keys),
+      };
       populateMap();
     }
 
