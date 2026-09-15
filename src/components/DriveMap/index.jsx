@@ -152,9 +152,7 @@ const DriveMap = (props) => {
       if (!e.originalEvent) return;
       shouldFlyTo.current = true;
       isInteracting.current = true;
-      if (isInteractingTimeout.current !== null) {
-        clearTimeout(isInteractingTimeout.current);
-      }
+      clearTimeout(isInteractingTimeout.current);
       isInteractingTimeout.current = setTimeout(() => {
         isInteracting.current = false;
         isInteractingTimeout.current = null;
@@ -218,10 +216,8 @@ const DriveMap = (props) => {
         cancelAnimationFrame(animationFrame.current);
         animationFrame.current = null;
       }
-      if (isInteractingTimeout.current !== null) {
-        clearTimeout(isInteractingTimeout.current);
-        isInteractingTimeout.current = null;
-      }
+      clearTimeout(isInteractingTimeout.current);
+      isInteractingTimeout.current = null;
 
       el.removeEventListener('touchstart', stopTouchPropagation);
       mapInstance.off('movestart', onMoveStart);
