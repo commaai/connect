@@ -1,20 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { connect } from 'react-redux';
-
-import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
+import mapboxgl from 'mapbox-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
 import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
+mapboxgl.accessToken = MAPBOX_TOKEN;
+
 const INTERACTION_TIMEOUT = 5000;
 
 const DriveMap = (props) => {
-  const [viewport, setViewport] = useState({
-    ...DEFAULT_LOCATION,
-    zoom: 14,
-  });
-
   const map = useRef(null);
   const container = useRef(null);
   const shouldFlyTo = useRef(false);
@@ -22,7 +18,6 @@ const DriveMap = (props) => {
   const isInteractingTimeout = useRef(null);
   const lastMapPos = useRef([0, 0]);
   const animationFrame = useRef(null);
-  const mapLoadListener = useRef(null);
   const driveCoordsRange = useRef({ min: null, max: null });
 
   const propsRef = useRef(props);
@@ -33,23 +28,23 @@ const DriveMap = (props) => {
   const routeFullname = props.currentRoute?.fullname || null;
   const driveCoords = props.currentRoute?.driveCoords;
 
-  const onInteraction = useCallback((ev) => {
-    if (ev.isDragging || ev.isRotating || ev.isZooming) {
-      shouldFlyTo.current = true;
-      isInteracting.current = true;
+  function moveViewportTo(pos) {
+    if (!map.current) return;
 
-      if (isInteractingTimeout.current !== null) {
-        clearTimeout(isInteractingTimeout.current);
-      }
-      isInteractingTimeout.current = setTimeout(() => {
-        isInteracting.current = false;
-        isInteractingTimeout.current = null;
-      }, INTERACTION_TIMEOUT);
+    if (shouldFlyTo.current) {
+      map.current.easeTo({
+        center: pos,
+        duration: 200,
+        easing: (t) => t,
+      });
+      shouldFlyTo.current = false;
+    } else {
+      map.current.jumpTo({ center: pos });
     }
-  }, []);
+  }
 
   function updateMarkerPos() {
-    const markerSource = map.current && map.current.getMap().getSource('seekPoint');
+    const markerSource = map.current && map.current.getSource('seekPoint');
     if (markerSource) {
       const { currentRoute } = propsRef.current;
       if (currentRoute && currentRoute.driveCoords) {
@@ -74,56 +69,6 @@ const DriveMap = (props) => {
 
     animationFrame.current = requestAnimationFrame(updateMarkerPos);
   }
-
-  function moveViewportTo(pos) {
-    const nextViewport = {
-      longitude: pos[0],
-      latitude: pos[1],
-    };
-    if (shouldFlyTo.current) {
-      nextViewport.transitionDuration = 200;
-      nextViewport.transitionInterpolator = new LinearInterpolator();
-      shouldFlyTo.current = false;
-    }
-
-    setViewport((prevViewport) => ({
-      ...prevViewport,
-      ...nextViewport,
-    }));
-  }
-
-  const setPath = useCallback((coords) => {
-    const mapInstance = map.current && map.current.getMap();
-
-    if (mapInstance) {
-      mapInstance.getSource('route').setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: coords,
-        },
-      });
-    }
-  }, []);
-
-  const applyDriveCoords = useCallback((coords) => {
-    if (!coords || !map.current) {
-      return;
-    }
-
-    shouldFlyTo.current = false;
-    const keys = Object.keys(coords);
-    driveCoordsRange.current = {
-      min: Math.min(...keys),
-      max: Math.max(...keys),
-    };
-    setPath(Object.values(coords));
-  }, [setPath]);
-
-  const onViewportChange = useCallback((nextViewport) => {
-    setViewport(nextViewport);
-  }, []);
 
   function posAtOffset(offset) {
     const { currentRoute } = propsRef.current;
@@ -156,26 +101,65 @@ const DriveMap = (props) => {
     ];
   }
 
-  const initMap = useCallback((mapComponent) => {
-    if (mapLoadListener.current) {
-      mapLoadListener.current.mapInstance.off('load', mapLoadListener.current.handler);
-      mapLoadListener.current = null;
-    }
+  const setPath = useCallback((coords) => {
+    const source = map.current && map.current.getSource('route');
+    if (!source) return;
 
-    if (!mapComponent) {
-      map.current = null;
+    source.setData({
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: coords,
+      },
+    });
+  }, []);
+
+  const applyDriveCoords = useCallback((coords) => {
+    if (!coords || !map.current) {
       return;
     }
 
-    const mapInstance = mapComponent.getMap();
-    if (!mapInstance) {
-      map.current = null;
-      return;
-    }
+    shouldFlyTo.current = false;
+    const keys = Object.keys(coords);
+    driveCoordsRange.current = {
+      min: Math.min(...keys),
+      max: Math.max(...keys),
+    };
+    setPath(Object.values(coords));
+  }, [setPath]);
 
-    const handleLoad = () => {
-      mapInstance.off('load', handleLoad);
-      mapLoadListener.current = null;
+  useEffect(() => {
+    if (!container.current) return;
+
+    const mapInstance = new mapboxgl.Map({
+      container: container.current,
+      style: MAPBOX_STYLE,
+      center: [DEFAULT_LOCATION.longitude, DEFAULT_LOCATION.latitude],
+      zoom: 14,
+      pitch: 0,
+      maxPitch: 0,
+      attributionControl: false,
+      dragRotate: false,
+    });
+    map.current = mapInstance;
+
+    const onMoveStart = (e) => {
+      if (!e.originalEvent) return;
+      shouldFlyTo.current = true;
+      isInteracting.current = true;
+      if (isInteractingTimeout.current !== null) {
+        clearTimeout(isInteractingTimeout.current);
+      }
+      isInteractingTimeout.current = setTimeout(() => {
+        isInteracting.current = false;
+        isInteractingTimeout.current = null;
+      }, INTERACTION_TIMEOUT);
+    };
+    mapInstance.on('movestart', onMoveStart);
+
+    mapInstance.once('load', () => {
+      if (!map.current) return;
 
       mapInstance.addSource('route', {
         type: 'geojson',
@@ -196,7 +180,7 @@ const DriveMap = (props) => {
         },
       });
 
-      const lineGeoJson = {
+      mapInstance.addLayer({
         id: 'routeLine',
         type: 'line',
         source: 'route',
@@ -208,30 +192,26 @@ const DriveMap = (props) => {
           'line-color': '#888',
           'line-width': 8,
         },
-      };
-      mapInstance.addLayer(lineGeoJson);
+      });
 
-      const markerGeoJson = {
+      mapInstance.addLayer({
         id: 'marker',
         type: 'circle',
+        source: 'seekPoint',
         paint: {
           'circle-radius': 10,
           'circle-color': '#007cbf',
         },
-        source: 'seekPoint',
-      };
+      });
 
-      mapInstance.addLayer(markerGeoJson);
-
-      map.current = mapComponent;
       applyDriveCoords(propsRef.current.currentRoute?.driveCoords);
-    };
+    });
 
-    mapLoadListener.current = {
-      mapInstance,
-      handler: handleLoad,
+    return () => {
+      mapInstance.off('movestart', onMoveStart);
+      mapInstance.remove();
+      map.current = null;
     };
-    mapInstance.on('load', handleLoad);
   }, [applyDriveCoords]);
 
   useEffect(() => {
@@ -261,7 +241,7 @@ const DriveMap = (props) => {
     el.addEventListener('touchstart', stopTouchPropagation);
     return () => {
       el.removeEventListener('touchstart', stopTouchPropagation);
-    }
+    };
   }, []);
 
   useEffect(() => {
@@ -280,29 +260,11 @@ const DriveMap = (props) => {
   }, []);
 
   return (
-    <div ref={container} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
-      <ReactMapGL
-        width="100%"
-        height="100%"
-        latitude={viewport.latitude}
-        longitude={viewport.longitude}
-        zoom={viewport.zoom}
-        mapStyle={MAPBOX_STYLE}
-        maxPitch={0}
-        mapboxApiAccessToken={MAPBOX_TOKEN}
-        ref={initMap}
-        onContextMenu={null}
-        dragRotate={false}
-        onViewportChange={onViewportChange}
-        attributionControl={false}
-        onInteractionStateChange={onInteraction}
-      />
-    </div>
+    <div ref={container} className="w-full h-full cursor-default" />
   );
 };
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
   startTime: state.startTime,
 });
