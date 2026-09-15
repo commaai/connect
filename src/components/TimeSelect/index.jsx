@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { connect } from 'react-redux';
 
-import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
+import { Button, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
@@ -96,7 +96,7 @@ const TimeSelect = ({ classes, onClose, filter, dispatch }) => {
             />
           </div>
         </div>
-        <Divider />
+        <hr />
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="contained" className={classes.cancelButton} onClick={onClose}>
             Cancel

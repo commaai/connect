@@ -68,6 +68,13 @@ a:focus {
   box-shadow: none;
 }
 
+@layer base {
+  hr {
+    flex-shrink: 0;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
 /*
   Scrollbar
   ~~~~~~~~~~
