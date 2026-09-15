@@ -10,6 +10,20 @@ mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const INTERACTION_TIMEOUT = 5000;
 
+const createRouteData = (coordinates = []) => ({
+  type: 'Feature',
+  properties: {},
+  geometry: {
+    type: 'LineString',
+    coordinates,
+  },
+});
+
+const createPointData = (coordinates = []) => ({
+  type: 'Point',
+  coordinates,
+});
+
 const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   const map = useRef(null);
   const container = useRef(null);
@@ -52,19 +66,13 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
         const pos = posAtOffset(currentOffset(), route.driveCoords);
         if (pos && pos.some((coordinate, index) => coordinate !== lastMapPos.current[index])) {
           lastMapPos.current = pos;
-          markerSource.setData({
-            type: 'Point',
-            coordinates: pos,
-          });
+          markerSource.setData(createPointData(pos));
           if (!isInteracting.current) {
             moveViewportTo(pos);
           }
         }
       } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
-        markerSource.setData({
-          type: 'Point',
-          coordinates: [],
-        });
+        markerSource.setData(createPointData());
       }
     }
 
@@ -105,14 +113,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
     const source = map.current?.getSource('route');
     if (!source) return;
 
-    source.setData({
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'LineString',
-        coordinates: coords,
-      },
-    });
+    source.setData(createRouteData(coords));
   }, []);
 
   const applyDriveCoords = useCallback((coords) => {
@@ -165,21 +166,12 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
 
       mapInstance.addSource('route', {
         type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: [],
-          },
-        },
+        data: createRouteData(),
       });
+
       mapInstance.addSource('seekPoint', {
         type: 'geojson',
-        data: {
-          type: 'Point',
-          coordinates: [],
-        },
+        data: createPointData(),
       });
 
       mapInstance.addLayer({
