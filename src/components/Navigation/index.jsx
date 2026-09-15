@@ -463,10 +463,11 @@ const Navigation = (props) => {
   useEffect(() => {
     if (prevDongleIdRef.current !== dongleId) {
       prevDongleIdRef.current = dongleId;
-      setState({
+      setState((prev) => ({
+        ...prev,
         ...initialState,
         windowWidth: window.innerWidth,
-      });
+      }));
     }
   }, [dongleId]);
 
