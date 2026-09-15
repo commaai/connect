@@ -110,10 +110,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   }
 
   const setPath = useCallback((coords) => {
-    const source = mapRef.current?.getSource('route');
-    if (!source) return;
-
-    source.setData(createRouteData(coords));
+    mapRef.current?.getSource('route')?.setData(createRouteData(coords));
   }, []);
 
   const applyDriveCoords = useCallback((coords) => {
@@ -156,7 +153,6 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
       clearTimeout(interactionTimeoutRef.current);
       interactionTimeoutRef.current = setTimeout(() => {
         isInteractingRef.current = false;
-        interactionTimeoutRef.current = null;
       }, INTERACTION_TIMEOUT);
     };
     mapInstance.on('movestart', onMoveStart);
@@ -209,7 +205,6 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
         frameIdRef.current = null;
       }
       clearTimeout(interactionTimeoutRef.current);
-      interactionTimeoutRef.current = null;
 
       el.removeEventListener('touchstart', stopTouchPropagation);
       mapInstance.off('movestart', onMoveStart);
