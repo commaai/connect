@@ -47,8 +47,8 @@ const DriveMap = (props) => {
     const markerSource = map.current?.getSource('seekPoint');
     if (markerSource) {
       const { currentRoute } = propsRef.current;
-      if (currentRoute && currentRoute.driveCoords) {
-        const pos = posAtOffset(currentOffset());
+      if (currentRoute?.driveCoords) {
+        const pos = posAtOffset(currentOffset(), currentRoute.driveCoords);
         if (pos && pos.some((coordinate, index) => coordinate !== lastMapPos.current[index])) {
           lastMapPos.current = pos;
           markerSource.setData({
@@ -70,8 +70,7 @@ const DriveMap = (props) => {
     animationFrame.current = requestAnimationFrame(updateMarkerPos);
   }
 
-  function posAtOffset(offset) {
-    const { currentRoute } = propsRef.current;
+  function posAtOffset(offset, coords) {
     const { min: driveCoordsMin, max: driveCoordsMax } = driveCoordsRange.current;
 
     const offsetSeconds = Math.floor(offset / 1e3);
@@ -85,16 +84,16 @@ const DriveMap = (props) => {
       driveCoordsMax,
     ));
 
-    if (!currentRoute.driveCoords[coordIdx]) {
+    if (!coords[coordIdx]) {
       return null;
     }
 
-    const [floorLng, floorLat] = currentRoute.driveCoords[coordIdx];
-    if (!currentRoute.driveCoords[nextCoordIdx]) {
+    const [floorLng, floorLat] = coords[coordIdx];
+    if (!coords[nextCoordIdx]) {
       return [floorLng, floorLat];
     }
 
-    const [ceilLng, ceilLat] = currentRoute.driveCoords[nextCoordIdx];
+    const [ceilLng, ceilLat] = coords[nextCoordIdx];
     return [
       floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
       floorLat + ((ceilLat - floorLat) * offsetFractionalPart),
