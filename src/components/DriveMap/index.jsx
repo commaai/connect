@@ -44,7 +44,7 @@ const DriveMap = (props) => {
   }
 
   function updateMarkerPos() {
-    const markerSource = map.current && map.current.getSource('seekPoint');
+    const markerSource = map.current?.getSource('seekPoint');
     if (markerSource) {
       const { currentRoute } = propsRef.current;
       if (currentRoute && currentRoute.driveCoords) {
@@ -102,7 +102,7 @@ const DriveMap = (props) => {
   }
 
   const setPath = useCallback((coords) => {
-    const source = map.current && map.current.getSource('route');
+    const source = map.current?.getSource('route');
     if (!source) return;
 
     source.setData({
