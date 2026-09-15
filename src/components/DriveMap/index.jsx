@@ -130,10 +130,14 @@ const DriveMap = (props) => {
   }, [setPath]);
 
   useEffect(() => {
-    if (!container.current) return;
+    const el = container.current;
+    if (!el) return;
+
+    const stopTouchPropagation = (ev) => ev.stopPropagation();
+    el.addEventListener('touchstart', stopTouchPropagation);
 
     const mapInstance = new mapboxgl.Map({
-      container: container.current,
+      container: el,
       style: MAPBOX_STYLE,
       center: [DEFAULT_LOCATION.longitude, DEFAULT_LOCATION.latitude],
       zoom: 14,
@@ -208,6 +212,7 @@ const DriveMap = (props) => {
     });
 
     return () => {
+      el.removeEventListener('touchstart', stopTouchPropagation);
       mapInstance.off('movestart', onMoveStart);
       mapInstance.remove();
       map.current = null;
@@ -233,16 +238,6 @@ const DriveMap = (props) => {
     applyDriveCoords(driveCoords);
   }, [driveCoords, applyDriveCoords]);
 
-  useEffect(() => {
-    const el = container.current;
-    if (!el) return;
-
-    const stopTouchPropagation = (ev) => ev.stopPropagation();
-    el.addEventListener('touchstart', stopTouchPropagation);
-    return () => {
-      el.removeEventListener('touchstart', stopTouchPropagation);
-    };
-  }, []);
 
   useEffect(() => {
     updateMarkerPos();
