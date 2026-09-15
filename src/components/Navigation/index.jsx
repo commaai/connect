@@ -16,7 +16,7 @@ import { subscribeWindowSize } from '../../hooks/window';
 import * as Utils from './utils';
 import { isIos } from '../../utils/browser.js';
 
-const styles = () => ({
+const styles = {
   mapContainer: {
     position: 'relative',
     borderBottom: `1px solid ${Colors.white10}`,
@@ -110,7 +110,7 @@ const styles = () => ({
       backgroundColor: Colors.grey700,
     },
   },
-});
+};
 
 const initialState = {
   hasFocus: false,
@@ -262,13 +262,6 @@ const Navigation = (props) => {
     }
   }
 
-  function onContainerRef(el) {
-    mapContainerRef.current = el;
-    if (el) {
-      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
-    }
-  }
-
   async function getDeviceLastLocation() {
     const { dongleId: currentDongleId, device: currentDevice } = propsRef.current;
     if (currentDevice.shared) {
@@ -282,7 +275,6 @@ const Navigation = (props) => {
           carLastLocation: [resp.lng, resp.lat],
           carLastLocationTime: resp.time,
         }));
-        flyToMarkers();
       }
     } catch (err) {
       if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
@@ -437,6 +429,16 @@ const Navigation = (props) => {
   }
 
   useEffect(() => {
+    const el = mapContainerRef.current;
+    if (!el) return;
+    const stopTouchPropagation = (ev) => ev.stopPropagation();
+    el.addEventListener('touchstart', stopTouchPropagation);
+    return () => {
+      el.removeEventListener('touchstart', stopTouchPropagation);
+    }
+  }, []);
+
+  useEffect(() => {
     mountedRef.current = true;
     const unsub = subscribeWindowSize(({ width }) => {
       setState((prev) => ({ ...prev, windowWidth: width }));
@@ -510,7 +512,7 @@ const Navigation = (props) => {
 
   return (
     <div
-      ref={onContainerRef}
+      ref={mapContainerRef}
       className={classes.mapContainer}
       style={{ height: 200 }}
     >
