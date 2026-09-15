@@ -1,6 +1,6 @@
 import React, { Component, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
-import { Route, Switch, Redirect } from 'react-router';
+import { Route, Switch, Redirect } from 'react-router-dom';
 import { ConnectedRouter } from 'connected-react-router';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
