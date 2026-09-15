@@ -10,7 +10,7 @@ mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const INTERACTION_TIMEOUT = 5000;
 
-const DriveMap = (props) => {
+const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   const map = useRef(null);
   const container = useRef(null);
   const shouldFlyTo = useRef(false);
@@ -20,18 +20,19 @@ const DriveMap = (props) => {
   const animationFrame = useRef(null);
   const driveCoordsRange = useRef({ min: null, max: null });
 
-  const propsRef = useRef(props);
-  const prevStartTime = useRef(props.startTime);
+  const currentRouteRef = useRef(currentRoute);
+  const prevStartTime = useRef(startTime);
+  // update the ref with the newest route.
+  currentRouteRef.current = currentRoute;
 
-  propsRef.current = props;
-
-  const routeFullname = props.currentRoute?.fullname || null;
-  const driveCoords = props.currentRoute?.driveCoords;
+  const routeFullname = currentRoute?.fullname || null;
+  const driveCoords = currentRoute?.driveCoords;
 
   function moveViewportTo(pos) {
     if (!map.current) return;
 
     if (shouldFlyTo.current) {
+      // LinearInterpolation
       map.current.easeTo({
         center: pos,
         duration: 200,
@@ -46,9 +47,9 @@ const DriveMap = (props) => {
   function updateMarkerPos() {
     const markerSource = map.current?.getSource('seekPoint');
     if (markerSource) {
-      const { currentRoute } = propsRef.current;
-      if (currentRoute?.driveCoords) {
-        const pos = posAtOffset(currentOffset(), currentRoute.driveCoords);
+      const route = currentRouteRef.current;
+      if (route?.driveCoords) {
+        const pos = posAtOffset(currentOffset(), route.driveCoords);
         if (pos && pos.some((coordinate, index) => coordinate !== lastMapPos.current[index])) {
           lastMapPos.current = pos;
           markerSource.setData({
@@ -205,7 +206,7 @@ const DriveMap = (props) => {
         },
       });
 
-      applyDriveCoords(propsRef.current.currentRoute?.driveCoords);
+      applyDriveCoords(currentRouteRef.current?.driveCoords);
     });
 
     updateMarkerPos();
@@ -227,18 +228,18 @@ const DriveMap = (props) => {
 
   useEffect(() => {
     setPath([]);
-    const { dispatch, currentRoute } = propsRef.current;
-    if (currentRoute) {
-      dispatch(fetchDriveCoords(currentRoute));
+    const route = currentRouteRef.current;
+    if (route) {
+      dispatch(fetchDriveCoords(route));
     }
-  }, [routeFullname, setPath]);
+  }, [dispatch, routeFullname, setPath]);
 
   useEffect(() => {
-    if (prevStartTime.current && prevStartTime.current !== props.startTime) {
+    if (prevStartTime.current && prevStartTime.current !== startTime) {
       shouldFlyTo.current = true;
     }
-    prevStartTime.current = props.startTime;
-  }, [props.startTime]);
+    prevStartTime.current = startTime;
+  }, [startTime]);
 
   useEffect(() => {
     applyDriveCoords(driveCoords);
