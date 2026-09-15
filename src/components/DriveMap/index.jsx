@@ -24,6 +24,34 @@ const createPointData = (coordinates = []) => ({
   coordinates,
 });
 
+const posAtOffset = (offset, coords, range) => {
+  const { min: driveCoordsMin, max: driveCoordsMax } = range;
+
+  const offsetSeconds = Math.floor(offset / 1e3);
+  const offsetFractionalPart = (offset % 1e3) / 1000.0;
+  const coordIdx = Math.max(driveCoordsMin, Math.min(
+    offsetSeconds,
+    driveCoordsMax,
+  ));
+  const nextCoordIdx = Math.max(driveCoordsMin, Math.min(
+    offsetSeconds + 1,
+    driveCoordsMax,
+  ));
+
+  if (!coords[coordIdx]) return null;
+
+  const [floorLng, floorLat] = coords[coordIdx];
+  if (!coords[nextCoordIdx]) {
+    return [floorLng, floorLat];
+  }
+
+  const [ceilLng, ceilLat] = coords[nextCoordIdx];
+  return [
+    floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
+    floorLat + ((ceilLat - floorLat) * offsetFractionalPart),
+  ];
+};
+
 const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -33,11 +61,8 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   const lastPositionRef = useRef([0, 0]);
   const frameIdRef = useRef(null);
   const coordRangeRef = useRef({ min: null, max: null });
-
   const routeRef = useRef(currentRoute);
   const prevStartTimeRef = useRef(startTime);
-  // update the ref with the newest route.
-  routeRef.current = currentRoute;
 
   const routeFullname = currentRoute?.fullname || null;
   const driveCoords = currentRoute?.driveCoords;
@@ -46,7 +71,6 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
     if (!mapRef.current) return;
 
     if (shouldAnimateRef.current) {
-      // LinearInterpolation
       mapRef.current.easeTo({
         center: pos,
         duration: 200,
@@ -63,7 +87,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
     if (markerSource) {
       const route = routeRef.current;
       if (route?.driveCoords) {
-        const pos = posAtOffset(currentOffset(), route.driveCoords);
+        const pos = posAtOffset(currentOffset(), route.driveCoords, coordRangeRef.current);
         if (pos && pos.some((coordinate, index) => coordinate !== lastPositionRef.current[index])) {
           lastPositionRef.current = pos;
           markerSource.setData(createPointData(pos));
@@ -79,44 +103,12 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
     frameIdRef.current = requestAnimationFrame(updateMarkerPos);
   }
 
-  function posAtOffset(offset, coords) {
-    const { min: driveCoordsMin, max: driveCoordsMax } = coordRangeRef.current;
-
-    const offsetSeconds = Math.floor(offset / 1e3);
-    const offsetFractionalPart = (offset % 1e3) / 1000.0;
-    const coordIdx = Math.max(driveCoordsMin, Math.min(
-      offsetSeconds,
-      driveCoordsMax,
-    ));
-    const nextCoordIdx = Math.max(driveCoordsMin, Math.min(
-      offsetSeconds + 1,
-      driveCoordsMax,
-    ));
-
-    if (!coords[coordIdx]) {
-      return null;
-    }
-
-    const [floorLng, floorLat] = coords[coordIdx];
-    if (!coords[nextCoordIdx]) {
-      return [floorLng, floorLat];
-    }
-
-    const [ceilLng, ceilLat] = coords[nextCoordIdx];
-    return [
-      floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
-      floorLat + ((ceilLat - floorLat) * offsetFractionalPart),
-    ];
-  }
-
   const setPath = useCallback((coords) => {
     mapRef.current?.getSource('route')?.setData(createRouteData(coords));
   }, []);
 
   const applyDriveCoords = useCallback((coords) => {
-    if (!coords || !mapRef.current) {
-      return;
-    }
+    if (!coords || !mapRef.current) return;
 
     shouldAnimateRef.current = false;
     const keys = Object.keys(coords);
@@ -210,6 +202,10 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
       mapRef.current = null;
     };
   }, [applyDriveCoords]);
+
+  useEffect(() => {
+    routeRef.current = currentRoute;
+  }, [currentRoute]);
 
   useEffect(() => {
     setPath([]);
