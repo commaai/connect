@@ -18,6 +18,7 @@ import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
   mapContainer: {
+    position: 'relative',
     borderBottom: `1px solid ${Colors.white10}`,
   },
   mapError: {
@@ -551,19 +552,12 @@ class Navigation extends Component {
                 />
               </Source>
             )}
-          {searchSelect
-            && (
-              <HTMLOverlay
-                redraw={this.renderSearchOverlay}
-                captureScroll
-                captureDrag
-                captureClick
-                captureDoubleClick
-                capturePointerMove
-                style={{ ...cardStyle, bottom: 10 }}
-              />
-            )}
         </ReactMapGL>
+        {searchSelect && (
+          <div style={{ position: 'absolute', ...cardStyle, bottom: 10 }}>
+            {this.renderSearchOverlay()}
+          </div>
+        )}
       </div>
     );
   }
