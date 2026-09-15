@@ -134,7 +134,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
     const stopTouchPropagation = (ev) => ev.stopPropagation();
     el.addEventListener('touchstart', stopTouchPropagation);
 
-    const mapInstance = new mapboxgl.Map({
+    const map = new mapboxgl.Map({
       container: el,
       style: MAPBOX_STYLE,
       center: [DEFAULT_LOCATION.longitude, DEFAULT_LOCATION.latitude],
@@ -144,9 +144,9 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
       attributionControl: false,
       dragRotate: false,
     });
-    mapRef.current = mapInstance;
+    mapRef.current = map;
 
-    const onMoveStart = (e) => {
+    map.on('movestart', (e) => {
       if (!e.originalEvent) return;
       shouldAnimateRef.current = true;
       isInteractingRef.current = true;
@@ -154,23 +154,22 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
       interactionTimeoutRef.current = setTimeout(() => {
         isInteractingRef.current = false;
       }, INTERACTION_TIMEOUT);
-    };
-    mapInstance.on('movestart', onMoveStart);
+    });
 
-    mapInstance.once('load', () => {
+    map.once('load', () => {
       if (!mapRef.current) return;
 
-      mapInstance.addSource('route', {
+      map.addSource('route', {
         type: 'geojson',
         data: createRouteData(),
       });
 
-      mapInstance.addSource('seekPoint', {
+      map.addSource('seekPoint', {
         type: 'geojson',
         data: createPointData(),
       });
 
-      mapInstance.addLayer({
+      map.addLayer({
         id: 'routeLine',
         type: 'line',
         source: 'route',
@@ -184,7 +183,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
         },
       });
 
-      mapInstance.addLayer({
+      map.addLayer({
         id: 'marker',
         type: 'circle',
         source: 'seekPoint',
@@ -207,8 +206,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
       clearTimeout(interactionTimeoutRef.current);
 
       el.removeEventListener('touchstart', stopTouchPropagation);
-      mapInstance.off('movestart', onMoveStart);
-      mapInstance.remove();
+      map.remove();
       mapRef.current = null;
     };
   }, [applyDriveCoords]);
