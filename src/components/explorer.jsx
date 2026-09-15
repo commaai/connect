@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import localforage from 'localforage';
 import { push, replace } from 'connected-react-router';
 
-import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
+import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import { api } from '../api/backend';
@@ -253,7 +253,7 @@ class ExplorerApp extends Component {
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
-                <Divider />
+                <hr />
                 { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
                 { pairDongleId
                   && (

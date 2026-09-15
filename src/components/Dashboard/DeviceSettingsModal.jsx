@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 import {
   Button,
   CircularProgress,
-  Divider,
   IconButton,
   Modal,
   Paper,
@@ -283,7 +282,7 @@ class DeviceSettingsModal extends Component {
                 { device.dongle_id }
               </Typography>
             </div>
-            <Divider />
+            <hr />
             <div>
               <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
                 Prime settings
@@ -375,7 +374,7 @@ class DeviceSettingsModal extends Component {
                 { device.dongle_id }
               </Typography>
             </div>
-            <Divider />
+            <hr />
             { this.state.unpairError
             && (
             <div className={ classes.unpairError }>
