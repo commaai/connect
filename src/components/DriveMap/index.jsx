@@ -233,7 +233,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   }, [driveCoords, applyDriveCoords]);
 
   return (
-    <div ref={containerRef} className="w-full h-full cursor-default" />
+    <div ref={containerRef} className="w-full h-full min-h-[300px] cursor-default" />
   );
 };
 
