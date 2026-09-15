@@ -92,15 +92,34 @@ const DriveMap = (props) => {
     }));
   }
 
-  const populateMap = useCallback(() => {
-    const { currentRoute } = propsRef.current;
+  const setPath = useCallback((coords) => {
+    const mapInstance = map.current && map.current.getMap();
 
-    if (!map.current || !currentRoute || !currentRoute.driveCoords) {
+    if (mapInstance) {
+      mapInstance.getSource('route').setData({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: coords,
+        },
+      });
+    }
+  }, []);
+
+  const applyDriveCoords = useCallback((coords) => {
+    if (!coords || !map.current) {
       return;
     }
 
-    setPath(Object.values(currentRoute.driveCoords));
-  }, []);
+    shouldFlyTo.current = false;
+    const keys = Object.keys(coords);
+    driveCoordsRange.current = {
+      min: Math.min(...keys),
+      max: Math.max(...keys),
+    };
+    setPath(Object.values(coords));
+  }, [setPath]);
 
   const stopTouchPropagation = useCallback((ev) => {
     ev.stopPropagation();
@@ -120,21 +139,6 @@ const DriveMap = (props) => {
 
   const onViewportChange = useCallback((nextViewport) => {
     setViewport(nextViewport);
-  }, []);
-
-  const setPath = useCallback((coords) => {
-    const mapInstance = map.current && map.current.getMap();
-
-    if (mapInstance) {
-      mapInstance.getSource('route').setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: coords,
-        },
-      });
-    }
   }, []);
 
   function posAtOffset(offset) {
@@ -236,17 +240,7 @@ const DriveMap = (props) => {
       mapInstance.addLayer(markerGeoJson);
 
       map.current = mapComponent;
-
-      const { currentRoute } = propsRef.current;
-      if (currentRoute?.driveCoords) {
-        shouldFlyTo.current = false;
-        const keys = Object.keys(currentRoute.driveCoords);
-        driveCoordsRange.current = {
-          min: Math.min(...keys),
-          max: Math.max(...keys),
-        };
-        populateMap();
-      }
+      applyDriveCoords(propsRef.current.currentRoute?.driveCoords);
     };
 
     mapLoadListener.current = {
@@ -254,7 +248,7 @@ const DriveMap = (props) => {
       handler: handleLoad,
     };
     mapInstance.on('load', handleLoad);
-  }, []);
+  }, [applyDriveCoords]);
 
   useEffect(() => {
     setPath([]);
@@ -272,15 +266,8 @@ const DriveMap = (props) => {
   }, [props.startTime]);
 
   useEffect(() => {
-    if (!driveCoords) return;
-    shouldFlyTo.current = false;
-    const keys = Object.keys(driveCoords);
-    driveCoordsRange.current = {
-      min: Math.min(...keys),
-      max: Math.max(...keys),
-    };
-    populateMap();
-  }, [driveCoords, populateMap]);
+    applyDriveCoords(driveCoords);
+  }, [driveCoords, applyDriveCoords]);
 
   useEffect(() => {
     updateMarkerPos();
