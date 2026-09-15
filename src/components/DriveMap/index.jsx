@@ -10,11 +10,9 @@ import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocod
 const INTERACTION_TIMEOUT = 5000;
 
 const DriveMap = (props) => {
-  const [state, setState] = useState({
-    viewport: {
-      ...DEFAULT_LOCATION,
-      zoom: 14,
-    },
+  const [viewport, setViewport] = useState({
+    ...DEFAULT_LOCATION,
+    zoom: 14,
   });
 
   const map = useRef(null);
@@ -78,21 +76,19 @@ const DriveMap = (props) => {
   }
 
   function moveViewportTo(pos) {
-    const viewport = {
+    const nextViewport = {
       longitude: pos[0],
       latitude: pos[1],
     };
     if (shouldFlyTo.current) {
-      viewport.transitionDuration = 200;
-      viewport.transitionInterpolator = new LinearInterpolator();
+      nextViewport.transitionDuration = 200;
+      nextViewport.transitionInterpolator = new LinearInterpolator();
       shouldFlyTo.current = false;
     }
 
-    setState((prevState) => ({
-      viewport: {
-        ...prevState.viewport,
-        ...viewport,
-      },
+    setViewport((prevViewport) => ({
+      ...prevViewport,
+      ...nextViewport,
     }));
   }
 
@@ -122,11 +118,8 @@ const DriveMap = (props) => {
     }
   }, [stopTouchPropagation]);
 
-  const onViewportChange = useCallback((viewport) => {
-    setState((prevState) => ({
-      ...prevState,
-      viewport,
-    }));
+  const onViewportChange = useCallback((nextViewport) => {
+    setViewport(nextViewport);
   }, []);
 
   const setPath = useCallback((coords) => {
@@ -309,9 +302,9 @@ const DriveMap = (props) => {
       <ReactMapGL
         width="100%"
         height="100%"
-        latitude={state.viewport.latitude}
-        longitude={state.viewport.longitude}
-        zoom={state.viewport.zoom}
+        latitude={viewport.latitude}
+        longitude={viewport.longitude}
+        zoom={viewport.zoom}
         mapStyle={MAPBOX_STYLE}
         maxPitch={0}
         mapboxApiAccessToken={MAPBOX_TOKEN}
