@@ -25,49 +25,49 @@ const createPointData = (coordinates = []) => ({
 });
 
 const DriveMap = ({ dispatch, currentRoute, startTime }) => {
-  const map = useRef(null);
-  const container = useRef(null);
-  const shouldFlyTo = useRef(false);
-  const isInteracting = useRef(false);
-  const isInteractingTimeout = useRef(null);
-  const lastMapPos = useRef([0, 0]);
-  const animationFrame = useRef(null);
-  const driveCoordsRange = useRef({ min: null, max: null });
+  const mapRef = useRef(null);
+  const containerRef = useRef(null);
+  const shouldAnimateRef = useRef(false);
+  const isInteractingRef = useRef(false);
+  const interactionTimeoutRef = useRef(null);
+  const lastPositionRef = useRef([0, 0]);
+  const frameIdRef = useRef(null);
+  const coordRangeRef = useRef({ min: null, max: null });
 
-  const currentRouteRef = useRef(currentRoute);
-  const prevStartTime = useRef(startTime);
+  const routeRef = useRef(currentRoute);
+  const prevStartTimeRef = useRef(startTime);
   // update the ref with the newest route.
-  currentRouteRef.current = currentRoute;
+  routeRef.current = currentRoute;
 
   const routeFullname = currentRoute?.fullname || null;
   const driveCoords = currentRoute?.driveCoords;
 
   function moveViewportTo(pos) {
-    if (!map.current) return;
+    if (!mapRef.current) return;
 
-    if (shouldFlyTo.current) {
+    if (shouldAnimateRef.current) {
       // LinearInterpolation
-      map.current.easeTo({
+      mapRef.current.easeTo({
         center: pos,
         duration: 200,
         easing: (t) => t,
       });
-      shouldFlyTo.current = false;
+      shouldAnimateRef.current = false;
     } else {
-      map.current.jumpTo({ center: pos });
+      mapRef.current.jumpTo({ center: pos });
     }
   }
 
   function updateMarkerPos() {
-    const markerSource = map.current?.getSource('seekPoint');
+    const markerSource = mapRef.current?.getSource('seekPoint');
     if (markerSource) {
-      const route = currentRouteRef.current;
+      const route = routeRef.current;
       if (route?.driveCoords) {
         const pos = posAtOffset(currentOffset(), route.driveCoords);
-        if (pos && pos.some((coordinate, index) => coordinate !== lastMapPos.current[index])) {
-          lastMapPos.current = pos;
+        if (pos && pos.some((coordinate, index) => coordinate !== lastPositionRef.current[index])) {
+          lastPositionRef.current = pos;
           markerSource.setData(createPointData(pos));
-          if (!isInteracting.current) {
+          if (!isInteractingRef.current) {
             moveViewportTo(pos);
           }
         }
@@ -76,11 +76,11 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
       }
     }
 
-    animationFrame.current = requestAnimationFrame(updateMarkerPos);
+    frameIdRef.current = requestAnimationFrame(updateMarkerPos);
   }
 
   function posAtOffset(offset, coords) {
-    const { min: driveCoordsMin, max: driveCoordsMax } = driveCoordsRange.current;
+    const { min: driveCoordsMin, max: driveCoordsMax } = coordRangeRef.current;
 
     const offsetSeconds = Math.floor(offset / 1e3);
     const offsetFractionalPart = (offset % 1e3) / 1000.0;
@@ -110,20 +110,20 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   }
 
   const setPath = useCallback((coords) => {
-    const source = map.current?.getSource('route');
+    const source = mapRef.current?.getSource('route');
     if (!source) return;
 
     source.setData(createRouteData(coords));
   }, []);
 
   const applyDriveCoords = useCallback((coords) => {
-    if (!coords || !map.current) {
+    if (!coords || !mapRef.current) {
       return;
     }
 
-    shouldFlyTo.current = false;
+    shouldAnimateRef.current = false;
     const keys = Object.keys(coords);
-    driveCoordsRange.current = {
+    coordRangeRef.current = {
       min: Math.min(...keys),
       max: Math.max(...keys),
     };
@@ -131,7 +131,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   }, [setPath]);
 
   useEffect(() => {
-    const el = container.current;
+    const el = containerRef.current;
     if (!el) return;
 
     const stopTouchPropagation = (ev) => ev.stopPropagation();
@@ -147,22 +147,22 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
       attributionControl: false,
       dragRotate: false,
     });
-    map.current = mapInstance;
+    mapRef.current = mapInstance;
 
     const onMoveStart = (e) => {
       if (!e.originalEvent) return;
-      shouldFlyTo.current = true;
-      isInteracting.current = true;
-      clearTimeout(isInteractingTimeout.current);
-      isInteractingTimeout.current = setTimeout(() => {
-        isInteracting.current = false;
-        isInteractingTimeout.current = null;
+      shouldAnimateRef.current = true;
+      isInteractingRef.current = true;
+      clearTimeout(interactionTimeoutRef.current);
+      interactionTimeoutRef.current = setTimeout(() => {
+        isInteractingRef.current = false;
+        interactionTimeoutRef.current = null;
       }, INTERACTION_TIMEOUT);
     };
     mapInstance.on('movestart', onMoveStart);
 
     mapInstance.once('load', () => {
-      if (!map.current) return;
+      if (!mapRef.current) return;
 
       mapInstance.addSource('route', {
         type: 'geojson',
@@ -198,39 +198,39 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
         },
       });
 
-      applyDriveCoords(currentRouteRef.current?.driveCoords);
+      applyDriveCoords(routeRef.current?.driveCoords);
     });
 
     updateMarkerPos();
 
     return () => {
-      if (animationFrame.current !== null) {
-        cancelAnimationFrame(animationFrame.current);
-        animationFrame.current = null;
+      if (frameIdRef.current !== null) {
+        cancelAnimationFrame(frameIdRef.current);
+        frameIdRef.current = null;
       }
-      clearTimeout(isInteractingTimeout.current);
-      isInteractingTimeout.current = null;
+      clearTimeout(interactionTimeoutRef.current);
+      interactionTimeoutRef.current = null;
 
       el.removeEventListener('touchstart', stopTouchPropagation);
       mapInstance.off('movestart', onMoveStart);
       mapInstance.remove();
-      map.current = null;
+      mapRef.current = null;
     };
   }, [applyDriveCoords]);
 
   useEffect(() => {
     setPath([]);
-    const route = currentRouteRef.current;
+    const route = routeRef.current;
     if (route) {
       dispatch(fetchDriveCoords(route));
     }
   }, [dispatch, routeFullname, setPath]);
 
   useEffect(() => {
-    if (prevStartTime.current && prevStartTime.current !== startTime) {
-      shouldFlyTo.current = true;
+    if (prevStartTimeRef.current && prevStartTimeRef.current !== startTime) {
+      shouldAnimateRef.current = true;
     }
-    prevStartTime.current = startTime;
+    prevStartTimeRef.current = startTime;
   }, [startTime]);
 
   useEffect(() => {
@@ -238,7 +238,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   }, [driveCoords, applyDriveCoords]);
 
   return (
-    <div ref={container} className="w-full h-full cursor-default" />
+    <div ref={containerRef} className="w-full h-full cursor-default" />
   );
 };
 
