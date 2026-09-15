@@ -121,22 +121,6 @@ const DriveMap = (props) => {
     setPath(Object.values(coords));
   }, [setPath]);
 
-  const stopTouchPropagation = useCallback((ev) => {
-    ev.stopPropagation();
-  }, []);
-
-  const onRef = useCallback((el) => {
-    if (container.current) {
-      container.current.removeEventListener('touchstart', stopTouchPropagation);
-    }
-
-    container.current = el;
-
-    if (el) {
-      el.addEventListener('touchstart', stopTouchPropagation);
-    }
-  }, [stopTouchPropagation]);
-
   const onViewportChange = useCallback((nextViewport) => {
     setViewport(nextViewport);
   }, []);
@@ -270,6 +254,17 @@ const DriveMap = (props) => {
   }, [driveCoords, applyDriveCoords]);
 
   useEffect(() => {
+    const el = container.current;
+    if (!el) return;
+
+    const stopTouchPropagation = (ev) => ev.stopPropagation();
+    el.addEventListener('touchstart', stopTouchPropagation);
+    return () => {
+      el.removeEventListener('touchstart', stopTouchPropagation);
+    }
+  }, []);
+
+  useEffect(() => {
     updateMarkerPos();
 
     return () => {
@@ -285,7 +280,7 @@ const DriveMap = (props) => {
   }, []);
 
   return (
-    <div ref={onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
+    <div ref={container} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
       <ReactMapGL
         width="100%"
         height="100%"
