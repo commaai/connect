@@ -211,7 +211,18 @@ const DriveMap = (props) => {
       applyDriveCoords(propsRef.current.currentRoute?.driveCoords);
     });
 
+    updateMarkerPos();
+
     return () => {
+      if (animationFrame.current !== null) {
+        cancelAnimationFrame(animationFrame.current);
+        animationFrame.current = null;
+      }
+      if (isInteractingTimeout.current !== null) {
+        clearTimeout(isInteractingTimeout.current);
+        isInteractingTimeout.current = null;
+      }
+
       el.removeEventListener('touchstart', stopTouchPropagation);
       mapInstance.off('movestart', onMoveStart);
       mapInstance.remove();
@@ -237,22 +248,6 @@ const DriveMap = (props) => {
   useEffect(() => {
     applyDriveCoords(driveCoords);
   }, [driveCoords, applyDriveCoords]);
-
-
-  useEffect(() => {
-    updateMarkerPos();
-
-    return () => {
-      if (animationFrame.current !== null) {
-        cancelAnimationFrame(animationFrame.current);
-        animationFrame.current = null;
-      }
-      if (isInteractingTimeout.current !== null) {
-        clearTimeout(isInteractingTimeout.current);
-        isInteractingTimeout.current = null;
-      }
-    };
-  }, []);
 
   return (
     <div ref={container} className="w-full h-full cursor-default" />
