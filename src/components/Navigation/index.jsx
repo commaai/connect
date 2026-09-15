@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
-import ReactMapGL, { GeolocateControl, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
+import ReactMapGL, { GeolocateControl, Marker, WebMercatorViewport } from 'react-map-gl';
 import { withStyles, Typography, Button } from '@material-ui/core';
 import dayjs from 'dayjs';
 
@@ -127,7 +127,7 @@ const itemLngLat = (item, bounds = false) => {
   const { lng, lat } = item.access?.length ? item.access[0] : item.position;
   const coordinates = [lng, lat];
   return bounds ? [coordinates, coordinates] : coordinates;
-}
+};
 
 const SearchSelectCard = ({ classes, device, searchSelect, carLocation, cardRef, onClear }) => {
   const { lat, lng } = searchSelect.position;
@@ -205,43 +205,10 @@ const Navigation = (props) => {
     if (carLastLocation) {
       return {
         location: carLastLocation,
-        accuracy: 0,
         time: carLastLocationTime,
       };
     }
     return null;
-  }
-
-  function carLocationCircle(carLoc) {
-    const points = 128;
-    const km = carLoc.accuracy / 1000;
-
-    const distanceX = km / (111.320 * Math.cos(carLoc.location[1] * (Math.PI / 180)));
-    const distanceY = km / 110.574;
-
-    const res = [];
-    let theta;
-    let x;
-    let y;
-    for (let i = 0; i < points; i++) {
-      theta = (i / points) * (2 * Math.PI);
-      x = distanceX * Math.cos(theta);
-      y = distanceY * Math.sin(theta);
-
-      res.push([carLoc.location[0] + x, carLoc.location[1] + y]);
-    }
-    res.push(res[0]);
-
-    return {
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [res],
-        },
-      }],
-    };
   }
 
   function focus(ev) {
@@ -569,18 +536,6 @@ const Navigation = (props) => {
                 {timeFromNow(carLocation.time)}
               </div>
             </Marker>
-          )}
-        {carLocation && Boolean(carLocation.accuracy)
-          && (
-            <Source type="geojson" data={carLocationCircle(carLocation)}>
-              <Layer
-                id="polygon"
-                type="fill"
-                source="polygon"
-                layout={{}}
-                paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }}
-              />
-            </Source>
           )}
       </ReactMapGL>
       {searchSelect && (
