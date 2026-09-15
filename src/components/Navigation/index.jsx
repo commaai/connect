@@ -123,6 +123,42 @@ const initialState = {
   windowWidth: window.innerWidth,
 };
 
+const itemLngLat = (item, bounds = false) => {
+  const { lng, lat } = item.access?.length ? item.access[0] : item.position;
+  const coordinates = [lng, lat];
+  return bounds ? [coordinates, coordinates] : coordinates;
+}
+
+const SearchSelectCard = ({ classes, device, searchSelect, carLocation, cardRef, onClear }) => {
+  const { lat, lng } = searchSelect.position;
+  const title = device.alias;
+
+  const mapsUrl = isIos()
+    ? `https://maps.apple.com/?ll=${lat},${lng}&q=${title}`
+    : `https://maps.google.com/?q=${lat},${lng}`;
+
+  return (
+    <div className={classes.searchSelectBox} ref={cardRef}>
+      <Clear className={classes.clearSearchSelect} onClick={onClear} />
+      <div className={classes.searchSelectBoxHeader}>
+        <div className={classes.searchSelectBoxTitle}>
+          <Typography className={classes.bold}>{title}</Typography>
+          <Typography className={classes.searchSelectBoxDetails}>{timeFromNow(carLocation.time)}</Typography>
+        </div>
+        <div className={classes.searchSelectBoxButtons}>
+          <Button classes={{ root: classes.searchSelectButton }} target="_blank" href={mapsUrl}>
+            open in maps
+          </Button>
+        </div>
+      </div>
+      <Typography className={classes.searchSelectBoxDetails}>
+        {Utils.formatPlaceName(searchSelect)}
+        {Utils.formatPlaceAddress(searchSelect)}
+      </Typography>
+    </div>
+  );
+};
+
 const Navigation = (props) => {
   const { classes, dispatch, device, dongleId } = props;
 
@@ -174,19 +210,6 @@ const Navigation = (props) => {
       };
     }
     return null;
-  }
-
-  function itemLoc(item) {
-    if (item.access && item.access.length) {
-      return item.access[0];
-    }
-    return item.position;
-  }
-
-  function itemLngLat(item, bounds = false) {
-    const pos = itemLoc(item);
-    const res = [pos.lng, pos.lat];
-    return bounds ? [res, res] : res;
   }
 
   function carLocationCircle(carLoc) {
@@ -393,41 +416,6 @@ const Navigation = (props) => {
     }
   }
 
-  function renderSearchOverlay() {
-    const carLocation = getCarLocation();
-
-    const title = device.alias;
-    const { lat, lng } = searchSelect.position;
-
-    let geoUri;
-    if (isIos()) {
-      geoUri = `https://maps.apple.com/?ll=${lat},${lng}&q=${title}`;
-    } else {
-      geoUri = `https://maps.google.com/?q=${lat},${lng}`;
-    }
-
-    return (
-      <div className={classes.searchSelectBox} ref={searchSelectBoxRef}>
-        <Clear className={classes.clearSearchSelect} onClick={clearSearchSelect} />
-        <div className={classes.searchSelectBoxHeader}>
-          <div className={classes.searchSelectBoxTitle}>
-            <Typography className={classes.bold}>{title}</Typography>
-            <Typography className={classes.searchSelectBoxDetails}>{timeFromNow(carLocation.time)}</Typography>
-          </div>
-          <div className={classes.searchSelectBoxButtons}>
-            <Button classes={{ root: classes.searchSelectButton }} target="_blank" href={geoUri}>
-              open in maps
-            </Button>
-          </div>
-        </div>
-        <Typography className={classes.searchSelectBoxDetails}>
-          {Utils.formatPlaceName(searchSelect)}
-          {Utils.formatPlaceAddress(searchSelect)}
-        </Typography>
-      </div>
-    );
-  }
-
   useEffect(() => {
     const el = mapContainerRef.current;
     if (!el) return;
@@ -452,7 +440,7 @@ const Navigation = (props) => {
 
   useEffect(() => {
     const prev = prevFlyStateRef.current;
-    const shouldFly = (carLastLocation && !prev.carLastLocation)
+    const shouldFly = (carLastLocation && prev.carLastLocation !== carLastLocation)
       || (geoLocateCoords && !prev.geoLocateCoords)
       || (searchSelect && prev.searchSelect !== searchSelect)
       || (search && prev.search !== search);
@@ -597,7 +585,14 @@ const Navigation = (props) => {
       </ReactMapGL>
       {searchSelect && (
         <div style={{ position: 'absolute', ...cardStyle, bottom: 10 }}>
-          {renderSearchOverlay()}
+          <SearchSelectCard
+            classes={classes}
+            device={device}
+            searchSelect={searchSelect}
+            carLocation={carLocation}
+            cardRef={searchSelectBoxRef}
+            onClear={clearSearchSelect}
+          />
         </div>
       )}
     </div>
