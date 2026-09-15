@@ -118,8 +118,6 @@ const initialState = {
   carLastLocationTime: null,
   geoLocateCoords: null,
   searchSelect: null,
-  searchLooking: false,
-  noFly: false,
   windowWidth: window.innerWidth,
 };
 
@@ -175,7 +173,6 @@ const Navigation = (props) => {
     carLastLocation: null,
     geoLocateCoords: null,
     searchSelect: null,
-    search: null,
   });
 
   const [state, setState] = useState(() => ({
@@ -190,7 +187,7 @@ const Navigation = (props) => {
 
   const {
     hasFocus, carLastLocation, carLastLocationTime, geoLocateCoords,
-    search, searchSelect, searchLooking, noFly, windowWidth, viewport, mapError,
+    searchSelect, windowWidth, viewport, mapError,
   } = state;
 
   function checkWebGLSupport() {
@@ -234,9 +231,7 @@ const Navigation = (props) => {
   function clearSearchSelect() {
     setState((prev) => ({
       ...prev,
-      noFly: false,
       searchSelect: null,
-      searchLooking: false,
     }));
   }
 
@@ -245,10 +240,6 @@ const Navigation = (props) => {
 
     if (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating) {
       focus();
-
-      if (search && !searchSelect && !searchLooking) {
-        setState((prev) => ({ ...prev, searchLooking: true, noFly: true }));
-      }
     }
   }
 
@@ -295,15 +286,13 @@ const Navigation = (props) => {
 
     dispatch(analyticsEvent('nav_search_select', {
       source: 'car',
-      panned: noFly,
+      panned: false,
       distance: item.distance,
     }));
 
     setState((prev) => ({
       ...prev,
-      noFly: false,
       searchSelect: item,
-      searchLooking: false,
     }));
 
     reverseLookup(carLoc.location, true).then((location) => {
@@ -327,10 +316,6 @@ const Navigation = (props) => {
   function flyToMarkers() {
     const carLocation = getCarLocation();
 
-    if (noFly) {
-      return;
-    }
-
     const bounds = [];
     if (geoLocateCoords) {
       bounds.push([geoLocateCoords, geoLocateCoords]);
@@ -340,10 +325,7 @@ const Navigation = (props) => {
     }
     if (searchSelect) {
       bounds.push(itemLngLat(searchSelect, true));
-    } else if (search) {
-      search.forEach((item) => bounds.push(itemLngLat(item, true)));
     }
-
     if (bounds.length) {
       const bbox = [[
         Math.min.apply(null, bounds.map((e) => e[0][0])),
@@ -366,7 +348,7 @@ const Navigation = (props) => {
         ? searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
 
       const padding = {
-        left: (windowWidth < 600 || !search) ? 20 : 390,
+        left: 20,
         right: 20,
         top: 20,
         bottom: bottomBoxHeight + 20,
@@ -410,12 +392,11 @@ const Navigation = (props) => {
     const shouldFly = (carLastLocation && prev.carLastLocation !== carLastLocation)
       || (geoLocateCoords && !prev.geoLocateCoords)
       || (searchSelect && prev.searchSelect !== searchSelect)
-      || (search && prev.search !== search);
-    prevFlyStateRef.current = { carLastLocation, geoLocateCoords, searchSelect, search };
+    prevFlyStateRef.current = { carLastLocation, geoLocateCoords, searchSelect };
     if (shouldFly) {
       flyToMarkers();
     }
-  }, [carLastLocation, geoLocateCoords, searchSelect, search]);
+  }, [carLastLocation, geoLocateCoords, searchSelect]);
 
   useEffect(() => {
     if (prevDongleIdRef.current !== dongleId) {
@@ -442,14 +423,6 @@ const Navigation = (props) => {
       }));
     }
   }, [hasFocus]);
-
-  useEffect(() => {
-    if (search) {
-      dispatch(analyticsEvent('nav_search', {
-        panned: noFly || searchLooking,
-      }));
-    }
-  }, [search]);
 
   const carLocation = getCarLocation();
 
