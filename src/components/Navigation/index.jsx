@@ -76,7 +76,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   const prevFlyStateRef = useRef({
     carLocation: null,
     geoLocateCoords: null,
-    selectedLocation: null,
+    selectedPosition: null,
   });
 
   const [hasFocus, setHasFocus] = useState(false);
@@ -86,6 +86,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   const [mapError, setMapError] = useState(null);
   const [markerElement] = useState(() => document.createElement('div'));
 
+  const selectedPosition = selectedLocation?.position ?? null;
   const focus = () => setHasFocus(true);
 
   function toggleCarPinTooltip(visible) {
@@ -142,6 +143,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     }));
 
     const [lng, lat] = carLoc.location;
+
     setSelectedLocation({
       address: {
         label: '',
@@ -157,7 +159,9 @@ const Navigation = ({ dispatch, device, dongleId }) => {
       if (!location) return;
 
       setSelectedLocation((prev) => {
-        if (!prev) return null;
+        if (!prev || prev.position.lng !== lng || prev.position.lat !== lat) {
+          return prev;
+        }
 
         return {
           ...prev,
@@ -181,8 +185,8 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     if (carLocation) {
       bounds.push([carLocation.location, carLocation.location]);
     }
-    if (selectedLocation) {
-      const { lng, lat } = selectedLocation.position;
+    if (selectedPosition) {
+      const { lng, lat } = selectedPosition;
       const coordinates = [lng, lat];
       bounds.push([coordinates, coordinates]);
     }
@@ -329,12 +333,12 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     const prev = prevFlyStateRef.current;
     const shouldFly = (carLocation && prev.carLocation !== carLocation)
       || (geoLocateCoords && !prev.geoLocateCoords)
-      || (selectedLocation && prev.selectedLocation !== selectedLocation);
-    prevFlyStateRef.current = { carLocation, geoLocateCoords, selectedLocation };
+      || (selectedPosition && prev.selectedPosition !== selectedPosition);
+    prevFlyStateRef.current = { carLocation, geoLocateCoords, selectedPosition };
     if (shouldFly) {
       flyToMarkers();
     }
-  }, [carLocation, geoLocateCoords, selectedLocation]);
+  }, [carLocation, geoLocateCoords, selectedPosition]);
 
   useEffect(() => {
     setHasFocus(false);
@@ -345,7 +349,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
 
   useEffect(() => {
     refreshDeviceLocation();
-  }, [device]);
+  }, [device, dongleId]);
 
   useEffect(() => {
     if (hasFocus) {
@@ -363,7 +367,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
       className="relative h-[200px] border-b border-white/10 [&_.mapboxgl-ctrl-geolocate]:hidden"
     >
       <div ref={mapElementRef} className="absolute inset-0 h-full w-full" />
-      <VisibilityHandler onVisible={refreshDeviceLocation} onInit onDongleId minInterval={60} />
+      <VisibilityHandler onVisible={refreshDeviceLocation} minInterval={60} />
       {mapError && (
         <div className="relative z-[1] mt-5 ml-5">
           <Typography className="text-white/50">Could not initialize map.</Typography>
