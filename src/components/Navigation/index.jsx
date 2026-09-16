@@ -413,18 +413,6 @@ const Navigation = ({ classes, dispatch, device, dongleId }) => {
     const stopMarkerClick = (event) => event.stopPropagation();
     markerElement.addEventListener('click', stopMarkerClick);
 
-    const setFocused = () => {
-      setState((prev) => (
-        prev.hasFocus ? prev : { ...prev, hasFocus: true }
-      ));
-    };
-
-    const handleMoveStart = (event) => {
-      if (event.originalEvent) {
-        setFocused();
-      }
-    };
-
     const handleGeolocate = (event) => {
       if (event.coords) {
         setState((prev) => ({
@@ -434,16 +422,19 @@ const Navigation = ({ classes, dispatch, device, dongleId }) => {
       }
     };
 
-    const handleError = (event) => {
+    map.on('click', focus);
+
+    map.on('movestart', (event) => {
+      if (event.originalEvent) focus();
+    });
+
+    map.on('error', (event) => {
       setState((prev) => ({
         ...prev,
         mapError: event.error.message,
       }));
-    };
+    });
 
-    map.on('click', setFocused);
-    map.on('movestart', handleMoveStart);
-    map.on('error', handleError);
     geolocateControl.on('geolocate', handleGeolocate);
 
     return () => {
@@ -544,12 +535,8 @@ const Navigation = ({ classes, dispatch, device, dongleId }) => {
             onMouseEnter={() => toggleCarPinTooltip(true)}
             onMouseLeave={() => toggleCarPinTooltip(false)}
             alt="car-location"
-            onClick={(event) => {
-              event.stopPropagation();
-              onCarSelect(carLocation);
-            }}
+            onClick={() => onCarSelect(carLocation)}
           />
-
           <div
             className={classes.carPinTooltip}
             ref={carPinTooltipRef}
