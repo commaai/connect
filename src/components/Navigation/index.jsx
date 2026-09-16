@@ -24,7 +24,7 @@ const navigationColors = {
   '--grey-900': '#1e2224',
 };
 
-const CarLocationCard = ({ device, selectedLocation, carLocation, cardRef, onClear }) => {
+const CarLocationCard = ({ device, selectedLocation, carLocation, onClear }) => {
   const { lat, lng } = selectedLocation.position;
   const title = device.alias;
 
@@ -33,10 +33,7 @@ const CarLocationCard = ({ device, selectedLocation, carLocation, cardRef, onCle
     : `https://maps.google.com/?q=${lat},${lng}`;
 
   return (
-    <div
-      ref={cardRef}
-      className="flex flex-col rounded-[22px] border border-white/10 bg-[var(--grey-800)] px-4 py-3 text-white"
-    >
+    <div className="flex flex-col rounded-[22px] border border-white/10 bg-[var(--grey-800)] px-4 py-3 text-white">
       <Clear
         className="absolute -top-2 -left-1.5 size-6 cursor-pointer rounded-xl border border-[var(--grey-600)] bg-[var(--grey-900)] p-[5px] text-xl text-white hover:bg-[var(--grey-700)]"
         onClick={onClear}
@@ -46,19 +43,17 @@ const CarLocationCard = ({ device, selectedLocation, carLocation, cardRef, onCle
           <Typography className="font-semibold">{title}</Typography>
           <Typography className="text-white/40">{timeFromNow(carLocation.time)}</Typography>
         </div>
-        <div className="flex flex-wrap-reverse items-end justify-end">
-          <Button
-            className={`ml-2 min-h-[unset] max-w-[125px] grow
-              rounded-[15px] bg-white px-3 py-1.5
-              normal-case text-[var(--grey-900)]
-              hover:bg-[#ddd] hover:text-[var(--grey-900)]
-              disabled:bg-[#ddd] disabled:text-[var(--grey-900)]`}
-            target="_blank"
-            href={mapsUrl}
-          >
-            open in maps
-          </Button>
-        </div>
+        <Button
+          className={`ml-2 min-h-[unset] max-w-[125px] grow
+            rounded-[15px] bg-white px-3 py-1.5
+            normal-case text-[var(--grey-900)]
+            hover:bg-[#ddd] hover:text-[var(--grey-900)]
+            disabled:bg-[#ddd] disabled:text-[var(--grey-900)]`}
+          target="_blank"
+          href={mapsUrl}
+        >
+          open in maps
+        </Button>
       </div>
       <Typography className="text-white/40">
         {Utils.formatPlaceName(selectedLocation)}
@@ -77,7 +72,6 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   const mapRef = useRef(null);
   const geolocateControlRef = useRef(null);
   const carMarkerRef = useRef(null);
-  const carLocationCardRef = useRef(null);
   const carPinTooltipRef = useRef(null);
   const prevFlyStateRef = useRef({
     carLocation: null,
@@ -142,8 +136,13 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   function onCarSelect(carLoc) {
     focus();
 
+    dispatch(analyticsEvent('nav_search_select', {
+      source: 'car',
+      panned: false,
+    }));
+
     const [lng, lat] = carLoc.location;
-    const item = {
+    setSelectedLocation({
       address: {
         label: '',
       },
@@ -152,14 +151,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
       },
       resultType: 'car',
       title: '',
-    };
-
-    dispatch(analyticsEvent('nav_search_select', {
-      source: 'car',
-      panned: false,
-    }));
-
-    setSelectedLocation(item);
+    });
 
     reverseLookup(carLoc.location, true).then((location) => {
       if (!location) return;
@@ -212,19 +204,9 @@ const Navigation = ({ dispatch, device, dongleId }) => {
         bbox[1][1] += 0.01;
       }
 
-      const mapHeight = map.getContainer().clientHeight;
-      const bottomBoxHeight = (carLocationCardRef.current && mapHeight > 200)
-        ? carLocationCardRef.current.getBoundingClientRect().height + 10
-        : 0;
-
       try {
         map.fitBounds(bbox, {
-          padding: {
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: bottomBoxHeight + 20,
-          },
+          padding: 20,
           maxZoom: 10,
           duration: 0,
         });
@@ -420,7 +402,6 @@ const Navigation = ({ dispatch, device, dongleId }) => {
             device={device}
             selectedLocation={selectedLocation}
             carLocation={carLocation}
-            cardRef={carLocationCardRef}
             onClear={() => setSelectedLocation(null)}
           />
         </div>
