@@ -144,12 +144,6 @@ const initialState = {
   searchSelect: null,
 };
 
-const itemLngLat = (item, bounds = false) => {
-  const { lng, lat } = item.access?.length ? item.access[0] : item.position;
-  const coordinates = [lng, lat];
-  return bounds ? [coordinates, coordinates] : coordinates;
-};
-
 const SearchSelectCard = ({ classes, device, searchSelect, carLocation, cardRef, onClear }) => {
   const { lat, lng } = searchSelect.position;
   const title = device.alias;
@@ -323,7 +317,9 @@ const Navigation = (props) => {
       bounds.push([carLocation.location, carLocation.location]);
     }
     if (searchSelect) {
-      bounds.push(itemLngLat(searchSelect, true));
+      const { lng, lat } = searchSelect.position;
+      const coordinates = [lng, lat];
+      bounds.push([coordinates, coordinates]);
     }
     if (bounds.length) {
       const bbox = [[
