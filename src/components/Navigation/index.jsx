@@ -3,13 +3,11 @@ import { createPortal } from 'react-dom';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 import mapboxgl from 'mapbox-gl';
-import { withStyles, Typography, Button } from '@material-ui/core';
-import dayjs from 'dayjs';
+import { Typography, Button } from '@material-ui/core';
 
 import { api } from '../../api/backend';
 import { analyticsEvent } from '../../actions';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../../utils/geocode';
-import Colors from '../../colors';
 import { Clear, PinCarIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
@@ -18,125 +16,15 @@ import { isIos } from '../../utils/browser.js';
 
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
-const styles = {
-  map: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-  },
-  mapContainer: {
-    position: 'relative',
-    borderBottom: `1px solid ${Colors.white10}`,
-    '& .mapboxgl-ctrl-geolocate': {
-      display: 'none',
-    },
-  },
-  mapError: {
-    position: 'relative',
-    zIndex: 1,
-    marginTop: 20,
-    marginLeft: 20,
-    '& p': { color: Colors.white50 },
-  },
-  searchSelectBox: {
-    borderRadius: 22,
-    padding: '12px 16px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  searchSelectOverlay: {
-    position: 'absolute',
-    zIndex: 4,
-    width: 'auto',
-    left: 10,
-    right: 10,
-    bottom: 10,
-    '@media (min-width: 600px)': {
-      width: 360,
-      right: 'auto',
-    },
-  },
-  searchSelectBoxHeader: {
-    display: 'flex',
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  searchSelectBoxTitle: {
-    flexBasis: 'auto',
-  },
-  searchSelectBoxButtons: {
-    display: 'flex',
-    flexWrap: 'wrap-reverse',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-  },
-  bold: {
-    fontWeight: 600,
-  },
-  searchSelectButton: {
-    marginLeft: 8,
-    padding: '6px 12px',
-    backgroundColor: Colors.white,
-    borderRadius: 15,
-    color: Colors.grey900,
-    textTransform: 'none',
-    minHeight: 'unset',
-    flexGrow: 1,
-    maxWidth: 125,
-    '&:hover': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-  },
-  searchSelectBoxDetails: {
-    color: Colors.white40,
-  },
-  pin: {
-    width: 20,
-    height: 32,
-  },
-  carPinTooltip: {
-    textAlign: 'center',
-    borderRadius: 14,
-    fontSize: '0.8em',
-    padding: '6px 8px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-  },
-  clearSearchSelect: {
-    padding: 5,
-    fontSize: 20,
-    cursor: 'pointer',
-    position: 'absolute',
-    left: -6,
-    top: -8,
-    height: 24,
-    width: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.grey900,
-    color: Colors.white,
-    border: `1px solid ${Colors.grey600}`,
-    '&:hover': {
-      backgroundColor: Colors.grey700,
-    },
-  },
+// TODO: move these into tailwind @theme in index.css
+const navigationColors = {
+  '--grey-600': '#394044',
+  '--grey-700': '#303639',
+  '--grey-800': '#272c2f',
+  '--grey-900': '#1e2224',
 };
 
-const SearchSelectCard = ({ classes, device, searchSelect, carLocation, cardRef, onClear }) => {
+const SearchSelectCard = ({ device, searchSelect, carLocation, cardRef, onClear }) => {
   const { lat, lng } = searchSelect.position;
   const title = device.alias;
 
@@ -145,20 +33,34 @@ const SearchSelectCard = ({ classes, device, searchSelect, carLocation, cardRef,
     : `https://maps.google.com/?q=${lat},${lng}`;
 
   return (
-    <div className={classes.searchSelectBox} ref={cardRef}>
-      <Clear className={classes.clearSearchSelect} onClick={onClear} />
-      <div className={classes.searchSelectBoxHeader}>
-        <div className={classes.searchSelectBoxTitle}>
-          <Typography className={classes.bold}>{title}</Typography>
-          <Typography className={classes.searchSelectBoxDetails}>{timeFromNow(carLocation.time)}</Typography>
+    <div
+      ref={cardRef}
+      className="flex flex-col rounded-[22px] border border-white/10 bg-[var(--grey-800)] px-4 py-3 text-white"
+    >
+      <Clear
+        className="absolute -top-2 -left-1.5 size-6 cursor-pointer rounded-xl border border-[var(--grey-600)] bg-[var(--grey-900)] p-[5px] text-xl text-white hover:bg-[var(--grey-700)]"
+        onClick={onClear}
+      />
+      <div className="flex w-full items-start justify-between mb-2.5">
+        <div>
+          <Typography className="font-semibold">{title}</Typography>
+          <Typography className="text-white/40">{timeFromNow(carLocation.time)}</Typography>
         </div>
-        <div className={classes.searchSelectBoxButtons}>
-          <Button classes={{ root: classes.searchSelectButton }} target="_blank" href={mapsUrl}>
+        <div className="flex flex-wrap-reverse items-end justify-end">
+          <Button
+            className={`ml-2 min-h-[unset] max-w-[125px] grow
+              rounded-[15px] bg-white px-3 py-1.5
+              normal-case text-[var(--grey-900)]
+              hover:bg-[#ddd] hover:text-[var(--grey-900)]
+              disabled:bg-[#ddd] disabled:text-[var(--grey-900)]`}
+            target="_blank"
+            href={mapsUrl}
+          >
             open in maps
           </Button>
         </div>
       </div>
-      <Typography className={classes.searchSelectBoxDetails}>
+      <Typography className="text-white/40">
         {Utils.formatPlaceName(searchSelect)}
         {Utils.formatPlaceAddress(searchSelect)}
       </Typography>
@@ -166,7 +68,7 @@ const SearchSelectCard = ({ classes, device, searchSelect, carLocation, cardRef,
   );
 };
 
-const Navigation = ({ classes, dispatch, device, dongleId }) => {
+const Navigation = ({ dispatch, device, dongleId }) => {
   const dongleIdRef = useRef(dongleId);
   dongleIdRef.current = dongleId;
 
@@ -211,6 +113,15 @@ const Navigation = ({ classes, dispatch, device, dongleId }) => {
 
   async function refreshDeviceLocation() {
     if (device.shared) return;
+
+    // TODO: remove this mock data
+    //if (device.shared) {
+    //  setCarLocation({
+    //    location: [-121.9886, 37.5485],
+    //    time: new Date().setHours(9, 5, 0, 0),
+    //  });
+    //  return;
+    //}
 
     try {
       const resp = await api.devices.fetchLocation(dongleId);
@@ -304,17 +215,17 @@ const Navigation = ({ classes, dispatch, device, dongleId }) => {
 
       const mapHeight = map.getContainer().clientHeight;
       const bottomBoxHeight = (searchSelectBoxRef.current && mapHeight > 200)
-        ? searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
+        ? searchSelectBoxRef.current.getBoundingClientRect().height + 10
+        : 0;
 
-      const padding = {
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: bottomBoxHeight + 20,
-      };
       try {
         map.fitBounds(bbox, {
-          padding,
+          padding: {
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: bottomBoxHeight + 20,
+          },
           maxZoom: 10,
           duration: 0,
         });
@@ -467,36 +378,36 @@ const Navigation = ({ classes, dispatch, device, dongleId }) => {
   return (
     <div
       ref={mapContainerRef}
-      className={classes.mapContainer}
-      style={{ height: 200 }}
+      style={navigationColors}
+      className="relative h-[200px] border-b border-white/10 [&_.mapboxgl-ctrl-geolocate]:hidden"
     >
-      <div ref={mapElementRef} className={classes.map} />
+      <div ref={mapElementRef} className="absolute inset-0 h-full w-full" />
       <VisibilityHandler onVisible={refreshDeviceLocation} onInit onDongleId minInterval={60} />
-      {mapError
-        && (
-          <div className={classes.mapError}>
-            <Typography>Could not initialize map.</Typography>
-            <Typography>{mapError}</Typography>
-          </div>
-        )}
+      {mapError && (
+        <div className="relative z-[1] mt-5 ml-5">
+          <Typography className="text-white/50">Could not initialize map.</Typography>
+          <Typography className="text-white/50">{mapError}</Typography>
+        </div>
+      )}
       {carLocation && createPortal(
         <>
           <PinCarIcon
-            className={classes.pin}
+            className="h-8 w-5"
+            alt="car-location"
             onMouseEnter={() => toggleCarPinTooltip(true)}
             onMouseLeave={() => toggleCarPinTooltip(false)}
-            alt="car-location"
             onClick={() => onCarSelect(carLocation)}
           />
           <div
-            className={classes.carPinTooltip}
             ref={carPinTooltipRef}
-            style={{
-              display: 'none',
-              transform: 'translate(calc(-50% + 10px), -4px)',
-            }}
+            className="rounded-[14px] border border-white/10 bg-[var(--grey-800)] px-2 py-1.5 text-center text-[0.8em] text-white"
+            style={{ display: 'none' }}
           >
-            {dayjs(carLocation.time).format('h:mm A')}
+            {new Date(carLocation.time).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            })}
             ,
             <br />
             {timeFromNow(carLocation.time)}
@@ -505,9 +416,8 @@ const Navigation = ({ classes, dispatch, device, dongleId }) => {
         markerElement,
       )}
       {searchSelect && (
-        <div className={classes.searchSelectOverlay}>
+        <div className="absolute inset-x-2.5 bottom-2.5 z-[4] w-auto min-[600px]:right-auto min-[600px]:w-[360px]">
           <SearchSelectCard
-            classes={classes}
             device={device}
             searchSelect={searchSelect}
             carLocation={carLocation}
@@ -525,4 +435,4 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
 });
 
-export default connect(stateToProps)(withStyles(styles)(Navigation));
+export default connect(stateToProps)(Navigation);
