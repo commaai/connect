@@ -174,11 +174,9 @@ const SearchSelectCard = ({ classes, device, searchSelect, carLocation, cardRef,
   );
 };
 
-const Navigation = (props) => {
-  const { classes, dispatch, device, dongleId } = props;
-
-  const propsRef = useRef(props);
-  propsRef.current = props;
+const Navigation = ({ classes, dispatch, device, dongleId }) => {
+  const dongleIdRef = useRef(dongleId);
+  dongleIdRef.current = dongleId;
 
   const mapContainerRef = useRef(null);
   const mapElementRef = useRef(null);
@@ -237,13 +235,11 @@ const Navigation = (props) => {
   }
 
   async function refreshDeviceLocation() {
-    const { dongleId: currentDongleId, device: currentDevice } = propsRef.current;
-    if (currentDevice.shared) {
-      return;
-    }
+    if (device.shared) return;
+
     try {
-      const resp = await api.devices.fetchLocation(currentDongleId);
-      if (currentDongleId === propsRef.current.dongleId) {
+      const resp = await api.devices.fetchLocation(dongleId);
+      if (dongleId === dongleIdRef.current) {
         setState((prev) => ({
           ...prev,
           carLastLocation: [resp.lng, resp.lat],
