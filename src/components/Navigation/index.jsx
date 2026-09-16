@@ -204,15 +204,9 @@ const Navigation = (props) => {
     searchSelect, windowWidth, mapError,
   } = state;
 
-  function getCarLocation() {
-    if (carLastLocation) {
-      return {
-        location: carLastLocation,
-        time: carLastLocationTime,
-      };
-    }
-    return null;
-  }
+  const carLocation = carLastLocation
+    ? { location: carLastLocation, time: carLastLocationTime }
+    : null;
 
   function focus() {
     setState((prev) => (
@@ -317,7 +311,6 @@ const Navigation = (props) => {
 
   function flyToMarkers() {
     const map = mapRef.current;
-    const carLocation = getCarLocation();
 
     if (!map) {
       return;
@@ -552,8 +545,6 @@ const Navigation = (props) => {
       }));
     }
   }, [hasFocus]);
-
-  const carLocation = getCarLocation();
 
   const cardStyle = windowWidth < 600
     ? { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
