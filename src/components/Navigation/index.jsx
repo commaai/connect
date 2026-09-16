@@ -13,7 +13,6 @@ import Colors from '../../colors';
 import { Clear, PinCarIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
-import { subscribeWindowSize } from '../../hooks/window';
 import * as Utils from './utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -51,6 +50,18 @@ const styles = {
     color: Colors.white,
     display: 'flex',
     flexDirection: 'column',
+  },
+  searchSelectOverlay: {
+    position: 'absolute',
+    zIndex: 4,
+    width: 'auto',
+    left: 10,
+    right: 10,
+    bottom: 10,
+    '@media (min-width: 600px)': {
+      width: 360,
+      right: 'auto',
+    },
   },
   searchSelectBoxHeader: {
     display: 'flex',
@@ -131,7 +142,6 @@ const initialState = {
   carLastLocationTime: null,
   geoLocateCoords: null,
   searchSelect: null,
-  windowWidth: window.innerWidth,
 };
 
 const itemLngLat = (item, bounds = false) => {
@@ -184,8 +194,6 @@ const Navigation = (props) => {
   const carMarkerRef = useRef(null);
   const searchSelectBoxRef = useRef(null);
   const carPinTooltipRef = useRef(null);
-  const prevDongleIdRef = useRef(undefined);
-  const prevDeviceRef = useRef(undefined);
   const prevFlyStateRef = useRef({
     carLastLocation: null,
     geoLocateCoords: null,
@@ -195,14 +203,10 @@ const Navigation = (props) => {
   const [state, setState] = useState(() => ({
     ...initialState,
     mapError: null,
-    windowWidth: window.innerWidth,
   }));
   const [markerElement] = useState(() => document.createElement('div'));
 
-  const {
-    hasFocus, carLastLocation, carLastLocationTime, geoLocateCoords,
-    searchSelect, windowWidth, mapError,
-  } = state;
+  const { hasFocus, carLastLocation, carLastLocationTime, geoLocateCoords, searchSelect, mapError } = state;
 
   const carLocation = carLastLocation
     ? { location: carLastLocation, time: carLastLocationTime }
@@ -239,7 +243,7 @@ const Navigation = (props) => {
     }));
   }
 
-  async function getDeviceLastLocation() {
+  async function refreshDeviceLocation() {
     const { dongleId: currentDongleId, device: currentDevice } = propsRef.current;
     if (currentDevice.shared) {
       return;
@@ -259,10 +263,6 @@ const Navigation = (props) => {
         Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
       }
     }
-  }
-
-  function updateDevice() {
-    getDeviceLastLocation();
   }
 
   function onCarSelect(carLoc) {
@@ -393,6 +393,8 @@ const Navigation = (props) => {
       dragRotate: false,
     });
     mapRef.current = map;
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(element);
 
     // create control
     const geolocateControl = new mapboxgl.GeolocateControl({
@@ -454,6 +456,7 @@ const Navigation = (props) => {
     geolocateControl.on('geolocate', handleGeolocate);
 
     return () => {
+      resizeObserver.disconnect();
       markerElement.removeEventListener('click', stopMarkerClick);
       geolocateControl.off('geolocate', handleGeolocate);
 
@@ -499,12 +502,8 @@ const Navigation = (props) => {
 
   useEffect(() => {
     mountedRef.current = true;
-    const unsub = subscribeWindowSize(({ width }) => {
-      setState((prev) => ({ ...prev, windowWidth: width }));
-    });
     return () => {
       mountedRef.current = false;
-      unsub?.();
     };
   }, []);
 
@@ -520,21 +519,14 @@ const Navigation = (props) => {
   }, [carLastLocation, geoLocateCoords, searchSelect]);
 
   useEffect(() => {
-    if (prevDongleIdRef.current !== dongleId) {
-      prevDongleIdRef.current = dongleId;
-      setState((prev) => ({
-        ...prev,
-        ...initialState,
-        windowWidth: window.innerWidth,
-      }));
-    }
+    setState((prev) => ({
+      ...prev,
+      ...initialState,
+    }));
   }, [dongleId]);
 
   useEffect(() => {
-    if (prevDeviceRef.current !== device) {
-      prevDeviceRef.current = device;
-      updateDevice();
-    }
+    refreshDeviceLocation();
   }, [device]);
 
   useEffect(() => {
@@ -546,10 +538,6 @@ const Navigation = (props) => {
     }
   }, [hasFocus]);
 
-  const cardStyle = windowWidth < 600
-    ? { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
-    : { zIndex: 4, width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
-
   return (
     <div
       ref={mapContainerRef}
@@ -557,7 +545,7 @@ const Navigation = (props) => {
       style={{ height: 200 }}
     >
       <div ref={mapElementRef} className={classes.map} />
-      <VisibilityHandler onVisible={updateDevice} onInit onDongleId minInterval={60} />
+      <VisibilityHandler onVisible={refreshDeviceLocation} onInit onDongleId minInterval={60} />
       {mapError
         && (
           <div className={classes.mapError}>
@@ -595,7 +583,7 @@ const Navigation = (props) => {
         markerElement,
       )}
       {searchSelect && (
-        <div style={{ position: 'absolute', ...cardStyle, bottom: 10 }}>
+        <div className={classes.searchSelectOverlay}>
           <SearchSelectCard
             classes={classes}
             device={device}
