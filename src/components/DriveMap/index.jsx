@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { connect } from 'react-redux';
-import mapboxgl from 'mapbox-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
 import { currentOffset } from '../../timeline';
-import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
-
-mapboxgl.accessToken = MAPBOX_TOKEN;
+import { createMap } from '../../utils/mapbox';
 
 const INTERACTION_TIMEOUT = 5000;
 
@@ -120,26 +117,19 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   }, [setPath]);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    const element = containerRef.current;
+    if (!element) return;
 
-    const stopTouchPropagation = (ev) => ev.stopPropagation();
-    el.addEventListener('touchstart', stopTouchPropagation);
+    const stopTouchPropagation = (event) => event.stopPropagation();
+    element.addEventListener('touchstart', stopTouchPropagation);
 
-    const map = new mapboxgl.Map({
-      container: el,
-      style: MAPBOX_STYLE,
-      center: [DEFAULT_LOCATION.longitude, DEFAULT_LOCATION.latitude],
-      zoom: 14,
-      pitch: 0,
-      maxPitch: 0,
-      attributionControl: false,
-      dragRotate: false,
-    });
+    const map = createMap(element, { zoom: 14 });
     mapRef.current = map;
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(element);
 
-    map.on('movestart', (e) => {
-      if (!e.originalEvent) return;
+    map.on('movestart', (event) => {
+      if (!event.originalEvent) return;
       shouldAnimateRef.current = true;
       isInteractingRef.current = true;
       clearTimeout(interactionTimeoutRef.current);
@@ -196,8 +186,8 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
         frameIdRef.current = null;
       }
       clearTimeout(interactionTimeoutRef.current);
-
-      el.removeEventListener('touchstart', stopTouchPropagation);
+      resizeObserver.disconnect();
+      element.removeEventListener('touchstart', stopTouchPropagation);
       map.remove();
       mapRef.current = null;
     };
@@ -227,7 +217,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   }, [driveCoords, applyDriveCoords]);
 
   return (
-    <div ref={containerRef} className="w-full h-full min-h-[300px] cursor-default" />
+    <div ref={containerRef} className="h-full min-h-[300px] w-full cursor-default" />
   );
 };
 

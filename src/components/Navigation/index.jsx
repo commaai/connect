@@ -1,20 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
-import mapboxgl from 'mapbox-gl';
 import { Typography, Button } from '@material-ui/core';
 
 import { api } from '../../api/backend';
 import { analyticsEvent } from '../../actions';
-import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../../utils/geocode';
 import { Clear, PinCarIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
+import { reverseLookup } from '../../utils/geocode';
+import mapboxgl, { createMap } from '../../utils/mapbox';
 import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
 import { isIos } from '../../utils/browser.js';
-
-mapboxgl.accessToken = MAPBOX_TOKEN;
 
 // TODO: move these into tailwind @theme in index.css
 const navigationColors = {
@@ -23,6 +21,12 @@ const navigationColors = {
   '--grey-800': '#272c2f',
   '--grey-900': '#1e2224',
 };
+
+const timeFormatter = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
 
 const CarLocationCard = ({ device, selectedLocation, carLocation, onClear }) => {
   const { lat, lng } = selectedLocation.position;
@@ -107,16 +111,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   }
 
   async function refreshDeviceLocation() {
-    // if (device.shared) return;
-
-    // TODO: remove this mock data
-    if (device.shared) {
-      setCarLocation({
-        location: [-121.9886, 37.5485],
-        time: new Date().setHours(9, 5, 0, 0),
-      });
-      return;
-    }
+    if (device.shared) return;
 
     try {
       const resp = await api.devices.fetchLocation(dongleId);
@@ -127,14 +122,13 @@ const Navigation = ({ dispatch, device, dongleId }) => {
         });
       }
     } catch (err) {
-      if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
-      }
+      if (err?.message?.includes('no_segments_uploaded')) return;
+      console.error(err);
+      Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
     }
   }
 
-  function onCarSelect(carLoc) {
+  async function onCarSelect(carLoc) {
     focus();
 
     dispatch(analyticsEvent('nav_search_select', {
@@ -155,69 +149,58 @@ const Navigation = ({ dispatch, device, dongleId }) => {
       title: '',
     });
 
-    reverseLookup(carLoc.location, true).then((location) => {
-      if (!location) return;
+    const location = await reverseLookup(carLoc.location, true);
+    if (!location || dongleId !== dongleIdRef.current) return;
 
-      setSelectedLocation((prev) => {
-        if (!prev || prev.position.lng !== lng || prev.position.lat !== lat) {
-          return prev;
-        }
+    setSelectedLocation((prev) => {
+      if (!prev || prev.position.lng !== lng || prev.position.lat !== lat) {
+        return prev;
+      }
 
-        return {
-          ...prev,
-          address: {
-            label: location.details,
-          },
-          title: location.place,
-        };
-      });
+      return {
+        ...prev,
+        address: { label: location.details },
+        title: location.place,
+      };
     });
   }
 
-  function flyToMarkers() {
+  function fitMapToLocations() {
     const map = mapRef.current;
     if (!map) return;
 
-    const bounds = [];
-    if (geoLocateCoords) {
-      bounds.push([geoLocateCoords, geoLocateCoords]);
-    }
-    if (carLocation) {
-      bounds.push([carLocation.location, carLocation.location]);
-    }
-    if (selectedPosition) {
-      const { lng, lat } = selectedPosition;
-      const coordinates = [lng, lat];
-      bounds.push([coordinates, coordinates]);
-    }
-    if (bounds.length) {
-      const bbox = [[
-        Math.min.apply(null, bounds.map((entry) => entry[0][0])),
-        Math.min.apply(null, bounds.map((entry) => entry[0][1])),
-      ], [
-        Math.max.apply(null, bounds.map((entry) => entry[1][0])),
-        Math.max.apply(null, bounds.map((entry) => entry[1][1])),
-      ]];
+    const positions = [
+      geoLocateCoords,
+      carLocation?.location,
+      selectedPosition && [selectedPosition.lng, selectedPosition.lat],
+    ].filter(Boolean);
+    if (!positions.length) return;
 
-      if (Math.abs(bbox[1][0] - bbox[0][0]) < 0.01) {
-        bbox[0][0] -= 0.01; // west
-        bbox[1][0] += 0.01; // east
-      }
-      if (Math.abs(bbox[1][1] - bbox[0][1]) < 0.01) {
-        bbox[0][1] -= 0.01; // south
-        bbox[1][1] += 0.01; // north
-      }
+    const longitudes = positions.map((position) => position[0]);
+    const latitudes = positions.map((position) => position[1]);
+    const bbox = [
+      [Math.min(...longitudes), Math.min(...latitudes)],
+      [Math.max(...longitudes), Math.max(...latitudes)],
+    ];
 
-      try {
-        map.fitBounds(bbox, {
-          padding: 20,
-          maxZoom: 10,
-          duration: 0,
-        });
-      } catch (err) {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'nav_flymarkers_viewport' });
-      }
+    if (Math.abs(bbox[1][0] - bbox[0][0]) < 0.01) {
+      bbox[0][0] -= 0.01; // west
+      bbox[1][0] += 0.01; // east
+    }
+    if (Math.abs(bbox[1][1] - bbox[0][1]) < 0.01) {
+      bbox[0][1] -= 0.01; // south
+      bbox[1][1] += 0.01; // north
+    }
+
+    try {
+      map.fitBounds(bbox, {
+        padding: 20,
+        maxZoom: 10,
+        duration: 0,
+      });
+    } catch (err) {
+      console.error(err);
+      Sentry.captureException(err, { fingerprint: 'nav_flymarkers_viewport' });
     }
   }
 
@@ -231,16 +214,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     }
 
     // create map
-    const map = new mapboxgl.Map({
-      container: element,
-      style: MAPBOX_STYLE,
-      center: [DEFAULT_LOCATION.longitude, DEFAULT_LOCATION.latitude],
-      zoom: 5,
-      pitch: 0,
-      maxPitch: 0,
-      attributionControl: false,
-      dragRotate: false,
-    });
+    const map = createMap(element, { zoom: 5 });
     mapRef.current = map;
     const resizeObserver = new ResizeObserver(() => map.resize());
     resizeObserver.observe(element);
@@ -276,6 +250,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
         setGeoLocateCoords([event.coords.longitude, event.coords.latitude]);
       }
     };
+    geolocateControl.on('geolocate', handleGeolocate);
 
     map.on('click', focus);
 
@@ -284,8 +259,6 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     });
 
     map.on('error', (event) => setMapError(event.error.message));
-
-    geolocateControl.on('geolocate', handleGeolocate);
 
     return () => {
       resizeObserver.disconnect();
@@ -320,12 +293,12 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   }, [carLocation]);
 
   useEffect(() => {
-    const el = mapContainerRef.current;
-    if (!el) return;
-    const stopTouchPropagation = (ev) => ev.stopPropagation();
-    el.addEventListener('touchstart', stopTouchPropagation);
+    const element = mapContainerRef.current;
+    if (!element) return;
+    const stopTouchPropagation = (event) => event.stopPropagation();
+    element.addEventListener('touchstart', stopTouchPropagation);
     return () => {
-      el.removeEventListener('touchstart', stopTouchPropagation);
+      element.removeEventListener('touchstart', stopTouchPropagation);
     }
   }, []);
 
@@ -336,7 +309,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
       || (selectedPosition && prev.selectedPosition !== selectedPosition);
     prevFlyStateRef.current = { carLocation, geoLocateCoords, selectedPosition };
     if (shouldFly) {
-      flyToMarkers();
+      fitMapToLocations();
     }
   }, [carLocation, geoLocateCoords, selectedPosition]);
 
@@ -388,13 +361,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
             className="rounded-[14px] border border-white/10 bg-[var(--grey-800)] px-2 py-1.5 text-center text-[0.8em] text-white"
             style={{ display: 'none' }}
           >
-            {new Date(carLocation.time).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true,
-            })}
-            ,
-            <br />
+            {timeFormatter.format(new Date(carLocation.time))},<br />
             {timeFromNow(carLocation.time)}
           </div>
         </>,
