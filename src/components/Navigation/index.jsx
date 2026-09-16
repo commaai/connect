@@ -24,8 +24,8 @@ const navigationColors = {
   '--grey-900': '#1e2224',
 };
 
-const SearchSelectCard = ({ device, searchSelect, carLocation, cardRef, onClear }) => {
-  const { lat, lng } = searchSelect.position;
+const CarLocationCard = ({ device, selectedLocation, carLocation, cardRef, onClear }) => {
+  const { lat, lng } = selectedLocation.position;
   const title = device.alias;
 
   const mapsUrl = isIos()
@@ -61,8 +61,8 @@ const SearchSelectCard = ({ device, searchSelect, carLocation, cardRef, onClear 
         </div>
       </div>
       <Typography className="text-white/40">
-        {Utils.formatPlaceName(searchSelect)}
-        {Utils.formatPlaceAddress(searchSelect)}
+        {Utils.formatPlaceName(selectedLocation)}
+        {Utils.formatPlaceAddress(selectedLocation)}
       </Typography>
     </div>
   );
@@ -77,18 +77,18 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   const mapRef = useRef(null);
   const geolocateControlRef = useRef(null);
   const carMarkerRef = useRef(null);
-  const searchSelectBoxRef = useRef(null);
+  const carLocationCardRef = useRef(null);
   const carPinTooltipRef = useRef(null);
   const prevFlyStateRef = useRef({
     carLocation: null,
     geoLocateCoords: null,
-    searchSelect: null,
+    selectedLocation: null,
   });
 
   const [hasFocus, setHasFocus] = useState(false);
   const [carLocation, setCarLocation] = useState(null);
   const [geoLocateCoords, setGeoLocateCoords] = useState(null);
-  const [searchSelect, setSearchSelect] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [mapError, setMapError] = useState(null);
   const [markerElement] = useState(() => document.createElement('div'));
 
@@ -157,15 +157,14 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     dispatch(analyticsEvent('nav_search_select', {
       source: 'car',
       panned: false,
-      distance: item.distance,
     }));
 
-    setSearchSelect(item);
+    setSelectedLocation(item);
 
     reverseLookup(carLoc.location, true).then((location) => {
       if (!location) return;
 
-      setSearchSelect((prev) => {
+      setSelectedLocation((prev) => {
         if (!prev) return null;
 
         return {
@@ -190,8 +189,8 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     if (carLocation) {
       bounds.push([carLocation.location, carLocation.location]);
     }
-    if (searchSelect) {
-      const { lng, lat } = searchSelect.position;
+    if (selectedLocation) {
+      const { lng, lat } = selectedLocation.position;
       const coordinates = [lng, lat];
       bounds.push([coordinates, coordinates]);
     }
@@ -214,8 +213,8 @@ const Navigation = ({ dispatch, device, dongleId }) => {
       }
 
       const mapHeight = map.getContainer().clientHeight;
-      const bottomBoxHeight = (searchSelectBoxRef.current && mapHeight > 200)
-        ? searchSelectBoxRef.current.getBoundingClientRect().height + 10
+      const bottomBoxHeight = (carLocationCardRef.current && mapHeight > 200)
+        ? carLocationCardRef.current.getBoundingClientRect().height + 10
         : 0;
 
       try {
@@ -348,18 +347,18 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     const prev = prevFlyStateRef.current;
     const shouldFly = (carLocation && prev.carLocation !== carLocation)
       || (geoLocateCoords && !prev.geoLocateCoords)
-      || (searchSelect && prev.searchSelect !== searchSelect);
-    prevFlyStateRef.current = { carLocation, geoLocateCoords, searchSelect };
+      || (selectedLocation && prev.selectedLocation !== selectedLocation);
+    prevFlyStateRef.current = { carLocation, geoLocateCoords, selectedLocation };
     if (shouldFly) {
       flyToMarkers();
     }
-  }, [carLocation, geoLocateCoords, searchSelect]);
+  }, [carLocation, geoLocateCoords, selectedLocation]);
 
   useEffect(() => {
     setHasFocus(false);
     setCarLocation(null);
     setGeoLocateCoords(null);
-    setSearchSelect(null);
+    setSelectedLocation(null);
   }, [dongleId]);
 
   useEffect(() => {
@@ -415,14 +414,14 @@ const Navigation = ({ dispatch, device, dongleId }) => {
         </>,
         markerElement,
       )}
-      {searchSelect && (
+      {selectedLocation && (
         <div className="absolute inset-x-2.5 bottom-2.5 z-[4] w-auto min-[600px]:right-auto min-[600px]:w-[360px]">
-          <SearchSelectCard
+          <CarLocationCard
             device={device}
-            searchSelect={searchSelect}
+            selectedLocation={selectedLocation}
             carLocation={carLocation}
-            cardRef={searchSelectBoxRef}
-            onClear={() => setSearchSelect(null)}
+            cardRef={carLocationCardRef}
+            onClear={() => setSelectedLocation(null)}
           />
         </div>
       )}
