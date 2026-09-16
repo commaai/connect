@@ -106,16 +106,16 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   }
 
   async function refreshDeviceLocation() {
-    if (device.shared) return;
+    // if (device.shared) return;
 
     // TODO: remove this mock data
-    //if (device.shared) {
-    //  setCarLocation({
-    //    location: [-121.9886, 37.5485],
-    //    time: new Date().setHours(9, 5, 0, 0),
-    //  });
-    //  return;
-    //}
+    if (device.shared) {
+      setCarLocation({
+        location: [-121.9886, 37.5485],
+        time: new Date().setHours(9, 5, 0, 0),
+      });
+      return;
+    }
 
     try {
       const resp = await api.devices.fetchLocation(dongleId);
@@ -195,13 +195,13 @@ const Navigation = ({ dispatch, device, dongleId }) => {
         Math.max.apply(null, bounds.map((entry) => entry[1][1])),
       ]];
 
-      if (Math.abs(bbox[0][0] - bbox[1][0]) < 0.01) {
-        bbox[0][0] -= 0.01;
-        bbox[0][1] += 0.01;
+      if (Math.abs(bbox[1][0] - bbox[0][0]) < 0.01) {
+        bbox[0][0] -= 0.01; // west
+        bbox[1][0] += 0.01; // east
       }
-      if (Math.abs(bbox[1][0] - bbox[1][1]) < 0.01) {
-        bbox[1][0] -= 0.01;
-        bbox[1][1] += 0.01;
+      if (Math.abs(bbox[1][1] - bbox[0][1]) < 0.01) {
+        bbox[0][1] -= 0.01; // south
+        bbox[1][1] += 0.01; // north
       }
 
       try {
