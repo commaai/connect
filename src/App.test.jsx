@@ -29,16 +29,6 @@ vi.mock('./utils/webrtc', () => ({
     release: vi.fn(),
   },
 }));
-vi.mock('react-map-gl', () => ({
-  default: React.forwardRef((_props, ref) => <div ref={ref} data-testid="map" />),
-  GeolocateControl: () => null,
-  HTMLOverlay: () => null,
-  Layer: () => null,
-  LinearInterpolator: class {},
-  Marker: ({ children }) => children,
-  Source: ({ children }) => children,
-  WebMercatorViewport: class {},
-}));
 vi.mock('react-player/file', () => ({
   default: React.forwardRef((_props, ref) => {
     React.useImperativeHandle(ref, () => ({
