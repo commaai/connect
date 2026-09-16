@@ -186,7 +186,6 @@ const Navigation = (props) => {
   const propsRef = useRef(props);
   propsRef.current = props;
 
-  const mountedRef = useRef(false);
   const mapContainerRef = useRef(null);
   const mapElementRef = useRef(null);
   const mapRef = useRef(null);
@@ -250,7 +249,7 @@ const Navigation = (props) => {
     }
     try {
       const resp = await api.devices.fetchLocation(currentDongleId);
-      if (mountedRef.current && currentDongleId === propsRef.current.dongleId) {
+      if (currentDongleId === propsRef.current.dongleId) {
         setState((prev) => ({
           ...prev,
           carLastLocation: [resp.lng, resp.lat],
@@ -498,13 +497,6 @@ const Navigation = (props) => {
     return () => {
       el.removeEventListener('touchstart', stopTouchPropagation);
     }
-  }, []);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
   }, []);
 
   useEffect(() => {
