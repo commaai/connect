@@ -22,7 +22,12 @@ export default function attachCameraZoom(element, track, isActive) {
         // eslint-disable-next-line no-await-in-loop
         await track.applyConstraints({
           ...constraints,
-          advanced: [...(constraints.advanced || []).map(({ zoom: oldZoom, ...rest }) => rest), { zoom: value }],
+          advanced: [
+            ...(constraints.advanced || [])
+              .map(({ zoom: oldZoom, ...rest }) => rest)
+              .filter((constraint) => Object.keys(constraint).length > 0),
+            { zoom: value },
+          ],
         });
         applied = value;
       }
