@@ -97,7 +97,7 @@ const styles = (theme) => ({
   },
 });
 
-export class AddDevice extends Component {
+class AddDevice extends Component {
   constructor(props) {
     super(props);
 
@@ -138,43 +138,24 @@ export class AddDevice extends Component {
   async componentDidUpdate() {
     const { modalOpen, pairLoading, pairError, pairDongleId, hasCamera } = this.state;
 
-    // Request access directly: device enumeration before permission is not a
-    // reliable camera availability check on Safari.
+    // Request permission directly; enumeration can hide cameras before permission is granted.
     if (modalOpen && this.videoRef && !this.detector && hasCamera !== false && !pairDongleId) {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        this.setState({
-          hasCamera: false,
-          cameraError: window.isSecureContext === false
-            ? 'Camera access requires HTTPS. Open this page over HTTPS to scan a QR code.'
-            : 'Camera access is unavailable in this browser. Open this page in Safari or another supported browser.',
-        });
-        return;
-      }
-      let detector = null;
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
-        detector = this.detector;
-        const stream = await navigator.mediaDevices.getUserMedia({
+        this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
-        if (this.detector !== detector || !this.videoRef) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-        this.stream = stream;
         this.detachCameraZoom = attachCameraZoom(
           this.videoRef.parentElement,
-          stream.getVideoTracks()[0],
+          this.stream.getVideoTracks()[0],
           () => this.scanning && !this.state.pairLoading && !this.state.pairError && !this.state.pairDongleId,
         );
         this.videoRef.srcObject = this.stream;
+        this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
-        if (this.detector !== detector) return;
-        this.setState({ hasCamera: true, cameraError: null });
+        this.setState({ hasCamera: true });
         this.startScanning();
       } catch (err) {
-        if (this.detector !== detector) return;
-        this.stopCamera();
         let cameraError = 'Unable to access camera.';
         if (err.name === 'NotAllowedError') {
           cameraError = 'Camera access denied. Please allow camera access in your browser settings and try again.';
@@ -268,12 +249,7 @@ export class AddDevice extends Component {
     }
   }
 
-  componentWillUnmount() {
-    this.stopCamera();
-  }
-
-  stopCamera() {
-    this.detector = null;
+  async componentWillUnmount() {
     this.detachCameraZoom();
     this.stopScanning();
     if (this.stream) {
@@ -303,7 +279,13 @@ export class AddDevice extends Component {
   modalClose() {
     const { pairDongleId } = this.state;
 
-    this.stopCamera();
+    this.detachCameraZoom();
+    this.stopScanning();
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+    }
+    this.detector = null;
 
     if (pairDongleId && this.props.devices.length === 0) {
       this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
@@ -447,7 +429,7 @@ export class AddDevice extends Component {
                     </>
                     ) }
                   </div>
-                  <video className={ classes.video } ref={ this.onVideoRef } muted playsInline />
+                  <video className={ classes.video } ref={ this.onVideoRef } />
                 </div>
               )}
           </Paper>

@@ -18,6 +18,8 @@ export default function attachCameraZoom(element, track, isActive) {
       while (!disposed && isActive() && target !== applied) {
         const value = target;
         const constraints = track.getConstraints();
+        // Apply zoom sequentially so older updates cannot overwrite newer ones.
+        // eslint-disable-next-line no-await-in-loop
         await track.applyConstraints({
           ...constraints,
           advanced: [...(constraints.advanced || []).map(({ zoom: oldZoom, ...rest }) => rest), { zoom: value }],
