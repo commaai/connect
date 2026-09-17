@@ -24,10 +24,7 @@ vi.mock('mapbox-gl', () => ({
         getContainer: vi.fn(() => container),
         getSource: vi.fn((id) => sources.get(id)),
         jumpTo: vi.fn(),
-        off: vi.fn(),
-        on: vi.fn((event, listener) => {
-          if (event === 'load') listener();
-        }),
+        on: vi.fn(),
         once: vi.fn((event, listener) => {
           if (event === 'load') listener();
         }),
