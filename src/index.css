@@ -55,6 +55,12 @@ html {
   margin-right: env(safe-area-inset-right);
 }
 
+/* Material UI v1 locks body overflow while a modal is mounted. Mirror that
+ * state onto Safari's root scroller so the page cannot move behind the modal. */
+html:has(> body[style*="overflow: hidden"]) {
+  overflow: hidden;
+}
+
 body {
   background: #1D2225;
   font-family: 'Inter', sans-serif;
