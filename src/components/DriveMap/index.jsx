@@ -26,14 +26,8 @@ const posAtOffset = (offset, coords, range) => {
 
   const offsetSeconds = Math.floor(offset / 1e3);
   const offsetFractionalPart = (offset % 1e3) / 1000.0;
-  const coordIdx = Math.max(driveCoordsMin, Math.min(
-    offsetSeconds,
-    driveCoordsMax,
-  ));
-  const nextCoordIdx = Math.max(driveCoordsMin, Math.min(
-    offsetSeconds + 1,
-    driveCoordsMax,
-  ));
+  const coordIdx = Math.max(driveCoordsMin, Math.min(offsetSeconds, driveCoordsMax));
+  const nextCoordIdx = Math.max(driveCoordsMin, Math.min(offsetSeconds + 1, driveCoordsMax));
 
   if (!coords[coordIdx]) return null;
 
@@ -53,8 +47,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const shouldAnimateRef = useRef(false);
-  const isInteractingRef = useRef(false);
-  const interactionTimeoutRef = useRef(null);
+  const resumeAtRef = useRef(0);
   const lastPositionRef = useRef([0, 0]);
   const frameIdRef = useRef(null);
   const coordRangeRef = useRef({ min: null, max: null });
@@ -65,7 +58,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   const driveCoords = currentRoute?.driveCoords;
 
   function moveViewportTo(pos) {
-    if (!mapRef.current) return;
+    if (!mapRef.current || performance.now() < resumeAtRef.current) return;
 
     if (shouldAnimateRef.current) {
       mapRef.current.easeTo({
@@ -88,9 +81,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
         if (pos && pos.some((coordinate, index) => coordinate !== lastPositionRef.current[index])) {
           lastPositionRef.current = pos;
           markerSource.setData(createPointData(pos));
-          if (!isInteractingRef.current) {
-            moveViewportTo(pos);
-          }
+          moveViewportTo(pos);
         }
       } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
         markerSource.setData(createPointData());
@@ -128,14 +119,20 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
     const resizeObserver = new ResizeObserver(() => map.resize());
     resizeObserver.observe(element);
 
-    map.on('movestart', (event) => {
-      if (!event.originalEvent) return;
+    const markInteraction = () => {
       shouldAnimateRef.current = true;
-      isInteractingRef.current = true;
-      clearTimeout(interactionTimeoutRef.current);
-      interactionTimeoutRef.current = setTimeout(() => {
-        isInteractingRef.current = false;
-      }, INTERACTION_TIMEOUT);
+      resumeAtRef.current = performance.now() + INTERACTION_TIMEOUT;
+    };
+
+    element.addEventListener('pointerdown', markInteraction, true);
+    element.addEventListener('wheel', markInteraction, {
+      capture: true,
+      passive: true,
+    });
+
+    map.on('move', (event) => {
+      if (!event.originalEvent || event.originalEvent.type === 'resize') return;
+      markInteraction();
     });
 
     map.once('load', () => {
@@ -185,9 +182,10 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
         cancelAnimationFrame(frameIdRef.current);
         frameIdRef.current = null;
       }
-      clearTimeout(interactionTimeoutRef.current);
       resizeObserver.disconnect();
       element.removeEventListener('touchstart', stopTouchPropagation);
+      element.removeEventListener('pointerdown', markInteraction, true);
+      element.removeEventListener('wheel', markInteraction, true);
       map.remove();
       mapRef.current = null;
     };

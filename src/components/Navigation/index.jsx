@@ -91,7 +91,6 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   const [markerElement] = useState(() => document.createElement('div'));
 
   const selectedPosition = selectedLocation?.position ?? null;
-  const focus = () => setHasFocus(true);
 
   function toggleCarPinTooltip(visible) {
     const tooltip = carPinTooltipRef.current;
@@ -129,7 +128,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   }
 
   async function onCarSelect(carLoc) {
-    focus();
+    setHasFocus(true);
 
     dispatch(analyticsEvent('nav_search_select', {
       source: 'car',
@@ -252,10 +251,12 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     };
     geolocateControl.on('geolocate', handleGeolocate);
 
-    map.on('click', focus);
+    map.on('click', () => setHasFocus(true));
 
     map.on('movestart', (event) => {
-      if (event.originalEvent) focus();
+      if (event.originalEvent) {
+        setHasFocus(true);
+      }
     });
 
     map.on('error', (event) => setMapError(event.error.message));
