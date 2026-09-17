@@ -32,11 +32,8 @@ const posAtOffset = (offset, coords, range) => {
   if (!coords[coordIdx]) return null;
 
   const [floorLng, floorLat] = coords[coordIdx];
-  if (!coords[nextCoordIdx]) {
-    return [floorLng, floorLat];
-  }
+  const [ceilLng, ceilLat] = coords[nextCoordIdx] || coords[coordIdx];
 
-  const [ceilLng, ceilLat] = coords[nextCoordIdx];
   return [
     floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
     floorLat + ((ceilLat - floorLat) * offsetFractionalPart),
@@ -47,49 +44,13 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const shouldAnimateRef = useRef(false);
-  const resumeAtRef = useRef(0);
-  const lastPositionRef = useRef([0, 0]);
-  const frameIdRef = useRef(null);
+  const lastPositionRef = useRef(null);
   const coordRangeRef = useRef({ min: null, max: null });
   const routeRef = useRef(currentRoute);
   const prevStartTimeRef = useRef(startTime);
 
   const routeFullname = currentRoute?.fullname || null;
   const driveCoords = currentRoute?.driveCoords;
-
-  function moveViewportTo(pos) {
-    if (!mapRef.current || performance.now() < resumeAtRef.current) return;
-
-    if (shouldAnimateRef.current) {
-      mapRef.current.easeTo({
-        center: pos,
-        duration: 200,
-        easing: (t) => t,
-      });
-      shouldAnimateRef.current = false;
-    } else {
-      mapRef.current.jumpTo({ center: pos });
-    }
-  }
-
-  function updateMarkerPos() {
-    const markerSource = mapRef.current?.getSource('seekPoint');
-    if (markerSource) {
-      const route = routeRef.current;
-      if (route?.driveCoords) {
-        const pos = posAtOffset(currentOffset(), route.driveCoords, coordRangeRef.current);
-        if (pos && pos.some((coordinate, index) => coordinate !== lastPositionRef.current[index])) {
-          lastPositionRef.current = pos;
-          markerSource.setData(createPointData(pos));
-          moveViewportTo(pos);
-        }
-      } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
-        markerSource.setData(createPointData());
-      }
-    }
-
-    frameIdRef.current = requestAnimationFrame(updateMarkerPos);
-  }
 
   const setPath = useCallback((coords) => {
     mapRef.current?.getSource('route')?.setData(createRouteData(coords));
@@ -99,10 +60,10 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
     if (!coords || !mapRef.current) return;
 
     shouldAnimateRef.current = false;
-    const keys = Object.keys(coords);
+    const indices = Object.keys(coords).map(Number);
     coordRangeRef.current = {
-      min: Math.min(...keys),
-      max: Math.max(...keys),
+      min: Math.min(...indices),
+      max: Math.max(...indices),
     };
     setPath(Object.values(coords));
   }, [setPath]);
@@ -111,24 +72,60 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
     const element = containerRef.current;
     if (!element) return;
 
-    const stopTouchPropagation = (event) => event.stopPropagation();
-    element.addEventListener('touchstart', stopTouchPropagation);
-
     const map = createMap(element, { zoom: 14 });
     mapRef.current = map;
-    const resizeObserver = new ResizeObserver(() => map.resize());
-    resizeObserver.observe(element);
+
+    let frameId = null;
+    let resumeAt = 0;
 
     const markInteraction = () => {
       shouldAnimateRef.current = true;
-      resumeAtRef.current = performance.now() + INTERACTION_TIMEOUT;
+      resumeAt = performance.now() + INTERACTION_TIMEOUT;
     };
 
+    const moveViewportTo = (pos) => {
+      if (performance.now() < resumeAt) return;
+
+      if (shouldAnimateRef.current) {
+        map.easeTo({
+          center: pos,
+          duration: 200,
+          easing: (t) => t,
+        });
+        shouldAnimateRef.current = false;
+      } else {
+        map.jumpTo({ center: pos });
+      }
+    };
+
+    const updateMarkerPos = () => {
+      const markerSource = map.getSource('seekPoint');
+      if (markerSource) {
+        const coords = routeRef.current?.driveCoords;
+        const pos = coords ? posAtOffset(currentOffset(), coords, coordRangeRef.current) : null;
+        const lastPos = lastPositionRef.current;
+
+        if (pos && (!lastPos || pos.some((coordinate, index) => coordinate !== lastPos[index]))) {
+          lastPositionRef.current = pos;
+          markerSource.setData(createPointData(pos));
+          moveViewportTo(pos);
+        } else if (!pos && lastPos) {
+          lastPositionRef.current = null;
+          markerSource.setData(createPointData());
+        }
+      }
+
+      frameId = requestAnimationFrame(updateMarkerPos);
+    };
+
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(element);
+
+    const stopTouchPropagation = (event) => event.stopPropagation();
+    element.addEventListener('touchstart', stopTouchPropagation);
+
     element.addEventListener('pointerdown', markInteraction, true);
-    element.addEventListener('wheel', markInteraction, {
-      capture: true,
-      passive: true,
-    });
+    element.addEventListener('wheel', markInteraction, { capture: true, passive: true });
 
     map.on('move', (event) => {
       if (!event.originalEvent || event.originalEvent.type === 'resize') return;
@@ -136,7 +133,7 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
     });
 
     map.once('load', () => {
-      if (!mapRef.current) return;
+      if (mapRef.current !== map) return;
 
       map.addSource('route', {
         type: 'geojson',
@@ -172,16 +169,13 @@ const DriveMap = ({ dispatch, currentRoute, startTime }) => {
         },
       });
 
+      lastPositionRef.current = null;
       applyDriveCoords(routeRef.current?.driveCoords);
+      updateMarkerPos();
     });
 
-    updateMarkerPos();
-
     return () => {
-      if (frameIdRef.current !== null) {
-        cancelAnimationFrame(frameIdRef.current);
-        frameIdRef.current = null;
-      }
+      cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
       element.removeEventListener('touchstart', stopTouchPropagation);
       element.removeEventListener('pointerdown', markInteraction, true);
