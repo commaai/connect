@@ -77,7 +77,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   const geolocateControlRef = useRef(null);
   const carMarkerRef = useRef(null);
   const carPinTooltipRef = useRef(null);
-  const prevFlyStateRef = useRef({
+  const prevFitStateRef = useRef({
     carLocation: null,
     geoLocateCoords: null,
     selectedPosition: null,
@@ -114,12 +114,12 @@ const Navigation = ({ dispatch, device, dongleId }) => {
 
     try {
       const resp = await api.devices.fetchLocation(dongleId);
-      if (dongleId === dongleIdRef.current) {
-        setCarLocation({
-          location: [resp.lng, resp.lat],
-          time: resp.time,
-        });
-      }
+      if (dongleId !== dongleIdRef.current) return;
+
+      setCarLocation({
+        location: [resp.lng, resp.lat],
+        time: resp.time,
+      });
     } catch (err) {
       if (err?.message?.includes('no_segments_uploaded')) return;
       console.error(err);
@@ -138,12 +138,8 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     const [lng, lat] = carLoc.location;
 
     setSelectedLocation({
-      address: {
-        label: '',
-      },
-      position: {
-        lng, lat,
-      },
+      address: { label: '' },
+      position: { lng, lat },
       resultType: 'car',
       title: '',
     });
@@ -152,7 +148,7 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     if (!location || dongleId !== dongleIdRef.current) return;
 
     setSelectedLocation((prev) => {
-      if (!prev || prev.position.lng !== lng || prev.position.lat !== lat) {
+      if (prev?.position?.lng !== lng || prev?.position?.lat !== lat) {
         return prev;
       }
 
@@ -182,13 +178,12 @@ const Navigation = ({ dispatch, device, dongleId }) => {
       [Math.max(...longitudes), Math.max(...latitudes)],
     ];
 
-    if (Math.abs(bbox[1][0] - bbox[0][0]) < 0.01) {
-      bbox[0][0] -= 0.01; // west
-      bbox[1][0] += 0.01; // east
-    }
-    if (Math.abs(bbox[1][1] - bbox[0][1]) < 0.01) {
-      bbox[0][1] -= 0.01; // south
-      bbox[1][1] += 0.01; // north
+    // 0 = longitude, 1 = latitude
+    for (const axis of [0, 1]) {
+      if (Math.abs(bbox[1][axis] - bbox[0][axis]) < 0.01) {
+        bbox[0][axis] -= 0.01;
+        bbox[1][axis] += 0.01;
+      }
     }
 
     try {
@@ -205,11 +200,11 @@ const Navigation = ({ dispatch, device, dongleId }) => {
 
   useEffect(() => {
     const element = mapElementRef.current;
-    if (!element) return undefined;
+    if (!element) return;
 
     if (!mapboxgl.supported()) {
       setMapError('Failed to get WebGL context, your browser or device may not support WebGL.');
-      return undefined;
+      return;
     }
 
     // create map
@@ -245,9 +240,8 @@ const Navigation = ({ dispatch, device, dongleId }) => {
     markerElement.addEventListener('click', stopMarkerClick);
 
     const handleGeolocate = (event) => {
-      if (event.coords) {
-        setGeoLocateCoords([event.coords.longitude, event.coords.latitude]);
-      }
+      if (!event.coords) return;
+      setGeoLocateCoords([event.coords.longitude, event.coords.latitude]);
     };
     geolocateControl.on('geolocate', handleGeolocate);
 
@@ -296,20 +290,21 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   useEffect(() => {
     const element = mapContainerRef.current;
     if (!element) return;
+
     const stopTouchPropagation = (event) => event.stopPropagation();
     element.addEventListener('touchstart', stopTouchPropagation);
-    return () => {
-      element.removeEventListener('touchstart', stopTouchPropagation);
-    }
+
+    return () => element.removeEventListener('touchstart', stopTouchPropagation);
   }, []);
 
   useEffect(() => {
-    const prev = prevFlyStateRef.current;
-    const shouldFly = (carLocation && prev.carLocation !== carLocation)
+    const prev = prevFitStateRef.current;
+    const shouldFit = (carLocation && prev.carLocation !== carLocation)
       || (geoLocateCoords && !prev.geoLocateCoords)
       || (selectedPosition && prev.selectedPosition !== selectedPosition);
-    prevFlyStateRef.current = { carLocation, geoLocateCoords, selectedPosition };
-    if (shouldFly) {
+    prevFitStateRef.current = { carLocation, geoLocateCoords, selectedPosition };
+
+    if (shouldFit) {
       fitMapToLocations();
     }
   }, [carLocation, geoLocateCoords, selectedPosition]);
@@ -326,12 +321,12 @@ const Navigation = ({ dispatch, device, dongleId }) => {
   }, [device, dongleId]);
 
   useEffect(() => {
-    if (hasFocus) {
-      geolocateControlRef.current?.trigger();
-      dispatch(analyticsEvent('nav_focus', {
-        has_car_location: Boolean(carLocation),
-      }));
-    }
+    if (!hasFocus) return;
+
+    geolocateControlRef.current?.trigger();
+    dispatch(analyticsEvent('nav_focus', {
+      has_car_location: Boolean(carLocation),
+    }));
   }, [hasFocus]);
 
   return (
