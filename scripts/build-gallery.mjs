@@ -106,6 +106,19 @@ const GALLERY_VIEWPORTS = [
 
 const execute = promisify(execFile);
 
+async function timed(label, action) {
+  const start = performance.now();
+  console.log(`[gallery timing] ${label}: started`);
+  try {
+    const result = await action();
+    console.log(`[gallery timing] ${label}: completed in ${(performance.now() - start).toFixed(0)}ms`);
+    return result;
+  } catch (error) {
+    console.log(`[gallery timing] ${label}: failed after ${(performance.now() - start).toFixed(0)}ms`);
+    throw error;
+  }
+}
+
 function parseArgs(argv) {
   const values = {};
   for (let index = 0; index < argv.length; index += 1) {
@@ -540,11 +553,12 @@ async function openGalleryModal(page, state, label) {
 }
 
 async function captureOne(browser, origin, outputPath, state, viewport, fixtures) {
-  const context = await browser.createBrowserContext();
-  const page = await context.newPage();
+  const label = `${state.name}/${viewport.name}`;
+  const context = await timed(`${label} context`, () => browser.createBrowserContext());
   const failures = [];
   const pageState = GALLERY_STATES.find(({ name }) => name === (state.page ?? state.name));
   try {
+    const page = await timed(`${label} new page`, () => context.newPage());
     await page.setViewport({ width: viewport.width, height: viewport.height, deviceScaleFactor: 1 });
     await page.emulateTimezone(TIMEZONE);
     await page.emulateMediaFeatures([
@@ -659,19 +673,19 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
       }
     });
 
-    await page.goto(`${origin}${pageState.path}`, {
+    await timed(`${label} navigation`, () => page.goto(`${origin}${pageState.path}`, {
       waitUntil: 'domcontentloaded',
       timeout: 15000,
-    });
-    await page.waitForFunction(
+    }));
+    await timed(`${label} readiness`, () => page.waitForFunction(
       ({ selector, expectedText }) => {
         if (selector && document.querySelector(selector)) return true;
         return expectedText && document.body.innerText.includes(expectedText);
       },
       { timeout: 15000 },
       { selector: pageState.readySelector, expectedText: pageState.readyText },
-    );
-    await page.evaluate(async () => {
+    ));
+    await timed(`${label} fonts and images`, () => page.evaluate(async () => {
       if (document.fonts) await document.fonts.ready;
       await Promise.all(Array.from(document.images, (image) => {
         if (image.complete && image.naturalWidth > 0) return undefined;
@@ -685,7 +699,7 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
       if (!root || !root.firstElementChild) {
         throw new Error('Gallery root is missing or blank');
       }
-    });
+    }));
     await page.addStyleTag({ content: `
       *, *::before, *::after {
         animation: none !important;
@@ -694,14 +708,13 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
         transition: none !important;
       }
     ` });
-    const label = `${state.name}/${viewport.name}`;
-    await openGalleryModal(page, state, label);
-    const buffer = await waitForStableFrames(page, label);
+    await timed(`${label} modal actions`, () => openGalleryModal(page, state, label));
+    const buffer = await timed(`${label} stable frames`, () => waitForStableFrames(page, label));
     if (failures.length) throw new Error(`${label}: ${failures.join('; ')}`);
     assertNotBlank(buffer, label);
     await writeFile(outputPath, buffer);
   } finally {
-    await context.close();
+    await timed(`${label} close context`, () => context.close());
   }
 }
 
@@ -709,10 +722,10 @@ async function captureRenderers(renderers, output, fixtures) {
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
   for (const renderer of renderers) {
-    const server = await serveDirectory(renderer.directory);
+    const server = await timed(`${renderer.name} start server`, () => serveDirectory(renderer.directory));
     let browser;
     try {
-      browser = await puppeteer.launch({
+      browser = await timed(`${renderer.name} launch browser`, () => puppeteer.launch({
         headless: 'shell',
         env: { ...process.env, LANG: `${LOCALE}.UTF-8`, LC_ALL: `${LOCALE}.UTF-8`, TZ: TIMEZONE },
         args: [
@@ -724,7 +737,7 @@ async function captureRenderers(renderers, output, fixtures) {
           `--lang=${LOCALE}`,
           '--no-sandbox',
         ],
-      });
+      }));
       const destination = resolve(output, renderer.name);
       await mkdir(destination, { recursive: true });
       const pending = GALLERY_STATES.flatMap((state) => GALLERY_VIEWPORTS.map((viewport) => ({ state, viewport })));
@@ -732,13 +745,15 @@ async function captureRenderers(renderers, output, fixtures) {
         while (pending.length) {
           const { state, viewport } = pending.shift();
           const filename = captureFilename(state.name, viewport.name);
-          await captureOne(browser, server.origin, resolve(destination, filename), state, viewport, fixtures);
+          await timed(`${renderer.name}/${filename} capture`, () => (
+            captureOne(browser, server.origin, resolve(destination, filename), state, viewport, fixtures)
+          ));
           console.log(`Captured ${renderer.name}/${filename}`);
         }
       }));
     } finally {
-      if (browser) await browser.close();
-      await server.close();
+      if (browser) await timed(`${renderer.name} close browser`, () => browser.close());
+      await timed(`${renderer.name} close server`, () => server.close());
     }
   }
 }
@@ -965,36 +980,37 @@ async function main() {
     const currentRenderer = output;
     const baseRenderer = resolve(temporary, 'renderer-base');
     const captures = resolve(temporary, 'captures');
-    const fixtures = await fetchFixtures();
-    await buildRenderer(source, currentRenderer);
+    const fixtures = await timed('fetch fixtures', () => fetchFixtures());
+    await timed('build current renderer', () => buildRenderer(source, currentRenderer));
     const renderers = [{ name: 'current', directory: currentRenderer }];
     if (baseSource) {
-      await buildRenderer(baseSource, baseRenderer);
+      await timed('build base renderer', () => buildRenderer(baseSource, baseRenderer));
       renderers.unshift({ name: 'base', directory: baseRenderer });
     }
-    await captureRenderers(renderers, captures, fixtures);
+    await timed('capture renderers', () => captureRenderers(renderers, captures, fixtures));
     let baseSha = args['base-sha'];
     if (baselineUrl) {
       try {
-        baseSha = await downloadBaseline(baselineUrl, resolve(captures, 'base'));
+        baseSha = await timed('download baseline', () => downloadBaseline(baselineUrl, resolve(captures, 'base')));
       } catch (error) {
         console.warn(`Baseline unavailable from ${baselineUrl}; writing a current-only gallery: ${error.message}`);
       }
     }
-    await buildReport(
+    const headSha = args['head-sha'] ?? process.env.GITHUB_SHA ?? await gitSha(source);
+    await timed('build report', () => buildReport(
       captures,
       output,
-      args['head-sha'] ?? process.env.GITHUB_SHA ?? await gitSha(source),
+      headSha,
       baseSha,
       baselineUrl,
       args['artifact-output'] ? resolve(args['artifact-output']) : null,
-    );
+    ));
   } finally {
-    await rm(temporary, { recursive: true, force: true });
+    await timed('cleanup', () => rm(temporary, { recursive: true, force: true }));
   }
 }
 
-main().catch((error) => {
+timed('total', () => main()).catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
