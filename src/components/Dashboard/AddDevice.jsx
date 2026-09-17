@@ -138,7 +138,6 @@ class AddDevice extends Component {
   async componentDidUpdate() {
     const { modalOpen, pairLoading, pairError, pairDongleId, hasCamera } = this.state;
 
-    // Request permission directly; enumeration can hide cameras before permission is granted.
     if (modalOpen && this.videoRef && !this.detector && hasCamera !== false && !pairDongleId) {
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
