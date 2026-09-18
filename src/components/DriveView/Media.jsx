@@ -584,7 +584,7 @@ class Media extends Component {
     const { inView, clipsSupported } = this.state;
     return (
       <>
-        <div className="flex flex-wrap justify-between 2xl:justify-center">
+        <div className="flex flex-wrap justify-between 2xl:justify-end">
           { !showMapAlways && (
             <div className={classes.mediaOptions}>
               <div
