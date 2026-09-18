@@ -548,7 +548,7 @@ class Media extends Component {
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
-          <div className="w-full 2xl:w-[60%]">
+          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
             {inView === MediaType.VIDEO && (
               <DriveVideo
                 isMuted={isMuted}
@@ -562,12 +562,12 @@ class Media extends Component {
             )}
           </div>
           {(inView === MediaType.VIDEO && showMapAlways) &&
-            <div className={`w-full 2xl:w-[40%]`}>
+            <div className="w-[40%]">
               <DriveMap />
             </div>
           }
         </div>
-        <div className="w-full 2xl:w-[60%] self-start flex justify-center">
+        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
           <TimeDisplay
             isThin
             isMuted={isMuted}
@@ -584,7 +584,7 @@ class Media extends Component {
     const { inView, clipsSupported } = this.state;
     return (
       <>
-        <div className="flex flex-wrap justify-between 2xl:justify-end">
+        <div className="flex flex-wrap">
           { !showMapAlways && (
             <div className={classes.mediaOptions}>
               <div
@@ -603,7 +603,7 @@ class Media extends Component {
               </div>
             </div>
           )}
-          <div className={classes.mediaOptions}>
+          <div className={`${classes.mediaOptions} ml-auto`}>
             {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
               <div
                 className={classes.mediaOption}
