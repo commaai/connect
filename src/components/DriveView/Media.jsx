@@ -202,11 +202,9 @@ class Media extends Component {
   constructor(props) {
     super(props);
 
-    this.mediaQuery = window.matchMedia('(min-width: 1536px)');
     this.state = {
       inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
-      showMapAlways: this.mediaQuery.matches,
       downloadMenu: null,
       clipMenu: null,
       moreInfoMenu: null,
@@ -220,7 +218,6 @@ class Media extends Component {
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
-    this.handleMediaBreakpointChange = this.handleMediaBreakpointChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
@@ -247,16 +244,8 @@ class Media extends Component {
     this.setState({ hasAudio });
   }
 
-  handleMediaBreakpointChange({ matches }) {
-    this.setState({ showMapAlways: matches });
-  }
-
   componentDidMount() {
     this.mounted = true;
-    this.mediaQuery.addEventListener('change', this.handleMediaBreakpointChange);
-    if (this.mediaQuery.matches !== this.state.showMapAlways) {
-      this.handleMediaBreakpointChange(this.mediaQuery);
-    }
     this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
       this.setState({ windowWidth: width });
     });
@@ -264,7 +253,8 @@ class Media extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { showMapAlways, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
+    const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
+    const showMapAlways = windowWidth >= 1536;
     if (prevProps.dongleId !== this.props.dongleId) {
       this.setState({ clipsSupported: false, clipMenu: null });
       this.checkClipsSupport();
@@ -309,7 +299,6 @@ class Media extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
-    this.mediaQuery.removeEventListener('change', this.handleMediaBreakpointChange);
     this.unsubscribeWindowSize?.();
   }
 
@@ -547,17 +536,19 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, showMapAlways, isMuted, hasAudio } = this.state;
+    const { inView, windowWidth, isMuted, hasAudio } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
+    const showMapAlways = windowWidth >= 1536;
+
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
-          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
+          <div className="w-full 2xl:w-[60%]">
             {inView === MediaType.VIDEO && (
               <DriveVideo
                 isMuted={isMuted}
@@ -571,12 +562,12 @@ class Media extends Component {
             )}
           </div>
           {(inView === MediaType.VIDEO && showMapAlways) &&
-            <div className="w-[40%]">
+            <div className={`w-full 2xl:w-[40%]`}>
               <DriveMap />
             </div>
           }
         </div>
-        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
+        <div className="w-full 2xl:w-[60%] self-start flex justify-center">
           <TimeDisplay
             isThin
             isMuted={isMuted}
@@ -593,7 +584,7 @@ class Media extends Component {
     const { inView, clipsSupported } = this.state;
     return (
       <>
-        <div className="flex flex-wrap">
+        <div className="flex flex-wrap justify-between 2xl:justify-end">
           { !showMapAlways && (
             <div className={classes.mediaOptions}>
               <div
@@ -612,7 +603,7 @@ class Media extends Component {
               </div>
             </div>
           )}
-          <div className={`${classes.mediaOptions} ml-auto`}>
+          <div className={classes.mediaOptions}>
             {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
               <div
                 className={classes.mediaOption}
