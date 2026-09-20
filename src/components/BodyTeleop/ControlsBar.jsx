@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from 'react';
-import PhotoCamera from '@material-ui/icons/PhotoCamera';
+import { PhotoCamera } from '../../icons';
 import { shareOrDownload } from '../../utils/file';
 
 const CAMERAS = [

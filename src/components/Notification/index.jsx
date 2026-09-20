@@ -1,5 +1,5 @@
 import { Button, Typography } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
+import { Clear } from '../../icons';
 
 const Notification = ({
   buttonClassName = '', buttonText, dismissLabel, heading, onButtonClick, onDismiss, subtitle,

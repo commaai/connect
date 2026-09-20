@@ -1,10 +1,6 @@
-import React, {
-  useState, useRef, useLayoutEffect, useCallback,
-} from 'react';
-import Settings from '@material-ui/icons/Settings';
-import ChevronRight from '@material-ui/icons/ChevronRight';
-import Check from '@material-ui/icons/Check';
-import { ArrowBackBold } from '../../icons';
+import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
+
+import { ArrowBackBold, CheckIcon, ChevronRight, SettingsIcon } from '../../icons';
 import { useClickOutside } from '../../hooks/useClickOutside';
 
 const QUALITY_OPTIONS = [
@@ -62,7 +58,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
         onClick={toggleOpen}
         title="Settings"
       >
-        <Settings
+        <SettingsIcon
           style={{
             fontSize: 20,
             transition: 'transform 0.2s ease',
@@ -114,7 +110,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
           {options.map((opt) => (
             <div key={opt.key} className={rowClass} onClick={() => selectQuality(opt.key)}>
               <span className="flex w-4 items-center justify-center">
-                {opt.key === quality && <Check style={{ fontSize: 16 }} className="text-white" />}
+                {opt.key === quality && <CheckIcon style={{ fontSize: 16 }} className="text-white" />}
               </span>
               <span className="flex-1">{opt.label}</span>
               {opt.bitrate && <span className="text-[10px] text-white/40">{opt.bitrate}</span>}

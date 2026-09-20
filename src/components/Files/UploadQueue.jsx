@@ -5,11 +5,10 @@ import {
   withStyles,
   Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
 } from '@material-ui/core';
-import HighlightOffIcon from '@material-ui/icons/HighlightOff';
-import WarningIcon from '@material-ui/icons/Warning';
 
 import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } from '../../actions/files';
 import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
+import { HighlightOffIcon, WarningIcon } from '../../icons';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
 

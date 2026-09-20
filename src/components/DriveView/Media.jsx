@@ -3,9 +3,6 @@ import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
-import WarningIcon from '@material-ui/icons/Warning';
-import ContentCopyIcon from '@material-ui/icons/ContentCopy';
-import ShareIcon from '@material-ui/icons/Share';
 
 import { USERADMIN_URL_ROOT } from '../../api';
 import { api } from '../../api/backend';
@@ -20,7 +17,7 @@ import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
-import { InfoOutline } from '../../icons';
+import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
 import { analyticsEvent, updateRoute } from '../../actions';
@@ -791,7 +788,7 @@ class Media extends Component {
             style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
           >
             <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}` : '---' }</div>
-            <ContentCopyIcon />
+            <ContentCopy />
           </MenuItem>
           { typeof navigator.share !== 'undefined'
           && (
