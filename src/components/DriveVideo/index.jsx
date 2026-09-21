@@ -138,6 +138,11 @@ class DriveVideo extends Component {
       videoPlayer.seekTo(this.currentVideoTime(), 'seconds');
     }
 
+    // Seeking temporarily lowers readyState, even when the target is buffered.
+    if (videoPlayer.getInternalPlayer('hls') && videoPlayer.getInternalPlayer().seeking) {
+      return;
+    }
+
     const { hasLoaded } = getVideoState(videoPlayer);
     const { readyState } = videoPlayer.getInternalPlayer();
     if (!hasLoaded || readyState < 2) {
@@ -255,6 +260,10 @@ class DriveVideo extends Component {
     newPlaybackRate = Math.max(0, Math.min((isFirefox() && !isMuted) ? 8 : 16, newPlaybackRate));
 
     const internalPlayer = videoPlayer.getInternalPlayer();
+    // Let HLS seeks finish without forcing an extra audio pause/resume.
+    if (videoPlayer.getInternalPlayer('hls') && internalPlayer.seeking) {
+      return;
+    }
 
     const { hasLoaded } = getVideoState(videoPlayer);
     if (isBufferingVideo && internalPlayer.readyState >= 4) {
