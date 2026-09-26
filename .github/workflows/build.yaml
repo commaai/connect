@@ -19,23 +19,14 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - name: Build app
-        if: github.event_name != 'pull_request'
-        env:
-          VITE_APP_GIT_SHA: ${{ github.sha }}
-          VITE_POSTHOG_KEY: phc_4VfSi5FAChlAt5keSrxVWCaVyZTsYpFKqz2Bw60KLz
-          VITE_POSTHOG_HOST: https://us.i.posthog.com
-        run: |
-          export VITE_APP_GIT_TIMESTAMP="$(git show -s --format=%cI)"
-          bun run build:production
-
       - name: Build app and gallery report
-        if: github.event_name == 'pull_request'
         env:
           PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
           PUPPETEER_SKIP_DOWNLOAD: 'true'
-          BASELINE_URL: https://latest.connect-d5y.pages.dev
-          VITE_APP_GIT_SHA: ${{ github.event.pull_request.head.sha }}
+          BASELINE_URL: ${{ github.event_name == 'pull_request' && 'https://latest.connect-d5y.pages.dev' || '' }}
+          VITE_APP_GIT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          VITE_POSTHOG_KEY: ${{ github.event_name != 'pull_request' && 'phc_4VfSi5FAChlAt5keSrxVWCaVyZTsYpFKqz2Bw60KLz' || '' }}
+          VITE_POSTHOG_HOST: ${{ github.event_name != 'pull_request' && 'https://us.i.posthog.com' || '' }}
         run: |
           export VITE_APP_GIT_TIMESTAMP="$(git show -s --format=%cI)"
           args=(--output ./dist --artifact-output "$RUNNER_TEMP/connect-gallery.html" --head-sha "$VITE_APP_GIT_SHA")
