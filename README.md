@@ -29,4 +29,4 @@ There's a ton of them, but these are worth mentioning because they sort of affec
  * `React` - Object oriented components with basic lifecycle callbacks rendered by state and prop changes.
  * `Redux` - Sane formal *global* scope. This is not a replacement for component state, which is the best way to store local component level variables and trigger re-renders. Redux state is for global state that many unrelated components care about. No free-form editing, only specific pre-defined actions. [Redux DevTools](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?hl=en) can be very helpful.
  * `@material-ui` - Lots of fully featured highly customizable components for building the UIs with. Theming system with global and per-component overrides of any CSS values.
- * `react-router-redux` - the newer one, 5.x.... Mindlessly simple routing with convenient global access due to redux
+ * `connected-react-router` - Mindlessly simple routing with convenient global access due to redux
