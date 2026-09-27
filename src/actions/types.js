@@ -24,6 +24,7 @@ export const ACTION_PRIME_SUBSCRIBE_INFO = 'ACTION_PRIME_SUBSCRIBE_INFO';
 
 // playback
 export const ACTION_SEEK = 'ACTION_SEEK';
+export const ACTION_VIDEO_TIME = 'ACTION_VIDEO_TIME';
 export const ACTION_PAUSE = 'ACTION_PAUSE';
 export const ACTION_PLAY = 'ACTION_PLAY';
 export const ACTION_LOOP = 'ACTION_LOOP';
