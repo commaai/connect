@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 
 import {
   withStyles,
-  Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
+  Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
 } from '@material-ui/core';
 
 import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } from '../../actions/files';
@@ -201,7 +201,7 @@ class UploadQueue extends Component {
               <Typography variant="title">Upload queue</Typography>
               <Typography variant="caption" style={{ marginLeft: 8 }}>{ device.dongle_id }</Typography>
             </div>
-            <Divider />
+            <hr />
             <div className={ classes.uploadContainer } style={{ maxHeight: (windowHeight * 0.90) - 98 }}>
               { hasUploading ? (
                 <>

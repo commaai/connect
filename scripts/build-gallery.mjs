@@ -975,11 +975,7 @@ async function main() {
     await captureRenderers(renderers, captures, fixtures);
     let baseSha = args['base-sha'];
     if (baselineUrl) {
-      try {
-        baseSha = await downloadBaseline(baselineUrl, resolve(captures, 'base'));
-      } catch (error) {
-        console.warn(`Baseline unavailable from ${baselineUrl}; writing a current-only gallery: ${error.message}`);
-      }
+      baseSha = await downloadBaseline(baselineUrl, resolve(captures, 'base'));
     }
     await buildReport(
       captures,

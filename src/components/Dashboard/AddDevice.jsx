@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
-import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
+import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '@material-ui/core';
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
@@ -393,7 +393,7 @@ class AddDevice extends Component {
                 scan QR code
               </Typography>
             </div>
-            <Divider className={ classes.divider } />
+            <hr className={ classes.divider } />
             { hasCamera === false
               ? (
                 <>

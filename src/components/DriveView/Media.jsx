@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
+import { withStyles, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
 
 import { USERADMIN_URL_ROOT } from '../../api';
 import { api } from '../../api/backend';
@@ -693,7 +693,7 @@ class Media extends Component {
           </div>
           )}
           { buttons.filter((b) => Boolean(b)).map(this.renderUploadMenuItem)}
-          <Divider />
+          <hr />
           <MenuItem
             className={ classes.filesItem }
             disabled
@@ -744,7 +744,7 @@ class Media extends Component {
             </div>
             )}
           </MenuItem>
-          <Divider />
+          <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
               onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
@@ -797,12 +797,12 @@ class Media extends Component {
             <ShareIcon />
           </MenuItem>
           )}
-          <Divider />
+          <hr />
           <MenuItem onClick={ this.openInUseradmin }>
             View in useradmin
           </MenuItem>
           { Boolean(device?.is_owner || (profile && profile.superuser)) && [
-            <Divider key="1" />,
+            <hr key="1" />,
             <ListItem key="2" className={ classes.switchListItem }>
               <SwitchLoading
                 checked={ currentRoute?.is_public }
