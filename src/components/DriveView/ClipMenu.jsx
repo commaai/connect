@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import {
-  Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, LinearProgress, Menu, Typography, withStyles,
+  Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, LinearProgress, Menu, Typography, withStyles,
 } from '@material-ui/core';
 
 import Colors from '../../colors';
@@ -623,7 +623,7 @@ class ClipMenu extends Component {
             {creating ? <CircularProgress size={18} /> : (!deviceOnline ? 'Device offline' : (deviceBusy ? 'Clip in progress' : 'Create clip'))}
           </Button>
           </div>}
-          {!inventoryOnly && <Divider />}
+          {!inventoryOnly && <hr />}
           <div className={classes.clipsSection}>
             <div className={classes.sectionHeader}>
               <Typography className={classes.sectionTitle}>CLIPS ON THIS DEVICE</Typography>

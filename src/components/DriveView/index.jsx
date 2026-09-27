@@ -38,7 +38,7 @@ class DriveView extends Component {
     if (!currentRoute) {
       return (
         <div className="DriveView p-8">
-          <Typography>Route does not exist.</Typography>
+          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
         </div>
       );
     }

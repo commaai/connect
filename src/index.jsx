@@ -1,5 +1,5 @@
 import ReactDOM from 'react-dom/client';
-import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
+import { MuiThemeProvider } from '@material-ui/core';
 import posthog from 'posthog-js';
 import * as Sentry from '@sentry/react';
 
@@ -43,7 +43,6 @@ if (import.meta.env.VITE_APP_GIT_TIMESTAMP) {
 
 ReactDOM.createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>
-    <CssBaseline />
     <App />
   </MuiThemeProvider>
 ));
