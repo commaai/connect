@@ -53,6 +53,9 @@ const styles = (theme) => ({
     flexDirection: 'column',
     alignItems: 'center',
     minWidth: '40px',
+    '@media (max-width: 420px)': {
+      minWidth: '32px',
+    },
   },
   icon: {
     width: '98%',
@@ -72,6 +75,11 @@ const styles = (theme) => ({
   iconButton: {
     width: '40px',
     height: '40px',
+    // compact controls on very small screens so the bar fits 320px viewports
+    '@media (max-width: 420px)': {
+      width: '32px',
+      height: '32px',
+    },
   },
   tinyArrowIcon: {
     width: 12,
@@ -93,6 +101,10 @@ const styles = (theme) => ({
     fontWeight: 500,
     display: 'block',
     flexGrow: 1,
+    whiteSpace: 'nowrap',
+    '@media (max-width: 420px)': {
+      fontSize: 13,
+    },
   },
 });
 
@@ -297,6 +309,7 @@ class TimeDisplay extends Component {
         </div>
         <div className={ classes.leftBorderBox }>
           <IconButton
+            className={ classes.iconButton }
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >
