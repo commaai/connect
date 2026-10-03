@@ -31,7 +31,9 @@ const preservedTooltip = 'Preserving a route will prevent it from being deleted.
 const styles = () => ({
   mediaOptions: {
     display: 'flex',
-    width: 'max-content',
+    // max-content prevented the pill from shrinking on very small screens,
+    // causing horizontal overflow. maxWidth keeps the pill shape but allows shrink.
+    maxWidth: '100%',
     alignItems: 'center',
     border: '1px solid rgba(255,255,255,.1)',
     borderRadius: 50,
