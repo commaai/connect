@@ -1,133 +1,118 @@
-import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
+import { currentOffset, setVideoElement } from '.';
 import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
     desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
-    offset: 0, // in miliseconds from the start
-    startTime: Date.now(), // millisecond timestamp in which play began
+    offset: 0, // requested playhead, in miliseconds from the start
+    startTime: 0, // changes on every seek request
 
     isBuffering: true,
   };
 };
 
-// make Date.now super stable for tests
-let mostRecentNow = Date.now();
-const oldNow = Date.now;
-Date.now = function now() {
-  return mostRecentNow;
-};
-function newNow() {
-  mostRecentNow = oldNow();
-  return mostRecentNow;
-}
-
 describe('playback', () => {
-  it('has playback controls', async () => {
-    newNow();
+  it('has playback controls', () => {
     let state = makeDefaultStruct();
 
-    // should do nothing
     state = reducer(state, pause());
     expect(state.desiredPlaySpeed).toEqual(0);
 
-    // start playing, should set start time and such
-    let playTime = newNow();
-    state = reducer(state, play());
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset
-    let ellapsed = newNow() - playTime;
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // start playing, should set start time and such
-    playTime = newNow();
     state = reducer(state, play(0.5));
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
     expect(state.desiredPlaySpeed).toEqual(0.5);
 
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset, playback speed 1/2
-    ellapsed += (newNow() - playTime) / 2;
-    expect(currentOffset(state)).toEqual(ellapsed);
-    state = reducer(state, pause());
+    // play and pause don't move the playhead, the video does
+    expect(state.offset).toEqual(0);
+    expect(state.startTime).toEqual(0);
+  });
 
-    expect(state.offset).toEqual(ellapsed);
+  it('marks every seek as a new request', () => {
+    let state = makeDefaultStruct();
 
-    // seek!
-    newNow();
     state = reducer(state, seek(123));
     expect(state.offset).toEqual(123);
-    expect(state.startTime).toEqual(Date.now());
-    expect(currentOffset(state)).toEqual(123);
+    const firstRequest = state.startTime;
+
+    state = reducer(state, seek(123));
+    expect(state.offset).toEqual(123);
+    expect(state.startTime).toBeGreaterThanOrEqual(firstRequest);
+    expect(state.startTime).not.toEqual(0);
   });
 
   it('should clamp loop when seeked after loop end time', () => {
-    newNow();
     let state = makeDefaultStruct();
 
-    // set up loop
     state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
+    state = reducer(state, selectLoop(1000, 2000));
     expect(state.loop.startTime).toEqual(1000);
 
-    // seek past loop end boundary a
     state = reducer(state, seek(3000));
     expect(state.loop.startTime).toEqual(1000);
     expect(state.offset).toEqual(2000);
   });
 
   it('should clamp loop when seeked before loop start time', () => {
-    newNow();
     let state = makeDefaultStruct();
 
-    // set up loop
     state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
+    state = reducer(state, selectLoop(1000, 2000));
     expect(state.loop.startTime).toEqual(1000);
 
-    // seek past loop end boundary a
     state = reducer(state, seek(0));
     expect(state.loop.startTime).toEqual(1000);
     expect(state.offset).toEqual(1000);
   });
 
-  it('should buffer video and data', async () => {
-    newNow();
+  it('moves the playhead into a new loop', () => {
+    let state = makeDefaultStruct();
+
+    state = reducer(state, selectLoop(5000, 8000));
+    expect(state.offset).toEqual(5000);
+
+    // already inside the loop: stays put
+    state = reducer(state, seek(6000));
+    state = reducer(state, selectLoop(5000, 7000));
+    expect(state.offset).toEqual(6000);
+  });
+
+  it('treats a range without bounds as no loop', () => {
+    let state = makeDefaultStruct();
+
+    state = reducer(state, selectLoop(NaN, NaN));
+    expect(state.loop).toBeNull();
+  });
+
+  it('should buffer video and data', () => {
     let state = makeDefaultStruct();
 
     state = reducer(state, play());
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    // claim the video is buffering
     state = reducer(state, bufferVideo(true));
     expect(state.desiredPlaySpeed).toEqual(1);
     expect(state.isBufferingVideo).toEqual(true);
-
-    state = reducer(state, play(0.5));
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    expect(state.desiredPlaySpeed).toEqual(0.5);
 
     state = reducer(state, play(2));
     state = reducer(state, bufferVideo(false));
     expect(state.desiredPlaySpeed).toEqual(2);
     expect(state.isBufferingVideo).toEqual(false);
+  });
+});
 
-    expect(state.desiredPlaySpeed).toEqual(2);
+describe('currentOffset', () => {
+  afterEach(() => setVideoElement(null));
+
+  it('reads the playhead from the video', () => {
+    const state = { offset: 0, currentRoute: { videoStartOffset: 850 } };
+    setVideoElement({ currentTime: 12.5, readyState: 4 });
+    expect(currentOffset(state)).toEqual(13350);
+  });
+
+  it('falls back to the requested position without a video', () => {
+    expect(currentOffset({ offset: 4000, currentRoute: {} })).toEqual(4000);
+    expect(currentOffset({ offset: null, loop: { startTime: 1000 } })).toEqual(1000);
+  });
+
+  it('falls back to the requested position while the video has nothing loaded', () => {
+    setVideoElement({ currentTime: 0, readyState: 0 });
+    expect(currentOffset({ offset: 4000, currentRoute: {} })).toEqual(4000);
   });
 });

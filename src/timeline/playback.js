@@ -1,72 +1,56 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
+//
+// The <video> element owns the playhead (see currentOffset). This state only holds what the user
+// asked for: the speed (0 = paused), the loop, and seek requests. A seek request is `offset` plus
+// `startTime`, which changes on every request so seeking to the same offset twice still applies.
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
+
+function clampToLoop(offset, loop) {
+  if (!loop || loop.startTime === null) {
+    return offset;
+  }
+  return Math.min(Math.max(offset, loop.startTime), loop.startTime + loop.duration);
+}
 
 export function reducer(_state, action) {
   let state = { ..._state };
-  let loopOffset = null;
-  if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime;
-  }
   switch (action.type) {
     case Types.ACTION_SEEK:
-      state = {
-        ...state,
-        offset: action.offset,
-        startTime: Date.now(),
-      };
-
-      if (loopOffset !== null) {
-        if (state.offset < loopOffset) {
-          state.offset = loopOffset;
-        } else if (state.offset > (loopOffset + state.loop.duration)) {
-          state.offset = loopOffset + state.loop.duration;
-        }
-      }
+      state.offset = clampToLoop(action.offset, state.loop);
+      state.startTime = Date.now();
       break;
     case Types.ACTION_PAUSE:
-      state = {
-        ...state,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-        desiredPlaySpeed: 0,
-      };
+      state.desiredPlaySpeed = 0;
       break;
     case Types.ACTION_PLAY:
-      if (action.speed !== state.desiredPlaySpeed) {
-        state = {
-          ...state,
-          offset: currentOffset(state),
-          desiredPlaySpeed: action.speed,
-          startTime: Date.now(),
-        };
-      }
+      state.desiredPlaySpeed = action.speed;
       break;
     case Types.ACTION_LOOP:
-      if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
+      // whole-route URLs have no range (NaN start/end), which means no loop
+      if (Number.isFinite(action.start) && Number.isFinite(action.end)) {
         state.loop = {
           startTime: action.start,
           duration: action.end - action.start,
         };
+        // move the playhead into the new loop if it is outside of it
+        if (state.offset === null || clampToLoop(state.offset, state.loop) !== state.offset) {
+          state.offset = state.loop.startTime;
+          state.startTime = Date.now();
+        }
       } else {
         state.loop = null;
       }
       break;
     case Types.ACTION_BUFFER_VIDEO:
-      state = {
-        ...state,
-        isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-      };
+      state.isBufferingVideo = Boolean(action.buffering);
       break;
     case Types.ACTION_RESET:
       state = {
         ...state,
         desiredPlaySpeed: 1,
         isBufferingVideo: true,
-        offset: 0,
+        offset: null,
         startTime: Date.now(),
       };
       break;
@@ -84,23 +68,6 @@ export function reducer(_state, action) {
       };
     }
   }
-
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
-  }
-
-  state.isBufferingVideo = Boolean(state.isBufferingVideo);
 
   return state;
 }

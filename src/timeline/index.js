@@ -1,33 +1,25 @@
 import store from '../store';
 
+// The drive <video> element is the playback clock. DriveVideo registers it here so the
+// timeline, map and time display can read the playhead every frame without going through redux.
+let videoElement = null;
+
+export function setVideoElement(element) {
+  videoElement = element;
+}
+
 /**
- * Get current playback offset
+ * Get current playback offset, in milliseconds from the start of the route
  *
  * @param {object} state
  * @returns {number}
  */
-export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
+export function currentOffset(state = store.getState()) {
+  if (videoElement?.readyState > 0 && state.currentRoute) {
+    // logs start before the video does, so video time 0 is videoStartOffset into the route
+    return (videoElement.currentTime * 1000) + (state.currentRoute.videoStartOffset || 0);
   }
 
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
-
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
-  }
-  return offset;
+  // no video loaded (e.g. its segments were never uploaded): fall back to the last requested position
+  return state.offset ?? state.loop?.startTime ?? 0;
 }
