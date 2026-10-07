@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getSegmentRange, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -34,12 +34,21 @@ describe('URL pathname helpers', () => {
   });
 
   it.each([
-    [`/${DONGLE}/${LOG}`, { log_id: LOG, start: NaN, end: NaN }],
-    [`/${DONGLE}/${LOG}/10/20`, { log_id: LOG, start: 10000, end: 20000 }],
+    [`/${DONGLE}/${LOG}`, LOG],
+    [`/${DONGLE}/${LOG}/10/20`, LOG],
     [`/${DONGLE}/prime`, null],
     [`/${DONGLE}`, null],
-  ])('getSegmentRange(%s)', (pathname, expected) => {
-    expect(getSegmentRange(pathname)).toEqual(expected);
+  ])('getRouteId(%s)', (pathname, expected) => {
+    expect(getRouteId(pathname)).toEqual(expected);
+  });
+
+  it.each([
+    [`/${DONGLE}/${LOG}`, null],
+    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
+    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
+    [`/${DONGLE}/10/20`, null],
+  ])('getRouteZoom(%s)', (pathname, expected) => {
+    expect(getRouteZoom(pathname)).toEqual(expected);
   });
 
   it.each([

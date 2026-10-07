@@ -16,7 +16,7 @@ vi.mock('../api', () => ({
   video: {},
 }));
 vi.mock('./index', () => ({
-  selectDevice: vi.fn(), pushTimelineRange: vi.fn(), updateSegmentRange: vi.fn(),
+  selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
   checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
 }));
 
@@ -24,7 +24,7 @@ const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
 const baseState = {
-  dongleId: DONGLE, zoom: null, segmentRange: null, primeNav: false, streamNav: false,
+  dongleId: DONGLE, zoom: null, selectedRouteId: null, primeNav: false, streamNav: false,
 };
 
 function create(state = baseState) {
@@ -40,7 +40,7 @@ function location(pathname, action = 'POP') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'updateSegmentRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
+  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
@@ -80,23 +80,20 @@ describe('history middleware', () => {
     const { invoke } = create();
     invoke(location(`/${DONGLE}/${LOG}/10/20`));
     expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 10000, 20000, false);
-    expect(actions.updateSegmentRange).toHaveBeenCalledWith(LOG, 10000, 20000);
   });
 
   it('leaves a log range', () => {
-    const { invoke } = create({ ...baseState, segmentRange: { log_id: LOG, start: 10000, end: 20000 } });
+    const { invoke } = create({ ...baseState, selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
     invoke(location(`/${DONGLE}`));
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(undefined, undefined, undefined, false);
-    expect(actions.updateSegmentRange).not.toHaveBeenCalled();
+    expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
   });
 
   it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
     const { invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.updateSegmentRange).toHaveBeenCalledWith(LOG, 0, 60000));
+    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, true);
   });
 
   it.each([null, []])('keeps a legacy range unchanged for an empty lookup (%j)', async (routes) => {
