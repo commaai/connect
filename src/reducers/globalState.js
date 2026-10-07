@@ -125,7 +125,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
-    case Types.ACTION_UPDATE_DEVICE: {
+    case Types.ACTION_UPDATE_DEVICE:
       state = {
         ...state,
         devices: state.devices ? [...state.devices] : [],
@@ -149,7 +149,6 @@ export default function reducer(_state, action) {
       }
 
       break;
-    }
     case Types.ACTION_UPDATE_ROUTE:
       if (state.routes) {
         state.routes = state.routes.map((route) => {
