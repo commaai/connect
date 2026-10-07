@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { pushTimelineRange, selectTimeFilter } from './actions';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -222,9 +223,15 @@ describe('whole-app behavior', () => {
     ['public whole drive', `/${FIRST}/${LOG}`, false],
     ['public ranged drive', `/${FIRST}/${LOG}/10/20`, false],
   ])('%s opens from a cold entry', async (_name, pathname, authenticated) => {
-    const { history } = await renderApp(pathname, { authenticated });
+    const { history, store } = await renderApp(pathname, { authenticated });
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     expect(history.location.pathname).toBe(pathname);
+    const ranged = pathname.endsWith('/10/20');
+    expect(store.getState()).toMatchObject({
+      selectedRouteId: LOG,
+      zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
+      loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
+    });
   });
 
   test.each([

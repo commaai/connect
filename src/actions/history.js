@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getSegmentRange, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
+import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
@@ -19,9 +19,10 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     }
 
     const pathZoom = getZoom(action.payload.location.pathname);
-    const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
+    const pathRouteId = getRouteId(action.payload.location.pathname);
+    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
 
-    if ((pathZoom !== state.zoom) && pathZoom && !pathSegmentRange) {
+    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
       const [start, end] = [pathZoom.start, pathZoom.end];
 
       api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
@@ -29,8 +30,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
           const log_id = routesData[0].fullname.split('|')[1]; 
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
 
-          dispatch(pushTimelineRange(log_id, null, null, true));
-          dispatch(updateSegmentRange(log_id, 0, duration));
+          dispatch(pushTimelineRange(log_id, 0, duration, true));
         }
       }).catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);
@@ -38,11 +38,8 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     }
 
     
-    if (pathSegmentRange !== state.segmentRange) {
-      dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
-      if (pathSegmentRange) {
-        dispatch(updateSegmentRange(pathSegmentRange.log_id, pathSegmentRange.start, pathSegmentRange.end));
-      }
+    if (pathRouteId || state.selectedRouteId) {
+      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
     }
 
     if (pathDongleId && pathDongleId !== state.dongleId) {

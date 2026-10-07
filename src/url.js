@@ -24,13 +24,20 @@ export function getZoom(pathname) {
   return null;
 }
 
-export function getSegmentRange(pathname) {
+export function getRouteId(pathname) {
   let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
   if (parts.length >= 2 && logIdRegex.test(parts[1])) {
+    return parts[1];
+  }
+  return null;
+}
+
+export function getRouteZoom(pathname) {
+  const parts = pathname.split('/').filter(Boolean);
+  if (getRouteId(pathname) && parts.length >= 4) {
     return {
-      log_id: parts[1],
       start: Number(parts[2]) * 1000,
       end: Number(parts[3]) * 1000,
     };

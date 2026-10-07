@@ -1,4 +1,4 @@
-import { getDongleID, getSegmentRange, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
 import { getDefaultFilter } from './utils/filter';
 
 export function createInitialState(pathname = window.location.pathname) {
@@ -35,9 +35,9 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: null,
+    zoom: getRouteZoom(pathname),
     loop: null,
-    segmentRange: getSegmentRange(pathname),
+    selectedRouteId: getRouteId(pathname),
     limit: 0,
   };
 }

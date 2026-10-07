@@ -34,9 +34,9 @@ export function checkRoutesData() {
     const fetchRange = state.filter;
 
     // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.segmentRange) {
+    if (state.selectedRouteId) {
       routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
+        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
         dongleId,
       };
     } else {
@@ -191,7 +191,7 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.segmentRange?.log_id !== log_id) {
+    if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
       dispatch({
         type: Types.TIMELINE_PUSH_SELECTION,
         log_id,
@@ -262,15 +262,6 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function updateSegmentRange(log_id, start, end) {
-  return {
-    type: Types.ACTION_UPDATE_SEGMENT_RANGE,
-    log_id,
-    start,
-    end,
-  };
-}
-
 export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
   return (dispatch, getState) => {
     const state = getState();
@@ -293,7 +284,6 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     });
 
     dispatch(pushTimelineRange(null, null, null, false));
-    dispatch(updateSegmentRange(null, null, null));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
