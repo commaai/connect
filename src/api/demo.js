@@ -6,7 +6,8 @@
 //   - route files: synthetic file listings cloned from one cached public files
 //     response
 //   - video URLs: demo routes stream the underlying public route, except the
-//     clone mutated to be missing qcamera (it has no share credentials)
+//     clones mutated to be missing qcamera (no share credentials for the whole
+//     route; a playlist whose segment 404s for the single segment case)
 // Everything else (billing, athena, ...) passes through.
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
 
@@ -83,7 +84,9 @@ const MISSING_DATA_CASES = [
   },
   {
     title: 'Missing qcamera',
-    // No share credentials, so this route's stream cannot resolve.
+    // No share credentials, so this route's stream cannot resolve. With a
+    // single affected segment, only that segment's video 404s.
+    missingVideo: true,
     route(route, affectedSegment) {
       if (affectedSegment === undefined) {
         delete route.share_exp;
@@ -209,6 +212,16 @@ export function createDemoBackend(realBackend) {
       : realBackend.routeAssets[type](route, segment);
   }
 
+  // The real playlist with one segment's video pointing at a URL that 404s,
+  // like a segment that was never uploaded.
+  async function playlistMissingSegment(route, url, segment) {
+    const playlist = await fetch(url).then((res) => res.text());
+    const lines = playlist.split('\n').map((line) => (line.includes(`/${segment}/qcamera.ts`)
+      ? missingAssetUrl(route, segment, 'qcamera.ts')
+      : line));
+    return `data:application/vnd.apple.mpegurl;base64,${btoa(lines.join('\n'))}`;
+  }
+
   return {
     ...realBackend,
     auth: {
@@ -265,7 +278,13 @@ export function createDemoBackend(realBackend) {
         // underlying public route; the clone missing qcamera has no credentials
         // and passes through to a URL that cannot resolve
         if (exp && sig && typeof routeStr === 'string' && routeStr.startsWith(`${DEMO_DONGLE_ID}|`)) {
-          return realBackend.video.getQcameraStreamUrl(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`, exp, sig);
+          const url = realBackend.video.getQcameraStreamUrl(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`, exp, sig);
+          const testCase = TEST_CASES[demoRouteIndex(routeStr)];
+          if (testCase?.missingVideo && testCase.affectedSegment !== undefined) {
+            return listDemoRoutes(routeStr)
+              .then(([route]) => playlistMissingSegment(route, url, testCase.affectedSegment));
+          }
+          return url;
         }
         return realBackend.video.getQcameraStreamUrl(routeStr, exp, sig);
       },
