@@ -125,7 +125,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
-    case Types.ACTION_UPDATE_DEVICE:
+    case Types.ACTION_UPDATE_DEVICE: {
       state = {
         ...state,
         devices: state.devices ? [...state.devices] : [],
@@ -136,19 +136,20 @@ export default function reducer(_state, action) {
       const updatedDevice = populateFetchedAt({
         ...previousDevice, // retains rpc, network_metered
         ...action.device,  // updates alias and other returned fields
-      })
+      });
 
       if (deviceIndex !== -1) {
         state.devices[deviceIndex] = updatedDevice;
       } else {
         state.devices.unshift(updatedDevice);
       }
-      
+
       if (isSelected) {
         state.device = updatedDevice;
       }
 
       break;
+    }
     case Types.ACTION_UPDATE_ROUTE:
       if (state.routes) {
         state.routes = state.routes.map((route) => {
