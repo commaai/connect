@@ -17,3 +17,4 @@ vi.mock('mapbox-gl/dist/mapbox-gl', () => ({
 HTMLMediaElement.prototype.load = () => {};
 HTMLMediaElement.prototype.pause = () => {};
 HTMLMediaElement.prototype.play = () => Promise.resolve();
+globalThis.MediaError ??= { MEDIA_ERR_NETWORK: 2, MEDIA_ERR_DECODE: 3, MEDIA_ERR_SRC_NOT_SUPPORTED: 4 };

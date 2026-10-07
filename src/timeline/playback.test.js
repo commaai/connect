@@ -1,4 +1,5 @@
-import { currentOffset, setVideoElement } from '.';
+import { currentOffset } from '.';
+import { setVideoElement } from './video';
 import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {

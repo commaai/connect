@@ -9,6 +9,8 @@
 //     clones mutated to be missing qcamera (no share credentials for the whole
 //     route; a playlist whose segment 404s for the single segment case)
 // Everything else (billing, athena, ...) passes through.
+import { fileSegmentNumber } from '../url';
+
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
 
 export const PUBLIC_ROUTE_DONGLE_ID = '5beb9b58bd12b691';
@@ -115,11 +117,6 @@ const TEST_CASES = MISSING_DATA_CASES.flatMap((testCase) => [
     affectedSegment: AFFECTED_SEGMENT,
   },
 ]);
-
-function fileSegmentNumber(file) {
-  const pathParts = new URL(file).pathname.split('/');
-  return Number(pathParts[pathParts.length - 2]);
-}
 
 function removeFileSegments(files, type, affectedSegment) {
   if (affectedSegment === undefined) {

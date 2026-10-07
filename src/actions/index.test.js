@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { resetPlayback } from '../timeline/playback';
 import { push } from 'connected-react-router';
 import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
 
@@ -40,6 +41,21 @@ describe('timeline actions', () => {
     }));
     actionThunk(dispatch, getState);
     expect(push).toBeCalledWith('/statedongle/log_id');
+  });
+
+  it('resets playback when opening a different route', () => {
+    const dispatch = vi.fn();
+    const state = {
+      dongleId: 'statedongle',
+      currentRoute: { log_id: 'previous_log' },
+      loop: { startTime: 30000, duration: 10000 },
+      zoom: { start: 30000, end: 40000 },
+    };
+    resetPlayback.mockClear();
+
+    // whole route: no range, so only the route change can tell the old loop doesn't apply
+    pushTimelineRange('log_id', undefined, undefined)(dispatch, () => state);
+    expect(resetPlayback).toHaveBeenCalled();
   });
 
   it.each([

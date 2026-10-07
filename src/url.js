@@ -57,3 +57,9 @@ export function getStreamNav(pathname) {
   }
   return false;
 }
+
+// route files (qcamera.ts, sprite.jpg, ...) live at .../<segment>/<file name>
+export function fileSegmentNumber(file) {
+  const pathParts = new URL(file).pathname.split('/');
+  return Number(pathParts[pathParts.length - 2]);
+}

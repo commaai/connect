@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
+import { videoOffset } from './timeline/video';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
@@ -202,7 +203,7 @@ function logAction(action, prevState, state) {
 
     case Types.ACTION_PAUSE:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, videoOffset(state)); // where the video is, not the last seek
         gtag('event', 'video_pause', {
           ...params,
           play_speed: state.desiredPlaySpeed,
@@ -214,7 +215,7 @@ function logAction(action, prevState, state) {
 
     case Types.ACTION_PLAY:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, videoOffset(state)); // where the video is, not the last seek
         gtag('event', 'video_play', {
           ...params,
           play_speed: state.desiredPlaySpeed,

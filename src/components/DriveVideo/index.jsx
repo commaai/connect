@@ -6,8 +6,9 @@ import { api } from '../../api/backend';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { setVideoElement } from '../../timeline';
+import { setVideoElement } from '../../timeline/video';
 import { bufferVideo, pause, play } from '../../timeline/playback';
+import { fileSegmentNumber } from '../../url';
 import { playsHlsNatively } from '../../utils/browser';
 
 const MISSING_VIDEO_ERROR = 'This video segment has not uploaded yet or has been deleted.';
@@ -51,6 +52,12 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isBufferingVideo
     }
   };
 
+  // the video can't play: say why, and show the play button instead of pause
+  const failVideo = (message) => {
+    setVideoError(message);
+    dispatch(pause());
+  };
+
   // move the playhead to a route offset (ms), keeping it inside the part of the route that has video
   const seekTo = (routeOffset) => {
     const video = videoRef.current;
@@ -65,16 +72,34 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isBufferingVideo
   const skipMissingVideo = () => {
     const video = videoRef.current;
     const gap = missingRanges.current.find(({ start, end }) => video.currentTime >= start - 0.5 && video.currentTime < end);
-    if (gap) {
-      setSkippedSegment(gap.segment);
-      // land a little inside the next segment: exactly on the boundary hls.js picks the missing one again
-      const target = gap.end + 0.1;
-      video.currentTime = target;
-      // restart hls.js loading past the gap, otherwise it sits in its retry back-off for the missing segment
-      hlsRef.current?.stopLoad();
-      hlsRef.current?.startLoad(target);
+    if (!gap) {
+      return;
     }
+
+    // the selected loop ends inside the gap: wrap to its start instead of skipping out of it,
+    // unless the loop is entirely inside the gap and there is nothing to play
+    const videoStartOffset = currentRoute?.videoStartOffset || 0;
+    if (loop && (loop.startTime + loop.duration - videoStartOffset) / 1000 <= gap.end) {
+      if ((loop.startTime - videoStartOffset) / 1000 >= gap.start - 0.5) {
+        failVideo(MISSING_VIDEO_ERROR);
+      } else {
+        seekTo(loop.startTime);
+      }
+      return;
+    }
+
+    setSkippedSegment(gap.segment);
+    // land a little inside the next segment: exactly on the boundary hls.js picks the missing one again
+    const target = gap.end + 0.1;
+    video.currentTime = target;
+    // restart hls.js loading past the gap, otherwise it sits in its retry back-off for the missing segment
+    hlsRef.current?.stopLoad();
+    hlsRef.current?.startLoad(target);
   };
+
+  // hls.js handlers are set up once per route, so they call the latest skipMissingVideo through this ref
+  const skipMissingVideoRef = useRef(skipMissingVideo);
+  skipMissingVideoRef.current = skipMissingVideo;
 
   const startPlaying = () => {
     const video = videoRef.current;
@@ -83,7 +108,8 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isBufferingVideo
       // autoplay was blocked (e.g. iOS PWA, background tab): show the play button instead of a spinner
       if (err.name === 'NotAllowedError') {
         dispatch(pause());
-        setBuffering(false);
+        // dispatch directly: this runs later, when the isBufferingVideo setBuffering compares against may be stale
+        dispatch(bufferVideo(false));
       }
     });
   };
@@ -144,11 +170,9 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isBufferingVideo
           data.frag.gap = true;
           const { start, duration, url } = data.frag;
           if (!missingRanges.current.some((gap) => gap.start === start)) {
-            // segment files live at .../<segment>/qcamera.ts
-            const segment = Number(url.match(/\/(\d+)\/qcamera\.ts/)?.[1] ?? NaN);
-            missingRanges.current.push({ start, end: start + duration, segment });
+            missingRanges.current.push({ start, end: start + duration, segment: fileSegmentNumber(url) });
           }
-          skipMissingVideo();
+          skipMissingVideoRef.current();
           return;
         }
         if (!data.fatal) {
@@ -156,7 +180,7 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isBufferingVideo
         }
         // a 404 or an empty playlist both mean the video hasn't been uploaded
         const missing = data.response?.code === 404 || data.details === Hls.ErrorDetails.LEVEL_EMPTY_ERROR;
-        setVideoError(missing ? MISSING_VIDEO_ERROR : 'Unable to load video');
+        failVideo(missing ? MISSING_VIDEO_ERROR : 'Unable to load video');
       });
       hls.loadSource(src);
       hls.attachMedia(video);
@@ -164,7 +188,7 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isBufferingVideo
     load().catch(() => {
       // fetching the playlist or hls.js failed (e.g. offline)
       if (!cancelled) {
-        setVideoError('Unable to load video');
+        failVideo('Unable to load video');
       }
     });
 
@@ -217,8 +241,15 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isBufferingVideo
     }
   };
 
+  // a selected range loops; the whole route stops at its end like a regular player (play restarts it).
+  // `ended` only fires when the loop reaches the end of the video, so a loop that also starts at the
+  // beginning of the video is the whole route
   const onEnded = () => {
-    seekTo(loop?.startTime ?? 0);
+    if (!loop || loop.startTime <= (currentRoute?.videoStartOffset || 0)) {
+      dispatch(pause());
+      return;
+    }
+    seekTo(loop.startTime);
     if (desiredPlaySpeed) {
       startPlaying();
     }
@@ -237,9 +268,13 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isBufferingVideo
     }
   };
 
+  // hls.js reports its own errors; with native HLS (iPhone) only the media element's error code is known
   const onError = () => {
-    if (playsHlsNatively() && videoRef.current.error) {
-      setVideoError('Unable to load video');
+    const { error } = videoRef.current;
+    if (playsHlsNatively() && error) {
+      // Safari can't open a playlist that doesn't exist: same meaning as a 404 with hls.js
+      const missing = error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED;
+      failVideo(missing ? MISSING_VIDEO_ERROR : 'Unable to load video');
     }
   };
 
@@ -262,7 +297,10 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isBufferingVideo
           setBuffering(true);
           skipMissingVideo();
         }}
-        onPlaying={() => setBuffering(false)}
+        onPlaying={() => {
+          setBuffering(false);
+          setVideoError(null); // playing again (e.g. after picking another range) clears an earlier error
+        }}
         onSeeked={() => {
           setBuffering(videoRef.current.readyState < 2);
           skipMissingVideo();
