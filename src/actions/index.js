@@ -147,7 +147,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 
   if (log_id) {
     path.push(log_id);
-    if (start && end && start > 0) {
+    if (start && end) {
       path.push(start);
       path.push(end);
     }
@@ -166,7 +166,13 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
+    const route = state.routes?.find((route) => route.log_id === log_id);
+    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+
+    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
+    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
+    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
+
     if (currentPathname(state) !== desiredPath) {
       dispatch(push(desiredPath));
     }
