@@ -166,7 +166,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   }
 
   if (allowPathChange) {
-    const route = state.routes?.find((route) => route.log_id === log_id);
+    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
 
     const urlStart = wholeDrive ? null : Math.floor(start / 1000);
