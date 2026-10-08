@@ -43,10 +43,10 @@ const styles = () => ({
     flexDirection: 'column',
     justifyContent: 'center',
     cursor: 'pointer',
-    minHeight: 32,
-    minWidth: 44,
-    paddingLeft: 15,
-    paddingRight: 15,
+    minHeight: '2rem',
+    minWidth: '2.75rem',
+    paddingLeft: '0.9375rem',
+    paddingRight: '0.9375rem',
     '&.disabled': {
       cursor: 'default',
     },
@@ -65,7 +65,7 @@ const styles = () => ({
     width: 30,
   },
   mediaOptionText: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     fontWeight: 500,
     textAlign: 'center',
   },
@@ -567,7 +567,7 @@ class Media extends Component {
             </div>
           }
         </div>
-        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} @container self-start flex justify-center`}>
+        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
           <TimeDisplay
             isThin
             isMuted={isMuted}

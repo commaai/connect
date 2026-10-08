@@ -57,6 +57,10 @@ html {
   margin-right: env(safe-area-inset-right);
 }
 
+html:has(.DriveView) {
+  font-size: min(16px, 3.846vw);
+}
+
 body {
   background: #1D2225;
   font-family: 'Inter', sans-serif;
