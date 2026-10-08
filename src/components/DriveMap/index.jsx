@@ -36,7 +36,7 @@ class DriveMap extends Component {
     this.isInteracting = false;
     this.isInteractingTimeout = null;
     this.lastMapPos = [0, 0];
-    this.lastOffset = null;
+    this.lastRouteMs = null;
   }
 
   componentDidMount() {
@@ -95,13 +95,13 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const offset = getCurrentRouteMs(this.props.currentRoute.videoStartOffset);
-        const jumped = this.lastOffset !== null && Math.abs(offset - this.lastOffset) > SEEK_JUMP_MS;
-        if (jumped) {
+        const routeMs = getCurrentRouteMs(this.props.currentRoute.videoStartOffset);
+        const hasJumped = this.lastRouteMs !== null && Math.abs(routeMs - this.lastRouteMs) > SEEK_JUMP_MS;
+        if (hasJumped) {
           this.shouldFlyTo = true;
         }
-        this.lastOffset = offset;
-        const pos = this.posAtOffset(offset);
+        this.lastRouteMs = routeMs;
+        const pos = this.posAtOffset(routeMs);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({

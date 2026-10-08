@@ -27,14 +27,14 @@ export function selectLoop(start, end) {
   };
 }
 
-export function videoPlayed(offset, speed) {
-  return { type: Types.VIDEO_PLAYED, offset, speed };
+export function videoPlayed(routeMs, speed) {
+  return { type: Types.ACTION_VIDEO_PLAY, offset: routeMs, speed };
 }
 
-export function videoPaused(offset, speed) {
-  return { type: Types.VIDEO_PAUSED, offset, speed };
+export function videoPaused(routeMs, speed) {
+  return { type: Types.ACTION_VIDEO_PAUSE, offset: routeMs, speed };
 }
 
-export function videoSeeked(offset, speed) {
-  return { type: Types.VIDEO_SEEKED, offset, speed };
+export function videoSeeked(routeMs, speed) {
+  return { type: Types.ACTION_VIDEO_SEEK, offset: routeMs, speed };
 }

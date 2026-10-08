@@ -211,13 +211,13 @@ class Timeline extends Component {
     }
   }
 
-  seekTo(offset) {
+  seekTo(routeMs) {
     const video = getVideo();
     if (!video) {
       return;
     }
     const { dispatch, route, loop } = this.props;
-    const targetMs = seekToRouteMs(video, route?.videoStartOffset, offset, loop);
+    const targetMs = seekToRouteMs(video, route?.videoStartOffset, routeMs, loop);
     dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
   }
 
@@ -280,8 +280,8 @@ class Timeline extends Component {
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       const playheadMs = getCurrentRouteMs(route?.videoStartOffset);
-      const playheadOutsideSelection = playheadMs < startOffset || playheadMs > endOffset;
-      if (playheadOutsideSelection) {
+      const isPlayheadOutsideSelection = playheadMs < startOffset || playheadMs > endOffset;
+      if (isPlayheadOutsideSelection) {
         this.seekTo(startOffset);
       }
       const { dispatch } = this.props;
@@ -310,12 +310,8 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    let offset = getCurrentRouteMs(this.props.route?.videoStartOffset);
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
+    const routeMs = Math.floor(getCurrentRouteMs(this.props.route?.videoStartOffset));
+    const percent = this.offsetToPercent(routeMs);
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
       this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;

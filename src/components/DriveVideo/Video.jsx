@@ -106,8 +106,8 @@ function useAudioTrackDetection(video, onHasAudioChange) {
     };
 
     const handleTrackRemoved = () => {
-      const wasLastTrack = audioTracks.length === 0;
-      if (!wasLastTrack) {
+      const isTrackListEmpty = audioTracks.length === 0;
+      if (!isTrackListEmpty) {
         return;
       }
       onHasAudioChange?.(false);
@@ -128,8 +128,8 @@ function useHlsAudioDetection(hls, onHasAudioChange) {
       return undefined;
     }
 
-    const browserListsAudioTracks = Boolean(hls.media?.audioTracks);
-    if (browserListsAudioTracks) {
+    const hasNativeAudioTracks = Boolean(hls.media?.audioTracks);
+    if (hasNativeAudioTracks) {
       return undefined;
     }
 

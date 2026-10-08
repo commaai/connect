@@ -12,8 +12,8 @@ const STATUS_EVENTS = [
 function isBuffering(video) {
   const hasSource = video.networkState !== video.NETWORK_EMPTY;
   const canPlayAhead = video.readyState >= video.HAVE_FUTURE_DATA;
-  const pausedWithMetadata = video.paused && video.readyState >= video.HAVE_METADATA;
-  return hasSource && !canPlayAhead && !pausedWithMetadata;
+  const isPausedWithMetadata = video.paused && video.readyState >= video.HAVE_METADATA;
+  return hasSource && !canPlayAhead && !isPausedWithMetadata;
 }
 
 export const useVideo = () => useSyncExternalStore(subscribeVideo, getVideo);

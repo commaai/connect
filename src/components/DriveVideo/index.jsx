@@ -8,7 +8,6 @@ import { seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
 import { useVideoBuffering, useVideoEvent, useVideoFrame } from '../../hooks/video';
 import Video from './Video';
 
-const FILL = { width: '100%', height: '100%' };
 const SPINNER_STYLE = { color: Colors.white };
 
 const ERROR_MESSAGES = {
@@ -17,7 +16,7 @@ const ERROR_MESSAGES = {
   media: 'Unable to load video',
 };
 
-function OverlayContent({ error }) {
+const OverlayContent = ({ error }) => {
   if (!error) {
     return <CircularProgress style={SPINNER_STYLE} thickness={4} size={50} />;
   }
@@ -27,10 +26,11 @@ function OverlayContent({ error }) {
       <Typography>{error}</Typography>
     </>
   );
-}
+};
 
-function VideoOverlay({ loading, error }) {
-  if (!error && !loading) {
+const VideoOverlay = ({ loading, error }) => {
+  const hasNothingToShow = !error && !loading;
+  if (hasNothingToShow) {
     return null;
   }
   return (
@@ -40,7 +40,7 @@ function VideoOverlay({ loading, error }) {
       </div>
     </div>
   );
-}
+};
 
 function usePlaybackError(src) {
   const [failure, setFailure] = useState(null);
@@ -55,11 +55,11 @@ function usePlaybackError(src) {
     });
   }, [src]);
 
-  const clearError = useCallback(() => setFailure(null), []);
-  useVideoEvent('playing', clearError);
+  const handlePlaying = useCallback(() => setFailure(null), []);
+  useVideoEvent('playing', handlePlaying);
 
-  const currentSourceFailed = failure !== null && failure.src === src;
-  if (!currentSourceFailed) {
+  const hasCurrentSourceFailed = failure !== null && failure.src === src;
+  if (!hasCurrentSourceFailed) {
     return { error: null, handleError };
   }
   return { error: ERROR_MESSAGES[failure.kind], handleError };
@@ -76,7 +76,7 @@ function loopContainsVideo(video, videoStartOffset, loopStart, loopDuration) {
 }
 
 function useLoopWrap(videoStartOffset, loopStart, loopDuration) {
-  const wrapPastLoopEnd = useCallback((videoSeconds) => {
+  const handleFrame = useCallback((videoSeconds) => {
     const video = getVideo();
     if (!loopContainsVideo(video, videoStartOffset, loopStart, loopDuration)) {
       return;
@@ -91,7 +91,7 @@ function useLoopWrap(videoStartOffset, loopStart, loopDuration) {
     seekToRouteMs(video, videoStartOffset, loopStart);
   }, [videoStartOffset, loopStart, loopDuration]);
 
-  const replayLoop = useCallback(() => {
+  const handleEnded = useCallback(() => {
     const video = getVideo();
     if (!loopContainsVideo(video, videoStartOffset, loopStart, loopDuration)) {
       return;
@@ -101,8 +101,8 @@ function useLoopWrap(videoStartOffset, loopStart, loopDuration) {
     playIgnoringInterruptions(video);
   }, [videoStartOffset, loopStart, loopDuration]);
 
-  useVideoFrame(wrapPastLoopEnd);
-  useVideoEvent('ended', replayLoop);
+  useVideoFrame(handleFrame);
+  useVideoEvent('ended', handleEnded);
 }
 
 const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }, ref) {
@@ -129,8 +129,8 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
   return (
     <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
       <VideoOverlay loading={buffering} error={error} />
-      <div style={FILL}>
-        <Video src={src} onError={handleError} autoPlay muted style={FILL} {...props} />
+      <div className="w-full h-full">
+        <Video src={src} onError={handleError} autoPlay muted className="w-full h-full" {...props} />
       </div>
     </div>
   );

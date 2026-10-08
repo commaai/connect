@@ -217,7 +217,7 @@ class Media extends Component {
 
     this.playerRef = React.createRef();
     this.restartPlayback = this.restartPlayback.bind(this);
-    this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
+    this.handleHasAudioChange = this.handleHasAudioChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
@@ -240,7 +240,7 @@ class Media extends Component {
     this.playerRef.current?.restart();
   }
 
-  handleAudioStatusChange(hasAudio) {
+  handleHasAudioChange(hasAudio) {
     this.setState({ hasAudio });
   }
 
@@ -265,12 +265,14 @@ class Media extends Component {
       this.setState({ inView: MediaType.VIDEO });
     }
 
-    const routeChanged = prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname;
-    const zoomChanged = prevProps.zoom?.start !== this.props.zoom?.start || prevProps.zoom?.end !== this.props.zoom?.end;
-    if (zoomChanged && !routeChanged) {
+    const hasRouteChanged = prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname;
+    const hasZoomChanged = prevProps.zoom?.start !== this.props.zoom?.start || prevProps.zoom?.end !== this.props.zoom?.end;
+    const isZoomWithinRoute = hasZoomChanged && !hasRouteChanged;
+    if (isZoomWithinRoute) {
       this.restartPlayback();
     }
-    if (routeChanged && prevProps.currentRoute) {
+    const isLeavingPreviousRoute = hasRouteChanged && Boolean(prevProps.currentRoute);
+    if (isLeavingPreviousRoute) {
       this.setState({ hasAudio: false });
     }
 
@@ -549,24 +551,24 @@ class Media extends Component {
     }
 
     const showMapAlways = windowWidth >= 1536;
-    const mapReplacesVideo = inView === MediaType.MAP && !showMapAlways;
+    const isMapReplacingVideo = inView === MediaType.MAP && !showMapAlways;
 
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            <div hidden={mapReplacesVideo}>
+            <div hidden={isMapReplacingVideo}>
               <DriveVideo
                 ref={this.playerRef}
                 src={getRouteVideoUrl(currentRoute)}
                 route={currentRoute}
                 loop={loop}
-                onHasAudioChange={this.handleAudioStatusChange}
+                onHasAudioChange={this.handleHasAudioChange}
                 onLoadedMetadata={this.restartPlayback}
               />
             </div>
-            {mapReplacesVideo && (
+            {isMapReplacingVideo && (
               <div className="w-full">
                 <DriveMap />
               </div>

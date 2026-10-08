@@ -185,7 +185,7 @@ function logAction(action, prevState, state) {
       }
       return;
 
-    case Types.VIDEO_SEEKED:
+    case Types.ACTION_VIDEO_SEEK:
       if (state.zoom) {
         percent = getVideoPercent(state, action.offset);
         gtag('event', 'video_seek', {
@@ -197,7 +197,7 @@ function logAction(action, prevState, state) {
       }
       return;
 
-    case Types.VIDEO_PAUSED:
+    case Types.ACTION_VIDEO_PAUSE:
       if (state.zoom) {
         percent = getVideoPercent(state, action.offset);
         gtag('event', 'video_pause', {
@@ -209,7 +209,7 @@ function logAction(action, prevState, state) {
       }
       return;
 
-    case Types.VIDEO_PLAYED:
+    case Types.ACTION_VIDEO_PLAY:
       if (state.zoom) {
         percent = getVideoPercent(state, action.offset);
         gtag('event', 'video_play', {

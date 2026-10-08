@@ -12,7 +12,7 @@ import { useVideo, useVideoControls, useVideoFrame } from '../../hooks/video';
 import { getCurrentRouteMs, seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
 import { videoPaused, videoPlayed, videoSeeked } from '../../timeline/playback';
 import { getPlaybackSpeed, playIgnoringInterruptions } from '../../timeline/video';
-import { segmentAtOffset } from '../../utils';
+import { segmentAtRouteMs } from '../../utils';
 import { playsHlsNatively } from '../../utils/browser.js';
 
 const timerSteps = [
@@ -98,13 +98,13 @@ const styles = (theme) => ({
   },
 });
 
-function formatPlaybackTime(routeStartMillis, routeMs) {
-  const now = new Date(routeMs + routeStartMillis);
+function formatPlaybackTime(routeStartMs, routeMs) {
+  const now = new Date(routeMs + routeStartMs);
   if (Number.isNaN(now.getTime())) {
     return '...';
   }
   const time = dayjs(now).format('HH:mm:ss');
-  return `${time} \u2013 ${segmentAtOffset(routeMs)}`;
+  return `${time} \u2013 ${segmentAtRouteMs(routeMs)}`;
 }
 
 function speedStepIndex(playbackRate) {
@@ -115,7 +115,7 @@ function speedStepIndex(playbackRate) {
   return index;
 }
 
-function usePlaybackTimeText(routeStartMillis, videoStartOffset) {
+function usePlaybackTimeText(routeStartMs, videoStartOffset) {
   const textRef = useRef(null);
 
   const updateText = useCallback((videoSeconds) => {
@@ -123,12 +123,12 @@ function usePlaybackTimeText(routeStartMillis, videoStartOffset) {
     if (!node) {
       return;
     }
-    const text = formatPlaybackTime(routeStartMillis, toRouteMs(videoStartOffset, videoSeconds));
+    const text = formatPlaybackTime(routeStartMs, toRouteMs(videoStartOffset, videoSeconds));
     if (node.textContent === text) {
       return;
     }
     node.textContent = text;
-  }, [routeStartMillis, videoStartOffset]);
+  }, [routeStartMs, videoStartOffset]);
 
   useVideoFrame(updateText);
   return textRef;
@@ -144,7 +144,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
   const canIncreaseSpeed = speedIndex < timerSteps.length - 1;
   const canDecreaseSpeed = speedIndex > 0;
 
-  const jumpBy = (amount) => {
+  const handleJump = (amount) => {
     if (!video) {
       return;
     }
@@ -157,7 +157,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     dispatch(videoPlayed(getCurrentRouteMs(videoStartOffset), getPlaybackSpeed(video)));
   };
 
-  const changeSpeedBy = (steps) => {
+  const handleSpeedChange = (steps) => {
     if (!video) {
       return;
     }
@@ -165,7 +165,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     play();
   };
 
-  const togglePause = () => {
+  const handlePauseToggle = () => {
     if (!video) {
       return;
     }
@@ -177,7 +177,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     dispatch(videoPaused(getCurrentRouteMs(videoStartOffset), getPlaybackSpeed(video)));
   };
 
-  const toggleMute = () => {
+  const handleMuteToggle = () => {
     if (!video) {
       return;
     }
@@ -191,7 +191,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
       <div className={ classes.rightBorderBox }>
         <IconButton
           className={ classes.iconButton }
-          onClick={ () => jumpBy(-10000) }
+          onClick={ () => handleJump(-10000) }
           aria-label="Jump back 10 seconds"
         >
           <Replay10 className={`${classes.icon} small dim`} />
@@ -200,7 +200,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
       <div className={ classes.rightBorderBox }>
         <IconButton
           className={ classes.iconButton }
-          onClick={ () => jumpBy(10000) }
+          onClick={ () => handleJump(10000) }
           aria-label="Jump forward 10 seconds"
         >
           <Forward10 className={`${classes.icon} small dim`} />
@@ -218,7 +218,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
         <div className={ classes.desiredPlaySpeedContainer }>
           <IconButton
             className={classes.tinyArrowIcon}
-            onClick={() => changeSpeedBy(1)}
+            onClick={() => handleSpeedChange(1)}
             disabled={!canIncreaseSpeed}
             aria-label="Increase play speed by 1 step"
           >
@@ -230,7 +230,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
           </Typography>
           <IconButton
             className={classes.tinyArrowIcon}
-            onClick={() => changeSpeedBy(-1)}
+            onClick={() => handleSpeedChange(-1)}
             disabled={!canDecreaseSpeed}
             aria-label="Decrease play speed by 1 step"
           >
@@ -243,7 +243,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
           <div>
             <IconButton
               className={ classes.iconButton }
-              onClick={toggleMute}
+              onClick={handleMuteToggle}
               disabled={!hasAudio}
               aria-label={muted ? 'Unmute' : 'Mute'}
             >
@@ -256,7 +256,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
       </div>
       <div className={ classes.leftBorderBox }>
         <IconButton
-          onClick={togglePause}
+          onClick={handlePauseToggle}
           aria-label={paused ? 'Unpause' : 'Pause'}
         >
           {paused
