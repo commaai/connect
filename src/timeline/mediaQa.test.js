@@ -285,3 +285,42 @@ describe('QA: reducer', () => {
     expect(next.seekRevision).toBe(state.seekRevision);
   });
 });
+
+describe('QA: cycle 2 additions', () => {
+  it('Q1-B-29 a stale seeked from an older seek does not complete a newer pending seek', () => {
+    const { video, callbacks, controller } = setup();
+    controller.update(cmd(2000, 1));
+    video.seeking = true;
+    controller.update(cmd(8000, 2));
+    video.fire('seeked');
+    expect(callbacks.onProgress).not.toHaveBeenCalledWith(expect.anything(), 2);
+  });
+
+  it('Q1-B-30 frame sampling stops after dispose and never extrapolates', () => {
+    const frames = [];
+    const { video, callbacks, controller } = setup();
+    video.cancelVideoFrameCallback = vi.fn();
+    video.requestVideoFrameCallback = vi.fn((fn) => { frames.push(fn); return frames.length; });
+    const again = createController(video, callbacks);
+    again.update({ speed: 1, ...cmd(1000) });
+    video.fire('seeked');
+    callbacks.onProgress.mockClear();
+    video.currentTime = 1.5;
+    frames.at(-1)(1000);
+    expect(callbacks.onProgress).toHaveBeenLastCalledWith(1500, 1);
+    again.dispose();
+    expect(video.cancelVideoFrameCallback).toHaveBeenCalled();
+    callbacks.onProgress.mockClear();
+    frames.at(-1)(5000);
+    expect(callbacks.onProgress).not.toHaveBeenCalled();
+    controller.dispose();
+  });
+
+  it('Q1-B-31 unknown duration still completes a metadata-ready seek', () => {
+    const { video, callbacks, controller } = setup({ duration: NaN });
+    controller.update(cmd(4000));
+    video.fire('seeked');
+    expect(video.currentTime).toBe(4);
+    expect(callbacks.onProgress).toHaveBeenCalledWith(4000, 1);
+  });
+});
