@@ -269,3 +269,30 @@ it('clamps only the initial command to the real first appended timestamp', () =>
   controller.update(command(0, 2));
   expect(video.currentTime).toBe(0);
 });
+
+it('plays appended media when timing is unknown while retaining the route command', () => {
+  const { video, controller, callbacks } = setup();
+  video.readyState = 1;
+  video.buffered = { length: 0, start: () => 0.023 };
+  controller.update({ waitForBuffer: true, speed: 1, toMedia: () => null,
+    toRoute: () => null, ...command(5000) });
+  expect(video.play).not.toHaveBeenCalled();
+  video.readyState = 4;
+  video.buffered.length = 1;
+  video.fire('canplay');
+  expect(video.play).toHaveBeenCalledOnce();
+  expect(video.currentTime).toBe(0.023);
+  expect(callbacks.onProgress).not.toHaveBeenCalled();
+  controller.update({ toMedia: (ms) => ms / 1000, toRoute: (seconds) => seconds * 1000 });
+  expect(video.currentTime).toBe(5);
+  video.fire('seeked');
+  expect(callbacks.onProgress).toHaveBeenLastCalledWith(5000, 1);
+});
+
+it('can play appended media without an explicit route seek', () => {
+  const { video, controller } = setup();
+  video.readyState = 4;
+  video.buffered = { length: 1, start: () => 0 };
+  controller.update({ waitForBuffer: true, speed: 1 });
+  expect(video.play).toHaveBeenCalledOnce();
+});

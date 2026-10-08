@@ -31,8 +31,17 @@ export function createController(video, callbacks = {}) {
   };
 
   function resume() {
-    if (!active || !intent.speed || !video.paused || starting
-      || (intent.waitForBuffer && !initialized)) return;
+    if (!active || !intent.speed || !video.paused || starting) return;
+    if (intent.waitForBuffer && !initialized) {
+      // Unknown route timing must not prevent native playback. Keep the route
+      // command pending until mapping arrives; start only on appended media.
+      if (pending !== null && Number.isFinite(toMedia(pending))) return;
+      if (video.readyState < 2 || !video.buffered?.length) return;
+      const bufferStart = intent.bufferStart ?? video.buffered.start?.(0);
+      if (Number.isFinite(bufferStart) && video.currentTime < bufferStart) {
+        try { video.currentTime = bufferStart; } catch { return; }
+      }
+    }
     starting = true;
     playRequest += 1;
     const request = playRequest;
@@ -114,7 +123,7 @@ export function createController(video, callbacks = {}) {
   });
   listen('waiting', () => emit('onBuffering', true));
   listen('seeking', () => emit('onBuffering', true));
-  listen('canplay', () => { seekPending(); emit('onBuffering', pending !== null); });
+  listen('canplay', () => { seekPending(); resume(); emit('onBuffering', pending !== null); });
   listen('playing', () => emit('onBuffering', pending !== null));
   listen('emptied', () => { playRequest += 1; starting = false; });
   listen('pause', () => {
