@@ -1,5 +1,18 @@
 import store from '../store';
 
+let playbackVideo = null;
+
+export function setPlaybackVideo(video) {
+  playbackVideo = video;
+}
+
+export function clampToLoop(offset, loop) {
+  if (offset === null || !loop) {
+    return offset;
+  }
+  return Math.max(loop.startTime, Math.min(offset, loop.startTime + loop.duration));
+}
+
 /**
  * Get current playback offset
  *
@@ -12,22 +25,12 @@ export function currentOffset(state = null) {
   }
 
   /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
+  let offset = state.offset;
+  if (playbackVideo && playbackVideo.readyState >= HTMLMediaElement.HAVE_METADATA) {
+    offset = playbackVideo.currentTime * 1000 + (state.currentRoute?.videoStartOffset || 0);
+  } else if (offset === null && state.loop) {
     offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
   }
 
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
-  }
-  return offset;
+  return clampToLoop(offset, state.loop);
 }
