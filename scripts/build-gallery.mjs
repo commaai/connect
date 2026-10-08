@@ -559,6 +559,9 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
       }
       Object.setPrototypeOf(FrozenDate, NativeDate);
       globalThis.Date = FrozenDate;
+      HTMLMediaElement.prototype.play = function freezeGalleryMedia() {
+        return Promise.resolve();
+      };
       if (authenticated) localStorage.setItem('authorization', 'gallery-token');
       else localStorage.removeItem('authorization');
       localStorage.removeItem('selectedDongleId');
@@ -693,7 +696,14 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
         scroll-behavior: auto !important;
         transition: none !important;
       }
+      .animate-spin {
+        animation: none !important;
+        transform: rotate(0deg) !important;
+      }
     ` });
+    await page.evaluate(() => {
+      document.querySelectorAll('audio, video').forEach((media) => media.pause());
+    });
     const label = `${state.name}/${viewport.name}`;
     await openGalleryModal(page, state, label);
     const buffer = await waitForStableFrames(page, label);

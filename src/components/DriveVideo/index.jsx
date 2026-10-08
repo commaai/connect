@@ -49,12 +49,12 @@ class DriveVideo extends Component {
     super(props);
     this.videoPlayer = React.createRef();
     this.lastVideoOffset = null;
+    this.lastPlayedSeconds = null;
     this.state = { error: null, retry: 0 };
 
     this.handleProgress = this.handleProgress.bind(this);
     this.handleReady = this.handleReady.bind(this);
     this.handleBuffer = this.handleBuffer.bind(this);
-    this.handleBufferEnd = this.handleBufferEnd.bind(this);
     this.handleError = this.handleError.bind(this);
     this.retry = this.retry.bind(this);
   }
@@ -63,6 +63,7 @@ class DriveVideo extends Component {
     const routeChanged = prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname;
     if (routeChanged) {
       this.lastVideoOffset = null;
+      this.lastPlayedSeconds = null;
       if (this.state.error) this.setState({ error: null });
       return;
     }
@@ -79,6 +80,7 @@ class DriveVideo extends Component {
 
   componentWillUnmount() {
     this.lastVideoOffset = null;
+    this.lastPlayedSeconds = null;
   }
 
   seekToOffset(offset) {
@@ -87,9 +89,18 @@ class DriveVideo extends Component {
     }
   }
 
+  hasPlayableFrame() {
+    const media = this.videoPlayer.current?.getInternalPlayer();
+    return Boolean(media && media.readyState >= 2);
+  }
+
   handleProgress({ playedSeconds }) {
-    const { currentRoute, dispatch, loop } = this.props;
-    if (!currentRoute) return;
+    const { currentRoute, desiredPlaySpeed, dispatch, loop } = this.props;
+    if (!currentRoute || !this.hasPlayableFrame()) return;
+
+    const mediaAdvanced = this.lastPlayedSeconds !== null
+      && Math.abs(playedSeconds - this.lastPlayedSeconds) > 0.001;
+    this.lastPlayedSeconds = playedSeconds;
 
     let offset = routeOffsetForVideoSeconds(currentRoute, playedSeconds);
     if (loop && (offset < loop.startTime || offset >= loop.startTime + loop.duration)) {
@@ -99,12 +110,12 @@ class DriveVideo extends Component {
 
     this.lastVideoOffset = offset;
     dispatch(seek(offset));
-    dispatch(bufferVideo(false));
+    if (mediaAdvanced || !desiredPlaySpeed) dispatch(bufferVideo(false));
   }
 
   handleReady(player) {
     this.seekToOffset(this.props.offset);
-    this.props.dispatch(bufferVideo(false));
+    if (!this.props.desiredPlaySpeed) this.props.dispatch(bufferVideo(false));
 
     const reportAudio = this.props.onAudioStatusChange;
     if (!reportAudio) return;
@@ -125,10 +136,6 @@ class DriveVideo extends Component {
     this.props.dispatch(bufferVideo(true));
   }
 
-  handleBufferEnd() {
-    this.props.dispatch(bufferVideo(false));
-  }
-
   handleError(error, data) {
     if (!error || error.name === 'AbortError') return;
     if (error === 'hlsError' && !data?.fatal) return;
@@ -147,6 +154,7 @@ class DriveVideo extends Component {
 
   retry() {
     this.lastVideoOffset = null;
+    this.lastPlayedSeconds = null;
     this.setState((state) => ({ error: null, retry: state.retry + 1 }));
     this.props.dispatch(bufferVideo(true));
   }
@@ -175,7 +183,6 @@ class DriveVideo extends Component {
           onReady={this.handleReady}
           onProgress={this.handleProgress}
           onBuffer={this.handleBuffer}
-          onBufferEnd={this.handleBufferEnd}
           onError={this.handleError}
           config={{
             hlsVersion: '1.4.8',
