@@ -93,8 +93,9 @@ export function checkRoutesData() {
       }).sort((a, b) => {
         return b.create_time - a.create_time;
       });
+      const fetchedRouteIds = new Set(fetchedRoutes.map((route) => route.log_id));
       const routes = selectedRouteId
-        ? [...(state.routes || []).filter((route) => !fetchedRoutes.some((fetched) => fetched.log_id === route.log_id)), ...fetchedRoutes]
+        ? [...(state.routes || []).filter((route) => !fetchedRouteIds.has(route.log_id)), ...fetchedRoutes]
         : fetchedRoutes;
 
       dispatch({
@@ -162,8 +163,10 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
+  const route = state.routes?.find((candidate) => candidate.log_id === log_id)
+    || (state.currentRoute?.log_id === log_id ? state.currentRoute : null);
+
   if (allowPathChange) {
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
     const urlStart = wholeDrive ? null : Math.floor(start / 1000);
     const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
@@ -172,10 +175,15 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
     return;
   }
 
-  if (state.selectedRouteId !== log_id || !state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
+  const rangeStart = start ?? 0;
+  const rangeEnd = end ?? route?.duration;
+  if (rangeEnd == null) return;
+
+  if (state.selectedRouteId !== log_id || state.loop?.startTime == null || state.loop?.duration == null
+    || state.loop.startTime < rangeStart || state.loop.startTime + state.loop.duration > rangeEnd
+    || state.loop.duration < rangeEnd - rangeStart) {
     dispatch(resetPlayback());
-    dispatch(selectLoop(start, end));
+    dispatch(selectLoop(rangeStart, rangeEnd));
   }
 
 }
@@ -208,7 +216,16 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
       return;
     }
 
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
+    const route = state.routes?.find((candidate) => candidate.log_id === log_id)
+      || (state.currentRoute?.log_id === log_id ? state.currentRoute : null);
+    const wholeDrive = start == null || end == null;
+    const alreadySelected = state.selectedRouteId === log_id && (wholeDrive
+      ? (route
+        ? state.zoom?.start === 0 && state.zoom?.end === route.duration
+        : !state.zoom)
+      : state.zoom?.start === start && state.zoom?.end === end);
+
+    if (!alreadySelected) {
       dispatch({
         type: Types.TIMELINE_PUSH_SELECTION,
         log_id,
