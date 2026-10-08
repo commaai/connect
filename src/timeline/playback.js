@@ -9,7 +9,8 @@ export function reducer(_state, action) {
       const offset = loop?.duration > 0
         ? Math.max(loop.startTime, Math.min(action.offset, loop.startTime + loop.duration))
         : action.offset;
-      state = { ...state, offset, seekRevision: (state.seekRevision || 0) + 1 };
+      state.offset = offset;
+      state.seekRevision = (state.seekRevision || 0) + 1;
       break;
     }
     case Types.ACTION_REPORT_VIDEO_TIME: {
@@ -66,7 +67,8 @@ export function reducer(_state, action) {
       break;
   }
 
-  return { ...state, isBufferingVideo: Boolean(state.isBufferingVideo) };
+  state.isBufferingVideo = Boolean(state.isBufferingVideo);
+  return state;
 }
 
 export function seek(offset) {
