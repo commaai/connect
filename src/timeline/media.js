@@ -31,7 +31,8 @@ export function createController(video, callbacks = {}) {
   };
 
   function resume() {
-    if (!active || !intent.speed || !video.paused || starting) return;
+    if (!active || !intent.speed || !video.paused || starting
+      || (intent.waitForBuffer && !initialized)) return;
     starting = true;
     playRequest += 1;
     const request = playRequest;
