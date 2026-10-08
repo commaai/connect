@@ -89,7 +89,7 @@ async function mockFetch(input, init = {}) {
   const options = mocks.options;
   const deviceList = options.devices ?? devices;
   if (url.pathname === '/v1/me/turn') return json(null);
-  if (url.pathname === '/v1/me/') return json({ id: 'test-user', superuser: false });
+  if (url.pathname === '/v1/me/') return json({ id: 'test-user', superuser: options.superuser ?? false });
   if (url.pathname === '/v1/me/devices/') return json(deviceList);
   if (url.pathname === '/v1/referrals') return json(options.referrals ?? {
     code: 'ABC1234',
@@ -302,5 +302,97 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('device settings open from a link, over the page, and close back to it', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/20?settings=${SECOND}`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByText(SECOND)).toBeVisible();
+    // the dialog hides the page behind it from assistive tech, but the drive stays
+    expect(screen.getByRole('slider', { name: 'Drive timeline', hidden: true })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(`${history.location.pathname}${history.location.search}`).toBe(`/${FIRST}/${LOG}/10/20`);
+  });
+
+  test('device settings opened in the app close with the back button too', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    // devices are listed by name: Alpha (SECOND), then Zulu (FIRST)
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.search).toBe(`?settings=${SECOND}`);
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+  });
+
+  test.each([
+    ['listed', [...devices, { alias: 'Shared', dongle_id: SHARED, device_type: 'threex', is_owner: false, prime: false }]],
+    ['unlisted', devices],
+  ])('device settings do not open for a %s device the user does not own', async (_name, deviceList) => {
+    await renderApp(`/${FIRST}?settings=${SHARED}`, { devices: deviceList });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('superusers open settings for a viewed device they do not own', async () => {
+    await renderApp(`/${SHARED}?settings=${SHARED}`, { superuser: true });
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('Prime settings leave the settings dialog out of the back history', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    act(() => history.goBack());
+    expect(`${history.location.pathname}${history.location.search}`).toBe(`/${FIRST}`);
+  });
+
+  test('closing add device while the camera is being granted turns the camera off', async () => {
+    const track = { stop: vi.fn() };
+    let grant;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: vi.fn(async () => [{ kind: 'videoinput' }]),
+        getUserMedia: vi.fn(() => new Promise((resolve) => { grant = resolve; })),
+      },
+    });
+    const { history } = await renderApp(`/${FIRST}?add-device`);
+    await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled());
+    act(() => history.push(`/${FIRST}`));
+    await act(async () => grant({ getTracks: () => [track] }));
+    expect(track.stop).toHaveBeenCalled();
+    delete navigator.mediaDevices;
+  });
+
+  test('add device opens one pairing dialog from a link', async () => {
+    const { history } = await renderApp('/?add-device', { devices: [] });
+    expect(await screen.findAllByText('Pair device')).toHaveLength(1);
+    expect(history.location.search).toBe('?add-device');
+  });
+
+  test('the date filter opens from the dashboard and its URL', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Filter' }));
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    expect(history.location.search).toBe('?filter');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByText('Start date:')).not.toBeInTheDocument());
+    expect(history.location.search).toBe('');
+  });
+
+  test.each([
+    ['a drive', `/${FIRST}/${LOG}`, `/${FIRST}/${LOG}`],
+    ['another site', '//evil.example.com', `/${FIRST}`],
+  ])('the login return link opens %s only if it is on this site', async (_name, target, expected) => {
+    // a browser throws on a cross-site history entry, so it must never be attempted
+    const { history } = await renderApp(`/${FIRST}?r=${encodeURIComponent(target)}`);
+    await waitFor(() => expect(history.location.pathname).toBe(expected));
   });
 });
