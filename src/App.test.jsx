@@ -30,7 +30,10 @@ vi.mock('./utils/webrtc', () => ({
   },
 }));
 vi.mock('react-map-gl', () => ({
-  default: React.forwardRef((_props, ref) => <div ref={ref} data-testid="map" />),
+  default: React.forwardRef((_props, ref) => {
+    React.useImperativeHandle(ref, () => ({ getMap: () => null }));
+    return <div data-testid="map" />;
+  }),
   GeolocateControl: () => null,
   HTMLOverlay: () => null,
   Layer: () => null,
@@ -39,20 +42,7 @@ vi.mock('react-map-gl', () => ({
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
 }));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
-}));
+vi.mock('hls.js', () => ({ default: class { static isSupported() { return false; } } }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
 const FIRST = 'aaaaaaaaaaaaaaaa';
@@ -287,6 +277,27 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goForward());
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+  });
+
+  test('speed controls preserve pause and resume uses the selected speed', async () => {
+    const { store } = await renderApp('/' + FIRST + '/' + LOG);
+    await screen.findByLabelText('Route video');
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase play speed by 1 step' }));
+    expect(store.getState()).toMatchObject({ isPlaying: false, desiredPlaySpeed: 2 });
+    fireEvent.click(screen.getByRole('button', { name: 'Unpause' }));
+    expect(store.getState()).toMatchObject({ isPlaying: true, desiredPlaySpeed: 2 });
+  });
+
+  test('map view retains the same media element and its playback clock', async () => {
+    await renderApp('/' + FIRST + '/' + LOG);
+    const video = await screen.findByLabelText('Route video');
+    fireEvent.click(screen.getByText('Map', { exact: true }));
+    expect(screen.getByLabelText('Route video')).toBe(video);
+    expect(video).not.toBeVisible();
+    fireEvent.click(screen.getByText('Video', { exact: true }));
+    expect(screen.getByLabelText('Route video')).toBe(video);
+    expect(video).toBeVisible();
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {

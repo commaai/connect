@@ -64,6 +64,8 @@ export default defineConfig(({ mode }) => {
       process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),
     optimizeDeps: {
+      // Bundle the player engine before the lazy route view is opened.
+      include: ['hls.js'],
       esbuildOptions: {
         // Node.js global to browser globalThis
         // Required for Material UI v1
