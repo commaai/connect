@@ -103,7 +103,6 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -132,10 +131,13 @@ class AddDevice extends Component {
   }
 
   async componentDidMount() {
+    this.mounted = true;
     this.componentDidUpdate({}, {});
   }
 
   async componentDidUpdate() {
+    if (!this.mounted) return;
+
     const modalOpen = Boolean(this.props.isModalHost && this.props.open);
     const { pairLoading, pairError, pairDongleId } = this.state;
     let { hasCamera } = this.state;
@@ -159,11 +161,18 @@ class AddDevice extends Component {
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
+        if (!this.mounted || !this.props.open) {
+          this.stream.getTracks().forEach((track) => track.stop());
+          this.stream = null;
+          this.detector = null;
+          return;
+        }
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
         this.startScanning();
       } catch (err) {
+        if (!this.mounted) return;
         let cameraError = 'Unable to access camera.';
         if (err.name === 'NotAllowedError') {
           cameraError = 'Camera access denied. Please allow camera access in your browser settings and try again.';
@@ -258,6 +267,7 @@ class AddDevice extends Component {
   }
 
   async componentWillUnmount() {
+    this.mounted = false;
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
@@ -299,7 +309,7 @@ class AddDevice extends Component {
       return;
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
     this.props.onClose?.();
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
