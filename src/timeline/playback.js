@@ -61,6 +61,16 @@ export function reducer(_state, action) {
         startTime: Date.now(),
       };
       break;
+    case Types.ACTION_MEDIA_TIME:
+      // Browser media time is the source of truth while a route is playing.
+      // Keep the regular playback interpolation for the map and timeline
+      // between native progress events, but never use it to correct the video.
+      state = {
+        ...state,
+        offset: action.offset,
+        startTime: Date.now(),
+      };
+      break;
     case Types.ACTION_RESET:
       state = {
         ...state,
@@ -141,6 +151,13 @@ export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
+  };
+}
+
+export function observeMediaTime(offset) {
+  return {
+    type: Types.ACTION_MEDIA_TIME,
+    offset,
   };
 }
 

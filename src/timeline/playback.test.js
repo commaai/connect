@@ -1,6 +1,6 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, observeMediaTime, pause, play, reducer, seek, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -128,6 +128,17 @@ describe('playback', () => {
     expect(state.desiredPlaySpeed).toEqual(2);
     expect(state.isBufferingVideo).toEqual(false);
 
+    expect(state.desiredPlaySpeed).toEqual(2);
+  });
+
+  it('uses observed media time without changing requested playback speed', () => {
+    newNow();
+    let state = makeDefaultStruct();
+    state = reducer(state, play(2));
+    state = reducer(state, observeMediaTime(12345));
+
+    expect(state.offset).toEqual(12345);
+    expect(state.startTime).toEqual(Date.now());
     expect(state.desiredPlaySpeed).toEqual(2);
   });
 });
