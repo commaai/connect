@@ -25,6 +25,7 @@ test.beforeEach(async ({ page }, info) => {
 });
 
 test.afterEach(async ({ page, browser }, info) => {
+  if (info.status === info.expectedStatus) return;
   if (info.mediaFailures.length) {
     console.log('Playback resource diagnostics:', JSON.stringify(info.mediaFailures));
     await info.attach('media-resource-failures', { body: JSON.stringify(info.mediaFailures, null, 2), contentType: 'application/json' });
