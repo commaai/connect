@@ -28,7 +28,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
           const log_id = routesData[0].fullname.split('|')[1]; 
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
 
-          dispatch(goToRange(log_id, 0, duration));
+          dispatch(goToRange(log_id, 0, duration, { wholeDrive: true }));
         }
       }).catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);

@@ -92,7 +92,7 @@ describe('history middleware', () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
     const { invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.goToRange).toHaveBeenCalledWith(LOG, 0, 60000));
+    await vi.waitFor(() => expect(actions.goToRange).toHaveBeenCalledWith(LOG, 0, 60000, { wholeDrive: true }));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 

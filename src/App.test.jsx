@@ -116,7 +116,8 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
   if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
@@ -287,6 +288,26 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText('Pair device')).toBeVisible();
     act(() => history.replace(`/${FIRST}`));
     await waitFor(() => expect(screen.queryByText('Pair device')).toBeNull());
+  });
+
+  describe('Prime dialogs', () => {
+    const prime = [{ ...devices[0], prime: true }, devices[1]];
+    const subscription = {
+      user_id: 'test-user', plan: 'nodata', amount: 1000, subscribed_at: 1_700_000_000, next_charge_at: 1_900_000_000, cancel_at: null,
+    };
+
+    test('cancel dialog opens from the URL and closes in place', async () => {
+      const { history } = await renderApp(`/${FIRST}/prime?modal=prime-cancel`, { devices: prime, subscription });
+      expect(await screen.findByText('Cancel prime subscription')).toBeVisible();
+      fireEvent.click(screen.getAllByRole('button', { name: 'Close' }).at(-1));
+      await waitFor(() => expect(screen.queryByText('Cancel prime subscription')).toBeNull());
+      expect(history.location.pathname + history.location.search).toBe(`/${FIRST}/prime`);
+    });
+
+    test('plan switch dialog opens from the URL without a clicked plan', async () => {
+      await renderApp(`/${FIRST}/prime?modal=prime-switch`, { devices: prime, subscription });
+      expect(await screen.findByRole('button', { name: 'Confirm switch' })).toBeVisible();
+    });
   });
 
   test('Prime close and browser history restore its view', async () => {

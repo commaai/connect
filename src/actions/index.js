@@ -153,12 +153,10 @@ function goTo(path) {
   };
 }
 
-function rangeUrl(state, log_id, start, end) {
+function rangeUrl(state, log_id, start, end, wholeDrive = false) {
   const route = state.routes?.find((candidate) => candidate.log_id === log_id);
-  const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-  const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-  const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-  const range = urlStart && urlEnd ? { start: urlStart, end: urlEnd } : null;
+  const isWhole = wholeDrive || start == null || end == null || (start === 0 && end === route?.duration);
+  const range = isWhole ? null : { start: Math.floor(start / 1000), end: Math.floor(end / 1000) };
   return buildUrl({ page: 'drive', dongleId: state.dongleId, logId: log_id, range });
 }
 
@@ -208,11 +206,12 @@ export function goBackRange(log_id) {
   };
 }
 
-export function goToRange(log_id, start, end) {
+// wholeDrive: start..end spans the entire drive, even when its duration is not loaded to compare against
+export function goToRange(log_id, start, end, { wholeDrive = false } = {}) {
   return (dispatch, getState) => {
     const state = getState();
     dispatch(pushTimelineRange(log_id, start, end));
-    dispatch(goTo(rangeUrl(state, log_id, start, end)));
+    dispatch(goTo(rangeUrl(state, log_id, start, end, wholeDrive)));
   };
 }
 

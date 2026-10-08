@@ -84,7 +84,7 @@ const DriveListItem = (props) => {
   }, [drive, dispatch, isVisible, el]);
 
   const onClick = filterRegularClick(
-    () => dispatch(goToRange(drive.log_id, 0, drive.duration)),
+    () => dispatch(goToRange(drive.log_id, 0, drive.duration, { wholeDrive: true })),
   );
 
   const small = windowWidth < 580;

@@ -22,6 +22,16 @@ describe('timeline actions', () => {
     const state = { dongleId: 'statedongle', loop: {}, zoom: {} };
     const dispatch = vi.fn((action) => (typeof action === 'function' ? action(dispatch, () => state) : action));
     dispatch(goToRange('log_id', 123, 1234));
+    expect(push).toBeCalledWith('/statedongle/log_id/0/1');
+  });
+
+  it('keeps a range that starts at zero in the URL', () => {
+    const state = { dongleId: 'statedongle', loop: {}, zoom: {}, routes: [{ log_id: 'log_id', duration: 60000 }] };
+    const dispatch = vi.fn((action) => (typeof action === 'function' ? action(dispatch, () => state) : action));
+    dispatch(goToRange('log_id', 0, 20000));
+    expect(push).toBeCalledWith('/statedongle/log_id/0/20');
+    push.mockClear();
+    dispatch(goToRange('log_id', 0, 60000));
     expect(push).toBeCalledWith('/statedongle/log_id');
   });
 
