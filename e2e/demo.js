@@ -1,3 +1,4 @@
+import { unexpectedResourceErrors } from './resource-errors';
 import { fixtureManifest, fixtureSegment } from './media-fixture';
 import { test as base, expect } from '@playwright/test';
 
@@ -24,20 +25,25 @@ export const test = base.extend({
   context: async ({ context, owner, media, fault }, use) => {
     const unexpected = [];
     const errors = [];
+    const missingSegments = new Set();
     const ownerId = 'aaaaaaaaaaaaaaaa';
     const device = { dongle_id: ownerId, alias: 'owner device', device_type: 'threex', is_owner: true, prime: true, version: '0.11.2', shared: false, last_athena_ping: 0 };
     if (owner) await context.addInitScript(() => {
       if (location.hostname === '127.0.0.1') localStorage.setItem('authorization', 'e2e-token');
     });
     context.on('page', page => {
-      page.on('pageerror', error => errors.push(error.message));
+      page.on('response', response => {
+        if (fault && response.status() === 404 && /\/part-\d+\.ts$/.test(new URL(response.url()).pathname)) {
+          missingSegments.add(response.url());
+        }
+      });
+      page.on('pageerror', error => errors.push({ text: error.message, url: '' }));
       page.on('console', message => {
         if (message.type() !== 'error') return;
-        if (fault && message.text() === 'Failed to load resource: the server responded with a status of 404 (Not Found)') return;
         // Existing development-only diagnostics are recorded in the handoff, not new regressions.
         if (message.text().startsWith('[PostHog.js] PostHog was initialized without a token.')
             || message.text().startsWith('Warning: Material-UI: you are providing a disabled `button` child')) return;
-        errors.push(message.text());
+        errors.push({ text: message.text(), url: message.location().url });
       });
     });
     await context.route('**/*', async (route) => {
@@ -110,7 +116,8 @@ export const test = base.extend({
     });
     await use(context);
     expect(unexpected, 'Unexpected external requests').toEqual([]);
-    expect(errors, 'Browser errors').toEqual([]);
+    const unexpectedErrors = unexpectedResourceErrors(errors, missingSegments);
+    expect(unexpectedErrors, 'Browser errors (with source URLs)').toEqual([]);
   },
 });
 

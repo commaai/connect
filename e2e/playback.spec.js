@@ -33,6 +33,7 @@ test.afterEach(async ({ page, browser }, info) => {
   if (info.status === info.expectedStatus || page.isClosed()) return;
   const state = await page.evaluate(() => {
     const video = document.querySelector('video[aria-label="Drive video"]') || document.createElement('video');
+    const ranges = list => Array.from({ length: list.length }, (_, i) => [list.start(i), list.end(i)]);
     const speed = document.querySelector('[aria-label="Increase play speed by 1 step"]');
     const bounds = element => element?.getBoundingClientRect().toJSON();
     return { layout: { viewport: { width: innerWidth, height: innerHeight },
@@ -40,6 +41,7 @@ test.afterEach(async ({ page, browser }, info) => {
       aac: video.canPlayType('audio/mp4; codecs="mp4a.40.2"'), hls: video.canPlayType('application/vnd.apple.mpegurl') },
       media: { time: video.currentTime, paused: video.paused, readyState: video.readyState,
         seeking: video.seeking, duration: video.duration, muted: video.muted,
+        buffered: ranges(video.buffered), seekable: ranges(video.seekable),
         rate: video.playbackRate, error: video.error?.code, source: video.currentSrc },
       events: window.mediaEvents };
   }).catch(error => ({ diagnosticError: error.message }));
