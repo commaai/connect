@@ -1,3 +1,4 @@
+import { fixtureManifest, fixtureSegment } from './media-fixture';
 import { test as base, expect } from '@playwright/test';
 
 export const DONGLE = 'deadbeefdeadbeef';
@@ -18,7 +19,9 @@ const publicRoute = {
 // Exercise the real demo backend and UI; keep the public route independent of network access.
 export const test = base.extend({
   owner: [false, { option: true }],
-  context: async ({ context, owner }, use) => {
+  media: [false, { option: true }],
+  fault: [false, { option: true }],
+  context: async ({ context, owner, media, fault }, use) => {
     const unexpected = [];
     const errors = [];
     const ownerId = 'aaaaaaaaaaaaaaaa';
@@ -30,6 +33,7 @@ export const test = base.extend({
       page.on('pageerror', error => errors.push(error.message));
       page.on('console', message => {
         if (message.type() !== 'error') return;
+        if (fault && message.text() === 'Failed to load resource: the server responded with a status of 404 (Not Found)') return;
         // Existing development-only diagnostics are recorded in the handoff, not new regressions.
         if (message.text().startsWith('[PostHog.js] PostHog was initialized without a token.')
             || message.text().startsWith('Warning: Material-UI: you are providing a disabled `button` child')) return;
@@ -57,6 +61,9 @@ export const test = base.extend({
           'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aM1cAAAAASUVORK5CYII=', 'base64'),
         });
       }
+      const segment = url.pathname.match(/\/part-(\d+)\.ts$/);
+      if (media && segment) return route.fulfill({ contentType: 'video/mp2t', body: fixtureSegment(Number(segment[1])) });
+      if (media && url.pathname.endsWith('.m3u8')) return route.fulfill({ contentType: 'application/vnd.apple.mpegurl', body: fixtureManifest() });
       if (url.pathname.endsWith('.m3u8')) return route.fulfill({
         contentType: 'application/vnd.apple.mpegurl', body: '#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-ENDLIST\n',
       });
@@ -78,6 +85,12 @@ export const test = base.extend({
         unexpected.push(`Athena ${payload.method}`);
         return json({ error: { message: 'Unsupported fixture request' } });
       }
+      if (media && url.pathname.endsWith('/routes_segments')) return json([{ ...publicRoute,
+        maxqlog: 5, segment_numbers: [0, 1, 2, 3, 4, 5],
+        segment_start_times: Array.from({ length: 6 }, (_, i) => START + i * 2000),
+        segment_end_times: Array.from({ length: 6 }, (_, i) => START + (i + 1) * 2000),
+        end_time_utc_millis: START + 12000,
+      }]);
       if (url.pathname.endsWith('/routes_segments')) return json([owner ? { ...publicRoute, dongle_id: ownerId, fullname: `${ownerId}|${LOG}` } : publicRoute]);
       if (url.pathname.endsWith('/files')) return json({ cameras: [], qcameras: [], logs: [], qlogs: [] });
       if (url.pathname.endsWith('/location')) return json({ lat: 32.71, lng: -117.16, time: START / 1000 });
