@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildPath, getDialog, getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parsePathname, withDialog,
+  buildPath, getDialog, getDongleID, getSettingsDongleId, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parsePathname, withDialog,
 } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
@@ -27,8 +27,20 @@ describe('URL pathname helpers', () => {
     expect(getDialog(`/${DONGLE}/settings`, '?dialog=filter')).toBeNull();
     expect(withDialog({ pathname: `/${DONGLE}`, search: '?source=test', hash: '#map' }, 'filter'))
       .toBe(`/${DONGLE}?source=test&dialog=filter#map`);
-    expect(getDialog(`/${DONGLE}/${LOG}`, `?dialog=unpair&device=${DONGLE}&panel=settings`)).toBe('unpair');
+    expect(getDialog(`/${DONGLE}/${LOG}`, `?settings=${DONGLE}&dialog=unpair`)).toBe('unpair');
     expect(getDialog(`/${DONGLE}/${LOG}`, '?dialog=unpair')).toBeNull();
+    expect(getDialog(`/${DONGLE}`, `?settings=${DONGLE}&dialog=filter`)).toBeNull();
+    expect(getDialog(`/${DONGLE}`, '?dialog=bogus')).toBeNull();
+  });
+
+  it.each([
+    [`/${DONGLE}/settings`, '?settings=1111bbbb1111bbbb', DONGLE],
+    [`/${DONGLE}/prime`, `?settings=${DONGLE}`, DONGLE],
+    ['/referrals', `?settings=${DONGLE}`, DONGLE],
+    [`/${DONGLE}`, '?settings=not-a-dongle', null],
+    ['/', `?settings=${DONGLE}`, null],
+  ])('getSettingsDongleId(%s%s)', (pathname, search, expected) => {
+    expect(getSettingsDongleId(pathname, search)).toBe(expected);
   });
   it.each([
     [`/${DONGLE}`, DONGLE],

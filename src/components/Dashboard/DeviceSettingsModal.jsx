@@ -231,17 +231,7 @@ class DeviceSettingsModal extends Component {
   }
 
   openDialog(dialog) {
-    if (this.props.contextual && !dialog) {
-      this.props.dispatch(push(withDialog(this.props.location, 'settings', {
-        device: this.props.dongleId,
-        panel: 'settings',
-      })));
-      return;
-    }
-    this.props.dispatch(push(withDialog(this.props.location, dialog, this.props.contextual ? {
-      device: this.props.dongleId,
-      panel: 'settings',
-    } : {})));
+    this.props.dispatch(push(withDialog(this.props.location, dialog)));
   }
 
   async unpairDevice() {
@@ -374,7 +364,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.dialog === 'unpair'}
+          open={this.props.isOpen && this.props.dialog === 'unpair'}
           onClose={ this.closeUnpair }
         >
           <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
@@ -437,8 +427,8 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.props.dialog === 'uploads' }
-          update={ this.props.dialog === 'uploads' }
+          open={ this.props.isOpen && this.props.dialog === 'uploads' }
+          update={ this.props.isOpen && this.props.dialog === 'uploads' }
           onClose={ () => this.openDialog(null) }
           device={ device }
         />

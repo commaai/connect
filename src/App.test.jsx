@@ -133,6 +133,7 @@ async function renderApp(pathname, options = {}) {
   mocks.options = options;
   mocks.requests = [];
   window.history.replaceState({}, '', pathname);
+  window.innerWidth = options.wide ? 1280 : 1024;
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
   const store = createAppStore(history, createInitialState(history.location.pathname));
@@ -148,6 +149,11 @@ async function renderApp(pathname, options = {}) {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   return { ...view, history, store };
+}
+
+async function findDeviceSettingsButton(dongleId) {
+  const device = (await screen.findAllByText(dongleId)).find((el) => el.closest('a'))?.closest('a');
+  return within(device).getByRole('button', { name: 'device settings' });
 }
 
 describe('whole-app behavior', () => {
@@ -235,15 +241,32 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText('Device settings')).toBeVisible();
   });
 
-  test('shared device settings show an access-denied state', async () => {
-    await renderApp(`/${SHARED}/settings`);
+  test.each([
+    ['settings', `/${SHARED}/settings`],
+    ['unpair', `/${SHARED}/settings?dialog=unpair`],
+    ['uploads', `/${SHARED}?settings=${SHARED}&dialog=uploads`],
+  ])('shared device %s link shows an access-denied state', async (_name, pathname) => {
+    await renderApp(pathname);
     expect(await screen.findByText('Device settings unavailable')).toBeVisible();
     expect(screen.queryByLabelText('Device name')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Upload queue')).not.toBeInTheDocument();
+  });
+
+  test.each([
+    ['Prime', `/${FIRST}/prime`],
+    ['drive', `/${FIRST}/${LOG}`],
+  ])('the device list opens settings over the %s page', async (_name, pathname) => {
+    const { history } = await renderApp(pathname, { wide: true });
+    fireEvent.click(await findDeviceSettingsButton(FIRST));
+    await waitFor(() => expect(history.location.search).toBe(`?settings=${FIRST}`));
+    expect(history.location.pathname).toBe(pathname);
+    expect(await screen.findByText('Device settings')).toBeVisible();
   });
 
   test('contextual settings preserve an open drive and browser history', async () => {
     const path = `/${FIRST}/${LOG}`;
-    const { history, store } = await renderApp(`${path}?dialog=settings&device=${FIRST}&panel=settings`);
+    const { history, store } = await renderApp(`${path}?settings=${FIRST}`);
     expect(await screen.findByText('Device settings')).toBeVisible();
     expect(store.getState().currentRoute.log_id).toBe(LOG);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
@@ -260,6 +283,18 @@ describe('whole-app behavior', () => {
     act(() => history.push(`/${FIRST}/${LOG}`));
     await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.goBack());
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    await waitFor(() => expect(store.getState().routes.map(({ log_id }) => log_id)).toEqual([RECENT_LOG]));
+  });
+
+  test('an in-app range link is normalized against a cached route', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}/0/90?settings=${FIRST}`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.location.search).toBe(`?settings=${FIRST}`);
+    expect(store.getState().zoom).toMatchObject({ start: 0, end: 60000 });
   });
 
   test('a stale route request cannot replace a newer same-device navigation', async () => {
@@ -317,6 +352,7 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.length).toBe(1);
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {

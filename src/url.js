@@ -77,33 +77,41 @@ export function buildPath({ page = 'dashboard', dongleId, routeId, range } = {})
   return `/${dongleId}`;
 }
 
-const dialogsByPage = {
-  dashboard: ['filter', 'settings', 'unpair', 'uploads'],
-  demo: ['filter', 'settings', 'unpair', 'uploads'],
-  drive: ['settings', 'unpair', 'uploads'],
-  settings: ['unpair', 'uploads'],
+const pageDialogs = {
+  dashboard: ['filter'],
+  demo: ['filter'],
 };
+const settingsDialogs = ['unpair', 'uploads'];
+const settingsPages = ['dashboard', 'demo', 'drive', 'prime', 'stream', 'referrals'];
 
-export function getDialog(pathname, search = '') {
-  const { page } = parsePathname(pathname);
-  const params = new URLSearchParams(search);
-  const dialog = params.get('dialog');
-  if (page !== 'settings' && ['unpair', 'uploads'].includes(dialog)
-    && params.get('panel') !== 'settings') return null;
-  return dialogsByPage[page]?.includes(dialog) ? dialog : null;
+export function getSettingsDongleId(pathname, search = '') {
+  const { page, dongleId } = parsePathname(pathname);
+  if (page === 'settings') return dongleId;
+  if (!settingsPages.includes(page)) return null;
+  const settings = new URLSearchParams(search).get('settings');
+  return settings && dongleIdRegex.test(settings) ? settings : null;
 }
 
-export function withDialog(location, dialog, values = {}) {
-  const params = new URLSearchParams(location.search || '');
-  if (dialog) {
-    params.set('dialog', dialog);
-    Object.entries(values).forEach(([key, value]) => params.set(key, value));
-  } else {
-    params.delete('dialog');
-    Object.keys(values).forEach((key) => params.delete(key));
+export function getDialog(pathname, search = '') {
+  const dialog = new URLSearchParams(search).get('dialog');
+  if (getSettingsDongleId(pathname, search)) {
+    return settingsDialogs.includes(dialog) ? dialog : null;
   }
+  return pageDialogs[parsePathname(pathname).page]?.includes(dialog) ? dialog : null;
+}
+
+export function withSearch(location, values) {
+  const params = new URLSearchParams(location.search || '');
+  Object.entries(values).forEach(([key, value]) => {
+    if (value == null) params.delete(key);
+    else params.set(key, value);
+  });
   const search = params.toString();
   return `${location.pathname}${search ? `?${search}` : ''}${location.hash || ''}`;
+}
+
+export function withDialog(location, dialog) {
+  return withSearch(location, { dialog });
 }
 
 export function getDongleID(pathname) {

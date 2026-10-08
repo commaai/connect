@@ -22,15 +22,16 @@ export function checkRoutesData() {
       return;
     }
     const requestedRouteId = state.selectedRouteId;
-    const cachedRoute = state.routes?.find((route) => route.log_id === requestedRouteId);
-    const hasRequestedRoute = !requestedRouteId || cachedRoute;
-    if (hasRoutesData(state) && hasRequestedRoute) {
+    const cachedRoute = requestedRouteId && state.routesMeta?.dongleId === state.dongleId
+      ? state.routes?.find((route) => route.log_id === requestedRouteId)
+      : null;
+    if (requestedRouteId ? cachedRoute : hasRoutesData(state)) {
       if (cachedRoute && state.currentRoute?.log_id !== requestedRouteId) {
         dispatch({
           type: Types.ACTION_ROUTES_METADATA,
           dongleId: state.dongleId,
-          start: state.filter.start,
-          end: state.filter.end,
+          start: state.routesMeta.start,
+          end: state.routesMeta.end,
           routes: state.routes,
         });
       }
@@ -65,11 +66,12 @@ export function checkRoutesData() {
     request.promise = request.req.then((routesData) => {
       state = getState();
       const currentRange = state.filter;
-      if (currentRange.start !== fetchRange.start
-        || currentRange.end !== fetchRange.end
-        || state.limit !== fetchLimit
-        || state.dongleId !== dongleId
-        || state.selectedRouteId !== requestedRouteId) {
+      // a route list stays useful when only the selected drive changed; a single route does not
+      if (state.dongleId !== dongleId || (requestedRouteId
+        ? state.selectedRouteId !== requestedRouteId
+        : currentRange.start !== fetchRange.start
+          || currentRange.end !== fetchRange.end
+          || state.limit !== fetchLimit)) {
         if (routesRequest === request) routesRequest = null;
         dispatch(checkRoutesData());
         return;
@@ -118,22 +120,17 @@ export function checkRoutesData() {
         start: fetchRange.start,
         end: fetchRange.end,
         routes,
+        routeOnly: Boolean(requestedRouteId),
       });
-
-      const latest = getState();
-      const location = parsePathname(latest.router.location.pathname);
-      const currentRoute = routes.find((route) => route.log_id === location.routeId);
-      if (location.page === 'drive' && location.range && currentRoute
-        && location.range.end > currentRoute.duration) {
-        const range = location.range.start < currentRoute.duration
-          ? { start: location.range.start, end: currentRoute.duration }
-          : null;
-        dispatch(replace(buildPath({
-          page: 'drive', dongleId, routeId: location.routeId, range,
-        })));
-      }
+      dispatch(normalizeDriveRange());
 
       if (routesRequest === request) routesRequest = null;
+
+      const latest = getState();
+      if (latest.selectedRouteId && latest.selectedRouteId !== requestedRouteId) {
+        // the user opened another drive while the route list was loading
+        dispatch(checkRoutesData());
+      }
 
       return routes
     }).catch((err) => {
@@ -143,6 +140,27 @@ export function checkRoutesData() {
     });
 
     return request.promise
+  };
+}
+
+// replace a drive URL whose range runs past the end of the loaded route
+export function normalizeDriveRange() {
+  return (dispatch, getState) => {
+    const state = getState();
+    const { pathname, search, hash } = state.router.location;
+    const location = parsePathname(pathname);
+    if (location.page !== 'drive' || !location.range || location.dongleId !== state.routesMeta?.dongleId) {
+      return;
+    }
+    const route = state.routes?.find(({ log_id }) => log_id === location.routeId);
+    if (!route || location.range.end <= route.duration) {
+      return;
+    }
+    const { start } = location.range;
+    const range = start > 0 && start < route.duration ? { start, end: route.duration } : null;
+    dispatch(replace(`${buildPath({
+      page: 'drive', dongleId: location.dongleId, routeId: location.routeId, range,
+    })}${search || ''}${hash || ''}`));
   };
 }
 

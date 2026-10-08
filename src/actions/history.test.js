@@ -1,6 +1,6 @@
 /* eslint-disable no-import-assign */
 import { vi } from 'vitest';
-import { LOCATION_CHANGE } from 'connected-react-router';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import { drives as Drives } from '../api';
 import { onHistoryMiddleware } from './history';
@@ -17,7 +17,7 @@ vi.mock('../api', () => ({
 }));
 vi.mock('./index', () => ({
   selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
-  checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
+  checkRoutesData: vi.fn(), normalizeDriveRange: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
@@ -40,7 +40,7 @@ function location(pathname, action = 'POP') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
+  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'normalizeDriveRange', 'primeNav', 'streamNav']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
@@ -76,6 +76,12 @@ describe('history middleware', () => {
     expect(store.dispatch).not.toHaveBeenCalled();
   });
 
+  it('reloads the route list on an initialized dashboard', () => {
+    const { invoke } = create({ ...baseState, limit: 5 });
+    invoke(location(`/${DONGLE}`));
+    expect(actions.checkRoutesData).toHaveBeenCalled();
+  });
+
   it('enters a log range', () => {
     const { invoke } = create();
     invoke(location(`/${DONGLE}/${LOG}/10/20`));
@@ -88,30 +94,30 @@ describe('history middleware', () => {
     expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
   });
 
-  it('converts a legacy timestamp range to a route', async () => {
+  it('replaces a legacy timestamp range with its route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
-    const { invoke } = create();
+    const { store, invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, true));
+    await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith(replace(`/${DONGLE}/${LOG}`)));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
   it.each([null, []])('keeps a legacy range unchanged for an empty lookup (%j)', async (routes) => {
     Drives.getRoutesSegments.mockResolvedValue(routes);
-    const { invoke } = create();
+    const { store, invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
     await vi.waitFor(() => expect(Drives.getRoutesSegments).toHaveBeenCalled());
-    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+    expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: replace('/').type }));
   });
 
   it('keeps a legacy range unchanged when lookup rejects', async () => {
     const error = new Error('lookup failed');
     Drives.getRoutesSegments.mockRejectedValue(error);
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { invoke } = create();
+    const { store, invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
     await vi.waitFor(() => expect(consoleError).toHaveBeenCalledWith('Error fetching routes data for log ID conversion', error));
-    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+    expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: replace('/').type }));
     consoleError.mockRestore();
   });
 

@@ -1,6 +1,8 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { parsePathname } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { buildPath, parsePathname } from '../url';
+import {
+  checkRoutesData, normalizeDriveRange, primeNav, streamNav, selectDevice, pushTimelineRange,
+} from './index';
 import { api } from '../api/backend';
 
 let locationRevision = 0;
@@ -28,8 +30,9 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
       const { start, end } = range;
       api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
         if (revision === locationRevision && routesData?.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          dispatch(pushTimelineRange(log_id, null, null, true));
+          const log_id = routesData[0].fullname.split('|')[1];
+          // replace so Back does not return to the legacy URL and redirect again
+          dispatch(replace(buildPath({ page: 'drive', dongleId: pathDongleId, routeId: log_id })));
         }
       }).catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);
@@ -46,8 +49,10 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
       }
     }
 
-    if (pathDongleId && desiredRouteId
-      && (pathDongleId !== state.dongleId || state.currentRoute?.log_id !== desiredRouteId)) {
+    if ((pathDongleId && desiredRouteId
+      && (pathDongleId !== state.dongleId || state.currentRoute?.log_id !== desiredRouteId))
+      || ((page === 'dashboard' || page === 'demo') && getState().limit > 0)) {
+      // a dashboard reloads its route list if a single drive replaced it
       dispatch(checkRoutesData());
     }
 
@@ -59,6 +64,10 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
     const pathStreamNav = page === 'stream';
     if (pathStreamNav !== state.streamNav) {
       dispatch(streamNav(pathStreamNav, false));
+    }
+
+    if (page === 'drive' && range) {
+      dispatch(normalizeDriveRange());
     }
   } else {
     next(action);

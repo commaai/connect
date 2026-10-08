@@ -25,7 +25,7 @@ import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
-import { getDialog, parsePathname, withDialog } from '../url';
+import { getSettingsDongleId, parsePathname, withSearch } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -208,18 +208,14 @@ class ExplorerApp extends Component {
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const location = parsePathname(pathname);
     const referralsOpen = location.page === 'referrals';
-    const dialog = getDialog(pathname, routerLocation.search);
-    const params = new URLSearchParams(routerLocation.search);
-    const contextualSettings = params.get('panel') === 'settings'
-      && ['settings', 'unpair', 'uploads'].includes(dialog);
-    const settingsOpen = location.page === 'settings' || contextualSettings;
-    const settingsDongleId = location.page === 'settings' ? location.dongleId : params.get('device');
+    const settingsDongleId = getSettingsDongleId(pathname, routerLocation.search);
+    const settingsOpen = Boolean(settingsDongleId);
     const settingsDevice = (devices || []).find(({ dongle_id }) => dongle_id === settingsDongleId)
       || (device?.dongle_id === settingsDongleId ? device : null);
     const settingsAllowed = Boolean(settingsDevice && (settingsDevice.is_owner || profile?.superuser));
     const closeSettings = () => dispatch(push(location.page === 'settings'
       ? `/${settingsDongleId}`
-      : withDialog(routerLocation, null, { device: null, panel: null })));
+      : withSearch(routerLocation, { settings: null, dialog: null })));
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -268,8 +264,7 @@ class ExplorerApp extends Component {
             <IosPwaPopup />
             <DeviceSettingsModal
               isOpen={settingsOpen && settingsAllowed}
-              dongleId={settingsOpen ? settingsDongleId : null}
-              contextual={contextualSettings}
+              dongleId={settingsOpen && settingsAllowed ? settingsDongleId : null}
               onClose={closeSettings}
             />
             <Modal open={settingsOpen && Boolean(settingsDevice) && !settingsAllowed} onClose={closeSettings}>

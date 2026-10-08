@@ -409,9 +409,9 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
+    case Types.ACTION_ROUTES_METADATA: {
       // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
+      let routes = action.routes.map((route) => {
         const existingRoute = state.lastRoutes ?
           state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
         return {
@@ -419,11 +419,24 @@ export default function reducer(_state, action) {
           ...route,
         }
       });
-      state.routesMeta = {
+      let routesMeta = {
         dongleId: action.dongleId,
         start: action.start,
         end: action.end,
       };
+      if (action.routeOnly) {
+        // a single requested route: keep the loaded list and only trust its range if the route was already in it
+        const listRoutes = state.routesMeta?.dongleId === action.dongleId ? state.routes || [] : [];
+        const inList = listRoutes.length > 0
+          && routes.every((route) => listRoutes.some((r) => r.fullname === route.fullname));
+        routes = [
+          ...listRoutes.filter((r) => !routes.some((route) => route.fullname === r.fullname)),
+          ...routes,
+        ].sort((a, b) => b.create_time - a.create_time);
+        routesMeta = inList ? state.routesMeta : { dongleId: action.dongleId, start: null, end: null };
+      }
+      state.routes = routes;
+      state.routesMeta = routesMeta;
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
         if (curr) {
@@ -446,6 +459,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }
