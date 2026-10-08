@@ -56,7 +56,7 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
+        const allowPathChange = state.router.location.pathname === '/' && !state.router.location.search;
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
         if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
           dispatch(selectDevice(selectedDongleId, allowPathChange));
