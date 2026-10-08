@@ -222,10 +222,10 @@ async function waitForTime(page, seconds, tolerance = 0.25) {
   }, { seconds, tolerance }, { timeout: 5000 });
 }
 
-async function waitForPlaybackState(page, predicate) {
+async function waitForPlaybackState(page, predicate, arg) {
   await page.evaluate(async () => { window.__playbackStore = (await import('/src/store.js')).default; });
   // Playwright treats a returned Promise as truthy, so polling must stay synchronous.
-  await page.waitForFunction(predicate);
+  return page.waitForFunction(predicate, arg);
 }
 
 async function setPaused(page, paused) {
@@ -414,7 +414,8 @@ async function openFixture(browser, origin, scenario, forceMse = false, entry = 
     window.__playbackEvents = [];
     for (const name of ['timeupdate', 'playing', 'pause', 'seeking', 'seeked', 'waiting', 'ratechange', 'ended', 'error']) {
       document.addEventListener(name, (event) => {
-        if (event.target.tagName === 'VIDEO') window.__playbackEvents.push({ name, time: event.target.currentTime, rate: event.target.playbackRate });
+        if (event.target.tagName === 'VIDEO') window.__playbackEvents.push({ name, time: event.target.currentTime, rate: event.target.playbackRate,
+          decoded: event.target.getVideoPlaybackQuality?.().totalVideoFrames || event.target.webkitDecodedFrameCount || 0 });
       }, true);
     }
   }, { forceMse, rejectPlayOnce: entry.rejectPlayOnce });
@@ -579,6 +580,13 @@ async function errorAndRetry(browser, origin, fixture, forceMse = false) {
     await page.waitForFunction(() => document.querySelector('video')?.currentTime > 0.5);
     assertAlignment(await snapshot(page), fixture);
     return ['real manifest 404', 'error freezes clock', 'retry reloads and decodes'];
+  } catch (error) {
+    const state = await snapshot(page);
+    const events = await page.evaluate(() => window.__playbackEvents.slice(-30));
+    measurements.push({ browser: browser.browserType().name(), manifestRetryFailure: { state, events } });
+    console.error('Manifest error/retry failure:', state, events);
+    await page.screenshot({ path: resolve(root, 'test-results/playback-failure.png') });
+    throw error;
   } finally { await context.close(); }
 }
 
@@ -821,47 +829,67 @@ async function stallOfflineAndReconnect(browser, server, fixture, forceMse = fal
 }
 
 async function mapErrorAndRetry(browser, server, fixture, forceMse = false) {
-  server.resetStall();
-  const { page, context } = await openFixture(browser, server.origin, 'stalled', forceMse);
-  try {
-    await page.waitForFunction(() => document.querySelector('video')?.currentTime > 0.5);
-    await page.setViewportSize({ width: 1200, height: 1000 });
-    await page.getByText('Map', { exact: true }).click();
-    await page.waitForFunction(() => {
-      try { return window.__playbackMap?.getSource('seekPoint')?.serialize().data.coordinates.length === 2; }
-      catch { return false; }
-    });
-    await page.evaluate(() => { window.__mapErrorVideo = document.querySelector('video'); window.__mapErrorMap = window.__playbackMap; });
-    server.failStall();
-    const alert = page.getByRole('alert');
-    await alert.waitFor();
-    assert(await alert.evaluate((element) => {
-      for (let node = element; node; node = node.parentElement) {
-        const style = getComputedStyle(node);
-        if (node.inert || node.getAttribute('aria-hidden') === 'true' || Number(style.opacity) === 0
-          || style.display === 'none' || style.visibility === 'hidden') return false;
-      }
-      return true;
-    }), 'The error must be visible outside the hidden/inert video slot');
-    const failed = await snapshot(page);
-    await page.waitForTimeout(300);
-    assert(Math.abs((await snapshot(page)).offset - failed.offset) < 20, 'Map-mode errors hold playback time');
-    server.releaseStall();
-    await page.getByRole('button', { name: 'Retry', exact: true }).click();
-    await setPaused(page, false);
-    await page.waitForFunction((time) => document.querySelector('video')?.currentTime > time + 0.2, failed.mediaTime);
-    assert(await page.evaluate(() => document.querySelector('video') === window.__mapErrorVideo), 'Map retry retains the video element');
-    assert(await page.evaluate(() => window.__playbackMap === window.__mapErrorMap), 'Map retry retains the map instance');
-    assertAlignment(await snapshot(page), fixture);
-    return ['Map-selected fragment error is visible and retryable'];
-  } catch (error) {
-    const state = await snapshot(page);
-    const events = await page.evaluate(() => window.__playbackEvents.slice(-30));
-    measurements.push({ browser: browser.browserType().name(), mapErrorFailure: { state, events } });
-    console.error('Map error/retry failure:', state, events);
-    await page.screenshot({ path: resolve(root, 'test-results/playback-failure.png') });
-    throw error;
-  } finally { server.releaseStall(); await context.close(); }
+  const checks = [];
+  for (const scenario of ['fatal-manifest', 'stalled']) {
+    server.resetStall();
+    const { page, context } = await openFixture(browser, server.origin, scenario, forceMse);
+    try {
+      if (scenario === 'stalled') await page.waitForFunction(() => document.querySelector('video')?.currentTime > 0.5);
+      await resizeSettled(page, 1200);
+      await page.getByText('Map', { exact: true }).click();
+      await page.waitForFunction(() => {
+        try { return window.__playbackMap?.getSource('seekPoint')?.serialize().data.coordinates.length === 2; }
+        catch { return false; }
+      });
+      await page.evaluate(() => { window.__mapErrorVideo = document.querySelector('video'); window.__mapErrorMap = window.__playbackMap; });
+      const before = await snapshot(page);
+      if (scenario === 'stalled') server.failStall();
+      const outcome = await waitForPlaybackState(page, ({ allowNativeResume, eventCount }) => {
+        if (document.querySelector('[role="alert"]')) return 'error';
+        const video = document.querySelector('video');
+        const events = window.__playbackEvents.slice(eventCount);
+        const ended = events.findIndex((event) => event.name === 'ended');
+        const decoded = video?.getVideoPlaybackQuality?.().totalVideoFrames || video?.webkitDecodedFrameCount || 0;
+        const resumed = allowNativeResume && !video.currentSrc.startsWith('blob:') && ended >= 0
+          && events.slice(ended + 1).some((event) => event.name === 'timeupdate' && event.time > 0.2)
+          && decoded > events[ended].decoded && !video.paused && !video.seeking && video.readyState >= 2
+          && !window.__playbackStore.getState().isBufferingVideo;
+        return resumed ? 'native-resume' : false;
+      }, { allowNativeResume: scenario === 'stalled' && !before.mediaSrc.startsWith('blob:'), eventCount: before.eventCount });
+      const alert = page.getByRole('alert');
+      if ((await outcome.jsonValue()) === 'error') {
+        await alert.waitFor();
+        assert(await alert.evaluate((element) => {
+          for (let node = element; node; node = node.parentElement) {
+            const style = getComputedStyle(node);
+            if (node.inert || node.getAttribute('aria-hidden') === 'true' || Number(style.opacity) === 0
+              || style.display === 'none' || style.visibility === 'hidden') return false;
+          }
+          return true;
+        }), 'The error must be visible outside the hidden/inert video slot');
+        const failed = await snapshot(page);
+        await page.waitForTimeout(300);
+        assert(Math.abs((await snapshot(page)).offset - failed.offset) < 20, 'Map-mode errors hold playback time');
+        server.releaseStall();
+        await context.addCookies([{ name: 'playback-fixture', value: 'audio', url: server.origin }]);
+        await page.getByRole('button', { name: 'Retry', exact: true }).click();
+        await setPaused(page, false);
+        await page.waitForFunction((time) => document.querySelector('video')?.currentTime > time + 0.2, failed.mediaTime);
+        checks.push(scenario === 'fatal-manifest' ? 'Map-selected manifest404 is visible and retryable' : 'Map-selected fragment error is visible and retryable');
+      } else checks.push('Map-selected native fragment404 ends and resumes decoded playback');
+      assert(await page.evaluate(() => document.querySelector('video') === window.__mapErrorVideo), 'Map retry retains the video element');
+      assert(await page.evaluate(() => window.__playbackMap === window.__mapErrorMap), 'Map retry retains the map instance');
+      assertAlignment(await snapshot(page), fixture);
+    } catch (error) {
+      const state = await snapshot(page);
+      const events = await page.evaluate(() => window.__playbackEvents.slice(-30));
+      measurements.push({ browser: browser.browserType().name(), scenario, mapErrorFailure: { state, events } });
+      console.error('Map error/retry failure:', state, events);
+      await page.screenshot({ path: resolve(root, 'test-results/playback-failure.png') });
+      throw error;
+    } finally { server.releaseStall(); await context.close(); }
+  }
+  return checks;
 }
 
 async function hlsCapabilities(browser) {
