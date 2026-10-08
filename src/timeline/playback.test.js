@@ -1,6 +1,6 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek, selectLoop, setRangeLooping } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -129,5 +129,15 @@ describe('playback', () => {
     expect(state.isBufferingVideo).toEqual(false);
 
     expect(state.desiredPlaySpeed).toEqual(2);
+  });
+});
+
+describe('range looping setting', () => {
+  it('turns range looping on and off', () => {
+    let state = { ...makeDefaultStruct(), rangeLooping: true };
+    state = reducer(state, setRangeLooping(false));
+    expect(state.rangeLooping).toBe(false);
+    state = reducer(state, setRangeLooping(true));
+    expect(state.rangeLooping).toBe(true);
   });
 });

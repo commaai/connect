@@ -1,6 +1,7 @@
 import * as Types from '../actions/types';
 import {
-  attachVideo, detachVideo, isActiveVideo, isStalled, playbackRange, seekVideo, videoMiddleware, videoOffset,
+  attachVideo, detachVideo, isActiveVideo, isPartialRange, isStalled, playbackRange, seekVideo, videoMiddleware,
+  videoOffset,
 } from './video';
 
 const route = { fullname: 'abc|route', videoStartOffset: 2000 };
@@ -149,5 +150,23 @@ describe('playbackRange', () => {
   it('is null with neither', () => {
     expect(playbackRange(null, null)).toBeNull();
     expect(playbackRange(null, { start: 10, end: 10 })).toBeNull();
+  });
+});
+
+describe('isPartialRange', () => {
+  const drive = { duration: 900000 };
+
+  it('is false for the whole drive', () => {
+    expect(isPartialRange({ start: 0, end: 900000 }, drive)).toBe(false);
+  });
+
+  it('is true for part of the drive', () => {
+    expect(isPartialRange({ start: 120000, end: 180000 }, drive)).toBe(true);
+    expect(isPartialRange({ start: 0, end: 60000 }, drive)).toBe(true);
+  });
+
+  it('is false without a range or route', () => {
+    expect(isPartialRange(null, drive)).toBe(false);
+    expect(isPartialRange({ start: 0, end: 10 }, null)).toBe(false);
   });
 });

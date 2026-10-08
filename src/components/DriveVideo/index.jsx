@@ -9,8 +9,11 @@ import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
+import { popTimelineRange } from '../../actions';
 import { seek, bufferVideo, pause, play } from '../../timeline/playback';
-import { attachVideo, detachVideo, isActiveVideo, isStalled, playbackRange, seekVideo, videoOffset } from '../../timeline/video';
+import {
+  attachVideo, detachVideo, isActiveVideo, isPartialRange, isStalled, playbackRange, seekVideo, videoOffset,
+} from '../../timeline/video';
 import { isIos, isFirefox } from '../../utils/browser.js';
 
 // native media events after which the video may have started or stopped waiting for data.
@@ -60,6 +63,7 @@ class DriveVideo extends Component {
 
     this.video = null;
     this.frame = null;
+    this.leftZoom = null; // range we already left, until props catch up
     this.buffering = null; // last buffering state sent to redux
     this.playSpeed = 1; // last speed the user played at
     this.playbackRate = 1;
@@ -139,29 +143,44 @@ class DriveVideo extends Component {
 
   // the video can end before the range does when it is shorter than the logs
   onEnded() {
-    const { currentRoute, dispatch } = this.props;
-    if (!isActiveVideo(this.video, currentRoute)) {
-      return;
-    }
-    if (this.restartRange()) {
+    if (isActiveVideo(this.video, this.props.currentRoute) && this.onRangeEnd()) {
+      // ending paused the video
       this.video.play()?.catch(() => console.debug('[DriveVideo] play interrupted'));
-    } else {
-      dispatch(pause());
     }
   }
 
-  // playback repeats within the selected range: send the video back to its start once it passes the end.
   // checked every frame rather than on timeupdate, which only fires a few times a second
   checkRangeEnd() {
     const { currentRoute, loop, zoom } = this.props;
     const el = this.video;
-    if (el && !el.paused && !el.seeking && isActiveVideo(el, currentRoute)) {
+    if (el && !el.paused && !el.seeking && zoom !== this.leftZoom && isActiveVideo(el, currentRoute)) {
       const range = playbackRange(loop, zoom);
       if (range && videoOffset(currentRoute) >= range.end) {
-        this.restartRange();
+        this.onRangeEnd();
       }
     }
     this.frame = requestAnimationFrame(this.checkRangeEnd);
+  }
+
+  // At the end of the range, repeat it. With looping off a selected range plays once, then returns
+  // to where playback was before it was selected, or stops if there is nowhere to return to.
+  // Returns whether playback continues.
+  onRangeEnd() {
+    const { currentRoute, desiredPlaySpeed, dispatch, rangeLooping, zoom } = this.props;
+    if (rangeLooping || !isPartialRange(zoom, currentRoute)) {
+      if (this.restartRange()) {
+        return true;
+      }
+    } else if (zoom.previous) {
+      this.leftZoom = zoom;
+      dispatch(popTimelineRange(currentRoute.log_id));
+      return true;
+    }
+    this.video.pause();
+    if (desiredPlaySpeed > 0) {
+      dispatch(pause());
+    }
+    return false;
   }
 
   restartRange() {
@@ -338,6 +357,7 @@ const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   loop: state.loop,
   zoom: state.zoom,
+  rangeLooping: state.rangeLooping,
 });
 
 export default connect(stateToProps)(DriveVideo);

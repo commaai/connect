@@ -7,9 +7,11 @@ import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
-import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
+import { DownArrow, Forward10, Pause, PlayArrow, Repeat, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
+import { RANGE_LOOPING_KEY } from '../../initialState';
 import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
+import { seek, play, pause, setRangeLooping } from '../../timeline/playback';
+import { isPartialRange } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -118,6 +120,7 @@ class TimeDisplay extends Component {
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
     this.jumpBack = this.jumpBack.bind(this);
     this.jumpForward = this.jumpForward.bind(this);
+    this.toggleRangeLooping = this.toggleRangeLooping.bind(this);
 
     this.state = {
       desiredPlaySpeed: 1,
@@ -148,6 +151,16 @@ class TimeDisplay extends Component {
     }
 
     return dateString;
+  }
+
+  toggleRangeLooping() {
+    const enabled = !this.props.rangeLooping;
+    try {
+      window.localStorage.setItem(RANGE_LOOPING_KEY, String(enabled));
+    } catch {
+      // the setting just won't be remembered
+    }
+    this.props.dispatch(setRangeLooping(enabled));
   }
 
   jumpBack(amount) {
@@ -222,7 +235,9 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
+    const {
+      classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio, currentRoute, rangeLooping,
+    } = this.props;
     const { displayTime, desiredPlaySpeed } = this.state;
     const isPaused = videoPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
@@ -279,6 +294,20 @@ class TimeDisplay extends Component {
             </IconButton>
           </div>
         )}
+        { isPartialRange(zoom, currentRoute) && (
+          <div className={ classes.leftBorderBox }>
+            <Tooltip title={ rangeLooping ? 'Repeating selection' : 'Playing selection once' }>
+              <IconButton
+                className={ classes.iconButton }
+                onClick={ this.toggleRangeLooping }
+                aria-label="Repeat selection"
+                aria-pressed={ rangeLooping }
+              >
+                <Repeat className={ `${classes.icon} small ${rangeLooping ? '' : 'dim'}` } />
+              </IconButton>
+            </Tooltip>
+          </div>
+        )}
         <div className={ classes.leftBorderBox }>
           <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
             <div>
@@ -314,6 +343,7 @@ const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
   desiredPlaySpeed: state.desiredPlaySpeed,
+  rangeLooping: state.rangeLooping,
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

@@ -61,6 +61,9 @@ export function reducer(_state, action) {
         startTime: Date.now(),
       };
       break;
+    case Types.ACTION_RANGE_LOOPING:
+      state.rangeLooping = action.enabled;
+      break;
     case Types.ACTION_RESET:
       state = {
         ...state,
@@ -141,6 +144,14 @@ export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
+  };
+}
+
+// whether a selected range repeats, or plays once and returns to where playback was before
+export function setRangeLooping(enabled) {
+  return {
+    type: Types.ACTION_RANGE_LOOPING,
+    enabled,
   };
 }
 

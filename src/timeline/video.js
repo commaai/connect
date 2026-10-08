@@ -42,6 +42,17 @@ export function playbackRange(loop, zoom) {
   return null;
 }
 
+/**
+ * Whether only part of the route is selected, rather than the whole drive.
+ *
+ * @param {{ start: number, end: number } | null} zoom
+ * @param {object} route
+ * @returns {boolean}
+ */
+export function isPartialRange(zoom, route) {
+  return Boolean(zoom && route) && !(zoom.start === 0 && zoom.end === route.duration);
+}
+
 let video = null;
 let videoRoute = null;
 

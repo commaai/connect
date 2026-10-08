@@ -1,11 +1,22 @@
 import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
 import { getDefaultFilter } from './utils/filter';
 
+export const RANGE_LOOPING_KEY = 'rangeLooping';
+
+function getRangeLooping() {
+  try {
+    return window.localStorage.getItem(RANGE_LOOPING_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
 export function createInitialState(pathname = window.location.pathname) {
   return {
     dongleId: getDongleID(pathname),
 
     desiredPlaySpeed: 1,    // speed set by user
+    rangeLooping: getRangeLooping(), // whether a selected range repeats
     isBufferingVideo: true, // if we're currently buffering for more data
     offset: null,           // in miliseconds, relative to state.zoom.start
     startTime: Date.now(),  // millisecond timestamp in which play began
