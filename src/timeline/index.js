@@ -1,33 +1,29 @@
-import store from '../store';
+// The video element is the source of truth for playback position.
+// DriveVideo publishes the current offset here on every animation frame and
+// everything that follows playback (timeline scrubber, map marker, time
+// display) reads it. Seeks write here optimistically; the video reconciles
+// on its next frame.
+let offsetMs = 0;
 
 /**
- * Get current playback offset
+ * Get current playback offset in the current route
  *
- * @param {object} state
- * @returns {number}
+ * @returns {number} milliseconds from route start
  */
-export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
-  }
+export function currentOffset() {
+  return offsetMs;
+}
 
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
+/**
+ * Seek playback. Updates the offset the video element will jump to. The
+ * offset stays put (and the UI tracks it) until the video reaches it.
+ *
+ * @param {number} ms milliseconds from route start
+ */
+export function seek(ms) {
+  offsetMs = Math.max(0, ms);
+}
 
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
-  }
-  return offset;
+export function resetOffset(ms = 0) {
+  offsetMs = ms;
 }
