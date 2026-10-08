@@ -15,6 +15,7 @@ import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { closeSettings } from '../actions/history';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -24,6 +25,7 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 const styles = (theme) => ({
   app: {
@@ -198,7 +200,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, settingsDeviceId,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -242,6 +244,13 @@ class ExplorerApp extends Component {
               handleDrawerStateChanged={this.handleDrawerStateChanged}
               style={ drawerStyles }
             />
+            {settingsDeviceId && (
+              <DeviceSettingsModal
+                isOpen
+                dongleId={settingsDeviceId}
+                onClose={() => dispatch(closeSettings(settingsDeviceId))}
+              />
+            )}
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
@@ -285,6 +294,7 @@ const stateToProps = (state) => ({
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
+  settingsDeviceId: state.settingsDeviceId,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

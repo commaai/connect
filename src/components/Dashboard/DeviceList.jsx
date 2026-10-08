@@ -8,14 +8,13 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
-import { closeSettings, openSettings } from '../../actions/history';
+import { openSettings } from '../../actions/history';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
 
 const styles = (theme) => ({
   deviceList: {
@@ -90,7 +89,6 @@ class DeviceList extends Component {
     super(props);
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
@@ -98,10 +96,6 @@ class DeviceList extends Component {
     ev.stopPropagation();
     ev.preventDefault();
     this.props.dispatch(openSettings(dongleId));
-  }
-
-  handleClosedSettingsModal() {
-    this.props.dispatch(closeSettings(this.props.settingsDeviceId || this.props.selectedDevice));
   }
 
   async onVisible() {
@@ -154,7 +148,7 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { classes, device, selectedDevice: dongleId, settingsDeviceId } = this.props;
+    const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
     if (devices === null) {
@@ -197,11 +191,6 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsDeviceId)}
-          dongleId={settingsDeviceId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }
@@ -211,7 +200,6 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
-  settingsDeviceId: state.settingsDeviceId,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));
