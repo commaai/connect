@@ -15,15 +15,19 @@ import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { closeModal } from '../actions/modals';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { Pages, parsePath, pathFor } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import UploadQueue from './Files/UploadQueue';
+import { AddDeviceModal } from './Dashboard/AddDevice';
 
 const styles = (theme) => ({
   app: {
@@ -198,12 +202,13 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname,
+      profile, uploadsDevice,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = parsePath(pathname).page === Pages.REFERRALS;
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -244,12 +249,21 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(push(pathFor({ page: Pages.DASHBOARD, dongleId })))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            { uploadsDevice && (
+              <UploadQueue
+                open
+                update
+                device={ uploadsDevice }
+                onClose={ () => dispatch(closeModal('uploads')) }
+              />
+            )}
+            <AddDeviceModal />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -285,6 +299,15 @@ const stateToProps = (state) => ({
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
+  // the upload queue is URL state (?uploads=<dongleId>), rendered once here
+  uploadsDevice: (() => {
+    const dongleId = new URLSearchParams(state.router.location.search).get('uploads');
+    if (!dongleId) {
+      return null;
+    }
+    return (state.devices || []).find((device) => device.dongle_id === dongleId)
+      || (state.device?.dongle_id === dongleId ? state.device : null);
+  })(),
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

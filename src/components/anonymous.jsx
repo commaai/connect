@@ -51,7 +51,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
   useEffect(() => {
     if (typeof window.sessionStorage !== 'undefined') {
       const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
+      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? (pathname + window.location.search);
       sessionStorage.setItem('redirectURL', redirectURL);
     }
 

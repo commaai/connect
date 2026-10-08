@@ -9,11 +9,14 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { Pages, pathFor } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
-const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
+const currentLocation = (state) => state.router?.location
+  || (window.location ? { pathname: window.location.pathname, search: window.location.search } : { pathname: '', search: '' });
+const currentPathname = (state) => currentLocation(state).pathname;
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -60,7 +63,8 @@ export function checkRoutesData() {
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
         routesRequest = null;
-        hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
+        const { pathname, search } = currentLocation(state); // redirect to login
+        hardNavigate(`/?r=${encodeURI(pathname + search)}`);
         return;
       }
 
@@ -142,22 +146,6 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
-}
-
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
@@ -169,9 +157,12 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
     const route = state.routes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
 
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
+    const desiredPath = pathFor({
+      page: Pages.DRIVE,
+      dongleId: state.dongleId,
+      routeId: log_id,
+      range: wholeDrive ? null : [start, end],
+    });
 
     if (currentPathname(state) !== desiredPath) {
       dispatch(push(desiredPath));
@@ -300,7 +291,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     }
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
+      const desiredPath = pathFor({ page: Pages.DASHBOARD, dongleId });
       if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -324,7 +315,10 @@ export function primeNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
+      const desiredPath = pathFor({
+        page: nav ? Pages.PRIME : Pages.DASHBOARD,
+        dongleId: state.dongleId,
+      });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -348,7 +342,10 @@ export function streamNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      const desiredPath = pathFor({
+        page: nav ? Pages.STREAM : Pages.DASHBOARD,
+        dongleId: state.dongleId,
+      });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }

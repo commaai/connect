@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
 import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
+import { closeModal, openModal } from '../../actions/modals';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
@@ -96,12 +97,23 @@ const styles = (theme) => ({
   },
 });
 
-class AddDevice extends Component {
+// the button lives wherever pairing is offered (device list, no-device
+// page); the modal itself is URL state (?add-device) rendered once by the
+// explorer, so deep links open it and the back button closes it
+export function AddDevice({ classes, dispatch, buttonText, buttonStyle, buttonIcon }) {
+  return (
+    <Button onClick={() => dispatch(openModal({ 'add-device': null }))} className={ classes.addButton } style={ buttonStyle }>
+      { buttonText }
+      { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
+    </Button>
+  );
+}
+
+class PairDeviceModal extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -123,7 +135,6 @@ class AddDevice extends Component {
     this.modalClose = this.modalClose.bind(this);
     this.onQrRead = this.onQrRead.bind(this);
     this.restart = this.restart.bind(this);
-    this.onOpenModal = this.onOpenModal.bind(this);
     this.scanFrame = this.scanFrame.bind(this);
     this.startScanning = this.startScanning.bind(this);
     this.stopScanning = this.stopScanning.bind(this);
@@ -133,9 +144,20 @@ class AddDevice extends Component {
     this.componentDidUpdate({}, {});
   }
 
-  async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+  async componentDidUpdate(prevProps = {}) {
+    const { open: modalOpen } = this.props;
+    const { pairLoading, pairError, pairDongleId } = this.state;
     let { hasCamera } = this.state;
+
+    // closed through the URL (back button) rather than modalClose
+    if (prevProps.open && !modalOpen) {
+      this.stopScanning();
+      if (this.stream) {
+        this.stream.getTracks().forEach((track) => track.stop());
+        this.stream = null;
+      }
+      this.detector = null;
+    }
 
     // Check for camera availability
     if (hasCamera === null) {
@@ -296,7 +318,9 @@ class AddDevice extends Component {
       return;
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
+    // the modal is URL state (?add-device); closing replaces the entry so
+    // the back button navigates to the page it was opened from
+    this.props.dispatch(closeModal('add-device'));
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -369,23 +393,14 @@ class AddDevice extends Component {
     }
   }
 
-  onOpenModal() {
-    this.setState({ modalOpen: true });
-  }
-
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes, open } = this.props;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
-      <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
-          { buttonText }
-          { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
-        <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
+      <Modal aria-labelledby="add-device-modal" open={ open } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
               <Typography variant="title">Pair device</Typography>
@@ -435,16 +450,19 @@ class AddDevice extends Component {
                   <video className={ classes.video } ref={ this.onVideoRef } />
                 </div>
               )}
-          </Paper>
-        </Modal>
-      </>
+        </Paper>
+      </Modal>
     );
   }
 }
 
-const stateToProps = (state) => ({
+const modalStateToProps = (state) => ({
   profile: state.profile,
   devices: state.devices,
+  // the pair modal is URL state (?add-device)
+  open: new URLSearchParams(state.router.location.search).has('add-device'),
 });
 
-export default connect(stateToProps)(withStyles(styles)(AddDevice));
+export const AddDeviceModal = connect(modalStateToProps)(withStyles(styles)(PairDeviceModal));
+
+export default connect()(withStyles(styles)(AddDevice));

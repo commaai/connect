@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { primeNav, pushTimelineRange, streamNav } from './index';
+import { pathFor, Pages } from '../url';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -19,19 +20,18 @@ vi.mock('connected-react-router', async () => {
 
 describe('timeline actions', () => {
   it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+    ['device', { page: Pages.DASHBOARD, dongleId: 'dongle' }, '/dongle'],
+    ['whole drive', { page: Pages.DRIVE, dongleId: 'dongle', routeId: 'log' }, '/dongle/log'],
+    ['drive range', { page: Pages.DRIVE, dongleId: 'dongle', routeId: 'log', range: [10000, 20000] }, '/dongle/log/10/20'],
+    ['Prime', { page: Pages.PRIME, dongleId: 'dongle' }, '/dongle/prime'],
+  ])('builds a %s URL through pathFor', (_name, route, expected) => {
+    expect(pathFor(route)).toBe(expected);
   });
 
-  it('should push history state when editing zoom', () => {
+  it('pushes a range URL when the timeline selects a range', () => {
     const dispatch = vi.fn();
     const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
+    const actionThunk = pushTimelineRange('log_id', 123, 1234, true);
 
     getState.mockImplementationOnce(() => ({
       dongleId: 'statedongle',
@@ -39,7 +39,7 @@ describe('timeline actions', () => {
       zoom: {},
     }));
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+    expect(push).toBeCalledWith('/statedongle/log_id/0/1');
   });
 
   it.each([

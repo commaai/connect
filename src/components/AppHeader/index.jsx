@@ -11,6 +11,7 @@ import { selectDevice } from '../../actions';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
+import { Pages, parsePath, pathFor } from '../../url';
 
 import AccountMenu from './AccountMenu';
 
@@ -99,14 +100,17 @@ const AppHeader = ({
   }, []);
 
   const openReferrals = useCallback(() => {
-    if (pathname === '/referrals') return;
-    dispatch(push('/referrals'));
+    if (parsePath(pathname).page === Pages.REFERRALS) return;
+    dispatch(push(pathFor({ page: Pages.REFERRALS })));
   }, [dispatch, pathname]);
 
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
+    const referralsOpen = parsePath(pathname).page === Pages.REFERRALS;
+    dispatch(push(referralsOpen
+      ? pathFor({ page: Pages.DASHBOARD, dongleId })
+      : pathFor({ page: Pages.REFERRALS })));
   }, [dispatch, dongleId, pathname]);
 
   const toggleDrawer = useCallback(() => {
@@ -114,7 +118,7 @@ const AppHeader = ({
   }, [drawerIsOpen, handleDrawerStateChanged]);
 
   const open = menuOpen;
-  const referralsOpen = pathname === '/referrals';
+  const referralsOpen = parsePath(pathname).page === Pages.REFERRALS;
   const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
 
   return (

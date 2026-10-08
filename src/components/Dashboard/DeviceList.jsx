@@ -4,12 +4,13 @@ import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
 
-import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
+import { openModal } from '../../actions/modals';
 import { updateDevices } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
+import { Pages, pathFor } from '../../url';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
@@ -88,29 +89,22 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
-    this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
+    this.openSettingsModal = this.openSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
-  handleOpenedSettingsModal(dongleId, ev) {
+  // the settings modal is URL state (?settings=<dongleId>), so it is
+  // deep-linkable and the back button closes it
+  openSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    this.props.dispatch(openModal({ settings: dongleId }));
   }
 
   async onVisible() {
     const { dispatch } = this.props;
-    if (MyCommaAuth.isAuthenticated()) {
+    if (api.auth.isAuthenticated()) {
       try {
         const devices = await api.devices.listDevices();
         dispatch(updateDevices(devices));
@@ -130,7 +124,7 @@ class DeviceList extends Component {
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
         onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
+        href={ pathFor({ page: Pages.DASHBOARD, dongleId: device.dongle_id }) }
       >
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
@@ -148,7 +142,7 @@ class DeviceList extends Component {
           <IconButton
             className={classes.settingsButton}
             aria-label="device settings"
-            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
+            onClick={ (ev) => this.openSettingsModal(device.dongle_id, ev) }
           >
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
@@ -158,8 +152,7 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
-    const { classes, device, selectedDevice: dongleId } = this.props;
+    const { classes, device, selectedDevice: dongleId, settingsDongleId } = this.props;
 
     let { devices } = this.props;
     if (devices === null) {
@@ -196,16 +189,15 @@ class DeviceList extends Component {
           style={{ height: 'calc(100vh - 64px)' }}
         >
           {devices.map(this.renderDevice)}
-          {MyCommaAuth.isAuthenticated() && (
+          {api.auth.isAuthenticated() && (
             <div className={classes.addDeviceContainer}>
               <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
             </div>
           )}
         </div>
         <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
+          isOpen={Boolean(settingsDongleId)}
+          dongleId={settingsDongleId}
         />
       </>
     );
@@ -216,6 +208,7 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  settingsDongleId: new URLSearchParams(state.router.location.search).get('settings'),
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

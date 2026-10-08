@@ -4,25 +4,29 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { Pages, parsePath } from './url';
 import { deviceIsOnline } from './utils';
 
+// group page views by route shape, with dongle ids and ranges scrubbed
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+  const route = parsePath(pathname);
+  const dongleId = route.dongleId ? '<dongleId>' : null;
+  switch (route.page) {
+    case Pages.REFERRALS:
+      return '/referrals';
+    case Pages.PRIME:
+      return `/${dongleId}/prime`;
+    case Pages.STREAM:
+      return `/${dongleId}/stream`;
+    case Pages.LEGACY_RANGE:
+      return `/${dongleId}/<zoomStart>/<zoomEnd>`;
+    case Pages.DRIVE:
+      return route.range
+        ? `/${dongleId}/${route.routeId}/<zoomStart>/<zoomEnd>`
+        : `/${dongleId}/${route.routeId}`;
+    default:
+      return route.dongleId ? `/${dongleId}` : '/';
   }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
 }
 
 const clusterMap = {
