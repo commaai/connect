@@ -69,7 +69,9 @@ class RouteVideo extends Component {
 
   componentWillUnmount() {
     this.loads += 1;
-    this.video.current.audioTracks?.removeEventListener('addtrack', this.onAddAudioTrack);
+    const video = this.video.current;
+    video.audioTracks?.removeEventListener('addtrack', this.onAddAudioTrack);
+    video.cancelVideoFrameCallback?.(this.frameRequest);
     this.unload();
     setVideo(null);
   }
@@ -137,12 +139,33 @@ class RouteVideo extends Component {
     }
   };
 
-  onTimeUpdate = () => {
+  loopAtRangeEnd() {
     const { zoom } = this.props;
     if (zoom && currentOffset() >= zoom.end) {
       seekTo(zoom.start);
     }
+  }
+
+  onTimeUpdate = () => {
+    this.loopAtRangeEnd();
     this.syncState();
+  };
+
+  // timeupdate only fires every ~250 ms, so while frames are shown the range end
+  // is also checked on each frame; it is re-armed whenever playback starts so a
+  // new source can't leave it unarmed
+  onPlaying = () => {
+    const video = this.video.current;
+    if (video.requestVideoFrameCallback) {
+      video.cancelVideoFrameCallback(this.frameRequest);
+      this.frameRequest = video.requestVideoFrameCallback(this.onVideoFrame);
+    }
+    this.syncState();
+  };
+
+  onVideoFrame = () => {
+    this.loopAtRangeEnd();
+    this.frameRequest = this.video.current.requestVideoFrameCallback(this.onVideoFrame);
   };
 
   onEnded = () => {
@@ -212,7 +235,7 @@ class RouteVideo extends Component {
           onLoadedData={this.syncState}
           onCanPlay={this.syncState}
           onPlay={this.syncState}
-          onPlaying={this.syncState}
+          onPlaying={this.onPlaying}
           onPause={this.syncState}
           onWaiting={this.syncState}
           onSeeking={this.onSeeking}
