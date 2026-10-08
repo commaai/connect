@@ -23,6 +23,26 @@ API and useradmin URL roots can be overridden at build time with
 * Keep files small and clean
 * Use branches / pull requests to isolate work. Don't do work that can't be merged quickly, find ways to break it up
 
+## URL state
+
+`src/url.js` is the location boundary: `parseLocation()` validates a pathname
+and query into page, device, drive, range, and modal state. Path builders and
+compatibility selectors use the same grammar. Drive ranges use seconds in the
+URL and integer milliseconds in state; legacy timestamp links resolve with
+`replace` and cannot redirect over newer navigation.
+
+`src/actions/history.js` reconciles every initial, PUSH, POP, and REPLACE location
+against existing state. Query-only changes reuse route data, zoom, and playback.
+Specific-drive fetches merge into cached routes without pretending to cover the
+dashboard's date filter.
+
+Modals overlay the current path, for example
+`/:dongleId/:logId/0/20?modal=settings&device=:settingsDongleId`.
+The `modalPages` registry lists supported overlays and their pages; `showModal()`
+changes only the reserved `modal`/`device` query keys. Closing pushes the underlying
+page so Back/Forward can restore the overlay, including after a cold entry.
+Unknown paths show a fallback; invalid modal parameters leave a valid page alone.
+
 ## Libraries Used
 There's a ton of them, but these are worth mentioning because they sort of affect everything.
 

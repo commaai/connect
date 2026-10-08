@@ -1,3 +1,5 @@
+import { parseLocation } from '../../url';
+import { showModal } from '../../actions/navigation';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
@@ -115,12 +117,10 @@ const initialState = {
   loadingDeviceShare: false,
   hasSavedAlias: false,
   shareEmail: '',
-  unpairConfirm: false,
   unpaired: false,
   loadingUnpair: false,
   error: null,
   unpairError: null,
-  uploadModal: false,
 };
 
 class DeviceSettingsModal extends Component {
@@ -129,6 +129,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -142,7 +143,7 @@ class DeviceSettingsModal extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
+    if (prevProps.dongleId !== this.props.dongleId || (!prevProps.device && this.props.device)) {
       const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
       this.setState({
         ...initialState,
@@ -229,7 +230,6 @@ class DeviceSettingsModal extends Component {
       this.props.dispatch(selectDevice(this.props.dongleId, false));
     }
     this.props.dispatch(primeNav(true));
-    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -254,14 +254,14 @@ class DeviceSettingsModal extends Component {
     if (this.state.unpaired) {
       window.location = window.location.origin;
     } else {
-      this.setState({ unpairConfirm: false });
+      this.props.dispatch(showModal('settings', this.props.dongleId));
     }
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, profile } = this.props;
     const commacare = device?.commacare;
-    if (!device) {
+    if (!device || (!device.is_owner && !profile?.superuser)) {
       return null;
     }
 
@@ -290,7 +290,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ unpairConfirm: true }) }
+                onClick={ () => this.props.dispatch(showModal('unpair', this.props.dongleId)) }
               >
                 Unpair
               </Button>
@@ -299,7 +299,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.props.dispatch(showModal('settings-uploads', this.props.dongleId)) }
               >
                 Uploads
               </Button>
@@ -362,7 +362,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.state.unpairConfirm}
+          open={this.props.modal === 'unpair'}
           onClose={ this.closeUnpair }
         >
           <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
@@ -425,9 +425,9 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          open={ this.props.modal === 'settings-uploads' }
+          update={ this.props.modal === 'settings-uploads' }
+          onClose={ () => this.props.dispatch(showModal('settings', this.props.dongleId)) }
           device={ device }
         />
       </>
@@ -436,9 +436,11 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
+    profile: state.profile,
+    modal: parseLocation(state.router.location).modal,
     subscription: state.subscription,
     device,
     globalDongleId: state.dongleId,

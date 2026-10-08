@@ -24,6 +24,10 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import AddDevice from './Dashboard/AddDevice';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import { parseLocation } from '../url';
+import { showModal } from '../actions/navigation';
 
 const styles = (theme) => ({
   app: {
@@ -198,12 +202,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, profile, navigation,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = navigation.page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -243,13 +247,26 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
+              { navigation.page === 'not-found'
+                ? (
+                  <div className="p-8">
+                    <Typography variant="title">Page not found</Typography>
+                    <a href="/">Go to connect</a>
+                  </div>
+                )
+                : referralsOpen
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            {navigation.modal === 'add-device' && <AddDevice dialogOnly />}
+            <DeviceSettingsModal
+              isOpen={Boolean(navigation.modalDevice)}
+              dongleId={navigation.modalDevice}
+              onClose={() => dispatch(showModal(null))}
+            />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -276,6 +293,7 @@ class ExplorerApp extends Component {
 }
 
 const stateToProps = (state) => ({
+  navigation: parseLocation(state.router.location),
   zoom: state.zoom,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,

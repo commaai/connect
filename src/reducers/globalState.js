@@ -344,7 +344,10 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
+      // URL history is the restoration stack; do not point the local zoom-back
+      // button at the clip we just left, or at a different drive.
+      const previousZoom = action.restoreSelection || state.selectedRouteId !== action.log_id ? null : state.zoom;
+      if (state.selectedRouteId !== action.log_id) {
         state.files = null;
       }
 
@@ -355,13 +358,13 @@ export default function reducer(_state, action) {
           state.zoom = {
             start: action.start,
             end: action.end,
-            previous: state.zoom,
+            previous: previousZoom,
           };
         } else {
           state.zoom = state.currentRoute ? {
             start: 0,
             end: state.currentRoute.duration,
-            previous: state.zoom,
+            previous: previousZoom,
           } : null;
           state.loop = null;
         }
@@ -409,17 +412,21 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
+    case Types.ACTION_ROUTES_METADATA: {
+      if (action.dongleId !== state.dongleId) break;
+      const cachedRoutes = state.routes || state.lastRoutes || [];
+      const incomingRoutes = action.routeOnly
+        ? [...cachedRoutes.filter((route) => !action.routes.some((incoming) => incoming.fullname === route.fullname)), ...action.routes]
+        : action.routes;
       // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+      state.routes = incomingRoutes.map((route) => {
+        const existingRoute = cachedRoutes.find((r) => r.fullname === route.fullname);
         return {
           ...existingRoute,
           ...route,
         }
       });
-      state.routesMeta = {
+      if (!action.routeOnly) state.routesMeta = {
         dongleId: action.dongleId,
         start: action.start,
         end: action.end,
@@ -446,6 +453,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }

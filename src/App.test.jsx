@@ -116,10 +116,14 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const payload = JSON.parse(init.body || '{}');
+    return json({ jsonrpc: '2.0', id: 0, result: payload.method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -303,4 +307,104 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test.each([600, 1280])('settings cold URL works with a closed drawer at width %s', async (width) => {
+    const previousWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+    try {
+      const { history, store } = await renderApp(`/${FIRST}/${LOG}/0/20?modal=settings&device=${SECOND}&ci=1`);
+      expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+      expect(store.getState()).toMatchObject({ dongleId: FIRST, selectedRouteId: LOG, zoom: { start: 0, end: 20000 } });
+      fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+      await waitFor(() => expect(history.location.search).toBe('?ci=1'));
+      expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument();
+      act(() => history.goBack());
+      expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+      act(() => history.goForward());
+      await waitFor(() => expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument());
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: previousWidth });
+    }
+  });
+
+  test('query-only and repeated navigation preserve drive data and playback', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    const before = store.getState();
+    const routeRequests = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    act(() => history.push(`/${FIRST}/${LOG}/10/20?modal=settings`));
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+    act(() => history.replace(`/${FIRST}/${LOG}/10/20?modal=settings`));
+    expect(store.getState().routes).toBe(before.routes);
+    expect(store.getState().currentRoute).toBe(before.currentRoute);
+    expect(store.getState().zoom).toBe(before.zoom);
+    expect(store.getState().loop).toBe(before.loop);
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments')).length).toBe(routeRequests);
+  });
+
+  test.each([
+    ['unpair', 'Unpair device'], ['settings-uploads', 'Upload queue'],
+    ['uploads', 'Upload queue'], ['add-device', 'Pair device'],
+  ])('cold drive overlay %s renders', async (modal, heading) => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}?modal=${modal}`);
+    expect(await screen.findByRole('heading', { name: heading })).toBeVisible();
+    expect(store.getState().selectedRouteId).toBe(LOG);
+  });
+
+  test('root pairing deep link survives automatic device selection', async () => {
+    const { history } = await renderApp('/?modal=add-device');
+    expect(await screen.findByRole('heading', { name: 'Pair device' })).toBeVisible();
+    expect(history.location.search).toBe('?modal=add-device');
+  });
+
+  test('filter URL opens on reload and history closes/restores it', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=filter`);
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    act(() => history.goBack());
+    expect(await screen.findByText('Start date:')).toBeVisible();
+  });
+
+  test.each(['cancel-prime', 'switch-prime'])('Prime modal %s loads and closes from a deep link', async (modal) => {
+    const primeDevices = devices.map((device) => ({ ...device, prime: true }));
+    const { history } = await renderApp(`/${FIRST}/prime?modal=${modal}`, {
+      devices: primeDevices,
+      subscription: { user_id: 'test-user', plan: 'nodata', next_charge_at: 1792000000 },
+    });
+    expect(await screen.findByRole('heading', { name: modal === 'cancel-prime' ? 'Cancel prime subscription' : 'Switch to Standard plan' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: modal === 'cancel-prime' ? 'Close' : 'Cancel', exact: true }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}/prime`);
+  });
+
+  test('malformed deep link shows an explicit fallback and ignores invalid modal', async () => {
+    await renderApp(`/${FIRST}/${LOG}/NaN/20?modal=settings`);
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument();
+  });
+
+  test('closing a cold drive refetches the dashboard instead of retaining a one-drive list', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Close', exact: true }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('settings on Prime closes when navigating to the already selected Prime page', async () => {
+    const { history } = await renderApp(`/${FIRST}/prime?modal=settings`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}/prime`);
+    expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument();
+  });
+
+  test('drive Back after browser history zooms out instead of returning to the future clip', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    act(() => history.push(`/${FIRST}/${LOG}/12/18`));
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back', exact: true }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+  });
+
 });
