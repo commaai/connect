@@ -9,6 +9,7 @@
 //     clone mutated to be missing qcamera (it has no share credentials)
 // Everything else (billing, athena, ...) passes through.
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
+export const DEMO_DONGLE_IDS = [DEMO_DONGLE_ID, 'deadbeefdeadbee2'];
 
 export const PUBLIC_ROUTE_DONGLE_ID = '5beb9b58bd12b691';
 export const PUBLIC_ROUTE_LOG_ID = '0000010a--a51155e496';
@@ -169,13 +170,15 @@ export function createDemoBackend(realBackend) {
 
   // Clone the cached public route into fresh demo routes on every call, each
   // with a unique demo route ID and one mutation per test case.
-  async function listDemoRoutes(routeStr) {
+  async function listDemoRoutes(dongleId, routeStr) {
     const publicRoute = await fetchPublicRoute();
     const routes = TEST_CASES.map((testCase, index) => {
       const logId = demoRouteLogId(index);
       const route = structuredClone(publicRoute);
-      route.dongle_id = DEMO_DONGLE_ID;
-      route.fullname = `${DEMO_DONGLE_ID}|${logId}`;
+      // route.dongle_id = DEMO_DONGLE_ID;
+      // route.fullname = `${DEMO_DONGLE_ID}|${logId}`;
+      route.dongle_id = dongleId;
+      route.fullname = `${dongleId}|${logId}`;
       route.demo_title = testCase.title;
       testCase.route(route, testCase.affectedSegment);
       return route;
@@ -221,19 +224,28 @@ export function createDemoBackend(realBackend) {
     },
     devices: {
       ...realBackend.devices,
-      listDevices: () => Promise.resolve([{ ...DEMO_DEVICE }]),
+      // listDevices: () => Promise.resolve([{ ...DEMO_DEVICE }]),
+      listDevices: () => Promise.resolve(DEMO_DONGLE_IDS.map((dongleId, index) => ({
+        ...DEMO_DEVICE,
+        dongle_id: dongleId,
+        alias: `demo device ${index + 1}`,
+      }))),
     },
     routes: {
       ...realBackend.routes,
       getRoutesSegments(dongleId, start, end, limit, routeStr) {
-        if (dongleId === DEMO_DONGLE_ID) {
-          return listDemoRoutes(routeStr);
+        //if (dongleId === DEMO_DONGLE_ID) {
+        //  return listDemoRoutes(routeStr);
+        //}
+        if (DEMO_DONGLE_IDS.includes(dongleId)) {
+          return listDemoRoutes(dongleId, routeStr);
         }
         return realBackend.routes.getRoutesSegments(dongleId, start, end, limit, routeStr);
       },
       getRouteFiles(routeName, nocache, params) {
         if (typeof routeName === 'string'
-          && routeName.startsWith(`${DEMO_DONGLE_ID}|`)
+          //&& routeName.startsWith(`${DEMO_DONGLE_ID}|`)
+          && DEMO_DONGLE_IDS.includes(routeName.split('|')[0])
           && demoRouteIndex(routeName) !== -1) {
           return getDemoRouteFiles(routeName);
         }
@@ -264,7 +276,8 @@ export function createDemoBackend(realBackend) {
         // demo routes keep the public route's share credentials, so stream the
         // underlying public route; the clone missing qcamera has no credentials
         // and passes through to a URL that cannot resolve
-        if (exp && sig && typeof routeStr === 'string' && routeStr.startsWith(`${DEMO_DONGLE_ID}|`)) {
+        //if (exp && sig && typeof routeStr === 'string' && routeStr.startsWith(`${DEMO_DONGLE_ID}|`)) {
+        if (exp && sig && typeof routeStr === 'string' && DEMO_DONGLE_IDS.includes(routeStr.split('|')[0])) {
           return realBackend.video.getQcameraStreamUrl(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`, exp, sig);
         }
         return realBackend.video.getQcameraStreamUrl(routeStr, exp, sig);

@@ -81,8 +81,6 @@ export default function reducer(_state, action) {
       state.selectedRouteId = routeId;
       state.currentRoute = currentRoute;
       state.dongleId = dongleId;
-      state.primeNav = page === 'prime';
-      state.streamNav = page === 'stream';
       break;
     }
     case Types.ACTION_STARTUP_DATA: {

@@ -54,11 +54,12 @@ describe('timeline actions', () => {
   });
 
   it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
+    ['Prime', primeNav, '/statedongle/prime'],
+    ['stream', streamNav, '/statedongle/stream'],
+  ])('generates the %s URL while opening', (_name, action, expected) => {
+    vi.clearAllMocks();
     const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    action(true)(dispatch, () => ({ dongleId: 'statedongle' }));
     expect(push).toHaveBeenCalledWith(expected);
   });
 });

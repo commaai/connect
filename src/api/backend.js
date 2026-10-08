@@ -1,7 +1,7 @@
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as commaApi from '../api';
-import { createDemoBackend, DEMO_DONGLE_ID } from './demo';
+import { createDemoBackend, DEMO_DONGLE_IDS } from './demo';
 
 export const DEMO_PATH = '/demo';
 
@@ -31,11 +31,13 @@ export function createRealBackend() {
 }
 
 export function selectBackendType(pathname) {
-  const demoDevicePath = `/${DEMO_DONGLE_ID}`;
+  const demoDevicePath = DEMO_DONGLE_IDS.some((dongleId) => (
+    pathname === `/${dongleId}` || pathname.startsWith(`/${dongleId}/`)
+  ));
+
   return (pathname === DEMO_PATH
     || pathname.startsWith(`${DEMO_PATH}/`)
-    || pathname === demoDevicePath
-    || pathname.startsWith(`${demoDevicePath}/`)) ? 'demo' : 'real';
+    || demoDevicePath) ? 'demo' : 'real';
 }
 
 // Select the backend once during startup. /demo and URLs belonging to its

@@ -24,8 +24,6 @@ export function createInitialState(pathname = window.location.pathname) {
     profile: null,
     devices: null,
 
-    primeNav: destination.page === 'prime',
-    streamNav: destination.page === 'stream',
     subscription: null,
     subscribeInfo: null,
 

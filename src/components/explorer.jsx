@@ -20,6 +20,7 @@ import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { parseURL } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -275,7 +276,7 @@ const stateToProps = (state) => ({
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
-  bodyTeleopOpen: state.streamNav,
+  bodyTeleopOpen: parseURL(state.router.location.pathname).page === 'stream',
   profile: state.profile,
 });
 

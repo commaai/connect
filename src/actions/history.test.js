@@ -30,9 +30,7 @@ vi.mock('../utils/webrtc', () => ({
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
-const baseState = {
-  dongleId: DONGLE, zoom: null, selectedRouteId: null, primeNav: false, streamNav: false,
-};
+const baseState = { dongleId: DONGLE, zoom: null, selectedRouteId: null };
 
 function create(state = baseState) {
   const store = { getState: vi.fn(() => state), dispatch: vi.fn() };
