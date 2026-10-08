@@ -99,3 +99,16 @@ test('first nonzero native seek waits for buffered data then applies the unchang
   act(() => video.dispatchEvent(new Event('canplay')));
   expect(video.currentTime).toBe(10);
 });
+
+test('transport buffered-ready signal retries the pending first seek without a native event', () => {
+  source.ready = false;
+  const { store } = setup();
+  const video = screen.getByLabelText('Drive video');
+  expect(video.currentTime).toBe(0);
+  expect(store.getState().seekOffset).toBe(10000);
+  Object.defineProperty(video, 'readyState', { configurable: true, value: 4 });
+  Object.defineProperty(video, 'buffered', { configurable: true, value: { length: 1, start: () => 0, end: () => 60 } });
+  act(() => source.callbacks.onReady());
+  expect(video.currentTime).toBe(10);
+  expect(store.getState().seekOffset).toBe(10000);
+});
