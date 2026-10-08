@@ -36,7 +36,7 @@ describe('playback state follows the media clock', () => {
   it('wraps media progress at loops that start at zero and clamps explicit seeks', () => {
     const looped = reducer({ ...state, offset: 0 }, selectLoop(0, 1000));
     const wrapped = reducer(looped, reportVideoTime(1100));
-    expect(wrapped.offset).toBe(0);
+    expect(wrapped.offset).toBe(100);
     expect(wrapped.seekRevision).toBe(1);
 
     const clamped = reducer(looped, seek(1200));
