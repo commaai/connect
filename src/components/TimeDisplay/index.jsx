@@ -13,7 +13,7 @@ import { getCurrentRouteMs, seekToRouteMs, toRouteMs } from '../../timeline/rout
 import { videoPaused, videoPlayed, videoSeeked } from '../../timeline/playback';
 import { getPlaybackSpeed, playIgnoringInterruptions } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
-import { isIos } from '../../utils/browser.js';
+import { playsHlsNatively } from '../../utils/browser.js';
 
 const timerSteps = [
   0.1,
@@ -213,7 +213,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
       <Typography variant="body1" align="center" className={classes.currentTime}>
         <span ref={timeTextRef} />
       </Typography>
-      {!isIos() && (
+      {!playsHlsNatively() && (
         <div className={ classes.desiredPlaySpeedContainer }>
           <IconButton
             className={classes.tinyArrowIcon}
