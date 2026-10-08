@@ -50,21 +50,20 @@ function useHls(video, src) {
     }
 
     const controller = new AbortController();
-    const attached = import('hls.js').then(({ default: Hls }) => {
+    import('hls.js').then(({ default: Hls }) => {
       if (controller.signal.aborted) {
-        return null;
+        return;
       }
       const instance = new Hls(HLS_CONFIG);
       instance.loadSource(src);
       instance.attachMedia(video);
+      controller.signal.addEventListener('abort', () => instance.destroy());
       setHls(instance);
-      return instance;
     });
 
     return () => {
       controller.abort();
       setHls(null);
-      attached.then((instance) => instance?.destroy());
     };
   }, [video, src]);
 

@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
 import { CircularProgress, Typography } from '@material-ui/core';
 
 import Colors from '../../colors';
@@ -66,24 +66,6 @@ function usePlaybackError(src) {
   return { error: ERROR_MESSAGES[errorKind], handleError };
 }
 
-function useRestartOnLoopChange(route, loopStart, loopDuration) {
-  useEffect(() => {
-    const video = getVideo();
-    if (!video) {
-      return;
-    }
-
-    const hasMetadata = video.readyState >= video.HAVE_METADATA;
-    if (!hasMetadata) {
-      return;
-    }
-
-    seekToRouteMs(video, route, loopStart);
-    video.playbackRate = 1;
-    playIgnoringInterruptions(video);
-  }, [loopStart, loopDuration]);
-}
-
 function useLoopWrap(route, loopStart, loopDuration) {
   const wrapPastLoopEnd = useCallback((videoSeconds) => {
     if (!loopDuration) {
@@ -119,7 +101,6 @@ const DrivePlayer = forwardRef(function DrivePlayer({ src, route, loop, ...props
 
   const { buffering } = useVideoStatus();
   const { error, handleError } = usePlaybackError(src);
-  useRestartOnLoopChange(route, loopStart, loopDuration);
   useLoopWrap(route, loopStart, loopDuration);
 
   useImperativeHandle(ref, () => ({
@@ -129,6 +110,15 @@ const DrivePlayer = forwardRef(function DrivePlayer({ src, route, loop, ...props
         return;
       }
       seekToRouteMs(video, route, routeMs, loop);
+    },
+    restart() {
+      const video = getVideo();
+      if (!video) {
+        return;
+      }
+      seekToRouteMs(video, route, loopStart ?? 0, loop);
+      video.playbackRate = 1;
+      playIgnoringInterruptions(video);
     },
   }), [route, loop]);
 
