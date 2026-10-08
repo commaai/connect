@@ -1,36 +1,56 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { parseLocation } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, selectRoute, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { parseLocation, urlFor } from '../url';
+import { primeNav, streamNav, selectDevice, selectRoute } from './index';
 import { api } from '../api/backend';
 
+// Redirects a legacy timestamp link to the drive it points at, unless the user
+// navigated elsewhere while the lookup was running.
+function openLegacyLink({ dongleId, range }, key) {
+  return (dispatch, getState) => {
+    api.routes.getRoutesSegments(dongleId, range.start, range.end).then((routesData) => {
+      if (routesData?.length > 0 && getState().router.location.key === key) {
+        const logId = routesData[0].fullname.split('|')[1];
+        dispatch(replace(urlFor({ page: 'drive', dongleId, logId })));
+      }
+    }).catch((err) => {
+      console.error('Error fetching routes data for log ID conversion', err);
+    });
+  };
+}
+
 // Makes the state match the URL. Runs for every location change: the initial
-// load, links, and browser back/forward.
+// load, links, and browser back/forward. Redirects replace the current entry.
 export function applyLocation(location) {
   return (dispatch, getState) => {
     const url = parseLocation(location);
-    const state = getState();
+    if (url.page === 'auth') {
+      return;
+    }
 
-    if (url.dongleId && url.dongleId !== state.dongleId) {
+    // `/`, `/demo` and paths without a valid device show the default device.
+    // Before the devices load, startup picks it.
+    if (url.page === 'home') {
+      const { dongleId } = getState();
+      if (dongleId) {
+        dispatch(replace(urlFor({ page: 'dashboard', dongleId })));
+      }
+      return;
+    }
+
+    const canonical = urlFor({ ...url, settingsDongleId: null });
+    if (url.page !== 'legacy' && canonical !== location.pathname) {
+      dispatch(replace({ pathname: canonical, search: location.search }));
+      return;
+    }
+
+    if (url.dongleId && url.dongleId !== getState().dongleId) {
       dispatch(selectDevice(url.dongleId, false, false));
     }
 
     if (url.page === 'legacy') {
-      api.routes.getRoutesSegments(url.dongleId, url.range.start, url.range.end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1];
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
+      dispatch(openLegacyLink(url, location.key));
     } else {
       dispatch(selectRoute(url.page === 'drive' ? url.logId : null, url.range));
-    }
-
-    if (url.dongleId && url.dongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
     }
 
     if ((url.page === 'prime') !== getState().primeNav) {

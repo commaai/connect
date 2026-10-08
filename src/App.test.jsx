@@ -104,6 +104,7 @@ async function mockFetch(input, init = {}) {
   if (segments) {
     const dongleId = segments[1];
     if (options.failedRoutes && url.searchParams.has('start')) return json({}, 500);
+    if (options.legacyLookup && url.searchParams.get('start') === String(START)) await options.legacyLookup;
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
@@ -186,6 +187,19 @@ describe('whole-app behavior', () => {
     expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
   });
 
+  test.each(['/', '/demo', '/AAAAAAAAAAAAAAAA'])('%s replaces itself with the default device', async (pathname) => {
+    const { history } = await renderApp(pathname, { selected: SECOND });
+    expect(await screen.findByRole('heading', { name: 'Alpha' })).toBeVisible();
+    expect(history.entries.map((entry) => entry.pathname)).toEqual([`/${SECOND}`]);
+  });
+
+  test('an unknown device path replaces itself with the device dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}/nonsense/path`);
+    expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
+    expect(history.entries.map((entry) => entry.pathname)).toEqual([`/${FIRST}`]);
+    expect(mocks.requests.some(({ url }) => url.includes('NaN'))).toBe(false);
+  });
+
   test('root with no devices shows pairing', async () => {
     const { history } = await renderApp('/', { devices: [] });
     expect(await screen.findByRole('heading', { name: 'Pair your device' })).toBeVisible();
@@ -251,6 +265,17 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.entries.map((entry) => entry.pathname)).toEqual([`/${FIRST}/${LOG}`]);
+  });
+
+  test('legacy timestamp lookup that resolves after navigating away is ignored', async () => {
+    let resolveLookup;
+    const lookup = new Promise((resolve) => { resolveLookup = resolve; });
+    const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`, { legacyLookup: lookup });
+    act(() => history.push(`/${SECOND}`));
+    expect(await screen.findByRole('heading', { name: 'Alpha' })).toBeVisible();
+    await act(async () => resolveLookup());
+    expect(history.location.pathname).toBe(`/${SECOND}`);
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
