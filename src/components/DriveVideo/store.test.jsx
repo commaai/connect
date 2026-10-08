@@ -11,6 +11,7 @@ const source = vi.hoisted(() => ({ callbacks: null }));
 vi.mock('./transport', () => ({ attachSource: (video, callbacks) => {
   source.callbacks = callbacks;
   Object.defineProperty(video, 'readyState', { configurable: true, value: 1 });
+  Object.defineProperty(video, 'duration', { configurable: true, value: 60 });
   callbacks.onStatus({ loading: false, error: null, blocked: false });
   return { destroy: vi.fn(), retry: vi.fn(), reportError: vi.fn() };
 } }));
