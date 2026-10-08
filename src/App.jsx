@@ -12,6 +12,7 @@ import { api, initBackend } from './api/backend';
 import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
+import { consumeRedirectUrl } from './utils/redirect';
 import defaultStore, { history as defaultHistory } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
@@ -94,12 +95,7 @@ class App extends Component {
   }
 
   redirectLink() {
-    let url = '/';
-    if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
-      url = sessionStorage.getItem('redirectURL');
-      sessionStorage.removeItem('redirectURL');
-    }
-    return url;
+    return consumeRedirectUrl() || '/';
   }
 
   authRoutes() {

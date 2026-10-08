@@ -9,6 +9,7 @@ import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 import { stringifyQuery } from '../utils/query';
+import { saveRedirectUrl } from '../utils/redirect';
 
 const AUTH_PROVIDERS = { GOOGLE: 'g', APPLE: 'a', GITHUB: 'h' };
 
@@ -49,10 +50,18 @@ const styles = () => ({
 
 const AnonymousLanding = ({ classes, pathname }) => {
   useEffect(() => {
-    if (typeof window.sessionStorage !== 'undefined') {
-      const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
-      sessionStorage.setItem('redirectURL', redirectURL);
+    const q = new URLSearchParams(window.location.search);
+    const target = q.get('r')
+      || (
+        typeof window !== 'undefined'
+        && window.location.pathname !== '/'
+        && window.location.pathname !== AuthConfig.AUTH_PATH
+          ? window.location.pathname + window.location.search + window.location.hash
+          : null
+      )
+      || pathname;
+    if (target) {
+      saveRedirectUrl(target);
     }
 
     const handleSuccess = (data) => {

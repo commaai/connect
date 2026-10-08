@@ -110,6 +110,10 @@ export function checkRoutesData() {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
       routesRequest = null;
+      if (!api.auth.isAuthenticated()) {
+        state = getState();
+        hardNavigate(`/?r=${encodeURI(currentPathname(state))}`);
+      }
     });
 
     return routesRequestPromise

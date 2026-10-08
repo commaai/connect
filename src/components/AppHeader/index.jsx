@@ -11,6 +11,7 @@ import { selectDevice } from '../../actions';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
+import { saveRedirectUrl } from '../../utils/redirect';
 
 import AccountMenu from './AccountMenu';
 
@@ -90,9 +91,15 @@ const AppHeader = ({
     if (MyCommaAuth.isAuthenticated()) {
       setMenuOpen((prev) => !prev);
     } else if (window.location) {
-      window.location = window.location.origin;
+      const currentPath = pathname || (window.location.pathname + window.location.search);
+      if (currentPath && currentPath !== '/') {
+        saveRedirectUrl(currentPath);
+        window.location = `${window.location.origin}/?r=${encodeURIComponent(currentPath)}`;
+      } else {
+        window.location = window.location.origin;
+      }
     }
-  }, []);
+  }, [pathname]);
 
   const handleClose = useCallback(() => {
     setMenuOpen(false);
