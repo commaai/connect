@@ -77,8 +77,10 @@ async function startFixtureServer(directory, fixture) {
   };
   const requests = [];
   let stallReleased = false;
+  let stallFailure = false;
   const stalled = new Set();
-  const releaseStall = () => {
+  const releaseStall = (fail = false) => {
+    stallFailure = fail;
     stallReleased = true;
     for (const resolve of stalled) resolve();
     stalled.clear();
@@ -143,6 +145,7 @@ async function startFixtureServer(directory, fixture) {
                 await new Promise((resolve) => { stalled.add(resolve); response.once('close', resolve); });
                 if (response.destroyed) return;
               }
+              if (segment[1] === 'stalled' && Number(segment[2].slice(8, 11)) >= 2 && stallFailure) return json(response, { error: 'Video fragment failed during Map playback' }, 404);
               const variant = segment[1] === 'silent' ? 'silent' : 'audio';
               return await sendFile(request, response, resolve(directory, variant, segment[2]), 'video/mp2t');
             }
@@ -175,7 +178,7 @@ async function startFixtureServer(directory, fixture) {
     throw error;
   }
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
-  return { origin, requests, close, releaseStall, resetStall: () => { stallReleased = false; } };
+  return { origin, requests, close, releaseStall, failStall: () => releaseStall(true), resetStall: () => { stallReleased = false; stallFailure = false; } };
 }
 
 async function loadPlaywright(modulePath) {
@@ -468,7 +471,9 @@ async function gapAndMissingSegment(browser, origin, fixture, forceMse = false) 
   return checks;
 }
 
-async function coldEntryRoutesAndRates(browser, origin, fixture, forceMse = false) {
+async function coldEntryRoutesAndRates(browser, server, fixture, forceMse = false) {
+  const origin = server.origin;
+  const firstRequest = server.requests.length;
   const { page, context } = await openFixture(browser, origin, 'audio', forceMse,
     { path: `/${DEMO_DONGLE}/${BASELINE_LOG}/5/9` });
   try {
@@ -481,13 +486,15 @@ async function coldEntryRoutesAndRates(browser, origin, fixture, forceMse = fals
     assert.equal(cold.zoom.end, 9000);
     assertAlignment(cold, fixture, false);
     await page.evaluate(() => { window.__oldRouteVideo = document.querySelector('video'); });
-    const firstSrc = cold.mediaSrc;
+    const firstManifest = server.requests.slice(firstRequest).find((request) => request.path.endsWith('/qcamera.m3u8'))?.path;
+    assert(firstManifest, 'The cold route must request its underlying manifest');
     await page.getByRole('button', { name: 'Close', exact: true }).click();
+    const nextRequest = server.requests.length;
     await page.getByText('Missing thumbnails (1 segment)', { exact: true }).click();
     await page.waitForFunction(() => document.querySelector('video')?.currentTime > 0.5);
     const changed = await snapshot(page);
-    assert.equal(changed.mediaSrc.startsWith('blob:'), firstSrc.startsWith('blob:'));
-    if (!forceMse) assert.equal(changed.mediaSrc, firstSrc, 'Demo clones should share their underlying HLS URL');
+    const nextManifest = server.requests.slice(nextRequest).find((request) => request.path.endsWith('/qcamera.m3u8'))?.path;
+    assert.equal(nextManifest, firstManifest, 'Demo clones must request the same underlying manifest, regardless of transport blob URLs');
     assert(await page.evaluate(() => document.querySelector('video') !== window.__oldRouteVideo), 'A different route must own a different media element');
     assertAlignment(changed, fixture, false);
     await page.getByRole('button', { name: 'Unmute', exact: true }).click();
@@ -601,6 +608,43 @@ async function stallOfflineAndReconnect(browser, server, fixture, forceMse = fal
   } finally { server.releaseStall(); await context.close(); }
 }
 
+async function mapErrorAndRetry(browser, server, fixture, forceMse = false) {
+  server.resetStall();
+  const { page, context } = await openFixture(browser, server.origin, 'stalled', forceMse);
+  try {
+    await page.waitForFunction(() => document.querySelector('video')?.currentTime > 0.5);
+    await page.setViewportSize({ width: 1200, height: 1000 });
+    await page.getByText('Map', { exact: true }).click();
+    await page.waitForFunction(() => {
+      try { return window.__playbackMap?.getSource('seekPoint')?.serialize().data.coordinates.length === 2; }
+      catch { return false; }
+    });
+    await page.evaluate(() => { window.__mapErrorVideo = document.querySelector('video'); window.__mapErrorMap = window.__playbackMap; });
+    server.failStall();
+    const alert = page.getByRole('alert');
+    await alert.waitFor();
+    assert(await alert.evaluate((element) => {
+      for (let node = element; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (node.inert || node.getAttribute('aria-hidden') === 'true' || Number(style.opacity) === 0
+          || style.display === 'none' || style.visibility === 'hidden') return false;
+      }
+      return true;
+    }), 'The error must be visible outside the hidden/inert video slot');
+    const failed = await snapshot(page);
+    await page.waitForTimeout(300);
+    assert(Math.abs((await snapshot(page)).offset - failed.offset) < 20, 'Map-mode errors hold playback time');
+    server.releaseStall();
+    await page.getByRole('button', { name: 'Retry', exact: true }).click();
+    await setPaused(page, false);
+    await page.waitForFunction((time) => document.querySelector('video')?.currentTime > time + 0.2, failed.mediaTime);
+    assert(await page.evaluate(() => document.querySelector('video') === window.__mapErrorVideo), 'Map retry retains the video element');
+    assert(await page.evaluate(() => window.__playbackMap === window.__mapErrorMap), 'Map retry retains the map instance');
+    assertAlignment(await snapshot(page), fixture);
+    return ['Map-selected fragment error is visible and retryable'];
+  } finally { server.releaseStall(); await context.close(); }
+}
+
 async function hlsCapabilities(browser) {
   const page = await browser.newPage();
   try {
@@ -649,9 +693,10 @@ if (config.serve) {
           ...await missingMapAndSilent(browser, server.origin, fixture),
           ...await errorAndRetry(browser, server.origin, fixture),
           ...await gapAndMissingSegment(browser, server.origin, fixture),
-          ...await coldEntryRoutesAndRates(browser, server.origin, fixture),
+          ...await coldEntryRoutesAndRates(browser, server, fixture),
           ...await policyAndLifecycle(browser, server.origin, fixture),
           ...await stallOfflineAndReconnect(browser, server, fixture),
+          ...await mapErrorAndRetry(browser, server, fixture),
         ];
         if (capabilities.native && capabilities.mse) checks.push(...await simulatedNativeFallback(browser, server.origin, fixture));
         results.push({ browser: name, version: browser.version(), status: 'passed', transport, capabilities, checks });
@@ -663,9 +708,10 @@ if (config.serve) {
             ...await missingMapAndSilent(browser, server.origin, fixture, true),
             ...await errorAndRetry(browser, server.origin, fixture, true),
             ...await gapAndMissingSegment(browser, server.origin, fixture, true),
-            ...await coldEntryRoutesAndRates(browser, server.origin, fixture, true),
+            ...await coldEntryRoutesAndRates(browser, server, fixture, true),
             ...await policyAndLifecycle(browser, server.origin, fixture, true),
             ...await stallOfflineAndReconnect(browser, server, fixture, true),
+            ...await mapErrorAndRetry(browser, server, fixture, true),
           ];
           results.push({ browser: name, version: browser.version(), status: 'passed', transport, checks: mseChecks });
           console.log(`PASS ${name} mse: ${mseChecks.join(', ')}`);

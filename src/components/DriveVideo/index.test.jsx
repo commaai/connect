@@ -3,9 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { RouteVideo } from '.';
 import { bufferVideo, pause, play, videoTime } from '../../timeline/playback';
 
-const mocks = vi.hoisted(() => ({ instances: [], attachClock: vi.fn(), supported: true, supportChecks: vi.fn() }));
+const mocks = vi.hoisted(() => ({ instances: [], attachClock: vi.fn(), subscribeFrames: vi.fn(), supported: true, supportChecks: vi.fn() }));
 
-vi.mock('../../timeline', () => ({ attachPlaybackClock: mocks.attachClock }));
+vi.mock('../../timeline', () => ({ attachPlaybackClock: mocks.attachClock, subscribePlaybackFrames: mocks.subscribeFrames }));
 vi.mock('../../api/backend', () => ({ api: { video: { getQcameraStreamUrl: vi.fn() } } }));
 vi.mock('hls.js', () => ({
   default: class {
@@ -31,12 +31,11 @@ let audioTracks;
 let playVideo;
 let pauseVideo;
 let loadVideo;
-let cancelFrame;
 
 function state(video) {
   if (!media.has(video)) media.set(video, {
     currentTime: 0, duration: 60, readyState: 0, paused: true, seeking: false, ended: false,
-    playbackRate: 1, rates: [], seeks: [], frames: new Map(), error: null,
+    playbackRate: 1, rates: [], seeks: [], error: null,
   });
   return media.get(video);
 }
@@ -75,6 +74,7 @@ beforeEach(() => {
   mocks.supported = true;
   mocks.supportChecks.mockReset();
   mocks.attachClock.mockReset().mockImplementation(() => vi.fn());
+  mocks.subscribeFrames.mockReset().mockImplementation(() => vi.fn());
   const prototype = HTMLMediaElement.prototype;
   for (const property of ['currentTime', 'duration', 'readyState', 'paused', 'seeking', 'ended']) {
     vi.spyOn(prototype, property, 'get').mockImplementation(function () { return state(this)[property]; });
@@ -103,14 +103,9 @@ beforeEach(() => {
   vi.stubGlobal('cancelAnimationFrame', vi.fn());
   Object.defineProperty(HTMLVideoElement.prototype, 'requestVideoFrameCallback', {
     configurable: true,
-    value: vi.fn(function (callback) {
-      const id = state(this).frames.size + 1;
-      state(this).frames.set(id, callback);
-      return id;
-    }),
+    value: vi.fn(),
   });
-  cancelFrame = vi.fn();
-  Object.defineProperty(HTMLVideoElement.prototype, 'cancelVideoFrameCallback', { configurable: true, value: cancelFrame });
+  Object.defineProperty(HTMLVideoElement.prototype, 'cancelVideoFrameCallback', { configurable: true, value: vi.fn() });
 });
 
 afterEach(() => {
@@ -239,30 +234,24 @@ describe('route video playback', () => {
     expect(app.video.playbackRate).toBe(0.5);
   });
 
-  it.each(['waiting', 'stalled'])('suspends fallback animation during %s and resumes on playing', (event) => {
+  it.each(['waiting', 'stalled'])('reports %s to the shared scheduler without creating a second frame loop', (event) => {
     nativeHls = true;
     delete HTMLVideoElement.prototype.requestVideoFrameCallback;
     delete HTMLVideoElement.prototype.cancelVideoFrameCallback;
-    const frames = new Map();
-    let frameId = 0;
-    requestAnimationFrame.mockImplementation(callback => {
-      frameId += 1;
-      frames.set(frameId, callback);
-      return frameId;
-    });
-    cancelAnimationFrame.mockImplementation(id => frames.delete(id));
     const app = renderPlayer({ isBufferingVideo: false });
     ready(app.video);
     fireEvent.playing(app.video);
-    expect(frames.size).toBe(1);
+    expect(mocks.subscribeFrames).toHaveBeenCalledOnce();
     state(app.video).readyState = 2;
     fireEvent(app.video, new Event(event));
-    expect(frames.size).toBe(0);
+    expect(app.dispatch).toHaveBeenCalledWith(bufferVideo(true));
+    app.update({ isBufferingVideo: true });
     state(app.video).readyState = 4;
     fireEvent.playing(app.video);
-    expect(frames.size).toBe(1);
+    expect(app.dispatch).toHaveBeenCalledWith(bufferVideo(false));
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
     app.unmount();
-    expect(frames.size).toBe(0);
+    expect(mocks.subscribeFrames.mock.results[0].value).toHaveBeenCalledOnce();
   });
 
   it('loads native HLS inline and clears buffering on canplay while paused', () => {
@@ -602,7 +591,7 @@ describe('route video playback', () => {
     fireEvent.playing(app.video);
     app.dispatch.mockClear();
     state(app.video).currentTime = 10;
-    act(() => [...state(app.video).frames.values()][0]());
+    act(() => mocks.subscribeFrames.mock.calls[0][0]());
     expect(state(app.video).seeks).toEqual([0]);
     expect(app.dispatch).not.toHaveBeenCalledWith(videoTime(ROUTE, 10000));
   });
@@ -619,6 +608,36 @@ describe('route video playback', () => {
     expect(app.dispatch).toHaveBeenCalledWith(play(1));
     fireEvent.playing(app.video);
     expect(screen.queryByRole('button', { name: 'Play video' })).not.toBeInTheDocument();
+  });
+
+  it('publishes a recovery action that can restart playback outside the video overlay', async () => {
+    const onPlaybackStatusChange = vi.fn();
+    playVideo.mockRejectedValueOnce(new DOMException('Gesture required', 'NotAllowedError'));
+    const app = renderPlayer({ onPlaybackStatusChange });
+    await hlsInstance();
+    ready(app.video);
+    await screen.findByRole('button', { name: 'Play video' });
+    const status = onPlaybackStatusChange.mock.lastCall[0];
+    expect(status.label).toBe('Play video');
+    app.update({ desiredPlaySpeed: 0 });
+    act(() => status.recover());
+    expect(app.dispatch).toHaveBeenCalledWith(play(1));
+    fireEvent.playing(app.video);
+    expect(onPlaybackStatusChange).toHaveBeenLastCalledWith(null);
+  });
+
+  it('publishes Retry and empty-range notices for a hidden video', async () => {
+    const onPlaybackStatusChange = vi.fn();
+    const app = renderPlayer({ onPlaybackStatusChange });
+    const first = await hlsInstance();
+    first.emit('error', { fatal: true, type: 'network', response: { code: 404 } });
+    const status = onPlaybackStatusChange.mock.lastCall[0];
+    expect(status).toMatchObject({ error: true, label: 'Retry' });
+    act(() => status.recover());
+    await hlsInstance(1);
+    expect(onPlaybackStatusChange).toHaveBeenLastCalledWith(null);
+    app.update({ loop: { startTime: 0, duration: 500 }, desiredPlaySpeed: 0 });
+    expect(onPlaybackStatusChange).toHaveBeenLastCalledWith({ message: 'No video is available in this selected range.' });
   });
 
   it('ignores aborted play promises when the user pauses', async () => {
@@ -640,14 +659,13 @@ describe('route video playback', () => {
     const hls = await hlsInstance();
     ready(app.video);
     fireEvent.playing(app.video);
-    const callback = [...state(app.video).frames.values()][0];
-    const requestFrame = app.video.requestVideoFrameCallback;
-    const frameRequests = requestFrame.mock.calls.length;
+    const callback = mocks.subscribeFrames.mock.calls[0][0];
+    const unsubscribeFrames = mocks.subscribeFrames.mock.results[0].value;
     const detachClock = mocks.attachClock.mock.results[0].value;
     app.unmount();
     expect(hls.destroy).toHaveBeenCalledOnce();
     expect(detachClock).toHaveBeenCalledOnce();
-    expect(cancelFrame).toHaveBeenCalledOnce();
+    expect(unsubscribeFrames).toHaveBeenCalledOnce();
     expect(app.video).not.toHaveAttribute('src');
     expect(app.video.paused).toBe(true);
     app.dispatch.mockClear();
@@ -658,6 +676,6 @@ describe('route video playback', () => {
     hls.emit('codecs', { audio: {} });
     expect(app.dispatch).not.toHaveBeenCalled();
     expect(app.onAudioStatusChange).not.toHaveBeenCalled();
-    expect(requestFrame).toHaveBeenCalledTimes(frameRequests);
+    expect(mocks.subscribeFrames).toHaveBeenCalledOnce();
   });
 });

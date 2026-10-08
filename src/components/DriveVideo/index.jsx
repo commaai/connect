@@ -5,15 +5,16 @@ import { Button, CircularProgress, Typography } from '@material-ui/core';
 import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { attachPlaybackClock } from '../../timeline';
-import { bufferVideo, pause, play, videoTime } from '../../timeline/playback';
+import { attachPlaybackClock, subscribePlaybackFrames } from '../../timeline';
+import { bufferVideo, pause, play, playbackBounds, videoTime } from '../../timeline/playback';
 
 const missingVideo = 'This video segment has not uploaded yet or has been deleted.';
 
 // A route owns one media element. Redux sends commands; media events report results.
 export function RouteVideo(props) {
-  const { src, currentRoute, desiredPlaySpeed, seekRequest, isMuted, isBufferingVideo, loop: selectedLoop } = props;
-  const emptyRange = selectedLoop?.duration === 0;
+  const { src, currentRoute, desiredPlaySpeed, seekRequest, isMuted, isBufferingVideo, onPlaybackStatusChange } = props;
+  const bounds = playbackBounds(props);
+  const emptyRange = bounds.start === bounds.end;
   const videoRef = useRef(null);
   const controller = useRef(null);
   const latest = useRef(props);
@@ -30,7 +31,6 @@ export function RouteVideo(props) {
     const { dispatch, onAudioStatusChange } = latest.current;
     let active = true;
     let hls;
-    let frame;
     let playAttempt = 0;
     let playPending = false;
     let recoveredMedia = false;
@@ -38,7 +38,6 @@ export function RouteVideo(props) {
     let recoveringMedia = true;
     let hasAudio = false;
     let failed = false;
-    let waitingForData = true;
     let switchingToMse = false;
     let pendingSeek = unfinishedSeek.current ?? latest.current.offset ?? latest.current.seekRequest?.offset ?? 0;
     const nativeHls = !forceMse && Boolean(video.canPlayType('application/vnd.apple.mpegurl'));
@@ -47,8 +46,6 @@ export function RouteVideo(props) {
     const readOffset = () => pendingSeek !== null || unfinishedSeek.current !== null || video.seeking ? observed() : origin() + video.currentTime * 1000;
     const detachClock = attachPlaybackClock(currentRoute.fullname, readOffset);
     const buffering = (value) => {
-      waitingForData = value;
-      if (value) stopFrames();
       if (active && latest.current.isBufferingVideo !== value) dispatch(bufferVideo(value));
     };
     const report = () => {
@@ -125,25 +122,14 @@ export function RouteVideo(props) {
       pendingSeek = offset;
       applySeek();
     };
-    const stopFrames = () => {
-      if (frame === undefined) return;
-      if (video.requestVideoFrameCallback) video.cancelVideoFrameCallback(frame);
-      else cancelAnimationFrame(frame);
-      frame = undefined;
-    };
     const checkLoop = () => {
       const { loop, desiredPlaySpeed: speed } = latest.current;
-      if (speed && loop?.duration > 0 && !video.seeking && pendingSeek === null
-        && readOffset() >= loop.startTime + loop.duration) {
-        seekTo(Math.max(origin(), loop.startTime));
+      const { start, end } = playbackBounds(latest.current);
+      if (speed && loop && end > start && !video.seeking && pendingSeek === null && readOffset() >= end) {
+        seekTo(start);
       }
     };
-    const nextFrame = () => {
-      frame = undefined;
-      if (!active || waitingForData || video.seeking || video.paused || video.ended) return;
-      checkLoop();
-      frame = video.requestVideoFrameCallback ? video.requestVideoFrameCallback(nextFrame) : requestAnimationFrame(nextFrame);
-    };
+    const unsubscribeFrames = subscribePlaybackFrames(() => { if (active && !failed && !video.paused && !video.ended && !video.seeking) checkLoop(); });
     const ready = () => {
       if (failed) return;
       applySeek();
@@ -153,7 +139,6 @@ export function RouteVideo(props) {
         setError(null);
         buffering(false);
         report();
-        if (frame === undefined) nextFrame();
       }
       detectAudio();
       requestPlay();
@@ -173,20 +158,18 @@ export function RouteVideo(props) {
         setError(null);
         setNeedsPlay(false);
         buffering(false);
-        if (frame === undefined) nextFrame();
       },
       pause: () => {
         if (!video.paused) return;
-        stopFrames();
         report();
         if (!video.ended && !recoveringMedia && latest.current.desiredPlaySpeed) dispatch(pause());
       },
       ended: () => {
-        stopFrames();
         report();
         const { loop, desiredPlaySpeed: speed } = latest.current;
-        if (speed && loop?.duration > 0 && (loop.startTime - origin()) / 1000 < video.duration) {
-          seekTo(Math.max(origin(), loop.startTime));
+        const { start, end } = playbackBounds(latest.current);
+        if (speed && loop && end > start && (start - origin()) / 1000 < video.duration) {
+          seekTo(start);
           requestPlay();
         } else dispatch(pause());
       },
@@ -267,7 +250,7 @@ export function RouteVideo(props) {
       active = false;
       controller.current = null;
       detachClock();
-      stopFrames();
+      unsubscribeFrames();
       Object.entries(events).forEach(([name, handler]) => video.removeEventListener(name, handler));
       if (nativeHls) video.audioTracks?.removeEventListener?.('addtrack', detectAudio);
       hls?.destroy();
@@ -285,6 +268,11 @@ export function RouteVideo(props) {
   }, [seekRequest?.id]);
   useEffect(() => { controller.current?.setPlayback(); }, [desiredPlaySpeed]);
   useEffect(() => { controller.current?.refreshOrigin(); }, [currentRoute.videoStartOffset]);
+  useEffect(() => {
+    onPlaybackStatusChange?.(emptyRange ? { message: 'No video is available in this selected range.' } : error
+      ? { message: error, label: 'Retry', recover: () => setReload(value => value + 1), error: true }
+      : needsPlay ? { message: 'Play the video to continue this route.', label: 'Play video', recover: () => controller.current?.start() } : null);
+  }, [emptyRange, error, needsPlay, onPlaybackStatusChange]);
 
   return (
     <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] bg-black">

@@ -65,13 +65,9 @@ export function currentOffset(state = null) {
   if (!state) {
     state = store.getState();
     if (playbackClock && playbackClock.fullname === state.currentRoute?.fullname) {
-      try {
-        const offset = playbackClock.readOffset();
-        if (Number.isFinite(offset)) {
-          return offset;
-        }
-      } catch {
-        // A source can disappear between the animation frame and this read.
+      const offset = playbackClock.readOffset();
+      if (Number.isFinite(offset)) {
+        return offset;
       }
     }
   }

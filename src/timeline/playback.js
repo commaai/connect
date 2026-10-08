@@ -27,20 +27,6 @@ function requestSeek(state, offset) {
   };
 }
 
-function normalizeLoop(state) {
-  if (!state.loop) {
-    return state;
-  }
-  if (!Number.isFinite(state.loop.startTime) || !Number.isFinite(state.loop.duration) || state.loop.duration < 0) {
-    return { ...state, loop: null };
-  }
-  const { start, end } = playbackBounds(state);
-  if (state.loop.startTime === start && state.loop.duration === end - start) {
-    return state;
-  }
-  return { ...state, loop: { startTime: start, duration: end - start } };
-}
-
 export function reducer(_state, action) {
   let state = _state;
   const route = state.currentRoute?.fullname ?? null;
@@ -54,7 +40,7 @@ export function reducer(_state, action) {
       loop: route && Number.isFinite(zoom?.start) && Number.isFinite(zoom?.end) && zoom.end > zoom.start
         ? { startTime: zoom.start, duration: zoom.end - zoom.start } : null,
     };
-    state = requestSeek(normalizeLoop(state), zoom?.start ?? 0);
+    state = requestSeek(state, zoom?.start ?? 0);
   }
 
   switch (action.type) {
@@ -77,37 +63,26 @@ export function reducer(_state, action) {
       break;
     case Types.ACTION_LOOP: {
       const hasLoop = Number.isFinite(action.start) && Number.isFinite(action.end) && action.end > action.start;
-      state = normalizeLoop({
+      state = requestSeek({
         ...state,
         loop: hasLoop ? { startTime: action.start, duration: action.end - action.start } : null,
-      });
-      const { start, end } = playbackBounds(state);
-      const position = state.offset ?? state.seekRequest?.offset ?? start;
-      if (position < start || position > end) {
-        state = requestSeek(state, position);
-      }
+        desiredPlaySpeed: 1,
+        isBufferingVideo: Boolean(route),
+      }, hasLoop ? action.start : state.zoom?.start ?? 0);
       break;
     }
     case Types.ACTION_BUFFER_VIDEO:
       state = { ...state, isBufferingVideo: Boolean(action.buffering) };
-      break;
-    case Types.ACTION_RESET:
-      state = requestSeek({
-        ...state,
-        desiredPlaySpeed: 1,
-        isBufferingVideo: Boolean(route),
-      }, state.zoom?.start ?? state.loop?.startTime ?? 0);
       break;
     default:
       break;
   }
 
   // Camera timing can arrive after the player and the initial seek request.
-  state = normalizeLoop(state);
-  if (state.loop?.duration === 0 && state.desiredPlaySpeed !== 0) {
+  const { start, end } = playbackBounds(state);
+  if (state.loop && start === end && state.desiredPlaySpeed !== 0) {
     state = { ...state, desiredPlaySpeed: 0 };
   }
-  const { start, end } = playbackBounds(state);
   const position = state.offset ?? state.seekRequest?.offset;
   if (action.type === Types.ACTION_UPDATE_ROUTE_EVENTS && route && action.fullname === route && Number.isFinite(position)
       && (position < start || position > end)) {
@@ -139,14 +114,11 @@ export function play(speed = 1) {
   return { type: Types.ACTION_PLAY, speed };
 }
 
+/** Select a route interval and request playback from its first available frame. */
 export function selectLoop(start, end) {
   return { type: Types.ACTION_LOOP, start, end };
 }
 
 export function bufferVideo(buffering) {
   return { type: Types.ACTION_BUFFER_VIDEO, buffering };
-}
-
-export function resetPlayback() {
-  return { type: Types.ACTION_RESET };
 }

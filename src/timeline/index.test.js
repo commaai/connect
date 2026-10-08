@@ -152,11 +152,8 @@ describe('native playback clock', () => {
     expect(currentOffset()).toBe(1000);
   });
 
-  it('uses the observation while the media accessor cannot supply time', () => {
+  it('uses the observation while native media time is not finite', () => {
     detach = attachPlaybackClock(ROUTE, () => NaN);
-    expect(currentOffset()).toBe(1000);
-    detach();
-    detach = attachPlaybackClock(ROUTE, () => { throw new Error('source detached'); });
     expect(currentOffset()).toBe(1000);
   });
 

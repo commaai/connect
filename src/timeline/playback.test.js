@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import * as Types from '../actions/types';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, playbackBounds, reducer, resetPlayback, seek, selectLoop, videoTime } from './playback';
+import { bufferVideo, pause, play, playbackBounds, reducer, seek, selectLoop, videoTime } from './playback';
 
 const ROUTE = 'demo|2026-08-06--12-00-00';
 const makeState = (overrides = {}) => ({
@@ -82,7 +82,7 @@ describe('video-authoritative playback', () => {
 
   it('clamps seeks to available camera time and keeps the selected end', () => {
     const state = reducer(makeState({ currentRoute: { fullname: ROUTE, duration: 60000, videoStartOffset: 800 } }), seek(0));
-    expect(state.loop).toEqual({ startTime: 800, duration: 59200 });
+    expect(state.loop).toEqual({ startTime: 0, duration: 60000 });
     expect(state.seekRequest.offset).toBe(800);
     expect(playbackBounds(state)).toEqual({ start: 800, end: 60000 });
   });
@@ -92,7 +92,7 @@ describe('video-authoritative playback', () => {
     const next = reducer(state, { type: Types.ACTION_UPDATE_ROUTE_EVENTS, fullname: ROUTE });
     expect(next.seekRequest).toEqual({ id: 2, offset: 800 });
     expect(next.offset).toBeNull();
-    expect(next.loop).toEqual({ startTime: 800, duration: 59200 });
+    expect(next.loop).toEqual({ startTime: 0, duration: 60000 });
   });
 
   it('does not rewind video already beyond late first-camera timing', () => {
@@ -106,7 +106,7 @@ describe('video-authoritative playback', () => {
     state = reducer(state, { type: Types.ACTION_UPDATE_ROUTE_EVENTS, fullname: ROUTE });
     expect(state.seekRequest).toEqual({ id: 2, offset: 30000 });
     expect(state.offset).toBe(100);
-    expect(state.loop).toEqual({ startTime: 800, duration: 59200 });
+    expect(state.loop).toEqual({ startTime: 0, duration: 60000 });
     state = reducer(state, videoTime(ROUTE, 30000));
     expect(currentOffset(state)).toBe(30000);
   });
@@ -141,19 +141,29 @@ describe('video-authoritative playback', () => {
     expect(reducer(next, videoTime(ROUTE, 900)).offset).toBe(900);
   });
 
-  it('collapses a range entirely before the first available camera frame', () => {
+  it('keeps an unavailable range paused without changing the selected interval', () => {
     const state = reducer(makeState({ currentRoute: { fullname: ROUTE, duration: 60000, videoStartOffset: 800 } }), selectLoop(0, 500));
-    expect(state.loop).toEqual({ startTime: 800, duration: 0 });
+    expect(state.loop).toEqual({ startTime: 0, duration: 500 });
     expect(playbackBounds(state)).toEqual({ start: 800, end: 800 });
+    expect(state.seekRequest.offset).toBe(800);
     expect(state.desiredPlaySpeed).toBe(0);
     expect(reducer(state, play()).desiredPlaySpeed).toBe(0);
-    expect(reducer(state, resetPlayback()).desiredPlaySpeed).toBe(0);
+    expect(reducer(state, selectLoop(0, 500)).desiredPlaySpeed).toBe(0);
   });
 
-  it('requests the selected start when resetting without changing observed time', () => {
-    const state = reducer(makeState({ zoom: { start: 10000, end: 20000 }, loop: { startTime: 10000, duration: 10000 }, desiredPlaySpeed: 0 }), resetPlayback());
+  it('starts a selected interval with one seek command without changing observed time', () => {
+    const state = reducer(makeState({ desiredPlaySpeed: 0 }), selectLoop(10000, 20000));
     expect(state).toMatchObject({ offset: 5000, desiredPlaySpeed: 1, isBufferingVideo: true });
-    expect(state.seekRequest.offset).toBe(10000);
+    expect(state.loop).toEqual({ startTime: 10000, duration: 10000 });
+    expect(state.seekRequest).toEqual({ id: 2, offset: 10000 });
+  });
+
+  it('derives available camera bounds without mutating a selected interval', () => {
+    const loop = Object.freeze({ startTime: 0, duration: 60000 });
+    const state = Object.freeze(makeState({ loop, currentRoute: { fullname: ROUTE, duration: 60000, videoStartOffset: 800 } }));
+    expect(playbackBounds(state)).toEqual({ start: 800, end: 60000 });
+    expect(state.loop).toBe(loop);
+    expect(state.loop).toEqual({ startTime: 0, duration: 60000 });
   });
 
   it('invalidates old observed time and chooses the new route range', () => {

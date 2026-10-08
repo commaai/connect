@@ -29,7 +29,6 @@ export const ACTION_PAUSE = 'ACTION_PAUSE';
 export const ACTION_PLAY = 'ACTION_PLAY';
 export const ACTION_LOOP = 'ACTION_LOOP';
 export const ACTION_BUFFER_VIDEO = 'ACTION_BUFFER_VIDEO';
-export const ACTION_RESET = 'ACTION_RESET';
 
 // segments
 export const ACTION_ROUTES_METADATA = 'ACTION_ROUTES_METADATA';

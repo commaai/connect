@@ -1,11 +1,10 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
 import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
-import { resetPlayback, selectLoop } from '../timeline/playback';
+import { selectLoop } from '../timeline/playback';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
-  resetPlayback: vi.fn(),
   selectLoop: vi.fn(),
 }));
 
@@ -51,11 +50,10 @@ describe('timeline actions', () => {
       zoom: { start: 0, end: 60000 }, loop: { startTime: 0, duration: 60000 },
     };
     pushTimelineRange('log', 0, 60000, false)(vi.fn(), () => state);
-    expect(resetPlayback).not.toHaveBeenCalled();
     expect(selectLoop).not.toHaveBeenCalled();
   });
 
-  it('sets range bounds before issuing a reset seek', () => {
+  it('issues one interval-selection command when the selected range changes', () => {
     const route = { log_id: 'log', duration: 60000 };
     const state = {
       dongleId: 'dongle', currentRoute: route, routes: [route], selectedRouteId: 'log',
@@ -63,20 +61,19 @@ describe('timeline actions', () => {
     };
     pushTimelineRange('log', 10000, 20000, false)(vi.fn(), () => state);
     expect(selectLoop).toHaveBeenCalledWith(10000, 20000);
-    expect(resetPlayback).toHaveBeenCalledOnce();
-    expect(selectLoop.mock.invocationCallOrder[0]).toBeLessThan(resetPlayback.mock.invocationCallOrder[0]);
+    expect(selectLoop).toHaveBeenCalledOnce();
   });
 
-  it('preserves normalized camera bounds when reopening the same whole drive', () => {
+  it('preserves the interval when reopening a whole drive with a late camera start', () => {
     const route = { log_id: 'log', duration: 60000, videoStartOffset: 800 };
     const state = {
       dongleId: 'dongle', currentRoute: route, routes: [route], selectedRouteId: 'log',
-      zoom: { start: 0, end: 60000 }, loop: { startTime: 800, duration: 59200 },
+      zoom: { start: 0, end: 60000 }, loop: { startTime: 0, duration: 60000 },
     };
     const dispatch = vi.fn();
     pushTimelineRange('log', null, null, false)(dispatch, () => state);
     expect(dispatch).not.toHaveBeenCalled();
-    expect(resetPlayback).not.toHaveBeenCalled();
+    expect(selectLoop).not.toHaveBeenCalled();
   });
 
   it.each([

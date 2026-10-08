@@ -4,7 +4,7 @@ import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
 
 import * as Types from './types';
-import { resetPlayback, selectLoop } from '../timeline/playback';
+import { selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
@@ -180,12 +180,9 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   const route = state.routes?.find((candidate) => candidate.log_id === log_id);
   const rangeStart = start ?? 0;
   const rangeEnd = end ?? route?.duration;
-  const loopStart = Math.max(rangeStart, route?.videoStartOffset ?? 0);
   if (log_id && (state.currentRoute?.log_id !== log_id || !state.loop
-      || state.loop.startTime !== loopStart || state.loop.startTime + state.loop.duration !== rangeEnd)) {
-    // Set the new bounds before resetting, so the command targets this range.
+      || state.loop.startTime !== rangeStart || state.loop.startTime + state.loop.duration !== rangeEnd)) {
     dispatch(selectLoop(rangeStart, rangeEnd));
-    dispatch(resetPlayback());
   }
 
   if (allowPathChange) {

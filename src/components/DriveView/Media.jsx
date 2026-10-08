@@ -212,11 +212,13 @@ class Media extends Component {
       routePreserved: null,
       isMuted: true,
       hasAudio: false,
+      playbackStatus: null,
       clipsSupported: false,
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
+    this.handlePlaybackStatusChange = this.handlePlaybackStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
@@ -241,6 +243,10 @@ class Media extends Component {
 
   handleAudioStatusChange(hasAudio) {
     this.setState({ hasAudio });
+  }
+
+  handlePlaybackStatusChange(playbackStatus) {
+    this.setState({ playbackStatus });
   }
 
   componentDidMount() {
@@ -531,7 +537,7 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted, hasAudio } = this.state;
+    const { inView, windowWidth, isMuted, hasAudio, playbackStatus } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
@@ -552,6 +558,7 @@ class Media extends Component {
               <DriveVideo
                 isMuted={isMuted}
                 onAudioStatusChange={this.handleAudioStatusChange}
+                onPlaybackStatusChange={this.handlePlaybackStatusChange}
               />
             </div>
             {(inView === MediaType.MAP && !showMapAlways) && (
@@ -566,6 +573,13 @@ class Media extends Component {
             </div>
           }
         </div>
+        {inView === MediaType.MAP && playbackStatus && (
+          <div role={playbackStatus.error ? 'alert' : 'status'} className="flex items-center gap-3 rounded-lg border border-white/10 bg-[#202528] px-4 py-3">
+            <InfoOutline style={{ color: Colors.white60, flexShrink: 0 }} />
+            <Typography variant="body2" className="flex-1">{playbackStatus.message}</Typography>
+            {playbackStatus.recover && <Button variant="outlined" size="small" onClick={playbackStatus.recover}>{playbackStatus.label}</Button>}
+          </div>
+        )}
         <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
           <TimeDisplay
             isThin
