@@ -97,9 +97,7 @@ class DriveMap extends Component {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
         const routeMs = getCurrentRouteMs(this.props.currentRoute.videoStartOffset);
         const hasJumped = this.lastRouteMs !== null && Math.abs(routeMs - this.lastRouteMs) > SEEK_JUMP_MS;
-        if (hasJumped) {
-          this.shouldFlyTo = true;
-        }
+        if (hasJumped) this.shouldFlyTo = true;
         this.lastRouteMs = routeMs;
         const pos = this.posAtOffset(routeMs);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {

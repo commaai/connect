@@ -10,19 +10,13 @@ const HLS_ERROR = 'hlsError';
 const HLS_BUFFER_CODECS = 'hlsBufferCodecs';
 
 function hlsErrorKind(data) {
-  if (data.response?.code === 404) {
-    return 'not-found';
-  }
-  if (data.type === 'networkError') {
-    return 'network';
-  }
+  if (data.response?.code === 404) return 'not-found';
+  if (data.type === 'networkError') return 'network';
   return 'media';
 }
 
 function mediaErrorKind(error) {
-  if (error.code === MediaError.MEDIA_ERR_NETWORK) {
-    return 'network';
-  }
+  if (error.code === MediaError.MEDIA_ERR_NETWORK) return 'network';
   return 'media';
 }
 
@@ -30,9 +24,7 @@ function useHls(video, src, onError) {
   const [hls, setHls] = useState(null);
 
   useEffect(() => {
-    if (!video || !src) {
-      return undefined;
-    }
+    if (!video || !src) return undefined;
 
     if (playsHlsNatively()) {
       video.src = src;
@@ -44,18 +36,14 @@ function useHls(video, src, onError) {
 
     const controller = new AbortController();
     import('hls.js').then(({ default: Hls }) => {
-      if (controller.signal.aborted) {
-        return;
-      }
+      if (controller.signal.aborted) return;
       const instance = new Hls(HLS_CONFIG);
       instance.loadSource(src);
       instance.attachMedia(video);
       controller.signal.addEventListener('abort', () => instance.destroy());
       setHls(instance);
     }).catch((error) => {
-      if (controller.signal.aborted) {
-        return;
-      }
+      if (controller.signal.aborted) return;
       onError?.({ kind: 'network', cause: error });
     });
 
@@ -70,16 +58,12 @@ function useHls(video, src, onError) {
 
 function useHlsErrors(hls, onError) {
   useEffect(() => {
-    if (!hls) {
-      return undefined;
-    }
+    if (!hls) return undefined;
 
     const handleError = (_, data) => {
       const kind = hlsErrorKind(data);
       const isReportable = data.fatal || kind === 'not-found';
-      if (!isReportable) {
-        return;
-      }
+      if (!isReportable) return;
       onError?.({ kind, cause: data });
     };
 
@@ -99,23 +83,17 @@ function useVideoErrors(video, onError) {
 function useAudioTrackDetection(video, onHasAudioChange) {
   useEffect(() => {
     const audioTracks = video?.audioTracks;
-    if (!audioTracks) {
-      return undefined;
-    }
+    if (!audioTracks) return undefined;
 
     const handleTrackAdded = () => {
       const isFirstTrack = audioTracks.length === 1;
-      if (!isFirstTrack) {
-        return;
-      }
+      if (!isFirstTrack) return;
       onHasAudioChange?.(true);
     };
 
     const handleTrackRemoved = () => {
       const isTrackListEmpty = audioTracks.length === 0;
-      if (!isTrackListEmpty) {
-        return;
-      }
+      if (!isTrackListEmpty) return;
       onHasAudioChange?.(false);
     };
 
@@ -130,14 +108,10 @@ function useAudioTrackDetection(video, onHasAudioChange) {
 
 function useHlsAudioDetection(hls, onHasAudioChange) {
   useEffect(() => {
-    if (!hls) {
-      return undefined;
-    }
+    if (!hls) return undefined;
 
     const hasNativeAudioTracks = Boolean(hls.media?.audioTracks);
-    if (hasNativeAudioTracks) {
-      return undefined;
-    }
+    if (hasNativeAudioTracks) return undefined;
 
     const handleCodecs = (_, data) => onHasAudioChange?.(Boolean(data.audio));
 

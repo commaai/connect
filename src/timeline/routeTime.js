@@ -15,9 +15,7 @@ export function toVideoSeconds(videoStartOffset, routeMs) {
 }
 
 export function clampToLoop(routeMs, loop) {
-  if (!loop?.duration) {
-    return routeMs;
-  }
+  if (!loop?.duration) return routeMs;
   const loopEnd = loop.startTime + loop.duration;
   return Math.min(Math.max(routeMs, loop.startTime), loopEnd);
 }

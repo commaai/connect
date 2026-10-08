@@ -100,18 +100,14 @@ const styles = (theme) => ({
 
 function formatPlaybackTime(routeStartMs, routeMs) {
   const now = new Date(routeMs + routeStartMs);
-  if (Number.isNaN(now.getTime())) {
-    return '...';
-  }
+  if (Number.isNaN(now.getTime())) return '...';
   const time = dayjs(now).format('HH:mm:ss');
   return `${time} \u2013 ${segmentAtRouteMs(routeMs)}`;
 }
 
 function speedStepIndex(playbackRate) {
   const index = timerSteps.indexOf(playbackRate);
-  if (index === -1) {
-    return timerSteps.indexOf(1);
-  }
+  if (index === -1) return timerSteps.indexOf(1);
   return index;
 }
 
@@ -120,13 +116,9 @@ function usePlaybackTimeText(routeStartMs, videoStartOffset) {
 
   const updateText = useCallback((videoSeconds) => {
     const node = textRef.current;
-    if (!node) {
-      return;
-    }
+    if (!node) return;
     const text = formatPlaybackTime(routeStartMs, toRouteMs(videoStartOffset, videoSeconds));
-    if (node.textContent === text) {
-      return;
-    }
+    if (node.textContent === text) return;
     node.textContent = text;
   }, [routeStartMs, videoStartOffset]);
 
@@ -145,9 +137,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
   const canDecreaseSpeed = speedIndex > 0;
 
   const handleJump = (amount) => {
-    if (!video) {
-      return;
-    }
+    if (!video) return;
     const targetMs = seekToRouteMs(video, videoStartOffset, getCurrentRouteMs(videoStartOffset) + amount, loop);
     dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
   };
@@ -158,9 +148,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
   };
 
   const handleSpeedChange = (steps) => {
-    if (!video) {
-      return;
-    }
+    if (!video) return;
     const lastIndex = timerSteps.length - 1;
     const nextIndex = Math.min(Math.max(speedStepIndex(video.playbackRate) + steps, 0), lastIndex);
     video.playbackRate = timerSteps[nextIndex];
@@ -168,21 +156,14 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
   };
 
   const handlePauseToggle = () => {
-    if (!video) {
-      return;
-    }
-    if (video.paused) {
-      play();
-      return;
-    }
+    if (!video) return;
+    if (video.paused) return play();
     video.pause();
     dispatch(videoPaused(getCurrentRouteMs(videoStartOffset), getPlaybackSpeed(video)));
   };
 
   const handleMuteToggle = () => {
-    if (!video) {
-      return;
-    }
+    if (!video) return;
     video.muted = !video.muted;
   };
 

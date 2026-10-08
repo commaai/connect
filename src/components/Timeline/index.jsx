@@ -213,9 +213,7 @@ class Timeline extends Component {
 
   seekTo(routeMs) {
     const video = getVideo();
-    if (!video) {
-      return;
-    }
+    if (!video) return;
     const { dispatch, route, loop } = this.props;
     const targetMs = seekToRouteMs(video, route?.videoStartOffset, routeMs, loop);
     dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
@@ -281,9 +279,7 @@ class Timeline extends Component {
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       const playheadMs = getCurrentRouteMs(route?.videoStartOffset);
       const isPlayheadOutsideSelection = playheadMs < startOffset || playheadMs > endOffset;
-      if (isPlayheadOutsideSelection) {
-        this.seekTo(startOffset);
-      }
+      if (isPlayheadOutsideSelection) this.seekTo(startOffset);
       const { dispatch } = this.props;
       const startTime = startOffset;
       const endTime = endOffset;

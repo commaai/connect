@@ -268,13 +268,9 @@ class Media extends Component {
     const hasRouteChanged = prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname;
     const hasZoomChanged = prevProps.zoom?.start !== this.props.zoom?.start || prevProps.zoom?.end !== this.props.zoom?.end;
     const isZoomWithinRoute = hasZoomChanged && !hasRouteChanged;
-    if (isZoomWithinRoute) {
-      this.restartPlayback();
-    }
+    if (isZoomWithinRoute) this.restartPlayback();
     const isLeavingPreviousRoute = hasRouteChanged && Boolean(prevProps.currentRoute);
-    if (isLeavingPreviousRoute) {
-      this.setState({ hasAudio: false });
-    }
+    if (isLeavingPreviousRoute) this.setState({ hasAudio: false });
 
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
       this.props.dispatch(fetchEvents(this.props.currentRoute));

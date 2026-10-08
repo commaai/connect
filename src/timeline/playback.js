@@ -1,14 +1,10 @@
 import * as Types from '../actions/types';
 
 export function reducer(state, action) {
-  if (action.type !== Types.ACTION_LOOP) {
-    return state;
-  }
+  if (action.type !== Types.ACTION_LOOP) return state;
 
   const hasRange = action.start != null && action.end != null;
-  if (!hasRange) {
-    return { ...state, loop: null };
-  }
+  if (!hasRange) return { ...state, loop: null };
 
   return {
     ...state,

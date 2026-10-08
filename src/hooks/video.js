@@ -22,9 +22,7 @@ function useVideoValue(events, read, fallback) {
   const video = useVideo();
 
   const subscribe = useCallback((onChange) => {
-    if (!video) {
-      return () => {};
-    }
+    if (!video) return () => {};
     for (const type of events) {
       video.addEventListener(type, onChange);
     }
@@ -36,9 +34,7 @@ function useVideoValue(events, read, fallback) {
   }, [video, events]);
 
   const getSnapshot = () => {
-    if (!video) {
-      return fallback;
-    }
+    if (!video) return fallback;
     return read(video);
   };
 
@@ -60,9 +56,7 @@ export function useVideoEvent(type, handler) {
   const video = useVideo();
 
   useEffect(() => {
-    if (!video) {
-      return undefined;
-    }
+    if (!video) return undefined;
     video.addEventListener(type, handler);
     return () => video.removeEventListener(type, handler);
   }, [video, type, handler]);
@@ -72,9 +66,7 @@ export function useVideoFrame(callback) {
   const video = useVideo();
 
   useEffect(() => {
-    if (!video) {
-      return undefined;
-    }
+    if (!video) return undefined;
     let frame;
     const tick = () => {
       callback(video.currentTime);
