@@ -4,25 +4,27 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseUrl } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  const { dongleId, logId, zoom, page, legacyRange } = parseUrl(pathname);
+  if (!dongleId) {
+    return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
   }
 
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
+  const parts = ['', '<dongleId>'];
+  if (logId) {
+    parts.push(logId);
+    if (zoom) {
+      parts.push('<zoomStart>', '<zoomEnd>');
+    }
+  } else if (legacyRange) {
+    parts.push('<zoomStart>', '<zoomEnd>');
+  } else if (page) {
+    parts.push(page);
   }
-  return pageLocation;
+  return parts.join('/');
 }
 
 const clusterMap = {
@@ -106,7 +108,7 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.TIMELINE_PUSH_SELECTION:
+    case Types.ACTION_SELECT_ROUTE:
       if (!prevState.zoom && state.zoom) {
         params = {
           ...params,
