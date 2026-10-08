@@ -40,8 +40,13 @@ describe('playback', () => {
 
     const seekRequest = state.seekRequest;
     state = reducer(state, videoProgress(456));
-    expect(state.offset).toBe(456);
+    expect(state.offset).toBe(123);
     expect(state.seekRequest).toBe(seekRequest);
+
+    state = reducer(state, setVideoStatus(VideoStatus.READY));
+    state = reducer(state, videoProgress(456));
+    expect(state.offset).toBe(456);
+    expect(state.seekRequest).toBeNull();
 
     // reset clears offset
     state = reducer(state, resetPlayback());
