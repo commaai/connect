@@ -229,7 +229,6 @@ class DeviceSettingsModal extends Component {
       this.props.dispatch(selectDevice(this.props.dongleId, false));
     }
     this.props.dispatch(primeNav(true));
-    this.props.onClose();
   }
 
   async unpairDevice() {

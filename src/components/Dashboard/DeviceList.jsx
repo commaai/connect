@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -7,7 +8,7 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
-import { updateDevices } from '../../actions';
+import { primeNav, pushTimelineRange, selectDevice, streamNav, updateDevices } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
@@ -15,6 +16,7 @@ import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
 import DeviceSettingsModal from './DeviceSettingsModal';
+import { buildAppUrl, parseAppUrl } from '../../url';
 
 const styles = (theme) => ({
   deviceList: {
@@ -88,10 +90,6 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
     this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
@@ -101,11 +99,21 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
+    if (this.props.selectedDevice !== dongleId) {
+      this.props.dispatch(selectDevice(dongleId, false, false));
+    }
+    this.props.dispatch(pushTimelineRange(null, null, null, false));
+    this.props.dispatch(primeNav(false, false));
+    this.props.dispatch(streamNav(false, false));
+    this.props.dispatch(push(buildAppUrl({ dongleId, modal: 'settings' })));
   }
 
   handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    const { dispatch, pathname, search } = this.props;
+    const { dongleId } = parseAppUrl(pathname, search);
+    if (dongleId) {
+      dispatch(replace(buildAppUrl({ dongleId })));
+    }
   }
 
   async onVisible() {
@@ -158,8 +166,9 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
-    const { classes, device, selectedDevice: dongleId } = this.props;
+    const { classes, device, pathname, search, selectedDevice: dongleId } = this.props;
+    const route = parseAppUrl(pathname, search);
+    const settingsModalDongleId = route.modal === 'settings' ? route.dongleId : null;
 
     let { devices } = this.props;
     if (devices === null) {
@@ -216,6 +225,8 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  pathname: state.router.location.pathname,
+  search: state.router.location.search,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
@@ -20,6 +21,7 @@ import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
+import { parseAppUrl, updateAppUrl } from '../../url';
 import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
@@ -206,7 +208,6 @@ class Media extends Component {
       inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
       downloadMenu: null,
-      clipMenu: null,
       moreInfoMenu: null,
       uploadModal: false,
       dcamUploadInfo: null,
@@ -256,7 +257,7 @@ class Media extends Component {
     const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (prevProps.dongleId !== this.props.dongleId) {
-      this.setState({ clipsSupported: false, clipMenu: null });
+      this.setState({ clipsSupported: false });
       this.checkClipsSupport();
     } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
       this.checkClipsSupport();
@@ -609,7 +610,9 @@ class Media extends Component {
                 className={classes.mediaOption}
                 style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
                 aria-haspopup="true"
-                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
+                onClick={() => deviceIsOnline(device) && this.props.dispatch(push(
+                  updateAppUrl(this.props.pathname, this.props.search, { modal: 'create-clip' }),
+                ))}
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
@@ -637,7 +640,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -669,10 +672,13 @@ class Media extends Component {
     return (
       <>
         <ClipMenu
-          open={Boolean(alwaysOpen || clipMenu)}
+          open={Boolean(alwaysOpen || this.props.modal === 'create-clip')}
           dongleId={this.props.dongleId}
-          anchorEl={clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          onClose={() => {
+            if (this.props.modal === 'create-clip') {
+              this.props.dispatch(replace(updateAppUrl(this.props.pathname, this.props.search, { modal: null })));
+            }
+          }}
           route={currentRoute}
           routes={this.props.routes}
           zoom={this.props.zoom}
@@ -929,7 +935,9 @@ const stateToProps = (state) => ({
   filter: state.filter,
   files: state.files,
   profile: state.profile,
-  isBufferingVideo: state.isBufferingVideo,
+  pathname: state.router.location.pathname,
+  search: state.router.location.search,
+  modal: parseAppUrl(state.router.location.pathname, state.router.location.search).modal,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

@@ -9,11 +9,15 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { buildAppUrl } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
-const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
+const currentPathname = (state) => {
+  const location = state.router?.location;
+  return location ? `${location.pathname}${location.search || ''}` : `${window.location.pathname}${window.location.search}`;
+};
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -143,19 +147,13 @@ export function checkLastRoutesData() {
 }
 
 export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
+  return buildAppUrl({
+    dongleId,
+    routeId: log_id,
+    start: !start || !end ? null : start * 1000,
+    end: !start || !end ? null : end * 1000,
+    page: prime ? 'prime' : undefined,
+  });
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {

@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
+import { parseAppUrl } from '../url';
 import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
@@ -13,14 +13,16 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
 
     next(action); // must be first, otherwise breaks history
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
+    const { pathname, search } = action.payload.location;
+    const url = parseAppUrl(pathname, search);
+    const pathDongleId = url.dongleId;
     if (pathDongleId && pathDongleId !== state.dongleId) {
       dispatch(selectDevice(pathDongleId, false, false));
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
+    const pathZoom = url.legacyZoom;
+    const pathRouteId = url.routeId;
+    const pathRouteZoom = url.routeZoom;
 
     if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
       const [start, end] = [pathZoom.start, pathZoom.end];
@@ -46,12 +48,12 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       dispatch(checkRoutesData());
     }
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
+    const pathPrimeNav = url.primeNav;
     if (pathPrimeNav !== state.primeNav) {
       dispatch(primeNav(pathPrimeNav));
     }
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
+    const pathStreamNav = url.streamNav;
     if (pathStreamNav !== state.streamNav) {
       dispatch(streamNav(pathStreamNav, false));
     }

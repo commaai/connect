@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import {
+  buildAppUrl,
+  getDongleID,
+  getZoom,
+  getRouteId,
+  getRouteZoom,
+  getPrimeNav,
+  getStreamNav,
+  parseAppUrl,
+  updateAppUrl,
+} from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -67,5 +77,37 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/prime`, false],
   ])('getStreamNav(%s)', (pathname, expected) => {
     expect(getStreamNav(pathname)).toBe(expected);
+  });
+});
+
+describe('application URLs', () => {
+  it('parses a device drive URL with a time range', () => {
+    expect(parseAppUrl(`/${DONGLE}/${LOG}/10/20`)).toMatchObject({
+      dongleId: DONGLE,
+      routeId: LOG,
+      routeZoom: { start: 10000, end: 20000 },
+      modal: null,
+    });
+  });
+
+  it('rejects invalid device IDs and invalid route ranges', () => {
+    expect(parseAppUrl('/not-a-device')).toMatchObject({ dongleId: null, routeId: null });
+    expect(parseAppUrl(`/${DONGLE}/${LOG}/20/10`).routeZoom).toBeNull();
+  });
+
+  it('builds canonical device, route, and modal URLs', () => {
+    expect(buildAppUrl({ dongleId: DONGLE })).toBe(`/${DONGLE}`);
+    expect(buildAppUrl({ dongleId: DONGLE, routeId: LOG, start: 10000, end: 20000 }))
+      .toBe(`/${DONGLE}/${LOG}/10/20`);
+    expect(buildAppUrl({ dongleId: DONGLE, modal: 'settings' }))
+      .toBe(`/${DONGLE}?modal=settings`);
+  });
+
+  it('updates modal state while preserving the current route and other query args', () => {
+    const pathname = `/${DONGLE}/${LOG}/10/20`;
+    expect(updateAppUrl(pathname, '?share=abc', { modal: 'create-clip' }))
+      .toBe(`${pathname}?share=abc&modal=create-clip`);
+    expect(updateAppUrl(pathname, '?share=abc&modal=create-clip', { modal: null }))
+      .toBe(`${pathname}?share=abc`);
   });
 });
