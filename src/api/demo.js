@@ -167,6 +167,7 @@ export function createDemoBackend(realBackend) {
   let publicFilesPromise = null;
   let publicPlaylistPromise = null;
   const videoUrls = new Map();
+  const routeMissingSegments = new Map();
 
   // Fetch the existing public shared route once and cache it.
   function fetchPublicRoute() {
@@ -221,9 +222,13 @@ export function createDemoBackend(realBackend) {
       route.fullname = `${DEMO_DONGLE_ID}|${logId}`;
       route.demo_title = testCase.title;
       testCase.route(route, testCase.affectedSegment);
-      if (testCase.missingVideoSegments && playlist) {
-        const missingUrl = route.url.replace(PUBLIC_ROUTE_LOG_ID, logId);
-        videoUrls.set(route.fullname, missingVideoPlaylist(playlist, missingUrl, testCase.missingVideoSegments(route)));
+      if (testCase.missingVideoSegments) {
+        const missing = testCase.missingVideoSegments(route);
+        routeMissingSegments.set(route.fullname, missing);
+        if (playlist) {
+          const missingUrl = route.url.replace(PUBLIC_ROUTE_LOG_ID, logId);
+          videoUrls.set(route.fullname, missingVideoPlaylist(playlist, missingUrl, missing));
+        }
       }
       return route;
     });
@@ -237,7 +242,8 @@ export function createDemoBackend(realBackend) {
     const testCase = TEST_CASES[index];
     const files = structuredClone(await fetchPublicFiles());
     if (testCase.missingVideoSegments) {
-      const missingSegments = testCase.missingVideoSegments(await fetchPublicRoute());
+      const missingSegments = routeMissingSegments.get(routeName)
+        ?? testCase.missingVideoSegments(await fetchPublicRoute());
       for (const type of ['qcameras', 'cameras', 'dcameras', 'ecameras']) {
         for (const segment of missingSegments) removeFileSegments(files, type, segment);
       }
@@ -304,7 +310,7 @@ export function createDemoBackend(realBackend) {
       thumbnail(route, segment) {
         const index = demoRouteIndex(route.fullname);
         const testCase = TEST_CASES[index];
-        if (testCase?.missingVideoSegments?.(route).includes(segment)
+        if (routeMissingSegments.get(route.fullname)?.includes(segment)
           || (testCase?.missingThumbnails
             && (testCase.affectedSegment === undefined || testCase.affectedSegment === segment))) {
           return missingAssetUrl(route, segment, 'sprite.jpg');
