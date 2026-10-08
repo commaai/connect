@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   seekCalls: [],
   hls: { on: vi.fn(), off: vi.fn() },
   tracks: { length: 0, addEventListener: vi.fn(), removeEventListener: vi.fn() },
-  videoElement: { play: vi.fn(() => Promise.resolve()) },
+  videoElement: { ended: false, play: vi.fn(() => Promise.resolve()) },
   player: null,
 }));
 
@@ -65,6 +65,7 @@ describe('DriveVideo follows ReactPlayer events', () => {
     mocks.duration = 0;
     mocks.currentTime = 0;
     mocks.seekCalls = [];
+    mocks.videoElement.ended = false;
     mocks.videoElement.play.mockClear();
     mocks.hls.on.mockClear();
     mocks.hls.off.mockClear();
@@ -169,6 +170,46 @@ describe('DriveVideo follows ReactPlayer events', () => {
     mocks.videoElement.play.mockClear();
 
     act(() => mocks.playerProps.onEnded());
+    expect(mocks.videoElement.play).not.toHaveBeenCalled();
+  });
+
+  it('keeps the loop play command when the ended element emits pause first', async () => {
+    const store = mount();
+    await waitFor(() => expect(mocks.playerProps?.url).toBe('/same-video.m3u8'));
+    mocks.duration = 30;
+    act(() => mocks.playerProps.onReady(mocks.player));
+    act(() => mocks.playerProps.onSeek(5));
+    act(() => store.dispatch(play()));
+    mocks.videoElement.ended = true;
+    act(() => mocks.playerProps.onPause());
+    expect(store.getState().desiredPlaySpeed).toBe(1);
+
+    act(() => mocks.playerProps.onEnded());
+    act(() => mocks.playerProps.onSeek(0));
+    expect(mocks.videoElement.play).toHaveBeenCalledOnce();
+  });
+
+  it('clears pending loop resume when the source changes or retries', async () => {
+    const store = mount();
+    await waitFor(() => expect(mocks.playerProps?.url).toBe('/same-video.m3u8'));
+    mocks.duration = 30;
+    act(() => mocks.playerProps.onReady(mocks.player));
+    act(() => mocks.playerProps.onSeek(5));
+    act(() => store.dispatch(play()));
+    act(() => mocks.playerProps.onEnded());
+
+    act(() => store.dispatch({ type: 'TEST_ROUTE', route: { fullname: 'device|route-b' } }));
+    await waitFor(() => expect(mocks.playerProps.url).toBe('/same-video.m3u8'));
+    act(() => mocks.playerProps.onReady(mocks.player));
+    expect(mocks.videoElement.play).not.toHaveBeenCalled();
+
+    mocks.currentTime = 5;
+    mocks.videoElement.ended = true;
+    act(() => mocks.playerProps.onEnded());
+    act(() => mocks.playerProps.onError('hlsError', { fatal: true, message: 'retry me' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry video' }));
+    await waitFor(() => expect(mocks.playerProps.url).toBe('/same-video.m3u8'));
+    act(() => mocks.playerProps.onReady(mocks.player));
     expect(mocks.videoElement.play).not.toHaveBeenCalled();
   });
 });
