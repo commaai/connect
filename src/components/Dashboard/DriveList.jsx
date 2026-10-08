@@ -59,6 +59,10 @@ const DriveList = (props) => {
     fetchDeviceInfo();
   }, [fetchDeviceInfo]);
 
+  useEffect(() => {
+    dispatch(checkRoutesData());
+  }, [dispatch]);
+
   const onVisible = useCallback(() => {
     dispatch(checkRoutesData());
     fetchDeviceInfo();

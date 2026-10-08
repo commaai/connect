@@ -1,61 +1,51 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { parseLocation, pathFor } from '../url';
+import { checkLastRoutesData, checkSelectedRoute, applyDevice, applyTimeline } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
+// Every URL change, whether a link, an action or the browser's back button, ends up here.
+// The page itself is read straight from the URL; only data the page needs is loaded into state.
+function applyLocation(location) {
+  return (dispatch, getState) => {
+    const { dongleId, routeId, zoom, legacyZoom } = parseLocation(location);
+    const deviceChanged = dongleId && dongleId !== getState().dongleId;
+
+    if (deviceChanged) {
+      dispatch(applyDevice(dongleId));
+    }
+    dispatch(applyTimeline(routeId, zoom));
+    if (deviceChanged) {
+      dispatch(checkLastRoutesData());
+    } else {
+      dispatch(checkSelectedRoute());
+    }
+
+    if (legacyZoom) {
+      dispatch(resolveLegacyZoom(location.pathname, dongleId, legacyZoom));
+    }
+  };
+}
+
+// Legacy links point at a time range rather than a route; swap in the route that contains it.
+function resolveLegacyZoom(pathname, dongleId, { start, end }) {
+  return (dispatch, getState) => api.routes.getRoutesSegments(dongleId, start, end).then((routesData) => {
+    if (routesData?.length && getState().router.location.pathname === pathname) {
+      const routeId = routesData[0].fullname.split('|')[1];
+      dispatch(replace(pathFor({ page: 'drive', dongleId, routeId })));
+    }
+  }).catch((err) => {
+    console.error('Error fetching routes data for log ID conversion', err);
+  });
+}
+
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
   if (!action) {
-    return;
+    return undefined;
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  const result = next(action); // must be first, otherwise breaks history
+  if (action.type === LOCATION_CHANGE) {
+    dispatch(applyLocation(action.payload.location));
   }
+  return result;
 };

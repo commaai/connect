@@ -147,6 +147,15 @@ async function renderApp(pathname, options = {}) {
 
 describe('whole-app behavior', () => {
   beforeAll(() => {
+    const store = new Map();
+    const storageMock = {
+      getItem: vi.fn((key) => store.get(key) ?? null),
+      setItem: vi.fn((key, value) => store.set(key, String(value))),
+      removeItem: vi.fn((key) => store.delete(key)),
+      clear: vi.fn(() => store.clear()),
+    };
+    vi.stubGlobal('localStorage', storageMock);
+    Object.defineProperty(window, 'localStorage', { value: storageMock, configurable: true });
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
@@ -287,6 +296,76 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goForward());
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+  });
+
+  test('a pushed device URL opens that device', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${SECOND}`));
+    await waitFor(() => expect(store.getState().routes?.[0]?.dongle_id).toBe(SECOND));
+    expect(store.getState().dongleId).toBe(SECOND);
+  });
+
+  test.each([
+    ['Prime', `/${FIRST}/prime`, () => screen.findByRole('heading', { name: 'comma prime' })],
+    ['a drive', `/${FIRST}/${LOG}`, () => screen.findByRole('slider', { name: 'Drive timeline' })],
+  ])('leaving %s for referrals and back shows the dashboard', async (_name, pathname, findPage) => {
+    const { history } = await renderApp(pathname);
+    expect(await findPage()).toBeVisible();
+    fireEvent.click(screen.getByLabelText('referrals'));
+    expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
+    fireEvent.click(screen.getByLabelText('referrals'));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'comma prime' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument();
+  });
+
+  test('going back to a drive link after closing it shows the drive again', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.goBack());
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(screen.queryByText('Route does not exist.')).not.toBeInTheDocument();
+  });
+
+  test('the root URL keeps a settings dialog while picking the device', async () => {
+    const { history } = await renderApp(`/?settings=${FIRST}`, { selected: FIRST });
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname + history.location.search).toBe(`/${FIRST}?settings=${FIRST}`);
+  });
+
+  test('device settings open from the URL over the current page', async () => {
+    const { history } = await renderApp(`/${FIRST}?settings=${SECOND}`);
+    const dialog = (await screen.findByText('Device settings')).closest('[aria-labelledby="device-settings-modal"]');
+    expect(within(dialog).getByText(SECOND)).toBeVisible();
+    expect(screen.getByText('Mock recent route start')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(history.location.pathname + history.location.search).toBe(`/${FIRST}`);
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('the settings button puts the dialog in the URL and keeps the drive open', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    await waitFor(() => expect(document.querySelector(`a[href="/${SECOND}"]`)).toBeInTheDocument());
+    fireEvent.click(document.querySelector(`a[href="/${SECOND}"] [aria-label="device settings"]`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname + history.location.search).toBe(`/${FIRST}/${LOG}?settings=${SECOND}`);
+    // the open dialog hides the page behind it from the accessibility tree
+    expect(screen.getByRole('slider', { name: 'Drive timeline', hidden: true })).toBeInTheDocument();
+  });
+
+  test('device settings stay closed for a device the user does not own', async () => {
+    const shared = devices.map((device) => (device.dongle_id === SECOND ? { ...device, is_owner: false } : device));
+    await renderApp(`/${FIRST}?settings=${SECOND}`, { devices: shared });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
