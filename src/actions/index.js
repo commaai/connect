@@ -147,8 +147,7 @@ export function checkLastRoutesData() {
   };
 }
 
-// Pushes `url` unless the app is already there.
-export function navigate(url) {
+function navigate(url) {
   return (dispatch, getState) => {
     if (currentLocation(getState()) !== url) {
       dispatch(push(url));
@@ -178,13 +177,15 @@ export function closeDialog() {
   return openDialog(null);
 }
 
-// Only URL reconciliation selects a drive. Reapplying the same selection is a no-op.
 export function selectRoute(logId, zoom) {
   return (dispatch, getState) => {
     const state = getState();
     const route = state.routes?.find((candidate) => candidate.log_id === logId);
-    const nextZoom = logId ? (zoom ?? (route ? { start: 0, end: route.duration } : null)) : null;
-    if (state.selectedRouteId === logId && state.zoom?.start === nextZoom?.start && state.zoom?.end === nextZoom?.end) return;
+    const wholeDrive = route ? { start: 0, end: route.duration } : null;
+    const nextZoom = logId ? (zoom ?? wholeDrive) : null;
+    const sameDrive = state.selectedRouteId === logId;
+    const sameZoom = state.zoom?.start === nextZoom?.start && state.zoom?.end === nextZoom?.end;
+    if (sameDrive && sameZoom) return;
     dispatch({ type: Types.ACTION_SELECT_ROUTE, logId, zoom: nextZoom });
     dispatch(resetPlayback());
     dispatch(selectLoop(nextZoom?.start, nextZoom?.end));
@@ -251,7 +252,6 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-// Switches state to `dongleId` without touching the URL or fetching routes.
 export function setDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();

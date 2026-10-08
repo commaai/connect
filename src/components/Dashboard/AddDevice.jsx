@@ -5,8 +5,8 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { openDialog, selectDevice, updateDevices, analyticsEvent } from '../../actions';
-import { selectUrl } from '../../url';
+import { closeDialog, openDialog, selectDevice, updateDevices, analyticsEvent } from '../../actions';
+import { DIALOGS, selectUrl } from '../../url';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
@@ -310,7 +310,7 @@ class AddDevice extends Component {
     }
 
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
-    this.props.dispatch(openDialog(null));
+    this.props.dispatch(closeDialog());
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -384,7 +384,7 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.props.dispatch(openDialog('add-device'));
+    this.props.dispatch(openDialog(DIALOGS.ADD_DEVICE));
   }
 
   render() {
@@ -457,7 +457,7 @@ class AddDevice extends Component {
 }
 
 const stateToProps = (state) => ({
-  modalOpen: selectUrl(state).dialog === 'add-device',
+  modalOpen: selectUrl(state).dialog === DIALOGS.ADD_DEVICE,
   profile: state.profile,
   devices: state.devices,
 });

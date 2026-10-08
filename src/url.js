@@ -1,21 +1,32 @@
 import { matchPath } from 'react-router-dom';
 
 export const PAGES = {
-  HOME: 'home', DASHBOARD: 'dashboard', DRIVE: 'drive', LEGACY: 'legacy',
-  PRIME: 'prime', STREAM: 'stream', REFERRALS: 'referrals', NOT_FOUND: 'not-found',
+  HOME: 'home',
+  DASHBOARD: 'dashboard',
+  DRIVE: 'drive',
+  LEGACY: 'legacy',
+  PRIME: 'prime',
+  STREAM: 'stream',
+  REFERRALS: 'referrals',
+  NOT_FOUND: 'not-found',
 };
 
 export const DIALOGS = {
-  SETTINGS: 'settings', UNPAIR: 'unpair', SETTINGS_UPLOADS: 'settings-uploads',
-  ADD_DEVICE: 'add-device', FILTER: 'filter', UPLOADS: 'uploads',
-  CANCEL_PRIME: 'cancel-prime', SWITCH_PRIME: 'switch-prime',
+  SETTINGS: 'settings',
+  UNPAIR: 'unpair',
+  SETTINGS_UPLOADS: 'settings-uploads',
+  ADD_DEVICE: 'add-device',
+  FILTER: 'filter',
+  UPLOADS: 'uploads',
+  CANCEL_PRIME: 'cancel-prime',
+  SWITCH_PRIME: 'switch-prime',
 };
 const SETTINGS_DIALOGS = [DIALOGS.SETTINGS, DIALOGS.UNPAIR, DIALOGS.SETTINGS_UPLOADS];
 const DEVICE_ID = /^[a-f0-9]{16}$/;
 const DONGLE_ID = ':dongleId([a-f0-9]{16})';
 const LOG_ID = ':logId([a-f0-9-]{20})';
 
-// Path -> page. Drive ranges use seconds; legacy timestamp ranges use milliseconds.
+// Drive ranges use seconds; legacy timestamp ranges use milliseconds.
 const ROUTES = [
   ['/', PAGES.HOME],
   ['/demo', PAGES.HOME],
@@ -39,7 +50,7 @@ const DIALOG_PAGES = {
   [DIALOGS.SWITCH_PRIME]: [PAGES.PRIME],
 };
 
-function range(start, end, scale) {
+function parseRange(start, end, scale) {
   if (start === undefined) return null;
   const pattern = scale === 1000 ? /^\d+(\.\d{1,3})?$/ : /^\d+$/;
   if (!pattern.test(start) || !pattern.test(end)) return null;
@@ -47,32 +58,41 @@ function range(start, end, scale) {
     const [whole, fraction = ''] = value.split('.');
     return Number(whole) * scale + (scale === 1000 ? Number(fraction.padEnd(3, '0')) : 0);
   };
-  const a = milliseconds(start);
-  const b = milliseconds(end);
-  return Number.isSafeInteger(a) && Number.isSafeInteger(b) && a < b ? { start: a, end: b } : null;
+  const startMs = milliseconds(start);
+  const endMs = milliseconds(end);
+  if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs) || startMs >= endMs) return null;
+  return { start: startMs, end: endMs };
+}
+
+function parsePath(pathname) {
+  const unmatched = { page: PAGES.NOT_FOUND, dongleId: null, logId: null, zoom: null, legacyRange: null };
+  for (const [path, page] of ROUTES) {
+    const match = matchPath(pathname, { path, exact: true, sensitive: true });
+    if (!match) continue;
+    const { dongleId = null, logId = null, start, end, legacyStart, legacyEnd } = match.params;
+    const zoom = parseRange(start, end, 1000);
+    const legacyRange = parseRange(legacyStart, legacyEnd, 1);
+    if ((start !== undefined && !zoom) || (legacyStart !== undefined && !legacyRange)) return unmatched;
+    return { page, dongleId, logId, zoom, legacyRange };
+  }
+  return unmatched;
+}
+
+function parseDialog(search, { page, dongleId }) {
+  const closed = { dialog: null, dialogDevice: null };
+  const query = new URLSearchParams(search);
+  const dialog = query.get('dialog');
+  if (query.getAll('dialog').length !== 1 || !Object.hasOwn(DIALOG_PAGES, dialog)) return closed;
+  if (!DIALOG_PAGES[dialog].includes(page)) return closed;
+  if (!SETTINGS_DIALOGS.includes(dialog)) return { dialog, dialogDevice: null };
+  const dialogDevice = query.get('device') || dongleId;
+  if (query.getAll('device').length > 1 || !DEVICE_ID.test(dialogDevice)) return closed;
+  return { dialog, dialogDevice };
 }
 
 export function parseUrl(pathname, search = '') {
-  const empty = { dongleId: null, page: PAGES.NOT_FOUND, logId: null, zoom: null, legacyRange: null, dialog: null, dialogDevice: null };
-  const route = ROUTES.map(([path, page]) => ({
-    page, match: matchPath(pathname, { path, exact: true, sensitive: true }),
-  })).find(({ match }) => match);
-  if (!route) return empty;
-  const { params } = route.match;
-  const zoom = range(params.start, params.end, 1000);
-  const legacyRange = range(params.legacyStart, params.legacyEnd, 1);
-  if ((params.start !== undefined && !zoom) || (params.legacyStart !== undefined && !legacyRange)) return empty;
-  const url = { ...empty, page: route.page, dongleId: params.dongleId ?? null, logId: params.logId ?? null, zoom, legacyRange };
-  const query = new URLSearchParams(search);
-  const dialog = query.get('dialog');
-  if (query.getAll('dialog').length === 1 && Object.hasOwn(DIALOG_PAGES, dialog) && DIALOG_PAGES[dialog].includes(url.page)) {
-    const device = query.get('device') || url.dongleId;
-    if (!SETTINGS_DIALOGS.includes(dialog) || (query.getAll('device').length <= 1 && DEVICE_ID.test(device))) {
-      url.dialog = dialog;
-      url.dialogDevice = SETTINGS_DIALOGS.includes(dialog) ? device : null;
-    }
-  }
-  return url;
+  const route = parsePath(pathname);
+  return { ...route, ...parseDialog(search, route) };
 }
 
 export function urlFor({ dongleId = null, page = null, logId = null, zoom = null }) {
@@ -88,7 +108,6 @@ export function urlFor({ dongleId = null, page = null, logId = null, zoom = null
   return `/${parts.join('/')}`;
 }
 
-// Dialog changes preserve the page, unrelated query arguments, and hash.
 export function dialogUrl({ pathname, search = '', hash = '' }, dialog, device) {
   const query = new URLSearchParams(search);
   query.delete('dialog');

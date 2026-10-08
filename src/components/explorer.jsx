@@ -197,14 +197,29 @@ class ExplorerApp extends Component {
     }
   }
 
+  renderPage(noDevicesUpsell) {
+    const { page, profile, currentRoute, selectedRouteId } = this.props;
+    if (page === PAGES.NOT_FOUND) {
+      return (
+        <div className="p-8">
+          <Typography variant="title">Page not found</Typography>
+          <a href="/">Go to connect</a>
+        </div>
+      );
+    }
+    if (page === PAGES.REFERRALS) return <Referrals profile={profile} onBack={this.closePage} />;
+    if (noDevicesUpsell) return <NoDeviceUpsell />;
+    if (currentRoute || selectedRouteId) return <DriveView />;
+    return <Dashboard />;
+  }
+
   render() {
     const {
-      classes, currentRoute, devices, dongleId, page, dialog, dialogDevice, selectedRouteId, profile,
+      classes, currentRoute, devices, dongleId, page, dialog, dialogDevice,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = page === PAGES.REFERRALS;
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -244,18 +259,7 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { page === PAGES.NOT_FOUND
-                ? (
-                  <div className="p-8">
-                    <Typography variant="title">Page not found</Typography>
-                    <a href="/">Go to connect</a>
-                  </div>
-                )
-                : referralsOpen
-                ? <Referrals profile={profile} onBack={ this.closePage } />
-                : noDevicesUpsell
-                ? <NoDeviceUpsell />
-                : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
+              {this.renderPage(noDevicesUpsell)}
             </div>
             <IosPwaPopup />
             {dialog === DIALOGS.ADD_DEVICE && <AddDevice dialogOnly />}

@@ -3,22 +3,33 @@ import { PAGES, parseUrl, urlFor } from '../url';
 import { checkRoutesData, selectRoute, setDevice } from './index';
 import { api } from '../api/backend';
 
-// One reconciliation path for initial load, PUSH, POP, and REPLACE.
-// Data and playback are retained unless their device or drive selection changes.
-export function syncStateFromUrl(pathname) {
+function reconcileUrl(url) {
   return (dispatch, getState) => {
-    const url = parseUrl(pathname);
-    if (url.page === PAGES.HOME && getState().dongleId) {
-      dispatch(replace({ ...getState().router.location, pathname: urlFor({ dongleId: getState().dongleId }) }));
+    const { dongleId, router } = getState();
+    if (url.page === PAGES.HOME && dongleId) {
+      dispatch(replace({ ...router.location, pathname: urlFor({ dongleId }) }));
       return;
     }
-    if (url.dongleId && url.dongleId !== getState().dongleId) dispatch(setDevice(url.dongleId));
+    if (url.dongleId && url.dongleId !== dongleId) dispatch(setDevice(url.dongleId));
     dispatch(selectRoute(url.logId, url.zoom));
     dispatch(checkRoutesData());
   };
 }
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => {
+function resolveLegacyRange({ dongleId, legacyRange }, isCurrent) {
+  return async (dispatch, getState) => {
+    try {
+      const routes = await api.routes.getRoutesSegments(dongleId, legacyRange.start, legacyRange.end);
+      if (!isCurrent() || !routes?.length) return;
+      const logId = routes[0].fullname.split('|')[1];
+      dispatch(replace({ ...getState().router.location, pathname: urlFor({ dongleId, logId }) }));
+    } catch (error) {
+      console.error('Error fetching routes data for log ID conversion', error);
+    }
+  };
+}
+
+export const onHistoryMiddleware = ({ dispatch }) => {
   let previousPathname;
   let revision = 0;
   return (next) => (action) => {
@@ -30,15 +41,9 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => {
     previousPathname = pathname;
     revision += 1;
     const currentRevision = revision;
-    dispatch(syncStateFromUrl(pathname));
-    const { dongleId, legacyRange } = parseUrl(pathname);
-    if (legacyRange) {
-      api.routes.getRoutesSegments(dongleId, legacyRange.start, legacyRange.end).then((routes) => {
-        if (revision !== currentRevision || !routes?.length) return;
-        const logId = routes[0].fullname.split('|')[1];
-        dispatch(replace({ ...getState().router.location, pathname: urlFor({ dongleId, logId }) }));
-      }).catch((err) => console.error('Error fetching routes data for log ID conversion', err));
-    }
+    const url = parseUrl(pathname);
+    dispatch(reconcileUrl(url));
+    if (url.legacyRange) dispatch(resolveLegacyRange(url, () => revision === currentRevision));
     return result;
   };
 };

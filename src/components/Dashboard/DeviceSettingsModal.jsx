@@ -19,7 +19,7 @@ import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
-import { PAGES, selectUrl } from '../../url';
+import { DIALOGS, PAGES, selectUrl } from '../../url';
 
 const styles = (theme) => ({
   modal: {
@@ -250,7 +250,7 @@ class DeviceSettingsModal extends Component {
     if (this.state.unpaired) {
       window.location = window.location.origin;
     } else {
-      this.props.dispatch(openDialog('settings', this.props.dongleId));
+      this.props.dispatch(openDialog(DIALOGS.SETTINGS, this.props.dongleId));
     }
   }
 
@@ -286,7 +286,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.props.dispatch(openDialog('unpair', this.props.dongleId)) }
+                onClick={ () => this.props.dispatch(openDialog(DIALOGS.UNPAIR, this.props.dongleId)) }
               >
                 Unpair
               </Button>
@@ -295,7 +295,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.props.dispatch(openDialog('settings-uploads', this.props.dongleId)) }
+                onClick={ () => this.props.dispatch(openDialog(DIALOGS.SETTINGS_UPLOADS, this.props.dongleId)) }
               >
                 Uploads
               </Button>
@@ -358,7 +358,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.dialog === 'unpair'}
+          open={this.props.dialog === DIALOGS.UNPAIR}
           onClose={ this.closeUnpair }
         >
           <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
@@ -421,9 +421,9 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.props.dialog === 'settings-uploads' }
-          update={ this.props.dialog === 'settings-uploads' }
-          onClose={ () => this.props.dispatch(openDialog('settings', this.props.dongleId)) }
+          open={ this.props.dialog === DIALOGS.SETTINGS_UPLOADS }
+          update={ this.props.dialog === DIALOGS.SETTINGS_UPLOADS }
+          onClose={ () => this.props.dispatch(openDialog(DIALOGS.SETTINGS, this.props.dongleId)) }
           device={ device }
         />
       </>

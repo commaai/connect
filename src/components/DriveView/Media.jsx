@@ -20,8 +20,8 @@ import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
-import { openDialog, analyticsEvent, updateRoute } from '../../actions';
-import { selectUrl } from '../../url';
+import { closeDialog, openDialog, analyticsEvent, updateRoute } from '../../actions';
+import { DIALOGS, selectUrl } from '../../url';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
@@ -748,7 +748,7 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => { this.setState({ downloadMenu: null }); this.props.dispatch(openDialog('uploads')); } : null }
+              onClick={ files ? () => { this.setState({ downloadMenu: null }); this.props.dispatch(openDialog(DIALOGS.UPLOADS)); } : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -825,7 +825,7 @@ class Media extends Component {
         </Menu>
         <UploadQueue
           open={ uploadModal }
-          onClose={ () => this.props.dispatch(openDialog(null)) }
+          onClose={ () => this.props.dispatch(closeDialog()) }
           update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
           store={ this.props.store }
           device={ device }
@@ -921,7 +921,7 @@ class Media extends Component {
 }
 
 const stateToProps = (state) => ({
-  uploadModal: selectUrl(state).dialog === 'uploads',
+  uploadModal: selectUrl(state).dialog === DIALOGS.UPLOADS,
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,

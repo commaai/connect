@@ -10,8 +10,8 @@ import { billing as Billing } from '../../api';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
 import { ErrorOutline, InfoOutline, KeyboardBackspaceIcon, PriorityHighIcon } from '../../icons';
-import { openDialog, closePage, primeGetSubscription, analyticsEvent } from '../../actions';
-import { selectUrl } from '../../url';
+import { closeDialog, openDialog, closePage, primeGetSubscription, analyticsEvent } from '../../actions';
+import { DIALOGS, selectUrl } from '../../url';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 import { otherPrimePlan, primePlanName } from './primePlans';
 
@@ -252,7 +252,7 @@ export class PrimeManage extends Component {
   componentDidUpdate(prevProps, prevState) {
     const { subscription } = this.props;
     const { stripeStatus } = this.state;
-    if (prevProps.modal !== this.props.modal && this.props.modal === 'switch-prime' && !this.state.switchingPlan) {
+    if (prevProps.dialog !== this.props.dialog && this.props.dialog === DIALOGS.SWITCH_PRIME && !this.state.switchingPlan) {
       this.setState({ planSwitchStatus: 'confirm', planSwitchMessage: null, planSwitchTarget: null });
     }
 
@@ -305,7 +305,7 @@ export class PrimeManage extends Component {
 
   closePlanSwitch() {
     if (this.state.switchingPlan) return;
-    this.props.dispatch(openDialog(null));
+    this.props.dispatch(closeDialog());
     this.setState({ planSwitchStatus: 'confirm', planSwitchMessage: null, planSwitchTarget: null });
   }
 
@@ -534,7 +534,7 @@ export class PrimeManage extends Component {
                         className={classes.buttons}
                         style={buttonSmallStyle}
                         onClick={() => {
-                          this.props.dispatch(openDialog('switch-prime'));
+                          this.props.dispatch(openDialog(DIALOGS.SWITCH_PRIME));
                           this.setState({
                             planSwitchStatus: 'confirm',
                             planSwitchMessage: null,
@@ -554,7 +554,7 @@ export class PrimeManage extends Component {
                       <Button
                         className={`${classes.buttons} ${classes.cancelButton} primeCancel`}
                         style={buttonSmallStyle}
-                        onClick={() => this.props.dispatch(openDialog('cancel-prime'))}
+                        onClick={() => this.props.dispatch(openDialog(DIALOGS.CANCEL_PRIME))}
                         disabled={Boolean(!hasPrimeSub)}
                       >
                         Cancel subscription
@@ -590,7 +590,7 @@ export class PrimeManage extends Component {
           </div>
         </div>
         <Modal
-          open={this.props.modal === 'switch-prime'}
+          open={this.props.dialog === DIALOGS.SWITCH_PRIME}
           onClose={() => this.closePlanSwitch()}
         >
           <Paper className="absolute left-1/2 top-[40%] w-[400px] max-w-[90%] -translate-x-1/2 -translate-y-1/2 p-4">
@@ -671,8 +671,8 @@ export class PrimeManage extends Component {
           </Paper>
         </Modal>
         <Modal
-          open={this.props.modal === 'cancel-prime'}
-          onClose={() => this.props.dispatch(openDialog(null))}
+          open={this.props.dialog === DIALOGS.CANCEL_PRIME}
+          onClose={() => this.props.dispatch(closeDialog())}
         >
           <Paper className={classes.modal}>
             <Typography variant="title">Cancel prime subscription</Typography>
@@ -719,7 +719,7 @@ export class PrimeManage extends Component {
             <Button
               variant="contained"
               className={`${classes.closeButton} primeModalClose`}
-              onClick={() => this.props.dispatch(openDialog(null))}
+              onClick={() => this.props.dispatch(closeDialog())}
             >
               Close
             </Button>
@@ -731,7 +731,7 @@ export class PrimeManage extends Component {
 }
 
 const stateToProps = (state) => ({
-  modal: selectUrl(state).dialog,
+  dialog: selectUrl(state).dialog,
   dongleId: state.dongleId,
   device: state.device,
   subscription: state.subscription,
