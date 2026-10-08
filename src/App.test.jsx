@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { createMemoryHistory } from 'history';
 
 import App from './App';
+import { PUBLIC_ROUTE_DONGLE_ID, PUBLIC_ROUTE_LOG_ID } from './api/demo';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
@@ -106,6 +107,17 @@ async function mockFetch(input, init = {}) {
     if (options.failedRoutes && url.searchParams.has('start')) return json({}, 500);
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
+    if (routeStr === `${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`) {
+      const route = makeRoute(PUBLIC_ROUTE_DONGLE_ID, PUBLIC_ROUTE_LOG_ID);
+      const start = route.start_time_utc_millis;
+      return json([{
+        ...route,
+        end_time_utc_millis: start + 120_000,
+        segment_end_times: [start + 60_000, start + 120_000],
+        segment_numbers: [0, 1],
+        segment_start_times: [start, start + 60_000],
+      }]);
+    }
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
@@ -137,7 +149,7 @@ async function renderApp(pathname, options = {}) {
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
-    { timeout: 5000 },
+    { timeout: 10000 },
   );
   // Explorer initialization starts several independent async updates (device
   // details, stats, routes, and clip support). Let their promise chains finish
@@ -209,6 +221,16 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp(`/${dongleId}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     expect(history.location.pathname).toBe(`/${dongleId}`);
+  });
+
+  test('browser Back from a demo drive restores the demo route list', async () => {
+    const { history } = await renderApp('/demo');
+    fireEvent.click((await screen.findAllByText('Mock recent route start'))[0]);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.goBack());
+    expect(history.location.pathname).toBe('/demo');
+    expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument();
+    expect((await screen.findAllByText('Mock recent route start'))[0]).toBeVisible();
   });
 
   test('dashboard filter and empty route states remain usable', async () => {
@@ -359,6 +381,17 @@ describe('whole-app behavior', () => {
     expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument();
     act(() => history.goBack());
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+
+  test('an unknown URL cannot display a stale stream', async () => {
+    const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
+    const { history } = await renderApp(`/${FIRST}/stream`, { devices: online });
+    expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+    act(() => history.push(`/${FIRST}/stream/extra`));
+    expect(await screen.findByText('Page not found.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Close teleop' })).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {

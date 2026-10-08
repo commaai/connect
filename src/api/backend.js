@@ -1,9 +1,7 @@
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as commaApi from '../api';
-import { createDemoBackend, DEMO_DONGLE_ID } from './demo';
-
-export const DEMO_PATH = '/demo';
+import { createDemoBackend, DEMO_DONGLE_ID, DEMO_PATH } from './demo';
 
 let backend = null;
 

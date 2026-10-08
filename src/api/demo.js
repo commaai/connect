@@ -9,6 +9,7 @@
 //     clone mutated to be missing qcamera (it has no share credentials)
 // Everything else (billing, athena, ...) passes through.
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
+export const DEMO_PATH = '/demo';
 
 export const PUBLIC_ROUTE_DONGLE_ID = '5beb9b58bd12b691';
 export const PUBLIC_ROUTE_LOG_ID = '0000010a--a51155e496';

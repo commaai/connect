@@ -49,6 +49,14 @@ describe('history reconciliation', () => {
     expect(store.dispatch).not.toHaveBeenCalled();
   });
 
+  it('closes URL-driven overlays when the destination is unknown', () => {
+    const { store, invoke } = create({ primeNav: true, streamNav: true });
+    invoke(location(`/${DEVICE}/stream/extra`));
+    expect(actions.syncPrimeNav).toHaveBeenCalledWith(false);
+    expect(actions.syncStreamNav).toHaveBeenCalledWith(false);
+    expect(store.dispatch).toHaveBeenCalledTimes(2);
+  });
+
   it.each(['PUSH', 'POP', 'REPLACE'])('uses the same state transition for %s', (historyAction) => {
     const { store, next, invoke } = create();
     invoke(location(`/${OTHER}/${ROUTE}/0/20`, historyAction));

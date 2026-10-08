@@ -1,3 +1,5 @@
+import { DEMO_DONGLE_ID, DEMO_PATH } from './api/demo';
+
 const devicePattern = /^[a-f0-9]{16}$/;
 const routePattern = /^[a-f0-9-]{20}$/;
 const integerPattern = /^(0|[1-9]\d*)$/;
@@ -18,6 +20,7 @@ function readRange(startText, endText, unit = 1) {
 export function parsePath(pathname) {
   const parts = pathname.split('/').filter(Boolean);
   if (parts.length === 0) return { page: 'home', dongleId: null, routeId: null, range: null };
+  if (parts.length === 1 && `/${parts[0]}` === DEMO_PATH) return { page: 'drives', dongleId: DEMO_DONGLE_ID, routeId: null, range: null };
   if (parts.length === 1 && parts[0] === 'referrals') return { page: 'referrals', dongleId: null, routeId: null, range: null };
   if (parts.length === 1 && parts[0] === 'add-device') return { page: 'add-device', dongleId: null, routeId: null, range: null };
   if (!devicePattern.test(parts[0])) return { page: 'unknown', dongleId: null, routeId: null, range: null };

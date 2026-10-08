@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parsePath, urlForRoute, devicePath, drivePath } from './url';
+import { DEMO_DONGLE_ID } from './api/demo';
 
 const DEVICE = '0000aaaa0000aaaa';
 const ROUTE = '2026-08-06--12-00-00';
@@ -9,6 +10,7 @@ describe('the URL grammar', () => {
     ['/', 'home', null, null],
     ['/referrals', 'referrals', null, null],
     ['/add-device', 'add-device', null, null],
+    ['/demo', 'drives', DEMO_DONGLE_ID, null],
     [`/${DEVICE}`, 'drives', DEVICE, null],
     [`/${DEVICE}/prime`, 'prime', DEVICE, null],
     [`/${DEVICE}/stream`, 'stream', DEVICE, null],

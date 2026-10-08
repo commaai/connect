@@ -6,7 +6,7 @@ import { push, replace } from 'connected-react-router';
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
-import { api, DEMO_PATH } from '../api/backend';
+import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
@@ -253,7 +253,7 @@ class ExplorerApp extends Component {
                 ? <Referrals profile={profile} onBack={() => dispatch(push(urlForRoute({
                   page: dongleId ? 'drives' : 'home', dongleId,
                 })))} />
-                : route.page === 'unknown' && pathname !== DEMO_PATH
+                : route.page === 'unknown'
                 ? <Typography className="p-8">Page not found.</Typography>
                 : settingsDenied
                 ? <Typography className="p-8">No access</Typography>

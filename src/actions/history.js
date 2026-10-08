@@ -12,7 +12,12 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
 
   const path = action.payload.location.pathname;
   const route = parsePath(path);
-  if (route.page === 'unknown') return result;
+  if (route.page === 'unknown') {
+    const state = getState();
+    if (state.primeNav) dispatch(syncPrimeNav(false));
+    if (state.streamNav) dispatch(syncStreamNav(false));
+    return result;
+  }
 
   let state = getState();
   if (route.page === 'home' && state.dongleId) {
