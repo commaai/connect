@@ -44,7 +44,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute, seekRevision } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -55,7 +55,7 @@ class DriveMap extends Component {
       }
     }
 
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
+    if (prevProps.seekRevision !== seekRevision) {
       this.shouldFlyTo = true;
     }
 
@@ -283,7 +283,7 @@ class DriveMap extends Component {
   render() {
     const { viewport } = this.state;
     return (
-      <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
+      <div ref={this.onRef} className="h-full overflow-hidden rounded-xl border border-white/10 cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
         <ReactMapGL
           width="100%"
           height="100%"
@@ -308,7 +308,7 @@ class DriveMap extends Component {
 const stateToProps = (state) => ({
   offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
+  seekRevision: state.seekRevision,
 });
 
 export default connect(stateToProps)(DriveMap);

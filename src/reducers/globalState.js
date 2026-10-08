@@ -437,7 +437,7 @@ export default function reducer(_state, action) {
             };
           }
 
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
+          if (!state.loop || state.loop.startTime == null || !state.loop.duration) {
             state.loop = {
               startTime: state.zoom.start,
               duration: state.zoom.end - state.zoom.start,
