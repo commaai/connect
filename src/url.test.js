@@ -75,6 +75,13 @@ describe('buildUrl', () => {
 });
 
 describe('withModal', () => {
+  it('encodes clip identities and removes them when the dialog closes', () => {
+    const pathname = `/${DONGLE}/${LOG}`;
+    const opened = withModal({ pathname, search: '?camera=driver' }, 'clip', DONGLE, 'drive clip.mp4');
+    const search = opened.slice(opened.indexOf('?'));
+    expect(parseUrl(pathname, search)).toMatchObject({ modal: 'clip', modalDongleId: DONGLE, clipFilename: 'drive clip.mp4' });
+    expect(withModal({ pathname, search }, null)).toBe(`${pathname}?camera=driver`);
+  });
   it('preserves legacy paths and unrelated query arguments', () => {
     const pathname = `/${DONGLE}/1000/2000`;
     const opened = withModal({ pathname, search: '?camera=driver' }, 'settings', DONGLE);

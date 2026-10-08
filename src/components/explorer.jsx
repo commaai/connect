@@ -19,7 +19,7 @@ import { parseUrl } from '../url';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
-import { verifyPairToken, pairErrorToMessage } from '../utils';
+import { verifyPairToken, pairErrorToMessage, deviceIsOnline } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 
 import DriveView from './DriveView';
@@ -27,6 +27,7 @@ import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import AddDevice from './Dashboard/AddDevice';
+import ClipMenu from './DriveView/ClipMenu';
 
 const styles = (theme) => ({
   app: {
@@ -203,7 +204,9 @@ class ExplorerApp extends Component {
     const {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, search, profile,
     } = this.props;
-    const { modalDongleId } = parseUrl(pathname, search);
+    const { modal, modalDongleId, clipFilename } = parseUrl(pathname, search);
+    const clipDevice = devices?.find((device) => device.dongle_id === modalDongleId)
+      || (this.props.device?.dongle_id === modalDongleId ? this.props.device : null);
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
@@ -256,10 +259,19 @@ class ExplorerApp extends Component {
             <IosPwaPopup />
             <AddDevice host />
             <DeviceSettingsModal
-              isOpen={ Boolean(modalDongleId) }
+              isOpen={ modal === 'settings' && Boolean(modalDongleId) }
               dongleId={ modalDongleId }
               onClose={ () => dispatch(closeModal()) }
             />
+            {['clip', 'clip-delete'].includes(modal) && <ClipMenu
+              key={modalDongleId}
+              open
+              modal={modal}
+              clipFilename={clipFilename}
+              dongleId={modalDongleId}
+              deviceOnline={Boolean(clipDevice && deviceIsOnline(clipDevice))}
+              inventoryOnly
+            />}
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -291,6 +303,7 @@ const stateToProps = (state) => ({
   search: state.router.location.search,
   dongleId: state.dongleId,
   devices: state.devices,
+  device: state.device,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
   limit: state.limit,

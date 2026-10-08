@@ -15,7 +15,7 @@ const logIdRegex = /^[a-f0-9-]{20}$/;
 const validRange = (start, end) => Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end > start;
 
 // Dialogs that belong to one device carry its id as &device=
-export const DEVICE_MODALS = ['settings', 'unpair', 'uploads'];
+export const DEVICE_MODALS = ['settings', 'unpair', 'uploads', 'clip', 'clip-delete'];
 const MODALS = [...DEVICE_MODALS, 'date', 'pair', 'prime-cancel', 'prime-switch'];
 
 export function parseUrl(pathname = '/', search = '') {
@@ -31,6 +31,7 @@ export function parseUrl(pathname = '/', search = '') {
     legacyRange: null, // absolute timestamps, only without a logId
     modal,
     modalDongleId: DEVICE_MODALS.includes(modal) && dongleIdRegex.test(query.get('device')) ? query.get('device') : null,
+    clipFilename: ['clip', 'clip-delete'].includes(modal) ? query.get('clip') : null,
   };
 
   if (first === 'referrals' && parts.length === 1) {
@@ -56,7 +57,7 @@ export function parseUrl(pathname = '/', search = '') {
   return url;
 }
 
-export function buildUrl({ page = 'device', dongleId, logId, range, legacyRange, modal, modalDongleId } = {}) {
+export function buildUrl({ page = 'device', dongleId, logId, range, legacyRange, modal, modalDongleId, clipFilename } = {}) {
   let path = '/';
   if (page === 'referrals') {
     path = '/referrals';
@@ -80,17 +81,20 @@ export function buildUrl({ page = 'device', dongleId, logId, range, legacyRange,
   if (modalDongleId) {
     query.set('device', modalDongleId);
   }
+  if (['clip', 'clip-delete'].includes(modal) && clipFilename) query.set('clip', clipFilename);
   return `${path}?${query}`;
 }
 
 // The current page with a modal opened, or closed when modal is null.
-export function withModal({ pathname, search }, modal, modalDongleId) {
+export function withModal({ pathname, search }, modal, modalDongleId, clipFilename) {
   const query = new URLSearchParams(search);
   query.delete('modal');
   query.delete('device');
+  query.delete('clip');
   if (MODALS.includes(modal)) {
     query.set('modal', modal);
     if (DEVICE_MODALS.includes(modal) && dongleIdRegex.test(modalDongleId)) query.set('device', modalDongleId);
+    if (['clip', 'clip-delete'].includes(modal) && clipFilename) query.set('clip', clipFilename);
   }
   return `${pathname}${query.size ? `?${query}` : ''}`;
 }

@@ -14,7 +14,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { goToPrime, selectDevice, updateDevice, openModal } from '../../actions';
+import { goToPrime, updateDevice, openModal, closeModal } from '../../actions';
 import { parseUrl } from '../../url';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
@@ -225,11 +225,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId));
-    }
-    this.props.dispatch(goToPrime(true));
-    this.props.onClose();
+    this.props.dispatch(goToPrime(true, this.props.dongleId));
   }
 
   async unpairDevice() {
@@ -431,7 +427,7 @@ class DeviceSettingsModal extends Component {
         <UploadQueue
           open={ this.props.modal === 'uploads' }
           update={ this.props.modal === 'uploads' }
-          onClose={ this.backToSettings }
+          onClose={ () => this.props.dispatch(closeModal()) }
           device={ device }
         />
       </>
@@ -445,7 +441,6 @@ const stateToProps = (state, ownProps) => {
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
     modal: parseUrl(state.router.location.pathname, state.router.location.search).modal,
   };
 };

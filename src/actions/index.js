@@ -174,10 +174,10 @@ function updateTimeline(state, dispatch, start, end) {
 }
 
 // Modals live in the URL, over whatever page is open.
-export function openModal(modal, modalDongleId, { replaceHistory = false } = {}) {
+export function openModal(modal, modalDongleId, { replaceHistory = false, clipFilename } = {}) {
   return (dispatch, getState) => {
     const navigate = replaceHistory ? replace : push;
-    dispatch(navigate(withModal(getState().router.location, modal, modalDongleId)));
+    dispatch(navigate(withModal(getState().router.location, modal, modalDongleId, clipFilename)));
   };
 }
 
@@ -348,9 +348,9 @@ export function primeNav(nav) {
   };
 }
 
-export function goToPrime(nav) {
+export function goToPrime(nav, requestedDongleId) {
   return (dispatch, getState) => {
-    const { dongleId } = getState();
+    const dongleId = requestedDongleId ?? getState().dongleId;
     if (dongleId) {
       dispatch(goTo(buildUrl({ page: nav ? 'prime' : 'device', dongleId })));
     }

@@ -6,7 +6,14 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(),
+  getClipState: vi.fn(), getClipUrl: vi.fn(), deleteClip: vi.fn() }));
+
+vi.mock('./api/clips', () => ({
+  deviceSupportsClips: vi.fn(async () => true),
+  clipDevice: { getClipState: mocks.getClipState, getClipUrl: mocks.getClipUrl, deleteClip: mocks.deleteClip,
+    hasClipBlob: vi.fn(async () => false) },
+}));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -111,16 +118,21 @@ async function mockFetch(input, init = {}) {
     return json([makeRoute(dongleId)]);
   }
   if (url.pathname.endsWith('/location')) return json({ error: 'no_segments_uploaded' });
+  if (url.pathname.endsWith('/athena_offline_queue')) return json([]);
   if (url.pathname.endsWith('/stats')) return json(null);
   if (/^\/v1\.1\/devices\/[a-f0-9]{16}\/$/.test(url.pathname)) {
     const dongleId = url.pathname.split('/')[3];
-    return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
+    return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false,
+      last_athena_ping: options.online ? Math.floor(Date.now() / 1000) : null });
   }
   if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
   if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const request = typeof init.body === 'string' ? JSON.parse(init.body) : {};
+    return json({ jsonrpc: '2.0', id: 0, result: request.method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -147,7 +159,7 @@ async function renderApp(pathname, options = {}) {
 }
 
 describe('whole-app behavior', () => {
-  beforeAll(() => {
+  beforeAll(async () => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
@@ -159,11 +171,17 @@ describe('whole-app behavior', () => {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
     });
-  });
+    // Transform the lazy app chunk before timing individual UI interactions.
+    // A cold Windows transform can exceed the normal five-second test budget.
+    await import('./components/explorer');
+  }, 30_000);
   afterEach(() => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
+    mocks.getClipState.mockReset();
+    mocks.getClipUrl.mockReset();
+    mocks.deleteClip.mockReset();
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -269,6 +287,15 @@ describe('whole-app behavior', () => {
     expect(screen.queryByText('Device settings')).toBeNull();
   });
 
+  test('Prime settings selects the dialog device through its URL', async () => {
+    const { history, store } = await renderApp(`/${FIRST}?modal=settings&device=${SECOND}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    expect(history.location.search).toBe('');
+    expect(store.getState().dongleId).toBe(SECOND);
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
+
   test('opening settings over a drive preserves loaded routes and selection through history', async () => {
     const pathname = `/${FIRST}/${LOG}/10/20`;
     const { history, store } = await renderApp(pathname);
@@ -283,6 +310,119 @@ describe('whole-app behavior', () => {
       expect(store.getState()[key]).toBe(value);
     }
     expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requestCount);
+  });
+
+  test('upload queue opens from a drive URL and closes without losing the drive', async () => {
+    const pathname = `/${FIRST}/${LOG}/10/20`;
+    const { history, store } = await renderApp(`${pathname}?modal=uploads&device=${FIRST}`);
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    expect(screen.queryByText('Device settings')).toBeNull();
+    const { routes, currentRoute, zoom } = store.getState();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(pathname);
+    for (const [key, value] of Object.entries({ routes, currentRoute, zoom })) expect(store.getState()[key]).toBe(value);
+  });
+
+  describe('clip URLs', () => {
+    const clip = { filename: 'test-drive.mp4', status: 'ready', requested_at: 1, camera: 'fcamera.hevc',
+      source_start_time: 0, source_end_time: 10, size: 100 };
+    const onlineOptions = () => ({ online: true, devices: devices.map(device => ({ ...device,
+      last_athena_ping: Math.floor(Date.now() / 1000), fetched_at: Math.floor(Date.now() / 1000) })) });
+
+    beforeEach(() => {
+      mocks.getClipState.mockResolvedValue({ clips: [clip] });
+      mocks.getClipUrl.mockResolvedValue('blob:clip-preview');
+      mocks.deleteClip.mockResolvedValue(undefined);
+      URL.revokeObjectURL = vi.fn();
+    });
+
+    test('Back/Forward restores the clip dialog without replacing loaded routes', async () => {
+      const pathname = `/${FIRST}/${LOG}`;
+      const query = `?modal=clip&device=${FIRST}&clip=${clip.filename}`;
+      const { history, store } = await renderApp(pathname, onlineOptions());
+      const routes = store.getState().routes;
+      act(() => history.push(`${pathname}${query}`));
+      await waitFor(() => expect(document.querySelector('video[src="blob:clip-preview"]')).not.toBeNull());
+      expect(mocks.getClipUrl).toHaveBeenCalledWith(FIRST, clip.filename, clip.requested_at, expect.any(Function));
+      act(() => history.goBack());
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Close video' })).toBeNull());
+      act(() => history.goForward());
+      await screen.findByRole('button', { name: 'Close video' });
+      expect(store.getState().routes).toBe(routes);
+    });
+
+    test('cold preview link loads the clip and closes in place', async () => {
+      const pathname = `/${FIRST}/${LOG}/10/20`;
+      const { history } = await renderApp(`${pathname}?modal=clip&device=${FIRST}&clip=${clip.filename}`, onlineOptions());
+      await waitFor(() => expect(document.querySelector('video[src="blob:clip-preview"]')).not.toBeNull());
+      expect(screen.queryByText('Device settings')).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+      await waitFor(() => expect(history.location.search).toBe(''));
+      expect(history.location.pathname).toBe(pathname);
+    });
+
+    test('closing during download rejects a late preview and revokes its blob URL', async () => {
+      let resolvePreview;
+      mocks.getClipUrl.mockReturnValue(new Promise(resolve => { resolvePreview = resolve; }));
+      const { history } = await renderApp(`/${FIRST}?modal=clip&device=${FIRST}&clip=${clip.filename}`, onlineOptions());
+      await waitFor(() => expect(mocks.getClipUrl).toHaveBeenCalled());
+      fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+      await waitFor(() => expect(history.location.search).toBe(''));
+      await act(async () => resolvePreview('blob:late-preview'));
+      expect(document.querySelector('video[src="blob:late-preview"]')).toBeNull();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:late-preview');
+    });
+
+    test('confirmed deletion targets only the clip identified by the URL', async () => {
+      const { history } = await renderApp(`/${FIRST}?modal=clip-delete&device=${FIRST}&clip=${clip.filename}`, onlineOptions());
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Delete', exact: true })).toBeEnabled());
+      fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }));
+      await waitFor(() => expect(history.location.search).toBe(''));
+      expect(mocks.deleteClip).toHaveBeenCalledExactlyOnceWith(FIRST, { filename: clip.filename });
+    });
+
+    test('direct deletion link requires an explicit confirmation', async () => {
+      const pathname = `/${FIRST}?modal=clip-delete&device=${FIRST}&clip=${clip.filename}`;
+      const { history } = await renderApp(pathname, onlineOptions());
+      expect(await screen.findByText('Delete clip?')).toBeVisible();
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Delete', exact: true })).toBeEnabled());
+      expect(mocks.deleteClip).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(history.location.search).toBe(''));
+      expect(mocks.deleteClip).not.toHaveBeenCalled();
+    });
+
+    test('clip preview buttons write a shareable URL', async () => {
+      const { history } = await renderApp(`/${FIRST}/${LOG}/10/20`, onlineOptions());
+      fireEvent.click(await screen.findByText('Clip', { exact: true }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Download clip' }));
+      await waitFor(() => expect(history.location.search).toBe(`?modal=clip&device=${FIRST}&clip=${clip.filename}`));
+      await waitFor(() => expect(document.querySelector('video[src="blob:clip-preview"]')).not.toBeNull());
+    });
+
+    test('the drive Files menu opens the shared URL-controlled upload queue', async () => {
+      const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20`, onlineOptions());
+      fireEvent.click(await screen.findByText('Files', { exact: true }));
+      await waitFor(() => expect(store.getState().files).toBeTruthy());
+      fireEvent.click(await screen.findByText('View upload queue'));
+      expect(history.location.search).toBe(`?modal=uploads&device=${FIRST}`);
+      expect(await screen.findByText('Upload queue')).toBeVisible();
+      expect(screen.queryByText('Device settings')).toBeNull();
+    });
+
+    test('missing clip stays recoverable and cannot be deleted', async () => {
+      await renderApp(`/${FIRST}?modal=clip-delete&device=${FIRST}&clip=missing.mp4`, onlineOptions());
+      expect(await screen.findByText('Clip is unavailable on this device.')).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Delete', exact: true })).toBeDisabled();
+      expect(mocks.deleteClip).not.toHaveBeenCalled();
+    });
+
+    test('a preview link on an offline device shows a closeable error', async () => {
+      await renderApp(`/${FIRST}?modal=clip&device=${FIRST}&clip=${clip.filename}`);
+      expect(await screen.findByText('Device offline. Reconnect your device to open this clip.')).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Close video' })).toBeEnabled();
+    });
   });
 
   test('unpair dialog opens from the URL and cancelling returns to settings', async () => {
