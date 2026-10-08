@@ -40,7 +40,7 @@ export function play(speed) {
         video.defaultPlaybackRate = speed;
         video.playbackRate = speed;
       }
-      // a refused play() surfaces as a pause event
+      // a refused play() just leaves the video paused
       video.play().catch(() => {});
     }
     dispatch({ type: Types.ACTION_PLAY, offset: currentOffset(), speed: speed || video?.playbackRate || 1 });

@@ -100,11 +100,12 @@ class RouteVideo extends Component {
     const src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
     // hls.js wherever Media Source is available (ManagedMediaSource on iOS 17.1+), native HLS elsewhere
     if (window.MediaSource || window.ManagedMediaSource) {
-      const { default: Hls } = await import('hls.js/light');
+      // if hls.js can't be downloaded, native HLS gets the source and reports its own error
+      const Hls = await import('hls.js/light').then((module) => module.default, () => null);
       if (load !== this.loads) {
         return;
       }
-      if (Hls.isSupported()) {
+      if (Hls?.isSupported()) {
         this.hls = new Hls({ maxBufferLength: 40, startPosition: toVideoTime(currentOffset()) });
         this.hls.on(Hls.Events.BUFFER_CODECS, (_event, data) => onAudioStatusChange?.(Boolean(data.audio)));
         this.hls.on(Hls.Events.ERROR, this.onHlsError);
@@ -120,11 +121,7 @@ class RouteVideo extends Component {
   }
 
   syncState = () => {
-    const { dispatch, isPaused, playSpeed, isBufferingVideo } = this.props;
-    const action = videoState(this.video.current);
-    if (action.isPaused !== isPaused || action.playSpeed !== playSpeed || action.isBufferingVideo !== isBufferingVideo) {
-      dispatch(action);
-    }
+    this.props.dispatch(videoState(this.video.current));
   };
 
   onLoadedMetadata = () => {
@@ -139,10 +136,18 @@ class RouteVideo extends Component {
     }
   };
 
+  // a paused playhead may rest at the range end; playback past it loops
   loopAtRangeEnd() {
     const { zoom } = this.props;
-    if (zoom && currentOffset() >= zoom.end) {
+    const video = this.video.current;
+    if (!zoom || video.paused || currentOffset() < zoom.end) {
+      return;
+    }
+    if (toVideoTime(zoom.end) > 0) {
       seekTo(zoom.start);
+    } else {
+      // the range ends before the first camera frame, so it has no video to loop
+      video.pause();
     }
   }
 
@@ -169,7 +174,8 @@ class RouteVideo extends Component {
   };
 
   onEnded = () => {
-    // the selected range runs past the end of the video
+    // the selected range runs past the end of the video, so it loops from its
+    // start; a range that starts past the end has no video and stays paused
     const video = this.video.current;
     const start = this.props.zoom?.start ?? 0;
     if (toVideoTime(start) < video.duration) {
@@ -179,19 +185,32 @@ class RouteVideo extends Component {
   };
 
   onSeeking = () => {
-    // seeking away from a segment that failed to load resumes loading there
-    if (this.state.error && this.hls) {
+    const video = this.video.current;
+    const start = this.props.zoom?.start ?? 0;
+    if (video.currentTime === 0 && toVideoTime(start) > 0) {
+      // play() on a video that has ended rewinds it to 0, before the selected range
+      seekTo(start);
+    } else if (this.state.error && this.hls) {
+      // seeking away from a segment that failed to load resumes loading there
       this.setState({ error: null });
-      this.hls.startLoad(this.video.current.currentTime);
+      this.hls.startLoad(video.currentTime);
     }
     this.syncState();
   };
 
-  // a video that failed is not playing, so the controls offer play again
+  // a failed video stays paused until it is retried, or a seek moves hls.js
+  // away from the segment that failed
   fail(error) {
     this.setState({ error });
     this.video.current.pause();
   }
+
+  onPlay = () => {
+    if (this.state.error) {
+      this.video.current.pause();
+    }
+    this.syncState();
+  };
 
   onError = () => {
     const { error } = this.video.current;
@@ -208,7 +227,15 @@ class RouteVideo extends Component {
     }
     if (data.type === 'mediaError' && !this.mediaErrorRecovered) {
       this.mediaErrorRecovered = true;
+      // recovery reattaches the element, which pauses it and drops its metadata
+      const video = this.video.current;
+      const offset = currentOffset();
+      const playing = !video.paused;
       this.hls.recoverMediaError();
+      seekTo(offset);
+      if (playing) {
+        video.play().catch(() => {});
+      }
       return;
     }
     if (data.response?.code === 404) {
@@ -234,7 +261,7 @@ class RouteVideo extends Component {
           onLoadedMetadata={this.onLoadedMetadata}
           onLoadedData={this.syncState}
           onCanPlay={this.syncState}
-          onPlay={this.syncState}
+          onPlay={this.onPlay}
           onPlaying={this.onPlaying}
           onPause={this.syncState}
           onWaiting={this.syncState}
@@ -261,8 +288,6 @@ const DriveVideo = (props) => (
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
-  isPaused: state.isPaused,
-  playSpeed: state.playSpeed,
   isBufferingVideo: state.isBufferingVideo,
 });
 
