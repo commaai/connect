@@ -184,7 +184,7 @@ class Navigation extends Component {
       });
     }
 
-    if (prevProps.device !== device) {
+    if (prevProps.device?.dongle_id !== device?.dongle_id) {
       this.updateDevice();
     }
 
@@ -220,7 +220,7 @@ class Navigation extends Component {
 
   async getDeviceLastLocation() {
     const { dongleId, device } = this.props;
-    if (device.shared) {
+    if (!device || device.shared) {
       return;
     }
     try {
@@ -473,7 +473,7 @@ class Navigation extends Component {
         className={classes.mapContainer}
         style={{ height: 200 }}
       >
-        <VisibilityHandler onVisible={this.updateDevice} onInit onDongleId minInterval={60} />
+        <VisibilityHandler onVisible={this.updateDevice} minInterval={60} />
         {mapError
           && (
             <div className={classes.mapError}>

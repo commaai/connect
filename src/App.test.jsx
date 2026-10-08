@@ -364,6 +364,21 @@ describe('whole-app behavior', () => {
     expect(screen.queryByText('Cancel prime subscription')).not.toBeInTheDocument();
   });
 
+  test('the dashboard asks for its device location once', async () => {
+    await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(mocks.requests.filter(({ url }) => url.endsWith('/location'))).toHaveLength(1);
+  });
+
+  test('opening a drive asks for its preserved routes once', async () => {
+    await renderApp(`/${FIRST}`, { selected: FIRST });
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(mocks.requests.filter(({ url }) => url.endsWith('/routes/preserved'))).toHaveLength(1);
+  });
+
   test('a finished unpair reloads the app even when Back closes it', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     act(() => history.push(`/${FIRST}?dialog=unpair`));

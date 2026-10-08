@@ -502,6 +502,10 @@ class Media extends Component {
   }
 
   async fetchRoutePreserved() {
+    if (this.fetchingPreserved) {
+      return;
+    }
+    this.fetchingPreserved = true;
     try {
       const resp = await api.routes.getPreservedRoutes(this.props.dongleId);
       if (resp && Array.isArray(resp) && this.props.currentRoute) {
@@ -514,6 +518,8 @@ class Media extends Component {
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'media_fetch_preserved' });
+    } finally {
+      this.fetchingPreserved = false;
     }
   }
 
