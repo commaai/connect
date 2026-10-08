@@ -134,7 +134,7 @@ class DeviceList extends Component {
             onClick={ (ev) => {
               ev.stopPropagation();
               ev.preventDefault();
-              this.props.dispatch(settingsNav(device.dongle_id, true));
+              this.props.dispatch(settingsNav(device.dongle_id));
             } }
           >
             <SettingsIcon className={classes.settingsButtonIcon} />

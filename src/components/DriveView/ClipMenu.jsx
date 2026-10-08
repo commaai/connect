@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import {
   Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, LinearProgress, Menu, Typography, withStyles,
 } from '@material-ui/core';
 
 import Colors from '../../colors';
+import { closeDialog, openDialog } from '../../actions';
+import { parseUrl } from '../../url';
 import { clipDevice } from '../../api/clips';
 import { CloseBold, Download as DownloadIcon, PlayArrow, Trash } from '../../icons';
 import { shareOrDownload } from '../../utils/file';
@@ -258,6 +261,20 @@ class ClipMenu extends Component {
       this.stopPolling();
       if (this.state.viewingClip) this.closeViewer();
     }
+    if (this.props.clip !== prevProps.clip && !this.state.loading) this.showUrlClip();
+  }
+
+  // The viewer shows the clip the URL names, once the device lists it.
+  showUrlClip() {
+    const { clip, dispatch, open } = this.props;
+    const { clips, previewingClip, viewingClip } = this.state;
+    if (!clip) {
+      if (viewingClip || previewingClip) this.closeViewer();
+    } else if (open && viewingClip?.filename !== clip && previewingClip !== clip) {
+      const listed = clips.find(c => c.filename === clip && c.status === 'ready');
+      if (listed) this.openViewer(listed);
+      else dispatch(closeDialog('clips'));
+    }
   }
 
   componentWillUnmount() {
@@ -293,7 +310,12 @@ class ClipMenu extends Component {
       const cameraRanges = routeName ? state.cameras || {} : null;
       this.setState({ clips, downloadedClips, cameraRanges, loading: false }, () => {
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
-        if (this.props.open && autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
+        if (this.props.open && autoClip) {
+          this.setState({ autoDownloadFilename: null });
+          this.props.dispatch(openDialog('clips', autoClip.filename));
+        } else {
+          this.showUrlClip();
+        }
       });
       this.stopPolling();
       if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
@@ -394,6 +416,7 @@ class ClipMenu extends Component {
     } catch (err) {
       if (this.mounted && request === this.previewRequest) {
         this.setState({ previewingClip: null, previewProgress: 0, error: err.message || 'Could not preview clip' });
+        this.props.dispatch(closeDialog('clips'));
       }
     }
   }
@@ -413,7 +436,7 @@ class ClipMenu extends Component {
       ? formatDuration((viewingClip.source_end_time - viewingClip.source_start_time) / (viewingClip.speedup || 1))
       : '';
     return (
-      <Dialog open={Boolean(viewingClip)} onClose={() => this.closeViewer()} classes={{ paper: classes.viewerPaper }} maxWidth="md">
+      <Dialog open={Boolean(viewingClip)} onClose={() => this.props.dispatch(closeDialog('clips'))} classes={{ paper: classes.viewerPaper }} maxWidth="md">
         <DialogTitle disableTypography className={classes.viewerTitle}>
           <div className={classes.viewerDetails}>
             <Typography className={`${classes.header} ${classes.viewerHeader}`}>{title}</Typography>
@@ -425,7 +448,7 @@ class ClipMenu extends Component {
             <IconButton aria-label="Download clip" title="Download clip" onClick={() => this.downloadViewedClip()}>
               <DownloadIcon className={classes.actionIcon} />
             </IconButton>
-            <IconButton aria-label="Close video" title="Close" onClick={() => this.closeViewer()}>
+            <IconButton aria-label="Close video" title="Close" onClick={() => this.props.dispatch(closeDialog('clips'))}>
               <CloseBold className={classes.actionIcon} />
             </IconButton>
           </div>
@@ -494,7 +517,7 @@ class ClipMenu extends Component {
                 className={classes.clipAction}
                 disabled={!this.props.deviceOnline || previewing}
                 title={this.props.deviceOnline ? (previewing ? 'Downloading' : (downloaded ? 'Play clip' : 'Download clip')) : 'Device offline'}
-                onClick={() => this.openViewer(clip)}
+                onClick={() => this.props.dispatch(openDialog('clips', clip.filename))}
               >
                 {downloaded
                   ? <PlayArrow className={classes.playIcon} />
@@ -642,4 +665,8 @@ class ClipMenu extends Component {
   }
 }
 
-export default withStyles(styles)(ClipMenu);
+const stateToProps = (state) => ({
+  clip: parseUrl(state.router.location.pathname, state.router.location.search).clip,
+});
+
+export default connect(stateToProps)(withStyles(styles)(ClipMenu));

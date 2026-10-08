@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router';
+import { go, push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -8,11 +8,14 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { dialogUrl, formatSeconds, parseUrl } from '../url';
 
-let routesRequest = null;
-let routesRequestPromise = null;
+// each store's newest routes request; a request that is no longer the newest changes nothing
+const routesRequests = new WeakMap();
 const LIMIT_INCREMENT = 5
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
+// what a drive list request depends on
+const routesKey = (state) => [state.dongleId, state.filter.start, state.filter.end, state.limit].join();
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -24,46 +27,45 @@ export function checkRoutesData() {
       // already has metadata, don't bother
       return;
     }
-    if (routesRequest && routesRequest.dongleId === state.dongleId) {
+    const pending = routesRequests.get(getState);
+    if (pending && pending.dongleId === state.dongleId) {
       // there is already an pending request
-      return routesRequestPromise;
+      return pending.promise;
     }
     console.debug('We need to update the segment metadata...');
     const { dongleId, limit: fetchLimit, selectedRouteId } = state;
     const fetchRange = state.filter;
+    const key = routesKey(state);
     if (!selectedRouteId && !api.auth.isAuthenticated()) {
       // signed out, only a public drive can be loaded
       return;
     }
 
     // if requested segment range not in loaded routes, fetch it explicitly
-    if (selectedRouteId) {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${selectedRouteId}`),
-        dongleId,
-      };
-    } else {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit),
-        dongleId,
-      };
-    }
+    const req = selectedRouteId
+      ? api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${selectedRouteId}`)
+      : api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit);
+    const request = { dongleId };
+    routesRequests.set(getState, request);
+    const finish = () => {
+      if (routesRequests.get(getState) === request) {
+        routesRequests.delete(getState);
+        return true;
+      }
+      return false;
+    };
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    request.promise = req.then((routesData) => {
+      if (!finish()) {
+        return;
+      }
       state = getState();
-      const currentRange = state.filter;
-      if (currentRange.start !== fetchRange.start
-        || currentRange.end !== fetchRange.end
-        || state.limit !== fetchLimit
-        || state.dongleId !== dongleId
-        || (selectedRouteId && state.selectedRouteId !== selectedRouteId)) {
-        routesRequest = null;
+      if (routesKey(state) !== key || (selectedRouteId && state.selectedRouteId !== selectedRouteId)) {
         dispatch(checkRoutesData());
         return;
       }
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
-        routesRequest = null;
         hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
         return;
       }
@@ -108,7 +110,6 @@ export function checkRoutesData() {
         routes,
       });
 
-      routesRequest = null;
       if (getState().selectedRouteId !== selectedRouteId) {
         dispatch(checkRoutesData());
       }
@@ -117,10 +118,10 @@ export function checkRoutesData() {
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
+      finish();
     });
 
-    return routesRequestPromise
+    return request.promise;
   };
 }
 
@@ -163,8 +164,8 @@ export function pushTimelineRange(log_id, start, end) {
   return (dispatch, getState) => {
     const { dongleId, routes } = getState();
     const route = routes?.find((candidate) => candidate.log_id === log_id);
-    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-    const range = wholeDrive ? '' : `/${Math.floor(start / 1000)}/${Math.ceil(end / 1000)}`;
+    const wholeDrive = start == null || end == null || (Math.round(start) === 0 && Math.round(end) === route?.duration);
+    const range = wholeDrive ? '' : `/${formatSeconds(start)}/${formatSeconds(end)}`;
     dispatch(navigate(`/${dongleId}/${log_id}${range}`));
   };
 }
@@ -274,12 +275,37 @@ export function primeNav(nav) {
   };
 }
 
-// Settings open over the current page of the selected device, or over another device's dashboard.
-export function settingsNav(dongleId, nav) {
+// A dialog opened here is a history entry, and location.state.dialog counts the
+// entries opened here above the page. Closing goes Back over them, so Back after
+// closing does not reopen the dialog; one opened from a link closes in place.
+export function openDialog(dialog, clip) {
   return (dispatch, getState) => {
-    const { dongleId: selectedDongleId, router } = getState();
-    const path = dongleId === selectedDongleId ? router.location.pathname : `/${dongleId}`;
-    dispatch(navigate(nav ? `${path}?settings` : path));
+    const { location } = getState().router;
+    const shown = parseUrl(location.pathname, location.search);
+    const path = dialogUrl(location, dialog, clip);
+    if (path === dialogUrl(location, shown.dialog, shown.clip)) {
+      return;
+    }
+    // another clip takes the place of the one playing
+    dispatch(shown.clip && clip ? replace(path, location.state) : push(path, { dialog: (location.state?.dialog ?? 0) + 1 }));
+  };
+}
+
+// Closes the shown dialog, back to `parent` (the clips menu under a clip) or the page.
+export function closeDialog(parent = null) {
+  return (dispatch, getState) => {
+    const { location } = getState().router;
+    const shown = parseUrl(location.pathname, location.search);
+    const levels = Boolean(shown.dialog) + Boolean(shown.clip) - Boolean(parent);
+    const opened = location.state?.dialog ?? 0;
+    dispatch(levels > 0 && opened >= levels ? go(-levels) : replace(dialogUrl(location, parent)));
+  };
+}
+
+// Settings open over the shown page of the selected device, or over another device's dashboard.
+export function settingsNav(dongleId) {
+  return (dispatch, getState) => {
+    dispatch(dongleId === getState().dongleId ? openDialog('settings') : push(`/${dongleId}?dialog=settings`, { dialog: 1 }));
   };
 }
 

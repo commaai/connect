@@ -59,7 +59,11 @@ export default function init() {
       if (!state.dongleId) {
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
         const { dongle_id } = devices.find((d) => d.dongle_id === selectedDongleId) || devices[0];
-        dispatch(state.router.location.pathname === '/' ? replace(`/${dongle_id}`) : setDevice(dongle_id));
+        const { pathname, search, hash } = state.router.location;
+        const query = new URLSearchParams(search);
+        query.delete('pair'); // App stored the pairing token, and reloading must not pair again
+        const rest = query.toString();
+        dispatch(pathname === '/' ? replace(`/${dongle_id}${rest && `?${rest}`}${hash}`) : setDevice(dongle_id));
       }
       const dongleId = getState().dongleId;
       const device = devices.find((dev) => dev.dongle_id === dongleId);

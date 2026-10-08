@@ -14,8 +14,10 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import { AddDeviceDialog } from './Dashboard/AddDevice';
+import UploadQueue from './Files/UploadQueue';
 
-import { analyticsEvent, selectDevice, settingsNav, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, closeDialog, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -205,9 +207,11 @@ class ExplorerApp extends Component {
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const { page, settings } = parseUrl(pathname, search);
+    const { page, dialog } = parseUrl(pathname, search);
     const referralsOpen = page === 'referrals';
-    const settingsOpen = settings && devices && (device?.is_owner || profile?.superuser);
+    const settingsOpen = dialog === 'settings' && devices && (device?.is_owner || profile?.superuser);
+    const pairing = Boolean(pairLoading || pairError || pairDongleId);
+    const closeShownDialog = () => dispatch(closeDialog());
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -254,10 +258,13 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
-            { settingsOpen && (
-              <DeviceSettingsModal isOpen dongleId={dongleId} onClose={() => dispatch(settingsNav(dongleId, false))} />
+            { settingsOpen && <DeviceSettingsModal isOpen dongleId={dongleId} onClose={closeShownDialog} /> }
+            { dialog === 'uploads' && devices && device && (
+              <UploadQueue open update device={device} onClose={closeShownDialog} />
             ) }
-            <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+            { /* a ?pair= link pairs on its own, so the scanner waits until it is done */ }
+            { dialog === 'add-device' && profile && devices && !pairing && <AddDeviceDialog /> }
+            <Modal open={ pairing } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
                 <hr />

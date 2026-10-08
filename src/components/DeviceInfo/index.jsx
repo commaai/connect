@@ -7,7 +7,8 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
-import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { analyticsEvent, closeDialog, openDialog, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { parseUrl } from '../../url';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
@@ -153,7 +154,7 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
-      clipMenu: null,
+      clipButton: null,
       clipsSupported: false,
     };
 
@@ -167,6 +168,7 @@ class DeviceInfo extends Component {
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
     this.prewarmBodyTeleop = this.prewarmBodyTeleop.bind(this);
     this.openBodyTeleop = this.openBodyTeleop.bind(this);
+    this.setClipButton = (clipButton) => this.setState({ clipButton });
   }
 
   openBodyTeleop() {
@@ -190,7 +192,6 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
-        clipMenu: null,
         clipsSupported: false,
       });
       this.checkClipsSupport();
@@ -330,10 +331,10 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
+          open={Boolean(this.props.dialog === 'clips' && this.state.clipButton)}
           dongleId={this.props.dongleId}
-          anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          anchorEl={this.state.clipButton}
+          onClose={() => this.props.dispatch(closeDialog())}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -413,7 +414,8 @@ class DeviceInfo extends Component {
             <button
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              ref={this.setClipButton}
+              onClick={() => this.props.dispatch(openDialog('clips'))}
               disabled={offline}
             >
               <ContentCut />
@@ -517,6 +519,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,
+  dialog: parseUrl(state.router.location.pathname, state.router.location.search).dialog,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));

@@ -15,8 +15,8 @@ function openLegacyZoom(pathname, dongleId, { start, end }, isCurrent) {
         return;
       }
       if (routesData?.length > 0) {
-        const { search } = getState().router.location;
-        dispatch(replace(`/${dongleId}/${routesData[0].fullname.split('|')[1]}${search}`));
+        const { search, hash } = getState().router.location;
+        dispatch(replace(`/${dongleId}/${routesData[0].fullname.split('|')[1]}${search}${hash}`));
       } else if (!api.auth.isAuthenticated()) {
         hardNavigate(`/?r=${encodeURI(pathname)}`); // redirect to login
       }
