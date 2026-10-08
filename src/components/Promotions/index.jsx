@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { connect } from 'react-redux';
 import { push } from 'connected-react-router';
 
+import { navigate } from '../../actions';
 import { urlFor } from '../../url';
 import Notification from '../Notification';
 
@@ -41,7 +42,7 @@ const Promotions = ({ device, dispatch }) => {
             : 'Put your car on the internet with comma prime'}
           buttonText="sign up"
           buttonClassName="primeSignUp"
-          onButtonClick={() => dispatch(push(urlFor({ page: 'prime', dongleId: device.dongle_id })))}
+          onButtonClick={() => dispatch(navigate(urlFor({ page: 'prime', dongleId: device.dongle_id })))}
           dismissLabel="Dismiss prime promotion"
           onDismiss={() => setPrimeDismissed(true)}
         />

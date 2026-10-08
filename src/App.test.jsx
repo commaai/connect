@@ -6,6 +6,7 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 import { play } from './timeline/playback';
+import { selectTimeFilter } from './actions';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -336,6 +337,16 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
     act(() => history.goForward());
     expect(await screen.findByRole('heading', { name: 'Alpha' })).toBeVisible();
+  });
+
+  test('choosing the current device keeps the date filter and history', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
+    act(() => store.dispatch(selectTimeFilter(START, START + 60_000)));
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click((await screen.findAllByRole('link', { name: /Zulu/ }))[0]);
+    expect(store.getState().filter).toEqual({ start: START, end: START + 60_000 });
+    expect(history.entries.map((entry) => entry.pathname)).toEqual([`/${FIRST}`]);
   });
 
   test('leaving referrals from a drive shows the dashboard its URL names', async () => {

@@ -3,7 +3,6 @@
 // rapid seeking, etc
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
 import { withStyles } from '@material-ui/core/styles';
 import dayjs from 'dayjs';
 
@@ -13,6 +12,7 @@ import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
+import { navigate } from '../../actions';
 import { urlFor } from '../../url';
 
 const styles = () => ({
@@ -273,7 +273,7 @@ class Timeline extends Component {
         this.props.dispatch(seek(startOffset));
       }
       const range = { start: startOffset, end: endOffset };
-      this.props.dispatch(push(urlFor({ page: 'drive', dongleId: route.dongle_id, logId: route.log_id, range })));
+      this.props.dispatch(navigate(urlFor({ page: 'drive', dongleId: route.dongle_id, logId: route.log_id, range })));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

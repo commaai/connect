@@ -44,7 +44,7 @@ export function applyLocation(location) {
     }
 
     if (url.dongleId && url.dongleId !== getState().dongleId) {
-      dispatch(selectDevice(url.dongleId, false, false));
+      dispatch(selectDevice(url.dongleId, false));
     }
 
     if (url.page === 'legacy') {

@@ -7,7 +7,8 @@ import { Typography, IconButton, AppBar } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import { selectDevice } from '../../actions';
+import { navigate } from '../../actions';
+import { urlFor } from '../../url';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
@@ -135,14 +136,14 @@ const AppHeader = ({
                 <a
                   href={`/${dongleId}`}
                   className={classes.logoImgLink}
-                  onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
+                  onClick={filterRegularClick(() => dispatch(navigate(urlFor({ page: 'dashboard', dongleId }))))}
                 >
                   <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
                 </a>
               )}
             <a
               href={`/${dongleId}`}
-              onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
+              onClick={filterRegularClick(() => dispatch(navigate(urlFor({ page: 'dashboard', dongleId }))))}
             >
               <Typography className={classes.logoText}>connect</Typography>
             </a>

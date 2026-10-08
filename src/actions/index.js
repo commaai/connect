@@ -142,20 +142,14 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
+// Pushes a URL unless it is already the current one, so history gets no duplicate entries.
+export function navigate(url) {
+  return (dispatch, getState) => {
+    const { pathname, search } = getState().router.location;
+    if (url !== pathname + search) {
+      dispatch(push(url));
     }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
+  };
 }
 
 // Shows the drive and range named by the URL. Only a different drive restarts playback.
@@ -235,7 +229,7 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
+export function selectDevice(dongleId, fetchRoutes = true) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
@@ -264,13 +258,6 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
 
     if (fetchRoutes) {
       dispatch(checkLastRoutesData());
-    }
-
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
     }
   };
 }

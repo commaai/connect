@@ -6,7 +6,8 @@ import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
-import { selectDevice } from '../../actions';
+import { navigate } from '../../actions';
+import { urlFor } from '../../url';
 
 const listener = (ev) => ev.stopPropagation();
 
@@ -28,7 +29,7 @@ const AppDrawer = ({
   }, [handleDrawerStateChanged]);
 
   const handleDeviceSelected = useCallback((dongleId) => {
-    dispatch(selectDevice(dongleId));
+    dispatch(navigate(urlFor({ page: 'dashboard', dongleId })));
     toggleDrawerOff();
   }, [dispatch, toggleDrawerOff]);
 

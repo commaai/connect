@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData } from '../actions';
+import { analyticsEvent, updateDevices, checkLastRoutesData, navigate } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -86,7 +86,7 @@ class ExplorerApp extends Component {
   }
 
   closeBodyTeleop() {
-    this.props.dispatch(push(urlFor({ page: 'dashboard', dongleId: this.props.dongleId })));
+    this.props.dispatch(navigate(urlFor({ page: 'dashboard', dongleId: this.props.dongleId })));
   }
 
   async componentDidMount() {
@@ -180,7 +180,7 @@ class ExplorerApp extends Component {
     const { pairDongleId } = this.state;
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      this.props.dispatch(navigate(urlFor({ page: 'dashboard', dongleId: pairDongleId })));
     }
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }

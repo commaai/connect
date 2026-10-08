@@ -63,7 +63,7 @@ export default function init() {
         if (parseLocation(state.router.location).page === 'home') {
           dispatch(replace(urlFor({ page: 'dashboard', dongleId })));
         } else {
-          dispatch(selectDevice(dongleId, false));
+          dispatch(selectDevice(dongleId));
         }
       }
       const dongleId = getState().dongleId;

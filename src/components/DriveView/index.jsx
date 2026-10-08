@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
 import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
+import { navigate } from '../../actions';
 import { urlFor } from '../../url';
 
 import Media from './Media';
@@ -19,11 +19,11 @@ class DriveView extends Component {
   }
 
   onBack(currentRoute) {
-    this.props.dispatch(push(urlFor({ page: 'drive', dongleId: this.props.dongleId, logId: currentRoute.log_id })));
+    this.props.dispatch(navigate(urlFor({ page: 'drive', dongleId: this.props.dongleId, logId: currentRoute.log_id })));
   }
 
   close() {
-    this.props.dispatch(push(urlFor({ page: 'dashboard', dongleId: this.props.dongleId })));
+    this.props.dispatch(navigate(urlFor({ page: 'dashboard', dongleId: this.props.dongleId })));
   }
 
   render() {
