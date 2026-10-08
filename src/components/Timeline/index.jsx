@@ -8,8 +8,9 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { popTimelineRange, pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
+import { CloseBold } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
@@ -125,7 +126,8 @@ const styles = () => ({
     backgroundColor: Colors.grey800,
     color: Colors.white,
     position: 'absolute',
-    top: 83,
+    // above the timeline, where the finger dragging on it doesn't cover it
+    top: -28,
     left: 0,
     width: 80,
   },
@@ -157,6 +159,7 @@ class Timeline extends Component {
     this.segmentNum = this.segmentNum.bind(this);
     this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
+    this.exitRange = this.exitRange.bind(this);
 
     this.rulerRemaining = React.createRef();
     this.rulerRef = React.createRef();
@@ -167,6 +170,7 @@ class Timeline extends Component {
     const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
+      exited: null,
       hoverX: null,
       zoom: zoomOverride || zoom,
       thumbnail: {
@@ -197,7 +201,12 @@ class Timeline extends Component {
   componentDidUpdate(prevProps) {
     const { zoomOverride, zoom } = this.props;
     if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
-      this.setState({ zoom: zoomOverride || zoom });
+      const previous = prevProps.zoomOverride || prevProps.zoom;
+      const next = zoomOverride || zoom;
+      // after zooming out, the range that was left stays marked for a moment
+      const exited = previous && next && next.start <= previous.start && next.end >= previous.end
+        && next.end - next.start > previous.end - previous.start;
+      this.setState({ zoom: next, exited: exited ? previous : null });
     }
   }
 
@@ -209,9 +218,15 @@ class Timeline extends Component {
     }
   }
 
+  // a finger moves a few pixels while tapping, so a touch has to travel
+  // further than a mouse before it selects a range instead of seeking
+  isDrag(dragging) {
+    return Math.abs(dragging[1] - dragging[0]) > (this.dragPointer === 'touch' ? 10 : 3);
+  }
+
   handleClick(ev) {
     const { dragging } = this.state;
-    if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
+    if (!dragging || !this.isDrag(dragging)) {
       const percent = percentFromPointerEvent(ev);
       this.props.dispatch(seek(this.percentToOffset(percent)));
     }
@@ -223,6 +238,7 @@ class Timeline extends Component {
     }
 
     ev.preventDefault();
+    this.dragPointer = ev.pointerType;
     document.addEventListener('pointerup', this.handlePointerUp);
     document.addEventListener('pointermove', this.handlePointerMove);
     this.setState({ dragging: [ev.pageX, ev.pageX] });
@@ -266,7 +282,7 @@ class Timeline extends Component {
     const startOffset = Math.round(this.percentToOffset(startPercent));
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
-    if (Math.abs(dragging[1] - dragging[0]) > 3) {
+    if (this.isDrag(dragging)) {
       // the video starts the new range from its beginning
       this.props.dispatch(pushTimelineRange(route.log_id, startOffset, endOffset, true));
     } else if (ev.currentTarget !== document) {
@@ -276,6 +292,12 @@ class Timeline extends Component {
 
   handlePointerLeave() {
     this.setState({ hoverX: null });
+  }
+
+  // returns to the range this one was selected from, or the whole drive
+  exitRange() {
+    const { dispatch, route, zoom } = this.props;
+    dispatch(zoom.previous ? popTimelineRange(route.log_id) : pushTimelineRange(route.log_id, null, null));
   }
 
   onRulerRef(el) {
@@ -370,7 +392,7 @@ class Timeline extends Component {
 
   render() {
     const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
-    const { thumbnail, hoverX, dragging } = this.state;
+    const { thumbnail, hoverX, dragging, zoom, exited } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
 
@@ -402,9 +424,23 @@ class Timeline extends Component {
     }
 
     const baseWidthStyle = { width: '100%' };
+    const formatOffset = (offset) => dayjs(route.start_time_utc_millis + offset).format('HH:mm:ss');
 
     return (
       <div className={className}>
+        { hasRuler && (
+          <div className="flex items-center h-9 mb-2">
+            { zoom.start === 0 && zoom.end === route.duration ? (
+              <span className="text-xs text-white/50">Drag across the timeline to select a range</span>
+            ) : (
+              <button type="button" onClick={this.exitRange} aria-label="Exit range" className="flex items-center gap-2 h-9 rounded-full bg-white/10 pl-3.5 pr-1.5 text-sm text-white cursor-pointer">
+                <span className="text-white/60">Range</span>
+                <span className="font-semibold">{`${formatOffset(zoom.start)} – ${formatOffset(zoom.end)}`}</span>
+                <span className="grid place-items-center w-6 h-6 rounded-full bg-white/15"><CloseBold className="w-3 h-3" /></span>
+              </button>
+            )}
+          </div>
+        )}
         <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
           <div className={ `${classes.segments} ${hasRulerCls}` }>
             { route && this.renderRoute() }
@@ -436,6 +472,17 @@ class Timeline extends Component {
               >
                 <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
                 { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
+                { exited && (
+                  <div
+                    key={`${exited.start}-${exited.end}`}
+                    className={`${classes.dragHighlight} animate-fadeout`}
+                    style={{
+                      left: `${100 * this.offsetToPercent(exited.start)}%`,
+                      width: `${(100 * (exited.end - exited.start)) / (zoom.end - zoom.start)}%`,
+                    }}
+                    onAnimationEnd={() => this.setState({ exited: null })}
+                  />
+                ) }
               </div>
               { hoverString && (
                 <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>

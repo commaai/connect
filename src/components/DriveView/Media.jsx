@@ -11,6 +11,7 @@ import { deviceSupportsClips } from '../../api/clips';
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import TimeDisplay from '../TimeDisplay';
+import Timeline from '../Timeline';
 import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
@@ -562,7 +563,9 @@ class Media extends Component {
             </div>
           }
         </div>
-        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
+        {/* below the video, where a thumb holding the phone can reach it */}
+        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} flex flex-col gap-4`}>
+          <Timeline route={this.props.currentRoute} thumbnailsVisible hasRuler />
           <TimeDisplay
             isThin
             isMuted={isMuted}

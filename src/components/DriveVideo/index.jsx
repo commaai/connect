@@ -58,11 +58,15 @@ class RouteVideo extends Component {
 
   componentDidUpdate(prevProps) {
     const { zoom } = this.props;
-    if (zoom && (zoom.start !== prevProps.zoom?.start || zoom.end !== prevProps.zoom?.end)) {
-      // a new range plays from its start
-      seekTo(zoom.start);
-      if (!this.state.error) {
-        this.video.current.play().catch(() => {});
+    const previous = prevProps.zoom;
+    if (zoom && (zoom.start !== previous?.start || zoom.end !== previous?.end)) {
+      // leaving a range for a wider one keeps the playhead; a new range plays from its start
+      const widened = previous && zoom.start <= previous.start && zoom.end >= previous.end;
+      if (!widened) {
+        seekTo(zoom.start);
+        if (!this.state.error) {
+          this.video.current.play().catch(() => {});
+        }
       }
     }
   }

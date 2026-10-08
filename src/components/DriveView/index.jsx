@@ -4,12 +4,11 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
-import { ArrowBackBold, CloseBold } from '../../icons';
+import { pushTimelineRange } from '../../actions';
+import { CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
 import Media from './Media';
-import Timeline from '../Timeline';
 
 class DriveView extends Component {
   constructor(props) {
@@ -17,22 +16,12 @@ class DriveView extends Component {
     this.close = this.close.bind(this);
   }
 
-  onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
-  }
-
   close() {
     this.props.dispatch(pushTimelineRange(null, null, null));
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dongleId, currentRoute, routes } = this.props;
 
     if (!currentRoute) {
       return (
@@ -42,48 +31,36 @@ class DriveView extends Component {
       );
     }
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
-
     // FIXME: end time not always same day as start time
-    const start = currentRoute.start_time_utc_millis + zoom.start;
+    const start = currentRoute.start_time_utc_millis;
     const startDateObj = dayjs(start);
     const startDay = startDateObj.format('dddd');
     const startTime = startDateObj.format(`MMM D${dayjs().year() === startDateObj.year() ? '' : ', YYYY'} @ HH:mm`);
-    const endTime = dayjs(start + (zoom.end - zoom.start)).format('HH:mm');
+    const endTime = dayjs(start + currentRoute.duration).format('HH:mm');
 
     return (
       <div className="DriveView">
         <div className="flex flex-col gap-4 rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
-          <div>
-            <div className="items-center justify-between flex p-3 gap-2">
-              <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
-                aria-label="Go Back"
-                disabled={ backButtonDisabled }
-              >
-                <ArrowBackBold />
-              </IconButton>
-              <div className="flex flex-col items-center gap-1 text-white text-lg font-medium">
-                {currentRoute.demo_title ? (
-                  <div className="w-fit rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
-                    {currentRoute.demo_title}
-                  </div>
-                ) : null}
-                <div>
-                  <span className="hidden sm:inline">{`${startDay} `}</span>
-                  {`${startTime} - ${endTime}`}
+          <div className="items-center justify-between flex p-3 gap-2">
+            <div className="w-12" />
+            <div className="flex flex-col items-center gap-1 text-white text-lg font-medium">
+              {currentRoute.demo_title ? (
+                <div className="w-fit rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                  {currentRoute.demo_title}
                 </div>
+              ) : null}
+              <div>
+                <span className="hidden sm:inline">{`${startDay} `}</span>
+                {`${startTime} - ${endTime}`}
               </div>
-              <IconButton
-                onClick={ filterRegularClick(this.close) }
-                aria-label="Close"
-                href={ `/${dongleId}` }
-              >
-                <CloseBold />
-              </IconButton>
             </div>
-            <Timeline route={currentRoute} thumbnailsVisible hasRuler />
+            <IconButton
+              onClick={ filterRegularClick(this.close) }
+              aria-label="Close"
+              href={ `/${dongleId}` }
+            >
+              <CloseBold />
+            </IconButton>
           </div>
           <div className='px-3 pb-3 md:px-8 md:pb-8'>
             {(routes && routes.length === 0)
@@ -99,7 +76,6 @@ class DriveView extends Component {
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
   routes: state.routes,
-  zoom: state.zoom,
   currentRoute: state.currentRoute,
 });
 

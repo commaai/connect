@@ -288,7 +288,12 @@ describe('whole-app behavior', () => {
     fireEvent.pointerDown(timeline, { button: 0, clientX: 200, pageX: 200 });
     fireEvent.pointerMove(document, { clientX: 700, pageX: 700 });
     fireEvent.pointerUp(document, { button: 0, clientX: 700, pageX: 700 });
-    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
+    const ranged = new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`);
+    await waitFor(() => expect(history.location.pathname).toMatch(ranged));
+    fireEvent.click(screen.getByRole('button', { name: 'Exit range' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toMatch(ranged));
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
