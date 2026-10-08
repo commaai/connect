@@ -121,7 +121,7 @@ class DriveVideo extends Component {
 
   componentWillUnmount() {
     if (this.videoSyncIntv) {
-      clearTimeout(this.videoSyncIntv);
+      clearInterval(this.videoSyncIntv);
       this.videoSyncIntv = null;
     }
   }
@@ -154,6 +154,11 @@ class DriveVideo extends Component {
 
     if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
       // buffer but no error
+      return;
+    }
+
+    if (!e.fatal) {
+      // hls.js retries and recovers from non-fatal errors itself, so only show an error once it gives up
       return;
     }
 
