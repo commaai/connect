@@ -34,3 +34,7 @@ export function toRouteOffset(segments, videoStartOffset, time) {
   const segment = segments.filter((s) => s.start <= time + 1e-6).pop() || segments[0];
   return Math.round(routeStart(segment, videoStartOffset) + ((time - segment.start) * 1000));
 }
+
+export function missingSegments(segments, segmentNumbers) {
+  return segmentNumbers.filter((number) => !segments.some((s) => s.number === number));
+}

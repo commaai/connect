@@ -25,7 +25,7 @@ vi.mock('hls.js', () => ({
   },
 }));
 
-const makeRoute = (logId) => ({ fullname: `dongle|${logId}`, log_id: logId, duration: 60000, segment_numbers: [0] });
+const makeRoute = (logId) => ({ fullname: `dongle|${logId}`, log_id: logId, duration: 120000, segment_numbers: [0, 1] });
 
 function renderVideo() {
   const store = createAppStore(createMemoryHistory(), {
@@ -46,6 +46,7 @@ describe('drive video with hls.js', () => {
 
   it.each([
     ['network', { type: 'networkError' }, 'Unable to load video. Check your connection.'],
+    ['missing segment', { type: 'networkError', response: { code: 404 } }, 'This drive\'s video hasn\'t been uploaded yet or was deleted.'],
     ['decoding', { type: 'mediaError' }, 'Unable to play this video.'],
   ])('stops the video on a fatal %s error, says why and reloads on Retry', async (_name, error, message) => {
     renderVideo();
@@ -57,6 +58,11 @@ describe('drive video with hls.js', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(hls.instances).toHaveLength(2));
     expect(screen.queryByText(message)).not.toBeInTheDocument();
+  });
+
+  it('notes a segment that the playlist leaves out', async () => {
+    renderVideo();
+    expect(await screen.findByText('No video for segment 1')).toBeVisible();
   });
 
   it('drops a load that a new drive replaced', async () => {

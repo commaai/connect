@@ -6,7 +6,8 @@
 //   - route files: synthetic file listings cloned from one cached public files
 //     response
 //   - video URLs: demo routes stream the underlying public route, except the
-//     clone mutated to be missing qcamera (it has no share credentials)
+//     clones mutated to be missing qcamera: the whole route has no share
+//     credentials, and a single segment is left out of the playlist
 // Everything else (billing, athena, ...) passes through.
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
 
@@ -94,6 +95,8 @@ const MISSING_DATA_CASES = [
       removeFileSegments(files, 'qcameras', affectedSegment);
       return files;
     },
+    // Leaves the segment's entry, `#EXTINF:<duration>,<segment>` and its URL, out of the playlist.
+    playlist: (playlist, affectedSegment) => playlist.replace(new RegExp(`^#EXTINF:[\\d.]+,${affectedSegment}\n.*\n`, 'm'), ''),
   },
   {
     title: 'Missing thumbnails',
@@ -260,12 +263,19 @@ export function createDemoBackend(realBackend) {
     },
     video: {
       ...realBackend.video,
-      getQcameraStreamUrl(routeStr, exp, sig) {
+      async getQcameraStreamUrl(routeStr, exp, sig) {
         // demo routes keep the public route's share credentials, so stream the
         // underlying public route; the clone missing qcamera has no credentials
         // and passes through to a URL that cannot resolve
         if (exp && sig && typeof routeStr === 'string' && routeStr.startsWith(`${DEMO_DONGLE_ID}|`)) {
-          return realBackend.video.getQcameraStreamUrl(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`, exp, sig);
+          const url = realBackend.video.getQcameraStreamUrl(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`, exp, sig);
+          const testCase = TEST_CASES[demoRouteIndex(routeStr)];
+          if (!testCase?.playlist) {
+            return url;
+          }
+          // a data URL, because hls.js and Safari's native HLS both play one but Safari does not play a blob URL
+          const playlist = testCase.playlist(await fetch(url).then((resp) => resp.text()), testCase.affectedSegment);
+          return `data:application/vnd.apple.mpegurl;base64,${btoa(playlist)}`;
         }
         return realBackend.video.getQcameraStreamUrl(routeStr, exp, sig);
       },

@@ -9,7 +9,7 @@ import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { attach, currentOffset } from '../../timeline';
 import { togglePlay, videoFailed, videoLoading } from '../../timeline/playback';
-import { parsePlaylist, toVideoTime } from '../../timeline/video';
+import { missingSegments, parsePlaylist, toVideoTime } from '../../timeline/video';
 import { isIos } from '../../utils/browser.js';
 
 const NOT_UPLOADED = 'This drive\'s video hasn\'t been uploaded yet or was deleted.';
@@ -53,9 +53,10 @@ const VideoOverlay = ({ status, error, onRetry }) => {
   );
 };
 
-const DriveVideo = ({ dispatch, currentRoute, playback, isMuted, onAudioStatusChange }) => {
+const DriveVideo = ({ dispatch, currentRoute, zoom, playback, isMuted, onAudioStatusChange }) => {
   const videoRef = useRef(null);
   const [attempt, setAttempt] = useState(0);
+  const [missing, setMissing] = useState([]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -72,6 +73,7 @@ const DriveVideo = ({ dispatch, currentRoute, playback, isMuted, onAudioStatusCh
 
     async function load() {
       dispatch(videoLoading());
+      setMissing([]);
       onAudioStatusChange(false);
       // iOS plays HLS natively; everywhere else hls.js plays it through MSE,
       // falling back to native playback if hls.js does not load
@@ -87,6 +89,7 @@ const DriveVideo = ({ dispatch, currentRoute, playback, isMuted, onAudioStatusCh
         fail(NOT_UPLOADED);
         return;
       }
+      setMissing(missingSegments(segments, currentRoute.segment_numbers));
 
       const Hls = (await hlsModule)?.default;
       if (signal.aborted) return;
@@ -98,7 +101,9 @@ const DriveVideo = ({ dispatch, currentRoute, playback, isMuted, onAudioStatusCh
         });
         hls.on(Hls.Events.BUFFER_CODECS, (_event, data) => onAudioStatusChange(Boolean(data.audio)));
         hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.fatal) {
+          if (data.fatal && data.response?.code === 404) {
+            fail(NOT_UPLOADED);
+          } else if (data.fatal) {
             fail(data.type === Hls.ErrorTypes.NETWORK_ERROR ? OFFLINE : UNPLAYABLE);
           }
         });
@@ -126,9 +131,15 @@ const DriveVideo = ({ dispatch, currentRoute, playback, isMuted, onAudioStatusCh
     };
   }, [currentRoute.fullname, attempt]);
 
+  const missingInView = missing.filter((n) => n * 60000 < zoom.end && (n + 1) * 60000 > zoom.start);
   return (
     <div className="min-h-[200px] relative w-full max-w-[964px] m-[0_auto] aspect-[1.593]">
       <VideoOverlay status={playback.status} error={playback.error} onRetry={() => setAttempt(attempt + 1)} />
+      {missingInView.length > 0 && playback.status !== 'error' && (
+        <div className="absolute top-2 left-2 z-40 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white/80">
+          {missingInView.length === 1 ? `No video for segment ${missingInView[0]}` : `No video for ${missingInView.length} segments`}
+        </div>
+      )}
       <video
         ref={videoRef}
         className="h-full w-full"
@@ -142,6 +153,7 @@ const DriveVideo = ({ dispatch, currentRoute, playback, isMuted, onAudioStatusCh
 
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
+  zoom: state.zoom,
   playback: state.playback,
 });
 

@@ -1,4 +1,4 @@
-import { parsePlaylist, toRouteOffset, toVideoTime } from './video';
+import { missingSegments, parsePlaylist, toRouteOffset, toVideoTime } from './video';
 
 const whole = [
   { number: 0, start: 0, duration: 60 },
@@ -32,6 +32,11 @@ https://commadata2.blob.core.windows.net/qlog/dongle/route/3/qcamera.ts?sig=c
       { number: 1, start: 60, duration: 30 },
     ]);
     expect(parsePlaylist('#EXTM3U\n#EXT-X-ENDLIST\n')).toEqual([]);
+  });
+
+  it('lists segments of the route that have no video', () => {
+    expect(missingSegments(whole, [0, 1, 2])).toEqual([]);
+    expect(missingSegments(omitted, [0, 1, 2, 3])).toEqual([1]);
   });
 });
 
