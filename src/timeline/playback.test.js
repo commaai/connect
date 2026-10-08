@@ -105,6 +105,19 @@ describe('playback', () => {
     expect(state.offset).toEqual(1000);
   });
 
+  it('restarts playback in a newly selected range', () => {
+    newNow();
+    const zoom = { start: 10000, end: 20000 };
+    let state = reducer({ ...makeDefaultStruct(), desiredPlaySpeed: 2, offset: 5000, zoom }, pause(), { zoom: null });
+    expect(state).toMatchObject({ desiredPlaySpeed: 1, offset: 10000, loop: { startTime: 10000, duration: 10000 } });
+
+    state = reducer({ ...state, offset: 15000 }, play(2), state);
+    expect(state).toMatchObject({ desiredPlaySpeed: 2, offset: 15000 });
+
+    state = reducer({ ...state, zoom: null }, pause(), state);
+    expect(state.loop).toBeNull();
+  });
+
   it('should buffer video and data', async () => {
     newNow();
     let state = makeDefaultStruct();

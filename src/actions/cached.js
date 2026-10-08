@@ -145,6 +145,14 @@ async function setCacheItem(store, key, expiry, data, version = undefined) {
   });
 }
 
+// a drive from the dashboard's list, or the open drive fetched on its own
+function loadedRoute({ routes, currentRoute }, fullname) {
+  if (currentRoute?.fullname === fullname) {
+    return currentRoute;
+  }
+  return routes?.find((route) => route.fullname === fullname);
+}
+
 function parseEvents(route, driveEvents) {
   // sort events
   driveEvents.sort((a, b) => {
@@ -261,19 +269,9 @@ function parseEvents(route, driveEvents) {
 
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes) {
-      return;
-    }
-
     // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.events) {
-          return;
-        }
-        break;
-      }
+    if (loadedRoute(getState(), route.fullname)?.events) {
+      return;
     }
 
     // already requesting
@@ -417,19 +415,9 @@ export function fetchLocations(route) {
 
 export function fetchDriveCoords(route) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes) {
-      return;
-    }
-
     // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.driveCoords) {
-          return;
-        }
-        break;
-      }
+    if (loadedRoute(getState(), route.fullname)?.driveCoords) {
+      return;
     }
 
     // already requesting

@@ -1,9 +1,10 @@
-import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
-import { getDefaultFilter } from './utils/filter';
+import { getDefaultFilter, LIMIT_INCREMENT } from './utils/filter';
 
-export function createInitialState(pathname = window.location.pathname) {
+// Navigation fields stay empty until the router reports the first location.
+export function createInitialState() {
   return {
-    dongleId: getDongleID(pathname),
+    page: null,
+    dongleId: null,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
@@ -17,13 +18,12 @@ export function createInitialState(pathname = window.location.pathname) {
       end: null,
     },
     currentRoute: null,
+    currentRouteMissing: false,
     lastRoutes: null,
 
     profile: null,
     devices: null,
 
-    primeNav: getPrimeNav(pathname),
-    streamNav: getStreamNav(pathname),
     subscription: null,
     subscribeInfo: null,
 
@@ -35,10 +35,12 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: getRouteZoom(pathname),
+    zoom: null,
     loop: null,
-    selectedRouteId: getRouteId(pathname),
-    limit: 0,
+    selectedRouteId: null,
+    modal: null,
+    modalDongleId: null,
+    limit: LIMIT_INCREMENT,
   };
 }
 

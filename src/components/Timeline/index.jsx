@@ -8,10 +8,10 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
+import { navigate } from '../../actions/history';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -143,6 +143,14 @@ function percentFromPointerEvent(ev) {
   return x / boundingBox.width;
 }
 
+// The URL holds whole seconds, so a selection widens to whole seconds, at least one, within the drive.
+// A drag that starts after the drive's last whole second has no such range, so it gets null.
+export function wholeSeconds(start, end, duration) {
+  const startSecond = Math.floor(start / 1000);
+  const endSecond = Math.min(Math.max(Math.ceil(end / 1000), startSecond + 1), Math.floor(duration / 1000));
+  return startSecond < endSecond ? { start: startSecond * 1000, end: endSecond * 1000 } : null;
+}
+
 class Timeline extends Component {
   constructor(props) {
     super(props);
@@ -263,19 +271,15 @@ class Timeline extends Component {
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const startPercent = (Math.min(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
     const endPercent = (Math.max(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
-    const startOffset = Math.round(this.percentToOffset(startPercent));
-    const endOffset = Math.round(this.percentToOffset(endPercent));
+    const range = wholeSeconds(this.percentToOffset(startPercent), this.percentToOffset(endPercent), route.duration);
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
+      if (range && (offset < range.start || offset > range.end)) {
+        this.props.dispatch(seek(range.start));
       }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      // without a range, this is the whole drive
+      this.props.dispatch(navigate({ page: 'drive', dongleId: route.dongle_id, logId: route.log_id, range }));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

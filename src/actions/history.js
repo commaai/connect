@@ -1,61 +1,113 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, push, replace } from 'connected-react-router';
+
 import { api } from '../api/backend';
+import { parseLocation, urlFor } from '../url';
+import { webrtcConnectionManager } from '../utils/webrtc';
+import { checkRoutesData, fetchDeviceOnline, fetchSharedDevice, primeFetchSubscription } from './index';
+import { ACTION_STARTUP_DATA } from './types';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
-  }
+function homeDongleId(devices) {
+  const stored = window.localStorage.getItem('selectedDongleId');
+  return devices.some((device) => device.dongle_id === stored) ? stored : devices[0].dongle_id;
+}
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
+function loadDevice(dongleId, startup) {
+  return (dispatch, getState) => {
+    const { devices, profile } = getState();
+    window.localStorage.setItem('selectedDongleId', dongleId);
+
+    const device = devices.find((d) => d.dongle_id === dongleId);
+    if (!device) {
+      if (profile) {
+        dispatch(fetchSharedDevice(dongleId));
+      }
+    } else if (!device.shared || profile?.superuser) {
+      dispatch(primeFetchSubscription(dongleId, device));
+      // the device list fetched at startup already has a fresh online status
+      if (!startup) {
+        dispatch(fetchDeviceOnline(dongleId));
+      }
+    }
+  };
+}
+
+function resolveLegacyRange(dongleId, { start, end }, pathname) {
+  return async (dispatch, getState) => {
+    let routes;
+    try {
+      routes = await api.routes.getRoutesSegments(dongleId, start, end);
+    } catch (err) {
+      console.error('Error fetching routes data for log ID conversion', err);
+      return;
+    }
+    // the user may have navigated away while this was loading
+    const { location } = getState().router;
+    if (routes?.length && location.pathname === pathname) {
+      const drivePath = urlFor({ page: 'drive', dongleId, logId: routes[0].fullname.split('|')[1] });
+      dispatch(replace({ pathname: drivePath, search: location.search, hash: location.hash }));
+    }
+  };
+}
+
+// Loads what the current location needs. Runs after every location change, and once startup data arrives.
+export function reconcile(prev) {
+  return (dispatch, getState) => {
     const state = getState();
+    const { location } = state.router;
+    const nav = parseLocation(location);
 
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+    if (prev.dongleId && prev.dongleId !== nav.dongleId) {
+      webrtcConnectionManager.disconnect();
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
+    if (!state.devices) {
+      // routes need only the URL, so they load without waiting for the profile and devices.
+      // Signed out, only a public drive can load.
+      if (nav.page === 'drive' || api.auth.isAuthenticated()) {
+        dispatch(checkRoutesData());
+      }
+      return;
+    }
+    const startup = !prev.devices;
 
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
+    if (nav.page === 'home') {
+      if (nav.returnTo) {
+        dispatch(replace(nav.returnTo));
+      } else if (state.devices.length) {
+        const pathname = urlFor({ page: 'dashboard', dongleId: homeDongleId(state.devices) });
+        dispatch(replace({ pathname, search: location.search, hash: location.hash }));
+      }
+      return;
     }
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
+    if (nav.dongleId && (startup || nav.dongleId !== prev.dongleId)) {
+      dispatch(loadDevice(nav.dongleId, startup));
     }
 
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
+    if (nav.legacyRange && (startup || location.pathname !== prev.router.location.pathname)) {
+      dispatch(resolveLegacyRange(nav.dongleId, nav.legacyRange, location.pathname));
     }
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
+    dispatch(checkRoutesData());
+  };
+}
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
+// Pushes the page's URL unless it is already showing.
+export function navigate(nav) {
+  return (dispatch, getState) => {
+    const url = urlFor(nav);
+    const { pathname, search } = getState().router.location;
+    if (url !== pathname + search) {
+      dispatch(push(url));
     }
-  } else {
-    next(action);
+  };
+}
+
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
+  const prev = getState();
+  const result = next(action);
+  if (action.type === LOCATION_CHANGE || action.type === ACTION_STARTUP_DATA) {
+    dispatch(reconcile(prev));
   }
+  return result;
 };

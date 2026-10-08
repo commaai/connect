@@ -90,7 +90,7 @@ async function mockFetch(input, init = {}) {
   const deviceList = options.devices ?? devices;
   if (url.pathname === '/v1/me/turn') return json(null);
   if (url.pathname === '/v1/me/') return json({ id: 'test-user', superuser: false });
-  if (url.pathname === '/v1/me/devices/') return json(deviceList);
+  if (url.pathname === '/v1/me/devices/') return (options.devicesGate ?? Promise.resolve()).then(() => json(deviceList));
   if (url.pathname === '/v1/referrals') return json(options.referrals ?? {
     code: 'ABC1234',
     cash: { available: 50, claimed: 50, pending: 50 },
@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -179,11 +179,11 @@ describe('whole-app behavior', () => {
     expect(new URL(request.url).searchParams.get('limit')).toBe('5');
   });
 
-  test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects first device with %s', async (_name, selected) => {
+  test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects the first listed device with %s', async (_name, selected) => {
     const { history } = await renderApp('/', { selected });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    expect(history.location.pathname).toBe(`/${FIRST}`);
-    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+    expect(history.location.pathname).toBe(`/${SECOND}`);
+    expect(localStorage.getItem('selectedDongleId')).toBe(SECOND);
   });
 
   test('root with no devices shows pairing', async () => {
@@ -233,6 +233,66 @@ describe('whole-app behavior', () => {
     });
   });
 
+  test('closing a drive opened from a link shows the whole drive list', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+  });
+
+  test('a cold drive link asks for its route before the device list arrives', async () => {
+    let releaseDevices;
+    const devicesGate = new Promise((resolve) => { releaseDevices = resolve; });
+    await renderApp(`/${FIRST}/${LOG}`, { devicesGate });
+    const paths = mocks.requests.map(({ url }) => new URL(url).pathname);
+    expect(paths).toContain('/v1/me/devices/');
+    expect(paths).toContain(`/v1/devices/${FIRST}/routes_segments`);
+    releaseDevices();
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+
+  test('a signed-in cold dashboard asks for its drives before the device list arrives', async () => {
+    let releaseDevices;
+    const devicesGate = new Promise((resolve) => { releaseDevices = resolve; });
+    // the dashboard shows Loading until it knows its device, so rendering can only finish after the release
+    const rendering = renderApp(`/${FIRST}`, { devicesGate });
+    try {
+      await waitFor(() => expect(mocks.requests.map(({ url }) => new URL(url).pathname)).toContain(`/v1/devices/${FIRST}/routes_segments`));
+    } finally {
+      releaseDevices();
+      await rendering;
+    }
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('a drive outside the loaded list leaves the list in place', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    mocks.requests.splice(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(screen.queryByText('Mock route start')).not.toBeInTheDocument();
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toEqual([]);
+  });
+
+  test.each([
+    ['widens a drag to whole seconds', 205, 707, 12, 43],
+    ['keeps a short drag at one second', 300, 305, 18, 19],
+  ])('the timeline %s', async (_name, from, to, start, end) => {
+    const { history, store } = await renderApp(`/${FIRST}/${RECENT_LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.pointerDown(timeline, { button: 0, clientX: from, pageX: from });
+    fireEvent.pointerMove(document, { clientX: to, pageX: to });
+    fireEvent.pointerUp(document, { button: 0, clientX: to, pageX: to });
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}/${start}/${end}`));
+    expect(store.getState().zoom).toEqual({ start: start * 1000, end: end * 1000 });
+  });
+
   test.each([
     ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`],
   ])('signed-out %s entry retains its path', async (_name, pathname) => {
@@ -244,7 +304,7 @@ describe('whole-app behavior', () => {
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${encodeURIComponent(pathname)}`));
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {
@@ -287,6 +347,19 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goForward());
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+  });
+
+  test('selecting the device already showing adds no history entry', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    const entries = history.length;
+    fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
+    fireEvent.click(await screen.findByRole('link', { name: /Zulu/ }));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(history.length).toBe(entries);
+    expect(history.location.pathname).toBe(`/${FIRST}`);
   });
 
   test('a trip between drives and devices reuses loaded data', async () => {

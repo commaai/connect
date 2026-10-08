@@ -4,46 +4,29 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { navigate } from '../../actions/history';
 import { ArrowBackBold, CloseBold } from '../../icons';
+import { urlFor } from '../../url';
 import { filterRegularClick } from '../../utils';
 
 import Media from './Media';
 import Timeline from '../Timeline';
 
 class DriveView extends Component {
-  constructor(props) {
-    super(props);
-    this.close = this.close.bind(this);
-  }
-
-  onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
-  }
-
-  close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
-  }
-
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dispatch, dongleId, zoom, currentRoute, currentRouteMissing } = this.props;
 
     if (!currentRoute) {
       return (
         <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+          <Typography>{currentRouteMissing ? 'Route does not exist.' : 'Loading...'}</Typography>
         </div>
       );
     }
 
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const wholeDriveNav = { page: 'drive', dongleId, logId: currentRoute.log_id };
+    const dashboardNav = { page: 'dashboard', dongleId };
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -58,9 +41,9 @@ class DriveView extends Component {
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
+                onClick={ () => dispatch(navigate(wholeDriveNav)) }
                 aria-label="Go Back"
-                disabled={ backButtonDisabled }
+                disabled={ currentRouteBoundsSelected }
               >
                 <ArrowBackBold />
               </IconButton>
@@ -76,9 +59,9 @@ class DriveView extends Component {
                 </div>
               </div>
               <IconButton
-                onClick={ filterRegularClick(this.close) }
+                onClick={ filterRegularClick(() => dispatch(navigate(dashboardNav))) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={ urlFor(dashboardNav) }
               >
                 <CloseBold />
               </IconButton>
@@ -86,9 +69,7 @@ class DriveView extends Component {
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
           <div className='px-3 pb-3 md:px-8 md:pb-8'>
-            {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
-              : <Media />}
+            <Media />
           </div>
         </div>
       </div>
@@ -98,9 +79,9 @@ class DriveView extends Component {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  routes: state.routes,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
+  currentRouteMissing: state.currentRouteMissing,
 });
 
 export default connect(stateToProps)(DriveView);

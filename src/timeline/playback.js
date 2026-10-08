@@ -3,7 +3,7 @@
 import * as Types from '../actions/types';
 import { currentOffset } from '.';
 
-export function reducer(_state, action) {
+export function reducer(_state, action, prev = _state) {
   let state = { ..._state };
   let loopOffset = null;
   if (state.loop && state.loop.startTime !== null) {
@@ -72,6 +72,19 @@ export function reducer(_state, action) {
       break;
     default:
       break;
+  }
+
+  // navigation selects the drive and range, playback restarts within it
+  if (state.dongleId !== prev.dongleId || state.selectedRouteId !== prev.selectedRouteId
+    || state.zoom?.start !== prev.zoom?.start || state.zoom?.end !== prev.zoom?.end) {
+    state = {
+      ...state,
+      desiredPlaySpeed: 1,
+      isBufferingVideo: true,
+      offset: 0,
+      startTime: Date.now(),
+      loop: state.zoom && { startTime: state.zoom.start, duration: state.zoom.end - state.zoom.start },
+    };
   }
 
   if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom

@@ -8,6 +8,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
+import { urlFor } from '../../url';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
@@ -130,7 +131,7 @@ class DeviceList extends Component {
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
         onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
+        href={ urlFor({ page: 'dashboard', dongleId: device.dongle_id }) }
       >
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>

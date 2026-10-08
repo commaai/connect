@@ -8,6 +8,7 @@ import Typography from '@material-ui/core/Typography';
 import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
+import { parseLocation } from '../url';
 import { stringifyQuery } from '../utils/query';
 
 const AUTH_PROVIDERS = { GOOGLE: 'g', APPLE: 'a', GITHUB: 'h' };
@@ -47,11 +48,12 @@ const styles = () => ({
   },
 });
 
-const AnonymousLanding = ({ classes, pathname }) => {
+const AnonymousLanding = ({ classes, location }) => {
   useEffect(() => {
     if (typeof window.sessionStorage !== 'undefined') {
-      const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
+      const redirectURL = parseLocation(location).returnTo
+        ?? sessionStorage.getItem('redirectURL')
+        ?? location.pathname + location.search;
       sessionStorage.setItem('redirectURL', redirectURL);
     }
 
@@ -128,7 +130,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
 };
 
 const stateToProps = (state) => ({
-  pathname: state.router.location.pathname,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));
