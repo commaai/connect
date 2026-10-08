@@ -17,12 +17,15 @@ import BodyTeleop from './BodyTeleop';
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
+import { videoPlayed } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+
+const DRIVE_OPEN_PLAYBACK_SPEED = 1;
 
 const styles = (theme) => ({
   app: {
@@ -153,10 +156,14 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, dongleId, limit } = this.props;
+    const { pathname, zoom, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
+    }
+
+    if (!prevProps.zoom && zoom) {
+      this.props.dispatch(videoPlayed(zoom.start, DRIVE_OPEN_PLAYBACK_SPEED));
     }
 
     // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
@@ -272,6 +279,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
+  zoom: state.zoom,
   selectedRouteId: state.selectedRouteId,
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
