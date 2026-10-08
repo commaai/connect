@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
 
@@ -13,6 +14,7 @@ import TimeSelect from '../TimeSelect';
 import DriveListEmpty from './DriveListEmpty';
 import DriveListItem from './DriveListItem';
 import ScrollIntoView from '../ScrollIntoView'
+import { getDialog, withDialog } from '../../url';
 
 const styles = () => ({
   header: {
@@ -34,10 +36,10 @@ const styles = () => ({
 });
 
 const DriveList = (props) => {
-  const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
+  const { dispatch, classes, device, dongleId, routes, lastRoutes, location } = props;
 
   const [deviceStats, setDeviceStats] = useState({});
-  const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
+  const isTimeSelectOpen = getDialog(location.pathname, location.search) === 'filter';
 
   const fetchDeviceInfo = useCallback(async () => {
     if (!dongleId || device?.shared) {
@@ -143,7 +145,7 @@ const DriveList = (props) => {
         <button
           className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98] cursor-pointer"
           style={{ background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 150%)' }}
-          onClick={() => setIsTimeSelectOpen(true)}
+          onClick={() => dispatch(push(withDialog(location, 'filter')))}
         >
           <FilterList className="mr-2 text-xl" />
           <Typography>Filter</Typography>
@@ -151,7 +153,7 @@ const DriveList = (props) => {
       </div>
       {content}
       {contentStatus}
-      {isTimeSelectOpen && <TimeSelect onClose={() => setIsTimeSelectOpen(false)} />}
+      {isTimeSelectOpen && <TimeSelect onClose={() => dispatch(push(withDialog(location, null)))} />}
     </div>
   );
 };
@@ -161,6 +163,7 @@ const stateToProps = (state) => ({
   routes: state.routes,
   lastRoutes: state.lastRoutes,
   device: state.device,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));

@@ -49,6 +49,9 @@ class App extends Component {
   }
 
   async componentDidMount() {
+    const { history = defaultHistory } = this.props;
+    this.unsubscribeHistory = history.listen(() => this.forceUpdate());
+
     // Select the API backend once during startup: /demo gets the demo backend,
     // everything else the real backend.
     initBackend();
@@ -91,6 +94,10 @@ class App extends Component {
     }
 
     this.setState({ initialized: true });
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeHistory?.();
   }
 
   redirectLink() {

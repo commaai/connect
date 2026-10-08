@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router';
+import { goBack, push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { buildPath, parsePathname } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -103,6 +104,19 @@ export function checkRoutesData() {
         routes,
       });
 
+      const latest = getState();
+      const location = parsePathname(latest.router.location.pathname);
+      const currentRoute = routes.find((route) => route.log_id === location.routeId);
+      if (location.page === 'drive' && location.range && currentRoute
+        && location.range.end > currentRoute.duration) {
+        const range = location.range.start < currentRoute.duration
+          ? { start: location.range.start, end: currentRoute.duration }
+          : null;
+        dispatch(replace(buildPath({
+          page: 'drive', dongleId, routeId: location.routeId, range,
+        })));
+      }
+
       routesRequest = null;
 
       return routes
@@ -143,19 +157,12 @@ export function checkLastRoutesData() {
 }
 
 export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
+  return buildPath({
+    page: log_id ? 'drive' : (prime ? 'prime' : 'dashboard'),
+    dongleId,
+    routeId: log_id,
+    range: start != null && end != null ? { start: start * 1000, end: end * 1000 } : null,
+  });
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
@@ -183,6 +190,10 @@ export function popTimelineRange(log_id, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.zoom.previous) {
+      if (allowPathChange) {
+        dispatch(goBack());
+        return;
+      }
       dispatch({
         type: Types.TIMELINE_POP_SELECTION,
       });
@@ -197,6 +208,19 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
 
+    if (allowPathChange) {
+      const route = state.routes?.find((candidate) => candidate.log_id === log_id);
+      const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+      const desiredPath = buildPath({
+        page: log_id ? 'drive' : 'dashboard',
+        dongleId: state.dongleId,
+        routeId: log_id,
+        range: wholeDrive ? null : { start, end },
+      });
+      if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
+      return;
+    }
+
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
       dispatch({
         type: Types.TIMELINE_PUSH_SELECTION,
@@ -206,7 +230,7 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
       });
     }
 
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    updateTimeline(state, dispatch, log_id, start, end, false);
   };
 
 }
@@ -271,6 +295,13 @@ export function fetchDeviceOnline(dongleId) {
 export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
   return (dispatch, getState) => {
     const state = getState();
+    if (allowPathChange) {
+      const desiredPath = currentPathname(state) === '/demo'
+        ? '/demo'
+        : buildPath({ dongleId, page: 'dashboard' });
+      if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
+      return;
+    }
     let device;
     if (state.devices && state.devices.length > 1) {
       device = state.devices.find((d) => d.dongle_id === dongleId);
@@ -299,12 +330,6 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
       dispatch(checkLastRoutesData());
     }
 
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
   };
 }
 
@@ -315,6 +340,12 @@ export function primeNav(nav, allowPathChange = true) {
       return;
     }
 
+    if (allowPathChange) {
+      const desiredPath = buildPath({ dongleId: state.dongleId, page: nav ? 'prime' : 'dashboard' });
+      if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
+      return;
+    }
+
     if (state.primeNav !== nav) {
       dispatch({
         type: Types.ACTION_PRIME_NAV,
@@ -322,13 +353,6 @@ export function primeNav(nav, allowPathChange = true) {
       });
     }
 
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
   };
 }
 
@@ -339,6 +363,12 @@ export function streamNav(nav, allowPathChange = true) {
       return;
     }
 
+    if (allowPathChange) {
+      const desiredPath = buildPath({ dongleId: state.dongleId, page: nav ? 'stream' : 'dashboard' });
+      if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
+      return;
+    }
+
     if (state.streamNav !== nav) {
       dispatch({
         type: Types.ACTION_STREAM_NAV,
@@ -346,13 +376,6 @@ export function streamNav(nav, allowPathChange = true) {
       });
     }
 
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
   };
 }
 

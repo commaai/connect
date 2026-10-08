@@ -209,11 +209,24 @@ describe('whole-app behavior', () => {
   });
 
   test('dashboard filter and empty route states remain usable', async () => {
-    await renderApp(`/${FIRST}`, { emptyRoutes: true });
+    const { history } = await renderApp(`/${FIRST}`, { emptyRoutes: true });
     expect(await screen.findByText('No routes found in selected time range.')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    await waitFor(() => expect(history.location.search).toBe('?dialog=filter'));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    act(() => history.goBack());
+    expect(await screen.findByText('Start date:')).toBeVisible();
     expect(mocks.requests.some(({ url }) => url.includes('routes_segments'))).toBe(true);
+  });
+
+  test('device settings opens directly and follows browser history', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
   });
 
   test.each([
@@ -231,6 +244,13 @@ describe('whole-app behavior', () => {
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
+  });
+
+  test('a cold range link is normalized to the loaded route duration', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/70`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/60`));
+    expect(store.getState().zoom).toMatchObject({ start: 10000, end: 60000 });
   });
 
   test.each([
