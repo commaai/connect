@@ -11,6 +11,11 @@ import { hardNavigate } from '../utils/navigation';
 
 let routesRequest = null;
 let routesRequestPromise = null;
+// Monotonic id handed to each started request. State values (device, route,
+// filter) can repeat after A -> B -> A navigation, so "state still matches" is
+// not enough to prove a response is current; only "no newer request has
+// started since mine" is.
+let routesRequestSeq = 0;
 const LIMIT_INCREMENT = 5
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
@@ -50,11 +55,15 @@ export function checkRoutesData({ force = false } = {}) {
       };
     }
     const request = routesRequest;
+    routesRequestSeq += 1;
+    request.seq = routesRequestSeq;
 
     routesRequestPromise = request.req.then((routesData) => {
       state = getState();
+      const superseded = request.seq !== routesRequestSeq;
       const currentRange = state.filter;
-      if (currentRange.start !== fetchRange.start
+      if (superseded
+        || currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.limit !== fetchLimit
         || state.dongleId !== dongleId
@@ -65,7 +74,11 @@ export function checkRoutesData({ force = false } = {}) {
         if (routesRequest === request) {
           routesRequest = null;
         }
-        dispatch(checkRoutesData());
+        if (!superseded) {
+          // Only refetch when the state moved; a superseded response already
+          // has a newer request covering it.
+          dispatch(checkRoutesData());
+        }
         return;
       }
       if (routesData && routesData.length === 0

@@ -102,11 +102,23 @@ function logAction(action, prevState, state) {
 
   // eslint-disable-next-line default-case
   switch (action.type) {
-    case LOCATION_CHANGE:
+    case LOCATION_CHANGE: {
+      const { pathname, search } = action.payload.location;
+      const prevPathname = prevState.router?.location?.pathname;
+      if (prevPathname === pathname && search !== prevState.router?.location?.search) {
+        // A query-only change is a dialog opening or closing on the same page,
+        // not another view of that page; counting it as a page view inflated
+        // the numbers for every overlay interaction.
+        const dialog = new URLSearchParams(search);
+        const kind = ['settings', 'dates', 'uploads'].find((param) => dialog.has(param));
+        tag('view_dialog', { page_location: getPageViewEventLocation(pathname), dialog: kind ?? 'unknown' });
+        return;
+      }
       gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(action.payload.location.pathname),
+        page_location: getPageViewEventLocation(pathname),
       });
       return;
+    }
 
     case Types.ACTION_APPLY_DESTINATION:
       if (prevState.dongleId !== state.dongleId) {

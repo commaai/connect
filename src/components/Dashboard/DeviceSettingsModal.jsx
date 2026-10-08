@@ -15,10 +15,9 @@ import {
 
 import { api } from '../../api/backend';
 import { updateDevice } from '../../actions';
-import { navigateTo } from '../../actions/history';
+import { navigateTo, openOverlay } from '../../actions/history';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
-import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 
 const styles = (theme) => ({
@@ -121,7 +120,6 @@ const initialState = {
   loadingUnpair: false,
   error: null,
   unpairError: null,
-  uploadModal: false,
 };
 
 class DeviceSettingsModal extends Component {
@@ -142,6 +140,13 @@ class DeviceSettingsModal extends Component {
     this.closeUnpair = this.closeUnpair.bind(this);
   }
 
+  componentDidMount() {
+    // Run the same adoption logic as updates once at mount, so a device object
+    // that is already in the store before the first render still populates the
+    // (empty) alias field.
+    this.componentDidUpdate({ dongleId: this.props.dongleId, device: null });
+  }
+
   componentDidUpdate(prevProps) {
     if (prevProps.dongleId !== this.props.dongleId) {
       const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
@@ -149,6 +154,14 @@ class DeviceSettingsModal extends Component {
         ...initialState,
         deviceAlias: alias,
       });
+    } else if (this.state.deviceAlias === ''
+      && this.props.device?.dongle_id === this.props.dongleId
+      && this.props.device.alias
+      && prevProps.device !== this.props.device) {
+      // Cold deep link: the modal mounts before the device fetch lands and the
+      // dongleId never changes afterwards, so adopt the alias when the data
+      // arrives. Guarded on an empty field so a refresh never erases edits.
+      this.setState({ deviceAlias: this.props.device.alias });
     }
   }
 
@@ -256,14 +269,14 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device, profile, devicesReady } = this.props;
+    const { classes, device, profile, deviceNotFound } = this.props;
     const commacare = device?.commacare;
     // The same rule that decides whether the settings button is shown in the
     // device drawer governs the URL-addressable modal. A device unknown to the
     // account is denied once the device list has had a chance to load.
     if (!device) {
       return (
-        <Modal open={ Boolean(this.props.isOpen && devicesReady) } onClose={this.props.onClose}>
+        <Modal open={ Boolean(this.props.isOpen && deviceNotFound) } onClose={this.props.onClose}>
           <Paper className={classes.modal}>
             <Typography variant="title">Device settings</Typography>
             <hr />
@@ -318,7 +331,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.props.dispatch(openOverlay({ kind: 'uploads', dongleId: this.props.dongleId })) }
               >
                 Uploads
               </Button>
@@ -443,15 +456,13 @@ class DeviceSettingsModal extends Component {
             </div>
           </Paper>
         </Modal>
-        <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
-          device={ device }
-        />
       </>
     );
   }
+}
+
+function firstPathSegment(pathname) {
+  return String(pathname || '').split('/').filter(Boolean)[0] ?? null;
 }
 
 const stateToProps = (state, ownProps) => {
@@ -460,8 +471,13 @@ const stateToProps = (state, ownProps) => {
   return {
     subscription: state.subscription,
     device,
+    // True once the requested device is known to be unresolvable: the device
+    // list is loaded and does not contain it, or reconciliation hit a 404. A
+    // cold link whose device is still being fetched must not flash a denial.
+    deviceNotFound: Boolean(!device && state.devices !== null
+      && !(firstPathSegment(state.router?.location?.pathname) === ownProps.dongleId
+        && state.deviceNotFound !== true)),
     profile: state.profile,
-    devicesReady: state.devices !== null,
   };
 };
 

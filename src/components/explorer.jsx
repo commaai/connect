@@ -216,9 +216,8 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
-        { bodyTeleopOpen ? (
-          <BodyTeleop onClose={ this.closeBodyTeleop } />
-        ) : (
+        { bodyTeleopOpen && <BodyTeleop onClose={ this.closeBodyTeleop } /> }
+        { !bodyTeleopOpen && (
           <>
             <AppHeader
               drawerIsOpen={ drawerIsOpen }
@@ -242,26 +241,39 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
-            <DeviceSettingsModal
-              isOpen={ overlay?.kind === 'settings' }
-              dongleId={ overlay?.dongleId ?? null }
+          </>
+        ) }
+        { /* Overlays are global dialogs layered over whatever page is active,
+              including stream/teleop; hoisting them out of the page branch is
+              what makes a cold URL like /:dongleId/stream?settings=:dongle
+              render its dialog. The dates overlay self-limits to the
+              dashboard because its Save reshapes the dashboard's route list. */ }
+        <DeviceSettingsModal
+          isOpen={ overlay?.kind === 'settings' }
+          dongleId={ overlay?.dongleId ?? null }
+          onClose={ () => dispatch(closeOverlay()) }
+        />
+        { overlay?.kind === 'dates' && destinationKind === 'dashboard' && (
+          <TimeSelect onClose={ () => dispatch(closeOverlay()) } />
+        ) }
+        { overlay?.kind === 'uploads' && (() => {
+          // The queue targets the device named in the URL; `1` (no dongleId)
+          // means the currently selected one. One app-level instance is the
+          // single owner of the upload polling loop.
+          const uploadsDevice = overlay.dongleId
+            ? devices?.find((d) => d.dongle_id === overlay.dongleId)
+              || (device?.dongle_id === overlay.dongleId ? device : null)
+            : device;
+          return uploadsDevice && (
+            <UploadQueue
+              open
+              update
+              device={ uploadsDevice }
               onClose={ () => dispatch(closeOverlay()) }
             />
-            { overlay?.kind === 'dates' && destinationKind === 'dashboard' && (
-              // The date filter shapes the dashboard's route list; over a drive
-              // its Save would destroy the drive view while the URL keeps
-              // pointing at it, so it only exists on the dashboard.
-              <TimeSelect onClose={ () => dispatch(closeOverlay()) } />
-            ) }
-            { overlay?.kind === 'uploads' && device && (
-              <UploadQueue
-                open
-                update
-                device={ device }
-                onClose={ () => dispatch(closeOverlay()) }
-              />
-            ) }
-            <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+          );
+        })() }
+        <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
                 <hr />
@@ -279,8 +291,6 @@ class ExplorerApp extends Component {
                 </Button>
               </Paper>
             </Modal>
-          </>
-        ) }
       </div>
     );
   }

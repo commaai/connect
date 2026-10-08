@@ -15,7 +15,8 @@
 // parameters, not pathnames, so they never disturb the underlying destination:
 //   ?settings=<dongleId>   device settings for any accessible device
 //   ?dates=1               the dashboard date filter
-//   ?uploads=1             the upload queue
+//   ?uploads=<dongleId>    the upload queue for that device (`1` = the
+//                          currently selected device, kept for older links)
 //
 // `destinationFromUrl` and `urlForDestination` are pure and are exact inverses
 // for every canonical URL the app produces. Anything unrecognized parses to
@@ -168,8 +169,13 @@ const overlayParams = {
     parse: (value) => (value === '1' ? { kind: 'dates' } : null),
   },
   uploads: {
-    format: () => '1',
-    parse: (value) => (value === '1' ? { kind: 'uploads' } : null),
+    format: (overlay) => (exactDongleIdRegex.test(overlay.dongleId) ? overlay.dongleId : '1'),
+    parse: (value) => {
+      if (value === '1') {
+        return { kind: 'uploads' };
+      }
+      return exactDongleIdRegex.test(value) ? { kind: 'uploads', dongleId: value } : null;
+    },
   },
 };
 

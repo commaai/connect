@@ -6,6 +6,7 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 import { pushTimelineRange, selectDevice, selectTimeFilter } from './actions';
+import { closeOverlay } from './actions/history';
 import { play } from './timeline/playback';
 
 // These tests render the whole app (lazy chunks, maps, video stubs) and are
@@ -129,8 +130,11 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
-  throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
+  if (url.hostname === 'athena.comma.ai') {
+    const method = typeof init.body === 'string' ? JSON.parse(init.body)?.method : undefined;
+    // listUploadQueue's result is an array of uploads; other calls are ignored.
+    return json({ jsonrpc: '2.0', id: 0, result: method === 'listUploadQueue' ? [] : {} });
+  }  throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
 async function renderApp(pathname, options = {}) {
@@ -571,6 +575,56 @@ describe('whole-app behavior', () => {
       expect(store.getState().zoom).toEqual({ start: 10_000, end: 11_000 });
       expect(screen.queryByText('Page not found')).not.toBeInTheDocument();
       expect(screen.getByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    });
+
+    test('a settings overlay renders over the stream view from a cold URL', async () => {
+      const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
+      const { history, store } = await renderApp(`/${FIRST}/stream?settings=${FIRST}`, { devices: online });
+      // The dialog is present and the underlying teleop view stays mounted.
+      expect(await screen.findByText('Device settings')).toBeVisible();
+      expect(store.getState().streamNav).toBe(true);
+      expect(screen.getByRole('button', { name: 'Close teleop', hidden: true })).toBeInTheDocument();
+
+      // Closing the dialog leaves the stream view exactly as it was.
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+      expect(history.location.search).toBe('');
+      expect(history.location.pathname).toBe(`/${FIRST}/stream`);
+      expect(store.getState().streamNav).toBe(true);
+
+      // A fresh navigation to the overlay URL reopens it over the stream.
+      act(() => history.push(`/${FIRST}/stream?settings=${FIRST}`));
+      expect(await screen.findByText('Device settings')).toBeVisible();
+    });
+
+    test('the upload queue is a URL overlay naming its device', async () => {
+      const { history, store } = await renderApp(`/${FIRST}?uploads=${FIRST}`, { selected: FIRST });
+      expect(await screen.findByText('Upload queue')).toBeVisible();
+      expect(screen.getByText(FIRST)).toBeVisible();
+
+      // A cold-loaded overlay closes in place, leaving no dead history entry.
+      act(() => { store.dispatch(closeOverlay()); });
+      await waitFor(() => expect(screen.queryByText('Upload queue')).not.toBeInTheDocument());
+      expect(history.location.search).toBe('');
+
+      act(() => history.push(`/${FIRST}?uploads=${FIRST}`));
+      expect(await screen.findByText('Upload queue')).toBeVisible();
+    });
+
+    test('the settings dialog routes its Uploads button through the URL', async () => {
+      const { history } = await renderApp(`/${FIRST}?settings=${FIRST}`, { selected: FIRST });
+      await screen.findByText('Device settings');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Uploads' }));
+      await waitFor(() => expect(history.location.search).toBe(`?uploads=${FIRST}`));
+      expect(await screen.findByText('Upload queue')).toBeVisible();
+      expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    });
+
+    test('a cold settings URL shows the device alias once the device loads', async () => {
+      renderApp(`/${FIRST}?settings=${FIRST}`, { selected: FIRST });
+      const aliasInput = await screen.findByLabelText('Device name');
+      await waitFor(() => expect(aliasInput).toHaveValue('Zulu'));
     });
   });
 });

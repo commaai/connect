@@ -182,4 +182,76 @@ describe('checkRoutesData request coalescing', () => {
     const metadata = runner.dispatched.filter((a) => a?.type === Types.ACTION_ROUTES_METADATA);
     expect(metadata).toHaveLength(1);
   });
+
+  it('returning to device A cannot let A1 publish over A3', async () => {
+    const a1 = deferred();
+    const b2 = deferred();
+    const a3 = deferred();
+    const pending = [a1, b2, a3];
+    api.routes.getRoutesSegments.mockImplementation(() => {
+      const index = api.routes.getRoutesSegments.mock.calls.length - 1;
+      return pending[index].promise;
+    });
+
+    const runner = makeRunner();
+    // Request A1 for device A...
+    runner.setState({ dongleId: 'deviceA' });
+    runner.dispatch(checkRoutesData());
+    // ...then B2 for device B...
+    runner.setState({ dongleId: 'deviceB' });
+    runner.dispatch(checkRoutesData());
+    // ...then A3 when the user returns to A. A3's request key equals A1's, but
+    // it must still start its own request: the slot holds B2.
+    runner.setState({ dongleId: 'deviceA' });
+    runner.dispatch(checkRoutesData());
+    expect(api.routes.getRoutesSegments).toHaveBeenCalledTimes(3);
+
+    // A1 resolving late must not publish: A3 superseded it even though every
+    // state value A1 captured matches again.
+    a1.resolve([routeData('logA')]);
+    await flush();
+    expect(runner.dispatched.filter((a) => a?.type === Types.ACTION_ROUTES_METADATA)).toHaveLength(0);
+    expect(api.routes.getRoutesSegments).toHaveBeenCalledTimes(3);
+
+    b2.resolve([routeData('logB')]);
+    await flush();
+    expect(runner.dispatched.filter((a) => a?.type === Types.ACTION_ROUTES_METADATA)).toHaveLength(0);
+
+    // A3 is the response that counts.
+    a3.resolve([routeData('logA')]);
+    await flush();
+    const metadata = runner.dispatched.filter((a) => a?.type === Types.ACTION_ROUTES_METADATA);
+    expect(metadata).toHaveLength(1);
+    expect(metadata[0].dongleId).toBe('deviceA');
+
+    // A failed current request clears its own slot so it can be retried.
+    a3.resolve([routeData('logA')]);
+    await flush();
+    expect(runner.dispatched.filter((a) => a?.type === Types.ACTION_ROUTES_METADATA)).toHaveLength(1);
+  });
+
+  it('a rejected current request releases its slot for a retry', async () => {
+    let rejectFirst;
+    const first = new Promise((_, reject) => { rejectFirst = reject; });
+    const retry = deferred();
+    const pending = [first, retry.promise];
+    api.routes.getRoutesSegments.mockImplementation(() => {
+      const index = api.routes.getRoutesSegments.mock.calls.length - 1;
+      return pending[index];
+    });
+
+    const runner = makeRunner();
+    runner.dispatch(checkRoutesData());
+    rejectFirst(new Error('network'));
+    await flush();
+    expect(runner.dispatched.filter((a) => a?.type === Types.ACTION_ROUTES_METADATA)).toHaveLength(0);
+
+    // The retry issues a real request and its success publishes.
+    runner.dispatch(checkRoutesData());
+    expect(api.routes.getRoutesSegments).toHaveBeenCalledTimes(2);
+    retry.resolve([routeData('log_id')]);
+    await flush();
+    const metadata = runner.dispatched.filter((a) => a?.type === Types.ACTION_ROUTES_METADATA);
+    expect(metadata).toHaveLength(1);
+  });
 });
