@@ -158,9 +158,11 @@ export function normalizeDriveRange() {
     }
     const { start } = location.range;
     const range = start > 0 && start < route.duration ? { start, end: route.duration } : null;
-    dispatch(replace(`${buildPath({
-      page: 'drive', dongleId: location.dongleId, routeId: location.routeId, range,
-    })}${search || ''}${hash || ''}`));
+    const path = buildPath({ page: 'drive', dongleId: location.dongleId, routeId: location.routeId, range });
+    // seconds in the URL can parse a fraction above the duration; replacing with the same path would loop
+    if (path !== pathname) {
+      dispatch(replace(`${path}${search || ''}${hash || ''}`));
+    }
   };
 }
 
