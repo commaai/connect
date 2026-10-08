@@ -26,13 +26,13 @@ export function reducer(state, action) {
       return { ...state, isPlaying: true };
     case Types.ACTION_PLAYBACK_SPEED:
       return { ...state, desiredPlaySpeed: action.speed };
-    case Types.ACTION_LOOP:
-      return {
-        ...state,
-        loop: action.start != null && action.end != null
-          ? { startTime: action.start, duration: action.end - action.start }
-          : null,
-      };
+    case Types.ACTION_LOOP: {
+      const loop = action.start != null && action.end != null
+        ? { startTime: action.start, duration: action.end - action.start }
+        : null;
+      // the video seeks into the new loop, so the offset follows before it gets there
+      return { ...state, loop, offset: clampToLoop(state.offset, loop) };
+    }
     case Types.ACTION_RESET: {
       const offset = state.loop?.startTime ?? 0;
       return {

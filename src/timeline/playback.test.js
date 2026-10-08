@@ -68,6 +68,17 @@ describe('playback', () => {
     expect(state.seekRequest).toEqual({ offset: 1000 });
   });
 
+  it('moves the offset into a newly selected loop', () => {
+    let state = makeDefaultStruct();
+    state = reducer(state, resetPlayback());
+    state = reducer(state, selectLoop(1000, 2000));
+    expect(state.offset).toEqual(1000);
+
+    state = reducer(state, videoProgress(1500));
+    state = reducer(state, selectLoop(500, 3000));
+    expect(state.offset).toEqual(1500);
+  });
+
   it('resets to the loop start at normal speed, keeping play state', () => {
     let state = makeDefaultStruct();
     state = reducer(state, selectLoop(1000, 2000));
