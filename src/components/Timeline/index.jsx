@@ -217,7 +217,7 @@ class Timeline extends Component {
       return;
     }
     const { dispatch, route, loop } = this.props;
-    const targetMs = seekToRouteMs(video, route, offset, loop);
+    const targetMs = seekToRouteMs(video, route?.videoStartOffset, offset, loop);
     dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
   }
 
@@ -279,7 +279,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const playheadMs = getCurrentRouteMs(route);
+      const playheadMs = getCurrentRouteMs(route?.videoStartOffset);
       const playheadOutsideSelection = playheadMs < startOffset || playheadMs > endOffset;
       if (playheadOutsideSelection) {
         this.seekTo(startOffset);
@@ -310,7 +310,7 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    let offset = getCurrentRouteMs(this.props.route);
+    let offset = getCurrentRouteMs(this.props.route?.videoStartOffset);
     if (this.seekIndex) {
       offset = this.seekIndex;
     }

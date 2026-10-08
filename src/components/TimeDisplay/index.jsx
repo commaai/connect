@@ -12,7 +12,7 @@ import { useVideo, useVideoControls, useVideoFrame } from '../../hooks/video';
 import { getCurrentRouteMs, seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
 import { videoPaused, videoPlayed, videoSeeked } from '../../timeline/playback';
 import { getPlaybackSpeed, playIgnoringInterruptions } from '../../timeline/video';
-import { getSegmentNumber } from '../../utils';
+import { segmentAtOffset } from '../../utils';
 import { playsHlsNatively } from '../../utils/browser.js';
 
 const timerSteps = [
@@ -98,13 +98,13 @@ const styles = (theme) => ({
   },
 });
 
-function formatPlaybackTime(route, routeMs) {
-  const now = new Date(routeMs + route.start_time_utc_millis);
+function formatPlaybackTime(routeStartMillis, routeMs) {
+  const now = new Date(routeMs + routeStartMillis);
   if (Number.isNaN(now.getTime())) {
     return '...';
   }
   const time = dayjs(now).format('HH:mm:ss');
-  return `${time} \u2013 ${getSegmentNumber(route, routeMs)}`;
+  return `${time} \u2013 ${segmentAtOffset(routeMs)}`;
 }
 
 function speedStepIndex(playbackRate) {
@@ -115,7 +115,7 @@ function speedStepIndex(playbackRate) {
   return index;
 }
 
-function usePlaybackTimeText(route) {
+function usePlaybackTimeText(routeStartMillis, videoStartOffset) {
   const textRef = useRef(null);
 
   const updateText = useCallback((videoSeconds) => {
@@ -123,12 +123,12 @@ function usePlaybackTimeText(route) {
     if (!node) {
       return;
     }
-    const text = formatPlaybackTime(route, toRouteMs(route, videoSeconds));
+    const text = formatPlaybackTime(routeStartMillis, toRouteMs(videoStartOffset, videoSeconds));
     if (node.textContent === text) {
       return;
     }
     node.textContent = text;
-  }, [route]);
+  }, [routeStartMillis, videoStartOffset]);
 
   useVideoFrame(updateText);
   return textRef;
@@ -137,7 +137,8 @@ function usePlaybackTimeText(route) {
 function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasAudio }) {
   const video = useVideo();
   const { paused, playbackRate, muted } = useVideoControls();
-  const timeTextRef = usePlaybackTimeText(currentRoute);
+  const videoStartOffset = currentRoute?.videoStartOffset;
+  const timeTextRef = usePlaybackTimeText(currentRoute?.start_time_utc_millis, videoStartOffset);
 
   const speedIndex = speedStepIndex(playbackRate);
   const canIncreaseSpeed = speedIndex < timerSteps.length - 1;
@@ -147,13 +148,13 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     if (!video) {
       return;
     }
-    const targetMs = seekToRouteMs(video, currentRoute, getCurrentRouteMs(currentRoute) + amount, loop);
+    const targetMs = seekToRouteMs(video, videoStartOffset, getCurrentRouteMs(videoStartOffset) + amount, loop);
     dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
   };
 
   const play = () => {
     playIgnoringInterruptions(video);
-    dispatch(videoPlayed(getCurrentRouteMs(currentRoute), getPlaybackSpeed(video)));
+    dispatch(videoPlayed(getCurrentRouteMs(videoStartOffset), getPlaybackSpeed(video)));
   };
 
   const changeSpeedBy = (steps) => {
@@ -173,7 +174,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
       return;
     }
     video.pause();
-    dispatch(videoPaused(getCurrentRouteMs(currentRoute), getPlaybackSpeed(video)));
+    dispatch(videoPaused(getCurrentRouteMs(videoStartOffset), getPlaybackSpeed(video)));
   };
 
   const toggleMute = () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { setVideo } from '../../timeline/video';
 import { useVideo, useVideoEvent } from '../../hooks/video';
@@ -85,9 +85,11 @@ function useHlsErrors(hls, onError) {
 }
 
 function useVideoErrors(video, onError) {
-  useVideoEvent('error', () => {
+  const handleError = useCallback(() => {
     onError?.({ kind: mediaErrorKind(video.error), cause: video.error });
-  });
+  }, [video, onError]);
+
+  useVideoEvent('error', handleError);
 }
 
 function useAudioTrackDetection(video, onHasAudioChange) {

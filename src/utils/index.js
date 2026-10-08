@@ -172,13 +172,20 @@ export function getDeviceFromState(state, dongleId) {
   return state.devices.find((d) => d.dongle_id === dongleId) || null;
 }
 
+export function segmentAtOffset(offset) {
+  return Math.floor(offset / (60*1000));
+}
+
+function offsetOrCurrent(route, offset) {
+  if (offset !== undefined) {
+    return offset;
+  }
+  return getCurrentRouteMs(route.videoStartOffset);
+}
+
 export function getSegmentNumber(route, offset) {
   if (!route) {
     return null;
   }
-  if (offset === undefined) {
-    offset = getCurrentRouteMs(route);
-  }
-
-  return Math.floor(offset / (60*1000));
+  return segmentAtOffset(offsetOrCurrent(route, offset));
 }

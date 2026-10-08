@@ -62,72 +62,66 @@ function usePlaybackError(src) {
   return { error: ERROR_MESSAGES[errorKind], handleError };
 }
 
-function loopContainsVideo(video, route, loopStart, loopDuration) {
+function loopContainsVideo(video, videoStartOffset, loopStart, loopDuration) {
   if (!loopDuration) {
     return false;
   }
   const loopEnd = loopStart + loopDuration;
-  const videoStartMs = toRouteMs(route, 0);
-  const videoEndMs = toRouteMs(route, video.duration);
+  const videoStartMs = toRouteMs(videoStartOffset, 0);
+  const videoEndMs = toRouteMs(videoStartOffset, video.duration);
   return loopEnd > videoStartMs && loopStart < videoEndMs;
 }
 
-function useLoopWrap(route, loopStart, loopDuration) {
+function useLoopWrap(videoStartOffset, loopStart, loopDuration) {
   const wrapPastLoopEnd = useCallback((videoSeconds) => {
     const video = getVideo();
-    if (!loopContainsVideo(video, route, loopStart, loopDuration)) {
+    if (!loopContainsVideo(video, videoStartOffset, loopStart, loopDuration)) {
       return;
     }
 
     const loopEnd = loopStart + loopDuration;
-    const isPastLoopEnd = toRouteMs(route, videoSeconds) >= loopEnd;
+    const isPastLoopEnd = toRouteMs(videoStartOffset, videoSeconds) >= loopEnd;
     if (!isPastLoopEnd) {
       return;
     }
 
-    seekToRouteMs(video, route, loopStart);
-  }, [route, loopStart, loopDuration]);
+    seekToRouteMs(video, videoStartOffset, loopStart);
+  }, [videoStartOffset, loopStart, loopDuration]);
 
   const replayLoop = useCallback(() => {
     const video = getVideo();
-    if (!loopContainsVideo(video, route, loopStart, loopDuration)) {
+    if (!loopContainsVideo(video, videoStartOffset, loopStart, loopDuration)) {
       return;
     }
 
-    seekToRouteMs(video, route, loopStart);
+    seekToRouteMs(video, videoStartOffset, loopStart);
     playIgnoringInterruptions(video);
-  }, [route, loopStart, loopDuration]);
+  }, [videoStartOffset, loopStart, loopDuration]);
 
   useVideoFrame(wrapPastLoopEnd);
   useVideoEvent('ended', replayLoop);
 }
 
 const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }, ref) {
+  const videoStartOffset = route?.videoStartOffset;
   const loopStart = loop?.startTime;
   const loopDuration = loop?.duration;
 
   const { buffering } = useVideoStatus();
   const { error, handleError } = usePlaybackError(src);
-  useLoopWrap(route, loopStart, loopDuration);
+  useLoopWrap(videoStartOffset, loopStart, loopDuration);
 
   useImperativeHandle(ref, () => ({
-    seek(routeMs) {
-      const video = getVideo();
-      if (!video) {
-        return;
-      }
-      seekToRouteMs(video, route, routeMs, loop);
-    },
     restart() {
       const video = getVideo();
       if (!video) {
         return;
       }
-      seekToRouteMs(video, route, loopStart ?? 0, loop);
+      seekToRouteMs(video, videoStartOffset, loopStart ?? 0);
       video.playbackRate = 1;
       playIgnoringInterruptions(video);
     },
-  }), [route, loop]);
+  }), [videoStartOffset, loopStart]);
 
   return (
     <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">

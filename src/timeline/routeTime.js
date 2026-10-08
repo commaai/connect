@@ -1,18 +1,16 @@
 import { getVideo } from './video';
 
-export function toRouteMs(route, videoSeconds) {
-  const videoStartOffset = route?.videoStartOffset || 0;
-  return videoSeconds * 1000 + videoStartOffset;
+export function toRouteMs(videoStartOffset, videoSeconds) {
+  return videoSeconds * 1000 + (videoStartOffset ?? 0);
 }
 
-export function getCurrentRouteMs(route) {
+export function getCurrentRouteMs(videoStartOffset) {
   const videoSeconds = getVideo()?.currentTime ?? 0;
-  return toRouteMs(route, videoSeconds);
+  return toRouteMs(videoStartOffset, videoSeconds);
 }
 
-export function toVideoSeconds(route, routeMs) {
-  const videoStartOffset = route?.videoStartOffset || 0;
-  const videoMs = Math.max(0, routeMs - videoStartOffset);
+export function toVideoSeconds(videoStartOffset, routeMs) {
+  const videoMs = Math.max(0, routeMs - (videoStartOffset ?? 0));
   return videoMs / 1000;
 }
 
@@ -24,8 +22,8 @@ export function clampToLoop(routeMs, loop) {
   return Math.min(Math.max(routeMs, loop.startTime), loopEnd);
 }
 
-export function seekToRouteMs(video, route, routeMs, loop) {
+export function seekToRouteMs(video, videoStartOffset, routeMs, loop) {
   const targetMs = clampToLoop(routeMs, loop);
-  video.currentTime = toVideoSeconds(route, targetMs);
+  video.currentTime = toVideoSeconds(videoStartOffset, targetMs);
   return targetMs;
 }
