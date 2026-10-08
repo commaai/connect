@@ -1,71 +1,72 @@
 import { describe, expect, it } from 'vitest';
+import { parsePath, urlForRoute, devicePath, drivePath } from './url';
+import { DEMO_DONGLE_ID } from './api/demo';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+const DEVICE = '0000aaaa0000aaaa';
+const ROUTE = '2026-08-06--12-00-00';
 
-const DONGLE = '0000aaaa0000aaaa';
-const LOG = '2026-08-06--12-00-00';
-
-describe('URL pathname helpers', () => {
+describe('the URL grammar', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
+    ['/', 'home', null, null],
+    ['/referrals', 'referrals', null, null],
+    ['/add-device', 'add-device', null, null],
+    ['/demo', 'drives', DEMO_DONGLE_ID, null],
+    [`/${DEVICE}`, 'drives', DEVICE, null],
+    [`/${DEVICE}/prime`, 'prime', DEVICE, null],
+    [`/${DEVICE}/stream`, 'stream', DEVICE, null],
+    [`/${DEVICE}/settings`, 'settings', DEVICE, null],
+    [`/${DEVICE}/filter`, 'filter', DEVICE, null],
+    [`/${DEVICE}/add-device`, 'add-device', DEVICE, null],
+    [`/${DEVICE}/uploads`, 'uploads', DEVICE, null],
+    [`/${DEVICE}/${ROUTE}`, 'drive', DEVICE, ROUTE],
+    [`/${DEVICE}/${ROUTE}/clips`, 'clips', DEVICE, ROUTE],
+    [`/${DEVICE}/${ROUTE}/uploads`, 'uploads', DEVICE, ROUTE],
+  ])('reads %s as %s', (path, page, dongleId, routeId) => {
+    expect(parsePath(path)).toMatchObject({ page, dongleId, routeId });
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
-  it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
+  it('reads exact route ranges, including zero, and clips within a range', () => {
+    expect(parsePath(`/${DEVICE}/${ROUTE}/0/20`)).toMatchObject({
+      page: 'drive', range: { start: 0, end: 20000 },
+    });
+    expect(parsePath(`/${DEVICE}/${ROUTE}/10/20/clips`)).toMatchObject({
+      page: 'clips', range: { start: 10000, end: 20000 },
+    });
+    expect(parsePath(`/${DEVICE}/${ROUTE}/10/20/uploads`)).toMatchObject({
+      page: 'uploads', range: { start: 10000, end: 20000 },
+    });
+    expect(parsePath(`/${DEVICE}/1000/2000`)).toMatchObject({
+      page: 'legacy-range', range: { start: 1000, end: 2000 },
+    });
   });
 
   it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
+    '/auth/code/provider',
+    `/prefix${DEVICE}/settings`,
+    `/${DEVICE}/prime/extra`,
+    `/${DEVICE}/${ROUTE}/20/10`,
+    `/${DEVICE}/${ROUTE}/NaN/20`,
+    `/${DEVICE}/${ROUTE}/1e6/20`,
+    `/${DEVICE}/${ROUTE}/0/9007199254740992`,
+  ])('rejects malformed or partial match %s', (path) => {
+    expect(parsePath(path)).toMatchObject({ page: 'unknown', dongleId: null });
+  });
+
+  it('formats device and drive URLs', () => {
+    expect(devicePath(DEVICE, 'settings')).toBe(`/${DEVICE}/settings`);
+    expect(drivePath(DEVICE, ROUTE, 0, 20000)).toBe(`/${DEVICE}/${ROUTE}/0/20`);
+    expect(drivePath(DEVICE, ROUTE, 1001, 20001)).toBe(`/${DEVICE}/${ROUTE}/1/21`);
+    expect(drivePath(DEVICE, ROUTE)).toBe(`/${DEVICE}/${ROUTE}`);
   });
 
   it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+    '/', '/referrals', '/add-device', `/${DEVICE}`, `/${DEVICE}/settings`,
+    `/${DEVICE}/add-device`, `/${DEVICE}/filter`, `/${DEVICE}/uploads`,
+    `/${DEVICE}/prime`, `/${DEVICE}/stream`, `/${DEVICE}/${ROUTE}`,
+    `/${DEVICE}/${ROUTE}/clips`, `/${DEVICE}/${ROUTE}/uploads`,
+    `/${DEVICE}/${ROUTE}/10/20`, `/${DEVICE}/${ROUTE}/10/20/clips`,
+    `/${DEVICE}/${ROUTE}/10/20/uploads`,
+  ])('round-trips the canonical route %s', (path) => {
+    expect(urlForRoute(parsePath(path))).toBe(path);
   });
 });

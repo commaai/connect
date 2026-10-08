@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -24,6 +24,10 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import UploadQueue from './Files/UploadQueue';
+import { parsePath, devicePath, urlForRoute } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -98,8 +102,9 @@ class ExplorerApp extends Component {
     window.scrollTo({ top: 0 }); // for ios header
 
     const q = new URLSearchParams(window.location.search);
-    if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
+    const redirect = q.get('r');
+    if (redirect?.startsWith('/') && !redirect.startsWith('//') && parsePath(redirect).page !== 'unknown') {
+      this.props.dispatch(replace(redirect));
     }
 
     this.props.dispatch(init());
@@ -154,7 +159,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -167,12 +172,6 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
 
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
-    }
   }
 
   async closePair() {
@@ -198,12 +197,19 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, device, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const route = parsePath(pathname);
+    const routeDevice = devices?.find((item) => item.dongle_id === route.dongleId)
+      || (device?.dongle_id === route.dongleId ? device : null);
+    const settingsAllowed = route.page === 'settings'
+      && Boolean(routeDevice && (routeDevice.is_owner || profile?.superuser));
+    const settingsDenied = route.page === 'settings' && routeDevice && !settingsAllowed;
+    const uploadsOpen = route.page === 'uploads' && Boolean(routeDevice);
+    const referralsOpen = route.page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -244,12 +250,32 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(push(urlForRoute({
+                  page: dongleId ? 'drives' : 'home', dongleId,
+                })))} />
+                : route.page === 'unknown'
+                ? <Typography className="p-8">Page not found.</Typography>
+                : settingsDenied
+                ? <Typography className="p-8">No access</Typography>
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            <AddDevice showButton={false} />
+            {uploadsOpen && <UploadQueue
+              open
+              update
+              device={routeDevice}
+              onClose={() => dispatch(push(urlForRoute({
+                ...route, page: route.routeId ? 'drive' : 'drives',
+              })))}
+            />}
+            <DeviceSettingsModal
+              isOpen={settingsAllowed}
+              dongleId={settingsAllowed ? route.dongleId : null}
+              onClose={() => dispatch(push(devicePath(route.dongleId)))}
+            />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -280,9 +306,9 @@ const stateToProps = (state) => ({
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
   devices: state.devices,
+  device: state.device,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
 });

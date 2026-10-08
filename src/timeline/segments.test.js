@@ -96,4 +96,14 @@ describe('segments', () => {
       dongleId: 'asdfasdf',
     })).toBe(true);
   });
+
+  it('never reuses a route from a different device, even with the same route ID', () => {
+    expect(hasRoutesData({
+      dongleId: 'bbbbbbbbbbbbbbbb',
+      selectedRouteId: '2018-04-09--10-10-00',
+      routesMeta: { dongleId: 'aaaaaaaaaaaaaaaa', start: 0, end: 30 },
+      routes: [{ log_id: '2018-04-09--10-10-00' }],
+      filter: { start: 0, end: 30 },
+    })).toBe(false);
+  });
 });

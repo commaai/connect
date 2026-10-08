@@ -1,66 +1,75 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+import { DEMO_DONGLE_ID, DEMO_PATH } from './api/demo';
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const devicePattern = /^[a-f0-9]{16}$/;
+const routePattern = /^[a-f0-9-]{20}$/;
+const integerPattern = /^(0|[1-9]\d*)$/;
+const devicePages = new Set(['prime', 'stream', 'settings', 'add-device', 'filter', 'uploads']);
+const driveOverlays = new Set(['clips', 'uploads']);
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
-  }
-
-  return parts[0] || null;
+function readRange(startText, endText, unit = 1) {
+  if (!integerPattern.test(startText) || !integerPattern.test(endText)) return null;
+  const start = Number(startText) * unit;
+  const end = Number(endText) * unit;
+  return Number.isSafeInteger(start) && Number.isSafeInteger(end) && start < end
+    ? { start, end }
+    : null;
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+// One grammar for both initial loads and subsequent history changes. Unknown paths
+// have no device: they must not accidentally select a device via a regex substring.
+export function parsePath(pathname) {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  if (parts.length === 0) return { page: 'home', dongleId: null, routeId: null, range: null };
+  if (parts.length === 1 && `/${parts[0]}` === DEMO_PATH) return { page: 'drives', dongleId: DEMO_DONGLE_ID, routeId: null, range: null };
+  if (parts.length === 1 && parts[0] === 'referrals') return { page: 'referrals', dongleId: null, routeId: null, range: null };
+  if (parts.length === 1 && parts[0] === 'add-device') return { page: 'add-device', dongleId: null, routeId: null, range: null };
+  if (!devicePattern.test(parts[0])) return { page: 'unknown', dongleId: null, routeId: null, range: null };
+
+  const dongleId = parts[0];
+  const base = { dongleId, routeId: null, range: null };
+  if (parts.length === 1) return { ...base, page: 'drives' };
+  if (parts.length === 2 && devicePages.has(parts[1])) return { ...base, page: parts[1] };
+  if (routePattern.test(parts[1])) {
+    if (parts.length === 2) return { ...base, page: 'drive', routeId: parts[1] };
+    if (parts.length === 3 && driveOverlays.has(parts[2])) return { ...base, page: parts[2], routeId: parts[1] };
+    const range = readRange(parts[2], parts[3], 1000);
+    if (range && parts.length === 4) return { ...base, page: 'drive', routeId: parts[1], range };
+    if (range && parts.length === 5 && driveOverlays.has(parts[4])) return { ...base, page: parts[4], routeId: parts[1], range };
   }
-  return null;
+  const legacyRange = readRange(parts[1], parts[2]);
+  if (parts.length === 3 && legacyRange) return { ...base, page: 'legacy-range', range: legacyRange };
+  return { page: 'unknown', dongleId: null, routeId: null, range: null };
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+// Keep URL generation beside the grammar. A destination is the same shape
+// returned by parsePath, so new screens have one place to define their URL.
+export function urlForRoute({ page, dongleId = null, routeId = null, range = null }) {
+  if (page === 'home') return '/';
+  if (page === 'referrals') return '/referrals';
+  if (page === 'add-device' && !dongleId) return '/add-device';
+  if (!dongleId) throw new Error(`A device is required for ${page}`);
 
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+  if (routeId) {
+    if (page !== 'drive' && !driveOverlays.has(page)) throw new Error(`Unknown drive page: ${page}`);
+    const base = `/${dongleId}/${routeId}`;
+    const ranged = range
+      ? `${base}/${Math.floor(range.start / 1000)}/${Math.ceil(range.end / 1000)}`
+      : base;
+    return page === 'drive' ? ranged : `${ranged}/${page}`;
   }
-  return false;
+
+  if (page === 'drives') return `/${dongleId}`;
+  if (devicePages.has(page)) return `/${dongleId}/${page}`;
+  throw new Error(`Unknown device page: ${page}`);
 }
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+export function devicePath(dongleId, page = 'drives') {
+  return urlForRoute({ page, dongleId });
+}
 
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
+export function drivePath(dongleId, routeId, start, end) {
+  return urlForRoute({
+    page: 'drive', dongleId, routeId,
+    range: start == null || end == null ? null : { start, end },
+  });
 }
