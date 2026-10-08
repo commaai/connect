@@ -218,7 +218,9 @@ class DriveVideo extends Component {
     const showSpinner = buffering && !error && desiredPlaySpeed > 0;
 
     return (
-      <div className="relative max-w-[964px] m-[0_auto] aspect-[1.593] overflow-hidden rounded-lg bg-black">
+      // as wide as fits, but short enough that the controls below stay on screen (about 390 px of
+      // header, timeline and controls), and never under 320 px wide
+      <div className="relative w-[min(100%,964px,max(320px,calc((100dvh-390px)*1.593)))] m-[0_auto] aspect-[1.593] overflow-hidden rounded-lg bg-black">
         <video
           ref={this.video}
           className="w-full h-full object-contain cursor-pointer"
