@@ -70,22 +70,24 @@ class RouteVideo extends Component {
   };
 
   onReady = (player) => {
+    const hls = player.getInternalPlayer('hls');
+    if (hls !== this.hls) {
+      this.hls = hls;
+      if (hls) {
+        hls.on('hlsBufferCodecs', (_event, data) => this.props.dispatch(setHasAudio(!!data.audio)));
+      } else {
+        this.props.dispatch(setHasAudio(!!player.getInternalPlayer().audioTracks?.length));
+      }
+    }
     if (this.ready) return;
     this.ready = true;
     this.seekTo(this.props.offset);
-    const video = player.getInternalPlayer();
-    const hls = player.getInternalPlayer('hls');
-    if (hls) {
-      hls.on('hlsBufferCodecs', (_event, data) => this.props.dispatch(setHasAudio(!!data.audio)));
-    } else {
-      this.props.dispatch(setHasAudio(!!video.audioTracks?.length));
-    }
     this.frameId = requestAnimationFrame(this.onAnimationFrame);
   };
 
   onAnimationFrame = () => {
-    const video = this.player.current.getInternalPlayer();
-    this.updateOffset(video);
+    const video = this.player.current?.getInternalPlayer();
+    if (video) this.updateOffset(video);
     this.frameId = requestAnimationFrame(this.onAnimationFrame);
   };
 

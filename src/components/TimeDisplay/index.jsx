@@ -113,7 +113,8 @@ class TimeDisplay extends Component {
 
   changeSpeed(direction) {
     const { dispatch, desiredPlaySpeed } = this.props;
-    dispatch(setPlaybackSpeed(timerSteps[timerSteps.indexOf(desiredPlaySpeed) + direction]));
+    const index = Math.max(0, timerSteps.indexOf(desiredPlaySpeed) + direction);
+    dispatch(setPlaybackSpeed(timerSteps[Math.min(index, timerSteps.length - 1)]));
   }
 
   render() {
