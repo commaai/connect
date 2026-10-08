@@ -268,10 +268,6 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
       const zoom = { start: startOffset, end: endOffset };
       this.props.dispatch(push(urlFor({ dongleId: route.dongle_id, logId: route.log_id, zoom })));
     } else if (ev.currentTarget !== document) {
