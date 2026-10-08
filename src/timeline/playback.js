@@ -25,6 +25,24 @@ export function reducer(_state, action) {
         }
       }
       break;
+    case Types.ACTION_VIDEO_TICK:
+      // Observed player position (video drives state). Unlike ACTION_SEEK this
+      // is not a user seek: it records where the media element actually is so
+      // the map, timeline and clock follow the video instead of a wall clock.
+      state = {
+        ...state,
+        offset: action.offset,
+        startTime: Date.now(),
+      };
+
+      if (loopOffset !== null) {
+        if (state.offset < loopOffset) {
+          state.offset = loopOffset;
+        } else if (state.offset > (loopOffset + state.loop.duration)) {
+          state.offset = ((state.offset - loopOffset) % state.loop.duration) + loopOffset;
+        }
+      }
+      break;
     case Types.ACTION_PAUSE:
       state = {
         ...state,
@@ -85,8 +103,8 @@ export function reducer(_state, action) {
     }
   }
 
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
+  // normalize over loop (loop start 0 is valid: check null, not truthiness)
+  if (state.offset !== null && state.loop?.startTime !== null && state.loop?.startTime !== undefined) {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
     const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
     loopOffset = state.loop.startTime;
@@ -109,6 +127,15 @@ export function reducer(_state, action) {
 export function seek(offset) {
   return {
     type: Types.ACTION_SEEK,
+    offset,
+  };
+}
+
+// player-observed position: the video element reports where it actually is.
+// Followers (map, timeline, clock) read this via currentOffset().
+export function videoTick(offset) {
+  return {
+    type: Types.ACTION_VIDEO_TICK,
     offset,
   };
 }

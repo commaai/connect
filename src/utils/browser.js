@@ -1,5 +1,8 @@
-export function isIos() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+export function isIos(navigatorLike = navigator) {
+  const userAgent = navigatorLike.userAgent || '';
+  if (/iphone|ipad|ipod/i.test(userAgent)) return true;
+  // iPadOS Safari in desktop mode reports a Macintosh UA; touch points give it away.
+  return /Macintosh/i.test(userAgent) && navigatorLike.maxTouchPoints > 1;
 }
 
 export function isFirefox() {

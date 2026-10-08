@@ -1,6 +1,6 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek, selectLoop, videoTick } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -129,5 +129,42 @@ describe('playback', () => {
     expect(state.isBufferingVideo).toEqual(false);
 
     expect(state.desiredPlaySpeed).toEqual(2);
+  });
+
+  it('wraps a loop that starts at zero', () => {
+    newNow();
+    let state = makeDefaultStruct();
+
+    state = reducer(state, play());
+    state = reducer(state, selectLoop(0, 2000));
+    expect(state.loop.startTime).toEqual(0);
+
+    // a tick past the end wraps instead of running away
+    state = reducer(state, videoTick(2500));
+    expect(state.offset).toEqual(500);
+
+    // currentOffset honors the zero-start loop too
+    expect(currentOffset({ ...state, offset: 2500, startTime: Date.now() })).toEqual(500);
+
+    // user seeks clamp (not wrap) at the edges
+    state = reducer(state, seek(3000));
+    expect(state.offset).toEqual(2000);
+    state = reducer(state, seek(-100));
+    expect(state.offset).toEqual(0);
+  });
+
+  it('records player observations without counting them as seeks', () => {
+    newNow();
+    let state = makeDefaultStruct();
+
+    state = reducer(state, play());
+    state = reducer(state, videoTick(4000));
+    expect(state.offset).toEqual(4000);
+    expect(currentOffset(state)).toEqual(4000);
+
+    // while paused the player position still wins (no wall-clock drift)
+    state = reducer(state, pause());
+    state = reducer(state, videoTick(4500));
+    expect(state.offset).toEqual(4500);
   });
 });
