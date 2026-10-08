@@ -53,6 +53,10 @@ const styles = (theme) => ({
     flexDirection: 'column',
     alignItems: 'center',
     minWidth: '40px',
+    '@media (max-width: 479px)': {
+      marginRight: 0,
+      minWidth: 32,
+    },
   },
   icon: {
     width: '98%',
@@ -72,6 +76,17 @@ const styles = (theme) => ({
   iconButton: {
     width: '40px',
     height: '40px',
+    '@media (max-width: 479px)': {
+      width: 32,
+      height: 32,
+    },
+  },
+  playButton: {
+    '@media (max-width: 479px)': {
+      width: 32,
+      height: 32,
+      padding: 0,
+    },
   },
   tinyArrowIcon: {
     width: 12,
@@ -93,6 +108,10 @@ const styles = (theme) => ({
     fontWeight: 500,
     display: 'block',
     flexGrow: 1,
+    '@media (max-width: 479px)': {
+      margin: '0 4px',
+      fontSize: 13,
+    },
   },
 });
 
@@ -228,7 +247,7 @@ class TimeDisplay extends Component {
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (
-      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
+      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls} max-xs:px-1` }>
         <div className={ classes.rightBorderBox }>
           <IconButton
             className={ classes.iconButton }
@@ -297,6 +316,7 @@ class TimeDisplay extends Component {
         </div>
         <div className={ classes.leftBorderBox }>
           <IconButton
+            className={ classes.playButton }
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >

@@ -54,9 +54,9 @@ class DriveView extends Component {
 
     return (
       <div className="DriveView">
-        <div className="flex flex-col gap-4 rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
+        <div className="flex flex-col gap-4 rounded-lg m-2 xs:m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
           <div>
-            <div className="items-center justify-between flex p-3 gap-2">
+            <div className="items-center justify-between flex p-2 xs:p-3 gap-2">
               <IconButton
                 onClick={ () => this.onBack(zoom, currentRoute) }
                 aria-label="Go Back"
@@ -64,7 +64,7 @@ class DriveView extends Component {
               >
                 <ArrowBackBold />
               </IconButton>
-              <div className="flex flex-col items-center gap-1 text-white text-lg font-medium">
+              <div className="flex flex-col items-center gap-1 text-center text-white text-base xs:text-lg font-medium">
                 {currentRoute.demo_title ? (
                   <div className="w-fit rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
                     {currentRoute.demo_title}
@@ -85,7 +85,7 @@ class DriveView extends Component {
             </div>
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
-          <div className='px-3 pb-3 md:px-8 md:pb-8'>
+          <div className='px-2 pb-2 xs:px-3 xs:pb-3 md:px-8 md:pb-8'>
             {(routes && routes.length === 0)
               ? <Typography>Route does not exist.</Typography>
               : <Media />}

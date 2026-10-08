@@ -206,7 +206,8 @@ class ExplorerApp extends Component {
     const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
-    const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
+    // the temporary drawer on phones leaves a strip to tap outside of it
+    const sidebarWidth = noDevicesUpsell ? 0 : Math.min(Math.max(280, windowWidth * 0.2), windowWidth - 40);
     const headerHeight = this.state.headerRef
       ? this.state.headerRef.getBoundingClientRect().height
       : (windowWidth < 640 ? 111 : 66);
