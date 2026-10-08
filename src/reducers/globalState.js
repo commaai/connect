@@ -320,6 +320,7 @@ export default function reducer(_state, action) {
         ...state,
         routeModal: action.modal,
         routeModalDeviceId: action.deviceId,
+        routeModalClip: action.clip,
       };
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
