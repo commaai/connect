@@ -4,7 +4,7 @@ import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
 
 import * as Types from './types';
-import { resetPlayback, selectLoop } from '../timeline/playback';
+import { resetPlayback, seek, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
@@ -159,10 +159,19 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || state.loop.startTime == null || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
-    dispatch(resetPlayback());
+  // Selecting a section of the current drive must not unpause or reset the user's speed.
+  const sameRoute = log_id != null && state.selectedRouteId === log_id;
+  if (!sameRoute || !state.loop || state.loop.startTime == null || !state.loop.duration
+    || state.loop.startTime < start || state.loop.startTime + state.loop.duration > end
+    || state.loop.duration < end - start) {
+    // Changing drives is a new playback session, even when their loop bounds match.
+    if (!sameRoute) dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
+    // A clipped selection outside the playhead requires a real seek, not just a state clamp.
+    if (sameRoute && Number.isFinite(start) && Number.isFinite(end)
+      && (!Number.isFinite(state.offset) || state.offset < start || state.offset >= end)) {
+      dispatch(seek(start));
+    }
   }
 
   if (allowPathChange) {
