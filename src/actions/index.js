@@ -163,8 +163,8 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  const route = state.routes?.find((candidate) => candidate.log_id === log_id)
-    || (state.currentRoute?.log_id === log_id ? state.currentRoute : null);
+  const route = state.currentRoute?.log_id === log_id
+    ? state.currentRoute : state.routes?.find((candidate) => candidate.log_id === log_id);
 
   if (allowPathChange) {
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
@@ -179,9 +179,8 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   const rangeEnd = end ?? route?.duration;
   if (rangeEnd == null) return;
 
-  if (state.selectedRouteId !== log_id || state.loop?.startTime == null || state.loop?.duration == null
-    || state.loop.startTime < rangeStart || state.loop.startTime + state.loop.duration > rangeEnd
-    || state.loop.duration < rangeEnd - rangeStart) {
+  if (state.selectedRouteId !== log_id || state.loop?.startTime !== rangeStart
+    || state.loop?.duration !== rangeEnd - rangeStart) {
     dispatch(resetPlayback());
     dispatch(selectLoop(rangeStart, rangeEnd));
   }
@@ -216,8 +215,8 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
       return;
     }
 
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id)
-      || (state.currentRoute?.log_id === log_id ? state.currentRoute : null);
+    const route = state.currentRoute?.log_id === log_id
+      ? state.currentRoute : state.routes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null;
     const alreadySelected = state.selectedRouteId === log_id && (wholeDrive
       ? (route
