@@ -1,5 +1,9 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
+//
+// The video element is the clock (see timeline/index.js). What lives here is what the user asked for
+// (speed, seeks, the loop) and the last place the playhead was known to be, which keeps time while
+// there is no video on screen.
 import * as Types from '../actions/types';
 import { currentOffset } from '.';
 
@@ -24,6 +28,7 @@ export function reducer(_state, action) {
           state.offset = loopOffset + state.loop.duration;
         }
       }
+      state.seekTo = { offset: state.offset };
       break;
     case Types.ACTION_PAUSE:
       state = {
@@ -57,7 +62,14 @@ export function reducer(_state, action) {
       state = {
         ...state,
         isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
+        offset: action.offset ?? currentOffset(state),
+        startTime: Date.now(),
+      };
+      break;
+    case Types.ACTION_SYNC_PLAYHEAD:
+      state = {
+        ...state,
+        offset: action.offset,
         startTime: Date.now(),
       };
       break;
@@ -68,6 +80,7 @@ export function reducer(_state, action) {
         isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
+        seekTo: { offset: 0 },
       };
       break;
     default:
@@ -98,6 +111,11 @@ export function reducer(_state, action) {
       state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
       state.startTime = Date.now();
     }
+  }
+
+  // choosing a loop that the playhead is outside of moves the playhead into it
+  if (action.type === Types.ACTION_LOOP && state.offset !== _state.offset) {
+    state.seekTo = { offset: state.offset };
   }
 
   state.isBufferingVideo = Boolean(state.isBufferingVideo);
@@ -136,11 +154,20 @@ export function selectLoop(start, end) {
   };
 }
 
-// update video buffering state
-export function bufferVideo(buffering) {
+// the video started or stopped waiting for data; offset is where the playhead is (if the video knows)
+export function bufferVideo(buffering, offset) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
+    offset,
+  };
+}
+
+// the video moved by itself (paused, changed speed, went away): remember where the playhead is
+export function syncPlayhead(offset) {
+  return {
+    type: Types.ACTION_SYNC_PLAYHEAD,
+    offset,
   };
 }
 
