@@ -1,4 +1,4 @@
-import { getVideo } from './_video';
+import { getVideo } from './video';
 
 export function toRouteMs(route, videoSeconds) {
   const videoStartOffset = route?.videoStartOffset || 0;
@@ -27,4 +27,5 @@ export function clampToLoop(routeMs, loop) {
 export function seekToRouteMs(video, route, routeMs, loop) {
   const targetMs = clampToLoop(routeMs, loop);
   video.currentTime = toVideoSeconds(route, targetMs);
+  return targetMs;
 }

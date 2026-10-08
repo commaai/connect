@@ -1,16 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-import { setVideo } from '../../timeline/_video';
-import { useVideo, useVideoEvent } from './_hooks';
+import { setVideo } from '../../timeline/video';
+import { useVideo, useVideoEvent } from '../../hooks/video';
+import { playsHlsNatively } from '../../utils/browser.js';
 
 const HLS_CONFIG = { maxBufferLength: 40 };
 const HLS_ERROR = 'hlsError';
 const HLS_BUFFER_CODECS = 'hlsBufferCodecs';
-
-function playsHlsNatively() {
-  const isIpadInDesktopMode = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || isIpadInDesktopMode;
-}
 
 function hlsErrorKind(data) {
   if (data.response?.code === 404) {

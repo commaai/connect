@@ -10,6 +10,17 @@ export function setVideo(element) {
 
 export const getVideo = () => video;
 
+export function getPlaybackSpeed(element) {
+  if (element.paused) {
+    return 0;
+  }
+  return element.playbackRate;
+}
+
+export function playIgnoringInterruptions(element) {
+  element.play().catch(() => {});
+}
+
 export function subscribeVideo(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);

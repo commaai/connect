@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 
-import { getVideo, subscribeVideo } from '../../timeline/_video';
+import { getVideo, subscribeVideo } from '../timeline/video';
 
 const CONTROL_EVENTS = ['play', 'pause', 'ratechange', 'volumechange', 'emptied'];
 

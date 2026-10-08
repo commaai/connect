@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import decodeJwt, { InvalidTokenError } from 'jwt-decode';
 
-import { currentOffset } from '../timeline';
+import { getCurrentRouteMs } from '../timeline/routeTime';
 
 dayjs.extend(relativeTime);
 
@@ -177,7 +177,7 @@ export function getSegmentNumber(route, offset) {
     return null;
   }
   if (offset === undefined) {
-    offset = currentOffset();
+    offset = getCurrentRouteMs(route);
   }
 
   return Math.floor(offset / (60*1000));

@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
@@ -8,8 +8,10 @@ import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
+import { useVideo, useVideoControls, useVideoFrame } from '../../hooks/video';
+import { getCurrentRouteMs, seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
+import { videoPaused, videoPlayed, videoSeeked } from '../../timeline/playback';
+import { getPlaybackSpeed, playIgnoringInterruptions } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -96,224 +98,179 @@ const styles = (theme) => ({
   },
 });
 
-class TimeDisplay extends Component {
-  static getDerivedStateFromProps(props, state) {
-    if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
-      return {
-        ...state,
-        desiredPlaySpeed: props.desiredPlaySpeed,
-      };
-    }
-    return state;
+function formatPlaybackTime(route, routeMs) {
+  const now = new Date(routeMs + route.start_time_utc_millis);
+  if (Number.isNaN(now.getTime())) {
+    return '...';
   }
+  const time = dayjs(now).format('HH:mm:ss');
+  return `${time} \u2013 ${getSegmentNumber(route, routeMs)}`;
+}
 
-  constructor(props) {
-    super(props);
-
-    this.textHolder = React.createRef();
-
-    this.updateTime = this.updateTime.bind(this);
-    this.togglePause = this.togglePause.bind(this);
-    this.increaseSpeed = this.increaseSpeed.bind(this);
-    this.decreaseSpeed = this.decreaseSpeed.bind(this);
-    this.jumpBack = this.jumpBack.bind(this);
-    this.jumpForward = this.jumpForward.bind(this);
-
-    this.state = {
-      desiredPlaySpeed: 1,
-      displayTime: this.getDisplayTime(),
-    };
+function speedStepIndex(playbackRate) {
+  const index = timerSteps.indexOf(playbackRate);
+  if (index === -1) {
+    return timerSteps.indexOf(1);
   }
+  return index;
+}
 
-  componentDidMount() {
-    this.mounted = true;
-    requestAnimationFrame(this.updateTime);
-  }
+function usePlaybackTimeText(route) {
+  const textRef = useRef(null);
 
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
-  getDisplayTime() {
-    const offset = currentOffset();
-    const { currentRoute } = this.props;
-    const now = new Date(offset + currentRoute.start_time_utc_millis);
-    if (Number.isNaN(now.getTime())) {
-      return '...';
-    }
-    let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute);
-    if (seg !== null) {
-      dateString = `${dateString} \u2013 ${seg}`;
-    }
-
-    return dateString;
-  }
-
-  jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
-  }
-
-  jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
-  }
-
-  updateTime() {
-    if (!this.mounted || !this.textHolder.current) {
+  const updateText = useCallback((videoSeconds) => {
+    const node = textRef.current;
+    if (!node) {
       return;
     }
-    const newDisplayTime = this.getDisplayTime();
-    const { displayTime } = this.state;
-    if (newDisplayTime !== displayTime) {
-      this.setState({ displayTime: newDisplayTime });
+    const text = formatPlaybackTime(route, toRouteMs(route, videoSeconds));
+    if (node.textContent === text) {
+      return;
     }
+    node.textContent = text;
+  }, [route]);
 
-    requestAnimationFrame(this.updateTime);
-  }
+  useVideoFrame(updateText);
+  return textRef;
+}
 
-  decreaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
+function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasAudio }) {
+  const video = useVideo();
+  const { paused, playbackRate, muted } = useVideoControls();
+  const timeTextRef = usePlaybackTimeText(currentRoute);
+
+  const speedIndex = speedStepIndex(playbackRate);
+  const canIncreaseSpeed = speedIndex < timerSteps.length - 1;
+  const canDecreaseSpeed = speedIndex > 0;
+
+  const jumpBy = (amount) => {
+    if (!video) {
+      return;
     }
-    curIndex = Math.max(0, curIndex - 1);
-    dispatch(play(timerSteps[curIndex]));
-  }
+    const targetMs = seekToRouteMs(video, currentRoute, getCurrentRouteMs(currentRoute) + amount, loop);
+    dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
+  };
 
-  canDecreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
+  const play = () => {
+    playIgnoringInterruptions(video);
+    dispatch(videoPlayed(getCurrentRouteMs(currentRoute), getPlaybackSpeed(video)));
+  };
+
+  const changeSpeedBy = (steps) => {
+    if (!video) {
+      return;
     }
-    return curIndex > 0;
-  }
+    video.playbackRate = timerSteps[speedIndex + steps];
+    play();
+  };
 
-  increaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
+  const togglePause = () => {
+    if (!video) {
+      return;
     }
-    curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    dispatch(play(timerSteps[curIndex]));
-  }
-
-  canIncreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
+    if (paused) {
+      play();
+      return;
     }
-    return curIndex < timerSteps.length - 1;
-  }
+    video.pause();
+    dispatch(videoPaused(getCurrentRouteMs(currentRoute), getPlaybackSpeed(video)));
+  };
 
-  togglePause() {
-    const { desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed === 0) {
-      // eslint-disable-next-line react/destructuring-assignment
-      dispatch(play(this.state.desiredPlaySpeed));
-    } else {
-      dispatch(pause());
+  const toggleMute = () => {
+    if (!video) {
+      return;
     }
-  }
+    video.muted = !muted;
+  };
 
-  render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime, desiredPlaySpeed } = this.state;
-    const isPaused = videoPlaySpeed === 0;
-    const isExpandedCls = zoom ? 'isExpanded' : '';
-    const isThinCls = isThin ? 'isThin' : '';
-    return (
-      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-        <div className={ classes.rightBorderBox }>
-          <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpBack(10000) }
-            aria-label="Jump back 10 seconds"
-          >
-            <Replay10 className={`${classes.icon} small dim`} />
-          </IconButton>
-        </div>
-        <div className={ classes.rightBorderBox }>
-          <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpForward(10000) }
-            aria-label="Jump forward 10 seconds"
-          >
-            <Forward10 className={`${classes.icon} small dim`} />
-          </IconButton>
-        </div>
-        { !isThin && (
-          <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
-            CURRENT PLAYBACK TIME
-          </Typography>
-        )}
-        <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+  const isExpandedCls = zoom ? 'isExpanded' : '';
+  const isThinCls = isThin ? 'isThin' : '';
+  return (
+    <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
+      <div className={ classes.rightBorderBox }>
+        <IconButton
+          className={ classes.iconButton }
+          onClick={ () => jumpBy(-10000) }
+          aria-label="Jump back 10 seconds"
+        >
+          <Replay10 className={`${classes.icon} small dim`} />
+        </IconButton>
+      </div>
+      <div className={ classes.rightBorderBox }>
+        <IconButton
+          className={ classes.iconButton }
+          onClick={ () => jumpBy(10000) }
+          aria-label="Jump forward 10 seconds"
+        >
+          <Forward10 className={`${classes.icon} small dim`} />
+        </IconButton>
+      </div>
+      { !isThin && (
+        <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
+          CURRENT PLAYBACK TIME
         </Typography>
-        {!isIos() && (
-          <div className={ classes.desiredPlaySpeedContainer }>
+      )}
+      <Typography variant="body1" align="center" className={classes.currentTime}>
+        <span ref={timeTextRef} />
+      </Typography>
+      {!isIos() && (
+        <div className={ classes.desiredPlaySpeedContainer }>
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={() => changeSpeedBy(1)}
+            disabled={!canIncreaseSpeed}
+            aria-label="Increase play speed by 1 step"
+          >
+            <UpArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+          <Typography variant="body2" align="center">
+            {playbackRate}
+            ×
+          </Typography>
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={() => changeSpeedBy(-1)}
+            disabled={!canDecreaseSpeed}
+            aria-label="Decrease play speed by 1 step"
+          >
+            <DownArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+        </div>
+      )}
+      <div className={ classes.leftBorderBox }>
+        <Tooltip title={ !hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
+          <div>
             <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
-              aria-label="Increase play speed by 1 step"
+              className={ classes.iconButton }
+              onClick={toggleMute}
+              disabled={!hasAudio}
+              aria-label={muted ? 'Unmute' : 'Mute'}
             >
-              <UpArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-            <Typography variant="body2" align="center">
-              {desiredPlaySpeed}
-              ×
-            </Typography>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
-              aria-label="Decrease play speed by 1 step"
-            >
-              <DownArrow className={classes.tinyArrowIcon} />
+              {muted
+                ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
+                : (<VolumeUp className={`${classes.icon} small`} />)}
             </IconButton>
           </div>
-        )}
-        <div className={ classes.leftBorderBox }>
-          <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
-            <div>
-              <IconButton
-                className={ classes.iconButton }
-                onClick={onMuteToggle}
-                disabled={!hasAudio}
-                aria-label={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted
-                  ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
-                  : (<VolumeUp className={`${classes.icon} small`} />)}
-              </IconButton>
-            </div>
-          </Tooltip>
-        </div>
-        <div className={ classes.leftBorderBox }>
-          <IconButton
-            onClick={this.togglePause}
-            aria-label={isPaused ? 'Unpause' : 'Pause'}
-          >
-            {isPaused
-              ? (<PlayArrow className={classes.icon} />)
-              : (<Pause className={classes.icon} />)}
-          </IconButton>
-        </div>
+        </Tooltip>
       </div>
-    );
-  }
+      <div className={ classes.leftBorderBox }>
+        <IconButton
+          onClick={togglePause}
+          aria-label={paused ? 'Unpause' : 'Pause'}
+        >
+          {paused
+            ? (<PlayArrow className={classes.icon} />)
+            : (<Pause className={classes.icon} />)}
+        </IconButton>
+      </div>
+    </div>
+  );
 }
 
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
-  desiredPlaySpeed: state.desiredPlaySpeed,
+  loop: state.loop,
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

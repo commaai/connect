@@ -10,8 +10,9 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
-import { seek } from '../../timeline/playback';
+import { getCurrentRouteMs, seekToRouteMs } from '../../timeline/routeTime';
+import { videoSeeked } from '../../timeline/playback';
+import { getPlaybackSpeed, getVideo } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -148,6 +149,7 @@ class Timeline extends Component {
     super(props);
 
     this.getOffset = this.getOffset.bind(this);
+    this.seekTo = this.seekTo.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -209,11 +211,21 @@ class Timeline extends Component {
     }
   }
 
+  seekTo(offset) {
+    const video = getVideo();
+    if (!video) {
+      return;
+    }
+    const { dispatch, route, loop } = this.props;
+    const targetMs = seekToRouteMs(video, route, offset, loop);
+    dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
+  }
+
   handleClick(ev) {
     const { dragging } = this.state;
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(ev);
-      this.props.dispatch(seek(this.percentToOffset(percent)));
+      this.seekTo(this.percentToOffset(percent));
     }
   }
 
@@ -267,9 +279,10 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
+      const playheadMs = getCurrentRouteMs(route);
+      const playheadOutsideSelection = playheadMs < startOffset || playheadMs > endOffset;
+      if (playheadOutsideSelection) {
+        this.seekTo(startOffset);
       }
       const { dispatch } = this.props;
       const startTime = startOffset;
@@ -297,7 +310,7 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
+    let offset = getCurrentRouteMs(this.props.route);
     if (this.seekIndex) {
       offset = this.seekIndex;
     }
