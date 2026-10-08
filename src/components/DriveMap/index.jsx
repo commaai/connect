@@ -1,9 +1,11 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { CircularProgress } from '@material-ui/core';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
+import { MyLocation } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
@@ -20,6 +22,8 @@ class DriveMap extends Component {
       },
       driveCoordsMin: null,
       driveCoordsMax: null,
+      mapReady: false,
+      offCenter: false,
     };
 
     this.onRef = this.onRef.bind(this);
@@ -30,6 +34,7 @@ class DriveMap extends Component {
     this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onInteraction = this.onInteraction.bind(this);
+    this.recenter = this.recenter.bind(this);
 
     this.shouldFlyTo = false;
     this.isInteracting = false;
@@ -62,31 +67,39 @@ class DriveMap extends Component {
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
       && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
       this.shouldFlyTo = false;
-      const keys = Object.keys(currentRoute.driveCoords);
-      this.setState({
-        driveCoordsMin: Math.min(...keys),
-        driveCoordsMax: Math.max(...keys),
-      });
+      this.rememberCoords(currentRoute.driveCoords);
       this.populateMap();
     }
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    if (this.isInteractingTimeout !== null) clearTimeout(this.isInteractingTimeout);
   }
 
   onInteraction(ev) {
-    if (ev.isDragging || ev.isRotating || ev.isZooming) {
-      this.shouldFlyTo = true;
-      this.isInteracting = true;
+    if (!(ev.isDragging || ev.isPanning || ev.isRotating || ev.isZooming)) return;
+    this.shouldFlyTo = true;
+    this.isInteracting = true;
+    if (!this.state.offCenter) this.setState({ offCenter: true });
 
-      if (this.isInteractingTimeout !== null) {
-        clearTimeout(this.isInteractingTimeout);
-      }
-      this.isInteractingTimeout = setTimeout(() => {
-        this.isInteracting = false;
-      }, INTERACTION_TIMEOUT);
+    if (this.isInteractingTimeout !== null) clearTimeout(this.isInteractingTimeout);
+    this.isInteractingTimeout = setTimeout(() => {
+      this.isInteracting = false;
+      if (this.mounted) this.setState({ offCenter: false });
+    }, INTERACTION_TIMEOUT);
+  }
+
+  recenter() {
+    if (this.isInteractingTimeout !== null) {
+      clearTimeout(this.isInteractingTimeout);
+      this.isInteractingTimeout = null;
     }
+    this.isInteracting = false;
+    this.shouldFlyTo = true;
+    this.setState({ offCenter: false });
+    const pos = this.posAtOffset(currentOffset());
+    if (pos) this.moveViewportTo(pos);
   }
 
   updateMarkerPos() {
@@ -136,6 +149,48 @@ class DriveMap extends Component {
         ...viewport,
       },
     }));
+  }
+
+  rememberCoords(driveCoords) {
+    const keys = Object.keys(driveCoords);
+    if (!keys.length) {
+      this.revealSettled();
+      return;
+    }
+    this.setState({
+      driveCoordsMin: Math.min(...keys),
+      driveCoordsMax: Math.max(...keys),
+    }, () => {
+      if (!this.map || this.revealed) return;
+      const pos = this.posAtOffset(currentOffset());
+      if (!pos) {
+        this.revealSettled();
+        return;
+      }
+      this.lastMapPos = pos;
+      this.shouldFlyTo = false;
+      this.setState((prev) => ({
+        viewport: {
+          ...prev.viewport,
+          longitude: pos[0],
+          latitude: pos[1],
+        },
+      }), () => this.revealSettled());
+    });
+  }
+
+  revealSettled() {
+    if (this.revealed || !this.map || !this.mounted) return;
+    this.revealed = true;
+    const map = this.map.getMap();
+    map.resize();
+    const show = () => {
+      if (this.mounted) this.setState({ mapReady: true });
+    };
+    // The playhead keeps the camera moving, so idle may never come.
+    // The next paints already have the route position; idle covers the paused case.
+    map.once('idle', show);
+    requestAnimationFrame(() => requestAnimationFrame(show));
   }
 
   async populateMap() {
@@ -266,15 +321,12 @@ class DriveMap extends Component {
       map.addLayer(markerGeoJson);
 
       this.map = mapComponent;
+      map.resize();
 
       const { currentRoute } = this.props;
       if (currentRoute?.driveCoords) {
         this.shouldFlyTo = false;
-        const keys = Object.keys(currentRoute.driveCoords);
-        this.setState({
-          driveCoordsMin: Math.min(...keys),
-          driveCoordsMax: Math.max(...keys),
-        });
+        this.rememberCoords(currentRoute.driveCoords);
         this.populateMap();
       }
     });
@@ -283,7 +335,7 @@ class DriveMap extends Component {
   render() {
     const { viewport } = this.state;
     return (
-      <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
+      <div ref={this.onRef} className="relative h-full w-full cursor-default">
         <ReactMapGL
           width="100%"
           height="100%"
@@ -300,6 +352,21 @@ class DriveMap extends Component {
           attributionControl={false}
           onInteractionStateChange={this.onInteraction}
         />
+        {!this.state.mapReady && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black">
+            <CircularProgress style={{ color: '#fff' }} thickness={4} size={32} />
+          </div>
+        )}
+        {this.state.mapReady && this.state.offCenter && (
+          <button
+            type="button"
+            aria-label="Center map"
+            onClick={this.recenter}
+            className="absolute top-3 right-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/75 text-white ring-1 ring-white/15 transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-black/90"
+          >
+            <MyLocation className="h-[22px] w-[22px]" />
+          </button>
+        )}
       </div>
     );
   }

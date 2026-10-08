@@ -171,9 +171,9 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 
     const urlStart = wholeDrive ? null : Math.floor(start / 1000);
     const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
+    const desiredPath = `${urlForState(state.dongleId, log_id, urlStart, urlEnd, false)}${window.location.search}`;
 
-    if (currentPathname(state) !== desiredPath) {
+    if (`${currentPathname(state)}${window.location.search}` !== desiredPath) {
       dispatch(push(desiredPath));
     }
   }

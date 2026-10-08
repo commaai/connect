@@ -32,25 +32,43 @@ const styles = () => ({
     display: 'flex',
     width: 'max-content',
     alignItems: 'center',
-    border: '1px solid rgba(255,255,255,.1)',
-    borderRadius: 50,
+    gap: '2px',
+    padding: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   mediaOption: {
     alignItems: 'center',
-    borderRight: '1px solid rgba(255,255,255,.1)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     cursor: 'pointer',
-    minHeight: 32,
+    minHeight: 28,
     minWidth: 44,
-    paddingLeft: 15,
-    paddingRight: 15,
+    paddingLeft: 12,
+    paddingRight: 12,
+    borderRadius: 999,
+    color: 'rgba(255, 255, 255, 0.55)',
+    userSelect: 'none',
+    touchAction: 'manipulation',
+    transition: 'transform 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+    '&:active': {
+      transform: 'scale(0.97)',
+    },
+    '&.isSelected': {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: '#fff',
+    },
+    '@media (hover: hover) and (pointer: fine)': {
+      '&:hover': {
+        color: '#fff',
+      },
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'background-color 150ms ease, color 150ms ease',
+    },
     '&.disabled': {
       cursor: 'default',
-    },
-    '&:last-child': {
-      borderRight: 'none',
     },
   },
   mediaOptionDisabled: {
@@ -66,6 +84,7 @@ const styles = () => ({
   mediaOptionText: {
     fontSize: 12,
     fontWeight: 500,
+    color: 'inherit',
     textAlign: 'center',
   },
   mediaSource: {
@@ -197,12 +216,19 @@ const MediaType = {
   MAP: 'map',
 };
 
+function mediaInUrl() {
+  return new URLSearchParams(window.location.search).get('media') === MediaType.MAP
+    ? MediaType.MAP
+    : MediaType.VIDEO;
+}
+
 class Media extends Component {
   constructor(props) {
     super(props);
 
+    const inView = mediaInUrl();
     this.state = {
-      inView: MediaType.VIDEO,
+      inView,
       windowWidth: window.innerWidth,
       downloadMenu: null,
       clipMenu: null,
@@ -213,10 +239,13 @@ class Media extends Component {
       isMuted: true,
       hasAudio: false,
       clipsSupported: false,
+      mapSeen: inView === MediaType.MAP,
+      playbackStatus: null,
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
+    this.handlePlaybackStatusChange = this.handlePlaybackStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
@@ -231,6 +260,7 @@ class Media extends Component {
     this.onPublicToggle = this.onPublicToggle.bind(this);
     this.fetchRoutePreserved = this.fetchRoutePreserved.bind(this);
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
+    this.selectMedia = this.selectMedia.bind(this);
 
     this.routeViewed = false;
   }
@@ -243,6 +273,23 @@ class Media extends Component {
     this.setState({ hasAudio });
   }
 
+  handlePlaybackStatusChange(playbackStatus) {
+    this.setState({ playbackStatus });
+  }
+
+  selectMedia(inView) {
+    this.setState({
+      inView,
+      mapSeen: inView === MediaType.MAP || this.state.mapSeen,
+    });
+    const url = new URL(window.location.href);
+    if (inView === MediaType.MAP) url.searchParams.set('media', MediaType.MAP);
+    else url.searchParams.delete('media');
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (next !== current) window.history.replaceState(window.history.state, '', next);
+  }
+
   componentDidMount() {
     this.mounted = true;
     this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
@@ -252,18 +299,13 @@ class Media extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
-    const showMapAlways = windowWidth >= 1536;
+    const { downloadMenu, moreInfoMenu, routePreserved } = this.state;
     if (prevProps.dongleId !== this.props.dongleId) {
       this.setState({ clipsSupported: false, clipMenu: null });
       this.checkClipsSupport();
     } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
       this.checkClipsSupport();
     }
-    if (showMapAlways && inView === MediaType.MAP) {
-      this.setState({ inView: MediaType.VIDEO });
-    }
-
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
       this.props.dispatch(fetchEvents(this.props.currentRoute));
     }
@@ -531,36 +573,57 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted, hasAudio } = this.state;
+    const { inView, windowWidth, isMuted, hasAudio, playbackStatus } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
     const showMapAlways = windowWidth >= 1536;
+    const showMap = showMapAlways || inView === MediaType.MAP;
+    const frame = 'overflow-hidden rounded-xl bg-black shadow-[0_16px_40px_rgba(0,0,0,0.28)] ring-1 ring-white/10';
 
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
-        <div className="flex flex-row gap-5">
-          <div className={`relative ${showMapAlways ? 'w-[60%]' : 'w-full'}`}>
-            <div className={inView === MediaType.VIDEO ? undefined : 'pointer-events-none absolute inset-0 -z-10 opacity-0'}>
-              <DriveVideo
-                isMuted={isMuted}
-                onAudioStatusChange={this.handleAudioStatusChange}
-              />
+        <div className="flex flex-row items-stretch gap-5">
+          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
+            <div className={`relative mx-auto aspect-[1.593] w-full max-w-[964px] ${frame}`}>
+              <div className={`absolute inset-0 ${showMap && !showMapAlways ? 'invisible pointer-events-none' : ''}`}>
+                <DriveVideo
+                  isMuted={isMuted}
+                  onAudioStatusChange={this.handleAudioStatusChange}
+                  onPlaybackStatusChange={this.handlePlaybackStatusChange}
+                />
+              </div>
+              {!showMapAlways && (this.state.mapSeen || showMap) && (
+                <div className={`absolute inset-0 ${showMap ? '' : 'invisible pointer-events-none'}`}>
+                  <DriveMap />
+                </div>
+              )}
+              {showMap && !showMapAlways && playbackStatus && (
+                <div role={playbackStatus.recover ? 'alert' : 'status'} className="absolute inset-x-3 bottom-3 z-20 flex items-center gap-3 rounded-xl bg-black/80 px-4 py-3 text-white ring-1 ring-white/10">
+                  <Typography variant="body2" className="min-w-0 flex-1 text-white">{playbackStatus.message}</Typography>
+                  {playbackStatus.recover && (
+                    <button
+                      type="button"
+                      onClick={playbackStatus.recover}
+                      className="shrink-0 rounded-full bg-white/15 px-4 py-1.5 text-sm text-white transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white/25"
+                    >
+                      Retry
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-            {(inView === MediaType.MAP && !showMapAlways) && (
-              <div className="w-full">
+          </div>
+          {showMapAlways && (
+            <div className="relative w-[40%] self-stretch">
+              <div className={`absolute inset-0 ${frame}`}>
                 <DriveMap />
               </div>
-            )}
-          </div>
-          {(inView === MediaType.VIDEO && showMapAlways) &&
-            <div className="w-[40%]">
-              <DriveMap />
             </div>
-          }
+          )}
         </div>
         <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
           <TimeDisplay
@@ -583,16 +646,14 @@ class Media extends Component {
           { !showMapAlways && (
             <div className={classes.mediaOptions}>
               <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-                onClick={() => this.setState({ inView: MediaType.VIDEO })}
+                className={`${classes.mediaOption} ${inView === MediaType.VIDEO ? 'isSelected' : ''}`}
+                onClick={() => this.selectMedia(MediaType.VIDEO)}
               >
                 <Typography className={classes.mediaOptionText}>Video</Typography>
               </div>
               <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                onClick={() => this.setState({ inView: MediaType.MAP })}
+                className={`${classes.mediaOption} ${inView === MediaType.MAP ? 'isSelected' : ''}`}
+                onClick={() => this.selectMedia(MediaType.MAP)}
               >
                 <Typography className={classes.mediaOptionText}>Map</Typography>
               </div>

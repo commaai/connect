@@ -49,6 +49,17 @@ function alignLoop(state) {
   };
 }
 
+export function selectionHasVideo(route, loop) {
+  if (!Array.isArray(route?.events)) return true;
+  if (route.videoStartOffset == null) return false;
+  const videoEnd = Number.isFinite(route.duration) ? route.duration : Infinity;
+  const start = loop?.startTime ?? 0;
+  // A same-second selection has no span. The point still has video when it lands inside it.
+  if (loop?.duration === 0) return start >= route.videoStartOffset && start <= videoEnd;
+  const end = Number.isFinite(loop?.duration) ? start + loop.duration : videoEnd;
+  return Math.min(videoEnd, end) > Math.max(route.videoStartOffset, start);
+}
+
 function clampToLoop(offset, loop) {
   if (!loop || loop.startTime == null || !loop.duration) return offset;
   const end = loop.startTime + loop.duration;

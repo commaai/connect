@@ -58,9 +58,12 @@ class DriveView extends Component {
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
+                className="!h-10 !w-10 !rounded-full !text-white/70 transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:!bg-white/10 hover:!text-white active:!scale-[0.97]"
+                style={{ visibility: backButtonDisabled ? 'hidden' : 'visible' }}
                 onClick={ () => this.onBack(zoom, currentRoute) }
                 aria-label="Go Back"
                 disabled={ backButtonDisabled }
+                tabIndex={ backButtonDisabled ? -1 : 0 }
               >
                 <ArrowBackBold />
               </IconButton>
@@ -76,6 +79,7 @@ class DriveView extends Component {
                 </div>
               </div>
               <IconButton
+                className="!h-10 !w-10 !rounded-full !text-white/70 transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:!bg-white/10 hover:!text-white active:!scale-[0.97]"
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
                 href={ `/${dongleId}` }

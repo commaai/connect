@@ -7,7 +7,7 @@ import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
-import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
+import { Forward10, Pause, PlayArrow, Replay10, VolumeUp, VolumeOff } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
@@ -23,89 +23,97 @@ const timerSteps = [
   8,
 ];
 
+const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const QUIET = 'rgba(255, 255, 255, 0.62)';
+
+function controlButton(color) {
+  return {
+    width: 40,
+    height: 40,
+    padding: 0,
+    borderRadius: '50%',
+    color,
+    backgroundColor: 'transparent',
+    touchAction: 'manipulation',
+    transition: `transform 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
+    '&:hover, &:focus': {
+      backgroundColor: 'transparent',
+    },
+    '&:active': {
+      transform: 'scale(0.97)',
+    },
+    '@media (hover: hover) and (pointer: fine)': {
+      '&:hover': {
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        color: '#fff',
+      },
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
+    },
+  };
+}
+
 const styles = (theme) => ({
   base: {
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: theme.palette.grey[999],
-    height: '64px',
-    borderRadius: '32px',
-    padding: theme.spacing.unit,
-    width: 400,
-    maxWidth: '100%',
+    gap: '10px',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    height: 56,
+    borderRadius: 28,
+    padding: '0 8px',
+    width: '100%',
+    maxWidth: 480,
     margin: '0 auto',
     userSelect: 'none',
     touchAction: 'manipulation',
     opacity: 0,
     pointerEvents: 'none',
-    transition: 'opacity 0.1s ease-in-out',
+    transition: `opacity 150ms ${EASE}`,
     '&.isExpanded': {
       opacity: 1,
       pointerEvents: 'auto',
     },
     '&.isThin': {
-      height: 50,
-      paddingBottom: 0,
-      paddingTop: 0,
+      height: 52,
     },
   },
-  desiredPlaySpeedContainer: {
-    marginRight: theme.spacing.unit * 1,
+  group: {
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
-    minWidth: '40px',
+    gap: '4px',
+  },
+  speedLabel: {
+    color: 'inherit',
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: '-0.03em',
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1,
   },
   icon: {
-    width: '98%',
-    height: '98%',
+    width: 22,
+    height: 22,
+    color: 'inherit',
     '&.dim': {
       color: theme.palette.grey[300],
     },
-    '&.small': {
-      width: '80%',
-      height: '80%',
-    },
-    '&.circle': {
-      border: `1px solid ${theme.palette.grey[900]}`,
-      borderRadius: '50%',
-    },
   },
-  iconButton: {
-    width: '40px',
-    height: '40px',
-    touchAction: 'manipulation',
-    transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1)',
-    '&:active': {
-      transform: 'scale(0.97)',
-    },
-    '@media (prefers-reduced-motion: reduce)': {
-      transition: 'none',
-    },
-  },
-  tinyArrowIcon: {
-    width: 12,
-    height: 12,
-    color: theme.palette.grey[500],
-    '&[disabled]': {
-      visibility: 'hidden',
-    },
-  },
-  rightBorderBox: {
-    borderRight: `1px solid ${theme.palette.grey[900]}`,
-  },
-  leftBorderBox: {
-    borderLeft: `1px solid ${theme.palette.grey[900]}`,
-  },
+  iconButton: controlButton(QUIET),
+  pauseButton: controlButton('#fff'),
   currentTime: {
-    margin: `0 ${theme.spacing.unit * 1}px`,
+    margin: 0,
     fontSize: 15,
     fontWeight: 500,
+    letterSpacing: '-0.01em',
+    color: 'rgba(255, 255, 255, 0.92)',
     fontVariantNumeric: 'tabular-nums',
     whiteSpace: 'nowrap',
     minWidth: 0,
     display: 'block',
     flexGrow: 1,
+    textAlign: 'center',
   },
 });
 
@@ -127,8 +135,7 @@ class TimeDisplay extends Component {
 
     this.updateTime = this.updateTime.bind(this);
     this.togglePause = this.togglePause.bind(this);
-    this.increaseSpeed = this.increaseSpeed.bind(this);
-    this.decreaseSpeed = this.decreaseSpeed.bind(this);
+    this.cycleSpeed = this.cycleSpeed.bind(this);
     this.jumpBack = this.jumpBack.bind(this);
     this.jumpForward = this.jumpForward.bind(this);
 
@@ -184,44 +191,12 @@ class TimeDisplay extends Component {
     requestAnimationFrame(this.updateTime);
   }
 
-  decreaseSpeed() {
+  cycleSpeed() {
     const { dispatch } = this.props;
     const { desiredPlaySpeed } = this.state;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.max(0, curIndex - 1);
-    dispatch(play(timerSteps[curIndex]));
-  }
-
-  canDecreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    return curIndex > 0;
-  }
-
-  increaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    dispatch(play(timerSteps[curIndex]));
-  }
-
-  canIncreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    return curIndex < timerSteps.length - 1;
+    if (curIndex === -1) curIndex = timerSteps.indexOf(1);
+    dispatch(play(timerSteps[(curIndex + 1) % timerSteps.length]));
   }
 
   togglePause() {
@@ -242,22 +217,20 @@ class TimeDisplay extends Component {
     const isThinCls = isThin ? 'isThin' : '';
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-        <div className={ classes.rightBorderBox }>
+        <div className={classes.group}>
           <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpBack(10000) }
+            className={classes.iconButton}
+            onClick={() => this.jumpBack(10000)}
             aria-label="Jump back 10 seconds"
           >
-            <Replay10 className={`${classes.icon} small dim`} />
+            <Replay10 className={classes.icon} />
           </IconButton>
-        </div>
-        <div className={ classes.rightBorderBox }>
           <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpForward(10000) }
+            className={classes.iconButton}
+            onClick={() => this.jumpForward(10000)}
             aria-label="Jump forward 10 seconds"
           >
-            <Forward10 className={`${classes.icon} small dim`} />
+            <Forward10 className={classes.icon} />
           </IconButton>
         </div>
         { !isThin && (
@@ -269,48 +242,34 @@ class TimeDisplay extends Component {
           <span ref={this.textHolder}>{ displayTime }</span>
         </Typography>
         {!isIos() && (
-          <div className={ classes.desiredPlaySpeedContainer }>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
-              aria-label="Increase play speed by 1 step"
-            >
-              <UpArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-            <Typography variant="body2" align="center">
+          <IconButton
+            className={classes.iconButton}
+            onClick={this.cycleSpeed}
+            aria-label={`Playback speed ${desiredPlaySpeed} times`}
+          >
+            <span className={classes.speedLabel}>
               {desiredPlaySpeed}
               ×
-            </Typography>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
-              aria-label="Decrease play speed by 1 step"
-            >
-              <DownArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-          </div>
+            </span>
+          </IconButton>
         )}
-        <div className={ classes.leftBorderBox }>
-          <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
+        <div className={classes.group}>
+          <Tooltip title={!this.props.hasAudio ? 'Enable audio recording through the "Record and Upload Microphone Audio" toggle on your device' : ''}>
             <div>
               <IconButton
-                className={ classes.iconButton }
+                className={classes.iconButton}
                 onClick={onMuteToggle}
                 disabled={!hasAudio}
                 aria-label={isMuted ? 'Unmute' : 'Mute'}
               >
                 {isMuted
-                  ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
-                  : (<VolumeUp className={`${classes.icon} small`} />)}
+                  ? (<VolumeOff className={`${classes.icon} ${!hasAudio ? 'dim' : ''}`} />)
+                  : (<VolumeUp className={classes.icon} />)}
               </IconButton>
             </div>
           </Tooltip>
-        </div>
-        <div className={ classes.leftBorderBox }>
           <IconButton
-            className={classes.iconButton}
+            className={classes.pauseButton}
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >

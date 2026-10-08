@@ -42,6 +42,18 @@ describe('timeline actions', () => {
     expect(push).toBeCalledWith('/statedongle/log_id');
   });
 
+  it('keeps the current query when the drive path changes', () => {
+    window.history.replaceState({}, '', '/statedongle/other?media=map');
+    const dispatch = vi.fn();
+    pushTimelineRange('log_id', 123, 1234)(dispatch, () => ({
+      dongleId: 'statedongle',
+      loop: {},
+      zoom: {},
+    }));
+    expect(push).toBeCalledWith('/statedongle/log_id?media=map');
+    window.history.replaceState({}, '', '/');
+  });
+
   it.each([
     ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
     ['stream', streamNav, 'streamNav', '/statedongle/stream'],

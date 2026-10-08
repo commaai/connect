@@ -1,6 +1,6 @@
 import { currentOffset } from '.';
 import { bindVideo } from './video';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek, selectionHasVideo, selectLoop } from './playback';
 
 function state(overrides) {
   return {
@@ -40,5 +40,15 @@ describe('playback', () => {
       offset: 2500,
       loop: { startTime: 1000, duration: 1000 },
     }))).toBe(1500);
+  });
+
+  it('notices a selection that misses the video', () => {
+    const route = { events: [], videoStartOffset: 5000, duration: 10000 };
+    expect(selectionHasVideo(route, { startTime: 0, duration: 1000 })).toBe(false);
+    expect(selectionHasVideo(route, { startTime: 6000, duration: 1000 })).toBe(true);
+    expect(selectionHasVideo(route, { startTime: 6000, duration: 0 })).toBe(true);
+    expect(selectionHasVideo(route, null)).toBe(true);
+    expect(selectionHasVideo({ events: [], videoStartOffset: null, duration: 10000 }, null)).toBe(false);
+    expect(selectionHasVideo({ duration: 10000 }, null)).toBe(true);
   });
 });

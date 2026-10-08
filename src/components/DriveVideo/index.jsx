@@ -6,7 +6,7 @@ import ReactPlayer from 'react-player/file';
 import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { bufferVideo } from '../../timeline/playback';
+import { bufferVideo, selectionHasVideo } from '../../timeline/playback';
 import { bindVideo, seekPending, seekVideo, videoOffset } from '../../timeline/video';
 import { isIos } from '../../utils/browser.js';
 
@@ -18,15 +18,24 @@ const NOT_FOUND = 404;
 const MISSING_SEGMENT = 'This video segment has not uploaded yet or has been deleted.';
 const OFFLINE = 'Unable to load video. Check network connection.';
 const UNAVAILABLE = 'Unable to load video';
+const NO_VIDEO = 'No video is available in this selected range.';
 
-const VideoOverlay = ({ loading, error }) => {
+const RETRY = 'Retry';
+const retryButton = 'rounded-full bg-white/15 px-4 py-1.5 text-sm text-white transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white/25';
+
+const VideoOverlay = ({ loading, error, onRetry }) => {
   if (!loading && !error) return null;
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#16181A]/70 text-white transition-opacity duration-150">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 text-white transition-opacity duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]">
       {error ? (
-        <div className="flex flex-col items-center px-6 text-center">
+        <div role={onRetry ? 'alert' : 'status'} className="flex flex-col items-center px-6 text-center">
           <ErrorOutline className="mb-2" />
           <Typography>{error}</Typography>
+          {onRetry && (
+            <button type="button" onClick={onRetry} className={`mt-3 ${retryButton}`}>
+              {RETRY}
+            </button>
+          )}
         </div>
       ) : (
         <CircularProgress style={{ color: Colors.white }} thickness={4} size={42} />
@@ -59,7 +68,8 @@ class DriveVideo extends Component {
     this.onBuffer = this.onBuffer.bind(this);
     this.onPlaying = this.onPlaying.bind(this);
     this.onError = this.onError.bind(this);
-    this.state = { src: null, videoError: null };
+    this.retry = this.retry.bind(this);
+    this.state = { src: null, videoError: null, retry: 0 };
   }
 
   componentDidMount() {
@@ -71,6 +81,7 @@ class DriveVideo extends Component {
     };
     this.frame = requestAnimationFrame(tick);
     this.updateSource({});
+    this.reportRange(null);
   }
 
   componentDidUpdate(prev) {
@@ -81,12 +92,36 @@ class DriveVideo extends Component {
       || prev.loop?.duration !== this.props.loop?.duration;
     if (routeChanged || offsetChanged) this.seekToCommand();
     else if (loopChanged) this.seekInsideLoop();
+    this.reportRange(prev);
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    this.reportStatus(null);
     bindVideo(null);
     cancelAnimationFrame(this.frame);
+  }
+
+  reportStatus(message, recoverable = true) {
+    if (!message) {
+      this.props.onPlaybackStatusChange?.(null);
+      return;
+    }
+    this.props.onPlaybackStatusChange?.({ message, recover: recoverable ? this.retry : null });
+  }
+
+  reportRange(prev) {
+    const empty = !selectionHasVideo(this.props.currentRoute, this.props.loop);
+    const wasEmpty = prev ? !selectionHasVideo(prev.currentRoute, prev.loop) : false;
+    if (prev && empty === wasEmpty) return;
+    if (!prev && !empty) return;
+    if (empty) {
+      this.setBuffering(false);
+      if (this.state.videoError) this.setState({ videoError: null });
+      this.reportStatus(NO_VIDEO, false);
+      return;
+    }
+    this.reportStatus(this.state.videoError);
   }
 
   onReady(player) {
@@ -101,7 +136,8 @@ class DriveVideo extends Component {
 
   onPlaying() {
     this.setBuffering(false);
-    if (this.mounted && this.state.videoError) this.setState({ videoError: null });
+    if (!this.mounted || !this.state.videoError) return;
+    this.setState({ videoError: null }, () => this.reportStatus(null));
   }
 
   onError(error, data) {
@@ -109,8 +145,13 @@ class DriveVideo extends Component {
     const info = error === HLS_ERROR ? data : error;
     if (!info || info.fatal === false) return;
 
+    const message = videoMessage(info);
     this.setBuffering(false);
-    this.setState({ videoError: videoMessage(info) });
+    this.setState({ videoError: message }, () => this.reportStatus(message));
+  }
+
+  retry() {
+    this.setState((state) => ({ retry: state.retry + 1, videoError: null }), () => this.reportStatus(null));
   }
 
   setBuffering(buffering) {
@@ -122,7 +163,7 @@ class DriveVideo extends Component {
   updateSource(prev) {
     const { currentRoute } = this.props;
     if (!currentRoute) {
-      if (this.state.src) this.setState({ src: null, videoError: null });
+      if (this.state.src) this.setState({ src: null, videoError: null }, () => this.reportStatus(null));
       return;
     }
     if (!prev.currentRoute || prev.currentRoute.fullname !== currentRoute.fullname) {
@@ -131,7 +172,7 @@ class DriveVideo extends Component {
         currentRoute.share_exp,
         currentRoute.share_sig,
       );
-      this.setState({ src, videoError: null });
+      this.setState({ src, videoError: null }, () => this.reportStatus(null));
     }
   }
 
@@ -182,13 +223,16 @@ class DriveVideo extends Component {
 
   render() {
     const { desiredPlaySpeed, isBufferingVideo, isMuted, currentRoute } = this.props;
-    const { src, videoError } = this.state;
-    const playing = Boolean(currentRoute && desiredPlaySpeed > 0);
+    const { src, videoError, retry } = this.state;
+    const empty = !selectionHasVideo(currentRoute, this.props.loop);
+    const playing = Boolean(currentRoute && desiredPlaySpeed > 0 && !empty);
+    const notice = empty ? NO_VIDEO : videoError;
 
     return (
-      <div className="relative m-[0_auto] aspect-[1.593] min-h-[200px] max-w-[964px] overflow-hidden rounded-lg bg-black">
-        {src && (
+      <div className="relative h-full w-full">
+        {src && !empty && (
           <ReactPlayer
+            key={retry}
             ref={this.player}
             url={src}
             width="100%"
@@ -208,7 +252,7 @@ class DriveVideo extends Component {
             }}
           />
         )}
-        <VideoOverlay loading={isBufferingVideo && !videoError} error={videoError} />
+        <VideoOverlay loading={!empty && isBufferingVideo && !videoError} error={notice} onRetry={empty ? null : this.retry} />
       </div>
     );
   }
