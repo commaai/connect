@@ -39,19 +39,18 @@ vi.mock('react-map-gl', () => ({
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
 }));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
+// jsdom implements HTMLMediaElement but never loads anything, so playback stays
+// at time 0. Enough for the app-level assertions here.
+vi.mock('hls.js', () => ({
+  default: class Hls {
+    static isSupported() { return false; }
+    static Events = { MANIFEST_PARSED: 'hlsManifestParsed', ERROR: 'hlsError', BUFFER_CODECS: 'hlsBufferCodecs' };
+    on() {}
+    loadSource() {}
+    attachMedia() {}
+    startLoad() {}
+    destroy() {}
+  },
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 

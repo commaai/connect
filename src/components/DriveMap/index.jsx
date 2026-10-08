@@ -40,11 +40,12 @@ class DriveMap extends Component {
   componentDidMount() {
     this.mounted = true;
     this.componentDidUpdate({}, {});
+    // Runs continuously, so a single call covers coordinates arriving later.
     this.updateMarkerPos();
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -53,10 +54,6 @@ class DriveMap extends Component {
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
-    }
-
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
-      this.shouldFlyTo = true;
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
@@ -305,10 +302,11 @@ class DriveMap extends Component {
   }
 }
 
+// `offset` is intentionally not mapped: the marker is positioned in the rAF
+// loop from the video element, and subscribing here would re-render the map on
+// every position update.
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
 });
 
 export default connect(stateToProps)(DriveMap);

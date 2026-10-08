@@ -1,79 +1,94 @@
 import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { currentOffset, resetVideo, setVideo, setVideoStartOffset } from '.';
+import { bufferVideo, pause, play, reducer, seek, selectLoop, videoTime } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
     desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
     offset: 0, // in miliseconds from the start
-    startTime: Date.now(), // millisecond timestamp in which play began
 
-    isBuffering: true,
+    isBufferingVideo: true,
   };
 };
 
-// make Date.now super stable for tests
-let mostRecentNow = Date.now();
-const oldNow = Date.now;
-Date.now = function now() {
-  return mostRecentNow;
-};
-function newNow() {
-  mostRecentNow = oldNow();
-  return mostRecentNow;
+/** Minimal stand-in for the parts of HTMLMediaElement the bridge reads. */
+function fakeVideo(currentTime = 0) {
+  return { currentTime };
 }
 
 describe('playback', () => {
+  afterEach(() => {
+    resetVideo();
+  });
+
   it('has playback controls', async () => {
-    newNow();
     let state = makeDefaultStruct();
 
-    // should do nothing
     state = reducer(state, pause());
     expect(state.desiredPlaySpeed).toEqual(0);
 
-    // start playing, should set start time and such
-    let playTime = newNow();
     state = reducer(state, play());
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
     expect(state.desiredPlaySpeed).toEqual(1);
 
+    // The video reports where it actually is. Elapsed wall time is irrelevant.
     await asyncSleep(100 + Math.random() * 200);
-    // should update offset
-    let ellapsed = newNow() - playTime;
-    state = reducer(state, pause());
+    state = reducer(state, videoTime(1000));
+    expect(state.offset).toEqual(1000);
 
-    expect(state.offset).toEqual(ellapsed);
-
-    // start playing, should set start time and such
-    playTime = newNow();
     state = reducer(state, play(0.5));
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
     expect(state.desiredPlaySpeed).toEqual(0.5);
 
     await asyncSleep(100 + Math.random() * 200);
-    // should update offset, playback speed 1/2
-    ellapsed += (newNow() - playTime) / 2;
-    expect(currentOffset(state)).toEqual(ellapsed);
-    state = reducer(state, pause());
+    expect(state.offset).toEqual(1000); // unchanged: only the video moves it
 
-    expect(state.offset).toEqual(ellapsed);
+    state = reducer(state, pause());
+    expect(state.offset).toEqual(1000);
 
     // seek!
-    newNow();
     state = reducer(state, seek(123));
     expect(state.offset).toEqual(123);
-    expect(state.startTime).toEqual(Date.now());
     expect(currentOffset(state)).toEqual(123);
   });
 
+  it('does not advance position just because time passed', async () => {
+    let state = makeDefaultStruct();
+    state = reducer(state, videoTime(2000));
+
+    await asyncSleep(300);
+    const after = reducer(state, { type: 'UNRELATED' });
+
+    // The old architecture extrapolated from Date.now() and drifted. Position
+    // must not move until the video says so.
+    expect(after.offset).toEqual(2000);
+    expect(currentOffset(after)).toEqual(2000);
+  });
+
+  it('reads position from the video element when one is attached', () => {
+    const state = reducer(makeDefaultStruct(), videoTime(0));
+
+    setVideoStartOffset(5000); // logs start before the camera's first frame
+    setVideo(fakeVideo(12.5));
+    expect(currentOffset(state)).toEqual(17500);
+
+    fakeVideo(20);
+    setVideo(fakeVideo(20));
+    expect(currentOffset(state)).toEqual(25000);
+  });
+
+  it('does not report a negative offset before the first frame', () => {
+    setVideoStartOffset(5000);
+    setVideo(fakeVideo(1));
+    expect(currentOffset(makeDefaultStruct())).toEqual(5000);
+  });
+
+  it('falls back to the recorded offset when no video is attached', () => {
+    const state = reducer(makeDefaultStruct(), videoTime(7000));
+    expect(currentOffset(state)).toEqual(7000);
+  });
+
   it('should clamp loop when seeked after loop end time', () => {
-    newNow();
     let state = makeDefaultStruct();
 
-    // set up loop
     state = reducer(state, play());
     state = reducer(state, selectLoop(
       1000,
@@ -88,10 +103,8 @@ describe('playback', () => {
   });
 
   it('should clamp loop when seeked before loop start time', () => {
-    newNow();
     let state = makeDefaultStruct();
 
-    // set up loop
     state = reducer(state, play());
     state = reducer(state, selectLoop(
       1000,
@@ -99,14 +112,13 @@ describe('playback', () => {
     ));
     expect(state.loop.startTime).toEqual(1000);
 
-    // seek past loop end boundary a
+    // seek before loop start
     state = reducer(state, seek(0));
     expect(state.loop.startTime).toEqual(1000);
     expect(state.offset).toEqual(1000);
   });
 
-  it('should buffer video and data', async () => {
-    newNow();
+  it('should buffer video and data', () => {
     let state = makeDefaultStruct();
 
     state = reducer(state, play());
@@ -117,17 +129,32 @@ describe('playback', () => {
     expect(state.desiredPlaySpeed).toEqual(1);
     expect(state.isBufferingVideo).toEqual(true);
 
+    // buffering is UI-only: it must not freeze or change the chosen speed
     state = reducer(state, play(0.5));
     expect(state.desiredPlaySpeed).toEqual(0.5);
     expect(state.isBufferingVideo).toEqual(true);
-
-    expect(state.desiredPlaySpeed).toEqual(0.5);
 
     state = reducer(state, play(2));
     state = reducer(state, bufferVideo(false));
     expect(state.desiredPlaySpeed).toEqual(2);
     expect(state.isBufferingVideo).toEqual(false);
+  });
 
-    expect(state.desiredPlaySpeed).toEqual(2);
+  it('keeps the recorded position inside the loop while detached', () => {
+    let state = makeDefaultStruct();
+    state = reducer(state, selectLoop(1000, 2000));
+    state = reducer(state, videoTime(5000));
+    expect(state.offset).toEqual(1500); // wrapped
+  });
+
+  it('leaves position alone while a video is attached', () => {
+    setVideo(fakeVideo(1.5));
+    let state = makeDefaultStruct();
+    state = reducer(state, selectLoop(1000, 2000));
+    state = reducer(state, videoTime(5000));
+
+    // The element owns position now; the reducer must not wrap it behind the
+    // player's back. The player wraps from real media time instead.
+    expect(state.offset).toEqual(5000);
   });
 });
