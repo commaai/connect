@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import hlsWorkerUrl from 'hls.js/dist/hls.worker.js?url';
 
 import { setPlaybackRate, setVideo } from '../../timeline/video';
@@ -23,6 +23,8 @@ function mediaErrorKind(error) {
 
 function useHls(video, src, startPosition, onError) {
   const [hls, setHls] = useState(null);
+  const startPositionRef = useRef(startPosition);
+  startPositionRef.current = startPosition;
 
   useEffect(() => {
     if (!video || !src) return undefined;
@@ -40,10 +42,10 @@ function useHls(video, src, startPosition, onError) {
     const controller = new AbortController();
     import('hls.js').then(({ default: Hls }) => {
       if (controller.signal.aborted) return;
-      const instance = new Hls({ ...HLS_CONFIG, startPosition });
+      const instance = new Hls({ ...HLS_CONFIG, startPosition: startPositionRef.current });
       instance.loadSource(src);
       instance.attachMedia(video);
-      video.currentTime = startPosition;
+      video.currentTime = startPositionRef.current;
       controller.signal.addEventListener('abort', () => instance.destroy());
       setHls(instance);
     }).catch((error) => {
