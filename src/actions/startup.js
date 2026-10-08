@@ -1,6 +1,8 @@
 import * as Sentry from '@sentry/react';
+import { replace } from 'connected-react-router';
 
 import { api } from '../api/backend';
+import { buildUrl } from '../url';
 
 import { ACTION_STARTUP_DATA } from './types';
 import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
@@ -56,12 +58,13 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
+        const storedDongleId = window.localStorage.getItem('selectedDongleId');
+        const defaultDongleId = devices.some((d) => d.dongle_id === storedDongleId) ? storedDongleId : devices[0].dongle_id;
+        // the root URL becomes the device dashboard, other device-less pages just get a device
+        if (state.router.location.pathname === '/') {
+          dispatch(replace(buildUrl({ dongleId: defaultDongleId })));
         } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+          dispatch(selectDevice(defaultDongleId));
         }
       }
       const dongleId = getState().dongleId;
