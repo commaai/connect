@@ -21,8 +21,11 @@ export function checkRoutesData() {
     if (!state.dongleId) {
       return;
     }
-    if (hasRoutesData(state)) {
-      // already has metadata, don't bother
+    // a drive opened by link only needs that drive, the dashboard needs its filter range
+    const loaded = state.selectedRouteId
+      ? state.routes?.some((route) => route.log_id === state.selectedRouteId)
+      : hasRoutesData(state);
+    if (loaded) {
       return;
     }
     if (routesRequest && routesRequest.dongleId === state.dongleId) {
@@ -30,13 +33,13 @@ export function checkRoutesData() {
       return routesRequestPromise;
     }
     console.debug('We need to update the segment metadata...');
-    const { dongleId, limit: fetchLimit } = state;
+    const { dongleId, limit: fetchLimit, selectedRouteId } = state;
     const fetchRange = state.filter;
 
     // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.selectedRouteId) {
+    if (selectedRouteId) {
       routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
+        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${selectedRouteId}`),
         dongleId,
       };
     } else {
@@ -98,8 +101,9 @@ export function checkRoutesData() {
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
-        start: fetchRange.start,
-        end: fetchRange.end,
+        // a single drive does not cover the dashboard's filter range
+        start: selectedRouteId ? null : fetchRange.start,
+        end: selectedRouteId ? null : fetchRange.end,
         routes,
       });
 

@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { parseLocation, urlFor } from '../url';
-import { selectDevice, selectRoute } from './index';
+import { checkRoutesData, selectDevice, selectRoute } from './index';
 import { api } from '../api/backend';
 
 // Redirects a legacy timestamp link to the drive it points at, unless the user
@@ -43,7 +43,8 @@ export function applyLocation(location) {
       return;
     }
 
-    if (url.dongleId && url.dongleId !== getState().dongleId) {
+    const deviceChanged = url.dongleId && url.dongleId !== getState().dongleId;
+    if (deviceChanged) {
       dispatch(selectDevice(url.dongleId, false));
     }
 
@@ -51,6 +52,12 @@ export function applyLocation(location) {
       dispatch(openLegacyLink(url, location.key));
     } else {
       dispatch(selectRoute(url.page === 'drive' ? url.logId : null, url.range));
+    }
+
+    // loads drives the page still lacks, e.g. the dashboard after a drive opened by link.
+    // After a device change the explorer fetches them.
+    if (!deviceChanged) {
+      dispatch(checkRoutesData());
     }
   };
 }

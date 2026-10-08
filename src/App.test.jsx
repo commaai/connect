@@ -367,6 +367,23 @@ describe('whole-app behavior', () => {
     fireEvent.pointerUp(document, { button: 0, clientX: toX, pageX: toX });
   }
 
+  test('closing a drive opened by link lists all drives', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('changing the range of a drive opened by link does not refetch it', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const fetches = () => mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    const before = fetches();
+    act(() => history.push(`/${FIRST}/${LOG}/10/20`));
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    expect(fetches()).toBe(before);
+  });
+
   test('a range starting at the drive start keeps its range in the URL', async () => {
     const { history } = await renderApp(`/${FIRST}/${LOG}`);
     await screen.findByRole('slider', { name: 'Drive timeline' });
