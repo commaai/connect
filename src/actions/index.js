@@ -159,7 +159,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
+  if (!state.loop || state.loop.startTime == null || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
@@ -193,8 +193,16 @@ export function popTimelineRange(log_id, allowPathChange = true) {
   };
 }
 
+// Timeline zoom bounds must preserve an interval after URLs round them to seconds.
+export function isValidTimelineRange(start, end) {
+  return Number.isFinite(start) && Number.isFinite(end) && end - start >= 1000
+    && Math.floor(end / 1000) > Math.floor(start / 1000);
+}
+
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
+    // Null bounds mean the whole route; reject unrepresentable selections.
+    if ((start != null || end != null) && !isValidTimelineRange(start, end)) return;
     const state = getState();
 
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {

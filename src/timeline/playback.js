@@ -1,7 +1,7 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
+
 
 export function reducer(_state, action) {
   let state = { ..._state };
@@ -14,7 +14,8 @@ export function reducer(_state, action) {
       state = {
         ...state,
         offset: action.offset,
-        startTime: Date.now(),
+        seekRevision: (state.seekRevision || 0) + 1,
+        isBufferingVideo: true,
       };
 
       if (loopOffset !== null) {
@@ -26,22 +27,16 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_PAUSE:
-      state = {
-        ...state,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-        desiredPlaySpeed: 0,
-      };
+      state.desiredPlaySpeed = 0;
       break;
     case Types.ACTION_PLAY:
-      if (action.speed !== state.desiredPlaySpeed) {
-        state = {
-          ...state,
-          offset: currentOffset(state),
-          desiredPlaySpeed: action.speed,
-          startTime: Date.now(),
-        };
-      }
+      state.desiredPlaySpeed = action.speed;
+      break;
+    case Types.ACTION_VIDEO_PROGRESS:
+      // Observations never issue a seek. Ignore progress until the most recent seek is acknowledged.
+      if (action.seekRevision !== (state.seekRevision || 0) || !Number.isFinite(action.offset)) break;
+      state.offset = action.offset;
+      state.isBufferingVideo = false;
       break;
     case Types.ACTION_LOOP:
       if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
@@ -54,12 +49,7 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_BUFFER_VIDEO:
-      state = {
-        ...state,
-        isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-      };
+      state.isBufferingVideo = action.buffering;
       break;
     case Types.ACTION_RESET:
       state = {
@@ -67,7 +57,7 @@ export function reducer(_state, action) {
         desiredPlaySpeed: 1,
         isBufferingVideo: true,
         offset: 0,
-        startTime: Date.now(),
+        seekRevision: (state.seekRevision || 0) + 1,
       };
       break;
     default:
@@ -85,19 +75,12 @@ export function reducer(_state, action) {
     }
   }
 
-  // normalize over loop
+  // Keep observations within the selected range; looping is commanded by DriveVideo.
   if (state.offset !== null && state.loop?.startTime != null) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (state.loop.duration > 0 && offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
+    const low = state.loop.startTime;
+    const high = low + state.loop.duration;
+    if (state.offset < low) state.offset = low;
+    if (state.loop.duration > 0 && state.offset > high) state.offset = high;
   }
 
   state.isBufferingVideo = Boolean(state.isBufferingVideo);
@@ -148,4 +131,9 @@ export function resetPlayback() {
   return {
     type: Types.ACTION_RESET,
   };
+}
+
+// A media observation is not an explicit seek and must not alter seekRevision.
+export function videoProgress(offset, seekRevision) {
+  return { type: Types.ACTION_VIDEO_PROGRESS, offset, seekRevision };
 }

@@ -16,17 +16,17 @@ export function currentOffset(state = null) {
   if (state.offset === null && state.loop?.startTime != null) {
     offset = state.loop.startTime;
   } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+    // Media observations and explicit seek commands own time; never estimate it from a wall clock.
+    offset = state.offset;
   }
 
   if (offset !== null && state.loop?.startTime != null) {
-    // respect the loop
+    // Clamp display position; only the media player may initiate a loop seek.
     const loopOffset = state.loop.startTime;
     if (offset < loopOffset) {
       offset = loopOffset;
     } else if (state.loop.duration > 0 && offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
+      offset = loopOffset + state.loop.duration;
     }
   }
   return offset;

@@ -8,7 +8,7 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { isValidTimelineRange, pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
@@ -137,18 +137,11 @@ const AlertStatusCodes = [
   'critical',
 ];
 
-function percentFromPointerEvent(ev) {
-  const boundingBox = ev.currentTarget.getBoundingClientRect();
-  const x = ev.pageX - boundingBox.left;
-  return x / boundingBox.width;
-}
-
 class Timeline extends Component {
   constructor(props) {
     super(props);
 
     this.getOffset = this.getOffset.bind(this);
-    this.handleClick = this.handleClick.bind(this);
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
@@ -209,14 +202,6 @@ class Timeline extends Component {
     }
   }
 
-  handleClick(ev) {
-    const { dragging } = this.state;
-    if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
-      const percent = percentFromPointerEvent(ev);
-      this.props.dispatch(seek(this.percentToOffset(percent)));
-    }
-  }
-
   handlePointerDown(ev) {
     if (ev.button !== 0) {
       return;
@@ -266,7 +251,7 @@ class Timeline extends Component {
     const startOffset = Math.round(this.percentToOffset(startPercent));
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
-    if (Math.abs(dragging[1] - dragging[0]) > 3) {
+    if (Math.abs(dragging[1] - dragging[0]) > 3 && isValidTimelineRange(startOffset, endOffset)) {
       const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
@@ -276,8 +261,10 @@ class Timeline extends Component {
       const endTime = endOffset;
 
       dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
-    } else if (ev.currentTarget !== document) {
-      this.handleClick(ev);
+    } else {
+      // A short drag is a seek rather than an invalid zero-duration zoom.
+      const percent = Math.max(0, Math.min(1, (ev.pageX - rulerBounds.x) / rulerBounds.width));
+      this.props.dispatch(seek(this.percentToOffset(percent)));
     }
   }
 

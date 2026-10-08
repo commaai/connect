@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { isValidTimelineRange, primeNav, pushTimelineRange, streamNav, urlForState } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -40,6 +40,18 @@ describe('timeline actions', () => {
     }));
     actionThunk(dispatch, getState);
     expect(push).toBeCalledWith('/statedongle/log_id');
+  });
+
+  it('rejects zero-second zoom selections produced by short pointer drags', () => {
+    expect(isValidTimelineRange(625100, 625800)).toBe(false);
+    expect(isValidTimelineRange(625999, 626001)).toBe(false);
+    expect(isValidTimelineRange(625000, 627000)).toBe(true);
+
+    const dispatch = vi.fn();
+    const getState = vi.fn();
+    pushTimelineRange('log_id', 625100, 625800)(dispatch, getState);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(getState).not.toHaveBeenCalled();
   });
 
   it.each([
