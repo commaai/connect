@@ -12,6 +12,7 @@
 
 @theme {
   --animate-fadein: fadein 0.25s;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
   --breakpoint-xxs: 360px;
   --breakpoint-xs: 480px;
   --spacing-safe-top: env(safe-area-inset-top);
@@ -37,6 +38,15 @@
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
   }
 }
 
