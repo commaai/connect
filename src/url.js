@@ -47,7 +47,7 @@ export function parseUrl(location) {
       if (partsAfterDevice.length === 3) {
         const start = Number(partsAfterDevice[1]);
         const end = Number(partsAfterDevice[2]);
-        if (Number.isFinite(start) && Number.isFinite(end) && start >= 0 && start < end) {
+        if (Number.isFinite(start) && Number.isFinite(end * 1000) && start >= 0 && start < end) {
           zoom = { start: start * 1000, end: end * 1000 };
         } else {
           routeId = null;
@@ -87,6 +87,7 @@ export function buildUrl(url, currentLocation) {
   const params = new URLSearchParams(location.search || '');
   const parts = [];
   const demoPath = location.pathname === '/demo' || location.pathname.startsWith('/demo/');
+  const devicePage = ['dashboard', 'drive', 'prime', 'stream'].includes(url.page);
 
   if (url.page === 'drive' && url.routeId) {
     parts.push(url.routeId);
@@ -98,9 +99,9 @@ export function buildUrl(url, currentLocation) {
   }
 
   let pathname = location.pathname || '/';
-  if (url.page === 'demo' || (demoPath && url.dongleId === demoDongleId && ['dashboard', 'drive', 'prime', 'stream'].includes(url.page))) {
+  if (url.page === 'demo' || (demoPath && url.dongleId === demoDongleId && devicePage)) {
     pathname = `/demo${parts.length ? `/${parts.join('/')}` : ''}`;
-  } else if (url.page === 'dashboard' || url.page === 'drive' || url.page === 'prime' || url.page === 'stream') {
+  } else if (devicePage) {
     pathname = `/${url.dongleId}${parts.length ? `/${parts.join('/')}` : ''}`;
   } else if (url.page === 'home') {
     pathname = '/';

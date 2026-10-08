@@ -5,6 +5,7 @@ import { buildUrl, parseUrl, sameOriginPath } from './url';
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
+const OVERFLOW_SECONDS = `1${'0'.repeat(306)}`;
 
 describe('URL parsing and building', () => {
   it.each([
@@ -28,6 +29,7 @@ describe('URL parsing and building', () => {
   it.each([
     [`/${DONGLE}/${LOG}/2/2`, 'dashboard'],
     [`/${DONGLE}/${LOG}/-1/2`, 'dashboard'],
+    [`/${DONGLE}/${LOG}/0/${OVERFLOW_SECONDS}`, 'dashboard'],
     [`/${DONGLE}/${LOG}/1/2/extra`, 'dashboard'],
     [`/${DONGLE}/1/2/extra`, 'dashboard'],
     [`/${DONGLE}/0/20`, 'legacy'],

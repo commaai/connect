@@ -16,16 +16,14 @@ const LIMIT_INCREMENT = 5
 const currentLocation = (state) => state.router?.location || window.location;
 const locationUrl = (location) => `${location.pathname}${location.search || ''}${location.hash || ''}`;
 
-function pushUrl(dispatch, state, url) {
-  const location = currentLocation(state);
-  const nextUrl = buildUrl(url, location);
-  if (locationUrl(location) !== nextUrl) {
-    dispatch(push(nextUrl));
-  }
-}
-
 export function navigate(destination) {
-  return (dispatch, getState) => pushUrl(dispatch, getState(), destination);
+  return (dispatch, getState) => {
+    const location = currentLocation(getState());
+    const nextUrl = buildUrl(destination, location);
+    if (locationUrl(location) !== nextUrl) {
+      dispatch(push(nextUrl));
+    }
+  };
 }
 
 export function checkRoutesData() {
@@ -166,14 +164,6 @@ export function checkLastRoutesData() {
   };
 }
 
-function applyDestination(state, url) {
-  const globalPage = ['home', 'referrals'].includes(url.page);
-  return {
-    ...url,
-    dongleId: url.dongleId || (globalPage ? state.dongleId : null),
-  };
-}
-
 function sameUrlState(state, destination) {
   if (state.dongleId !== destination.dongleId || state.selectedRouteId !== destination.routeId
     || state.primeNav !== (destination.page === 'prime')
@@ -193,11 +183,10 @@ function sameUrlState(state, destination) {
 export function applyUrl(location, preferredDeviceId = null) {
   return (dispatch, getState) => {
     const previous = getState();
-    const parsedUrl = parseUrl(location);
-    if (preferredDeviceId && ['home', 'referrals'].includes(parsedUrl.page) && !parsedUrl.dongleId) {
-      parsedUrl.dongleId = preferredDeviceId;
+    const url = parseUrl(location);
+    if (!url.dongleId && ['home', 'referrals'].includes(url.page)) {
+      url.dongleId = preferredDeviceId || previous.dongleId;
     }
-    const url = applyDestination(previous, parsedUrl);
     if (sameUrlState(previous, url)) {
       return;
     }
@@ -221,7 +210,7 @@ export function applyUrl(location, preferredDeviceId = null) {
     if (deviceChanged && state.dongleId) {
       const device = getDeviceFromState(state, state.dongleId);
       if (device && (!device.shared || state.profile?.superuser)) {
-        dispatch(primeFetchSubscription(state.dongleId, device));
+        if (url.page !== 'prime') dispatch(primeFetchSubscription(state.dongleId, device));
         dispatch(fetchDeviceOnline(state.dongleId));
       } else if (!device) {
         dispatch(fetchSharedDevice(state.dongleId));
@@ -254,7 +243,6 @@ export function selectDevice(dongleId) {
       page: 'dashboard',
       dongleId,
       modal: currentUrl.modal === 'pair' ? 'pair' : null,
-      targetDeviceId: null,
     }));
   };
 }
@@ -262,19 +250,15 @@ export function selectDevice(dongleId) {
 export function pushTimelineRange(routeId, start, end) {
   return (dispatch, getState) => {
     const state = getState();
-    const location = currentLocation(state);
-    const currentUrl = parseUrl(location);
     const route = state.currentRoute?.log_id === routeId && state.currentRoute.dongle_id === state.dongleId
       ? state.currentRoute
       : state.routes?.find((candidate) => candidate.log_id === routeId && candidate.dongle_id === state.dongleId);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
     dispatch(navigate({
-      ...currentUrl,
       page: routeId ? 'drive' : 'dashboard',
+      dongleId: state.dongleId,
       routeId,
       zoom: wholeDrive ? null : { start, end },
-      modal: null,
-      targetDeviceId: null,
     }));
   };
 }
@@ -295,10 +279,9 @@ export function streamNav(nav) {
 
 export function navigateModal(modal, targetDeviceId = null) {
   return (dispatch, getState) => {
-    const state = getState();
-    const location = currentLocation(state);
+    const location = currentLocation(getState());
     const url = parseUrl(location);
-    pushUrl(dispatch, state, { ...url, modal, targetDeviceId });
+    dispatch(navigate({ ...url, modal, targetDeviceId }));
   };
 }
 

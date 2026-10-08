@@ -60,7 +60,6 @@ describe('upload queue polling', () => {
     const getState = () => state;
     const requestA = fetchUploadQueue(DEVICE_A)(dispatch, getState);
     await Promise.resolve();
-    cancelFetchUploadQueue();
     const requestB = fetchUploadQueue(DEVICE_B)(dispatch, getState);
     await Promise.resolve();
 

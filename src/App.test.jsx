@@ -352,6 +352,23 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
   });
 
+  test('switching devices into Prime fetches its subscription once', async () => {
+    const primeDevices = devices.map((device) => ({ ...device, prime: device.dongle_id === SECOND }));
+    const { history } = await renderApp(`/${FIRST}`, { devices: primeDevices });
+    mocks.requests = [];
+    act(() => history.push(`/${SECOND}/prime`));
+
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    await waitFor(() => {
+      const requests = mocks.requests.filter(({ url }) => {
+        const requestUrl = new URL(url);
+        return requestUrl.pathname === '/v1/prime/subscription'
+          && requestUrl.searchParams.get('dongle_id') === SECOND;
+      });
+      expect(requests).toHaveLength(1);
+    });
+  });
+
   test('stream close and browser history restore its view', async () => {
     const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
     const { history } = await renderApp(`/${FIRST}/stream`, { devices: online });
