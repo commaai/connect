@@ -11,31 +11,41 @@ import { isIos } from '../../utils/browser.js';
 
 const MISSING_VIDEO_ERROR = 'This video segment has not uploaded yet or has been deleted.';
 const LOAD_ERROR = 'Unable to load video';
-// native HLS reports no error when it cannot load segments, it just waits
-const STALL_TIMEOUT = 15000;
+// native HLS reports nothing while a segment downloads, so a slow connection and a
+// stuck load look the same: after a while, offer Retry without calling it an error
+const SLOW_LOAD_TIMEOUT = 15000;
 
 // iOS plays HLS natively; everywhere else hls.js gives us fragment errors and audio detection
 const useNativeHls = () => isIos() || !window.MediaSource;
 
-const VideoOverlay = ({ loading, error, onRetry }) => {
+const RetryButton = ({ onRetry }) => (
+  <Button
+    className="mt-3 rounded-3xl px-5 text-white normal-case bg-white/10 hover:bg-white/20"
+    onClick={onRetry}
+    disableRipple
+  >
+    <RefreshIcon className="mr-2" style={{ fontSize: 20 }} />
+    Retry
+  </Button>
+);
+
+const VideoOverlay = ({ loading, slow, error, onRetry }) => {
   let content;
   if (error) {
     content = (
       <>
         <ErrorOutline className="mb-2" />
         <Typography>{error}</Typography>
-        <Button
-          className="mt-3 rounded-3xl px-5 text-white normal-case bg-white/10 hover:bg-white/20"
-          onClick={onRetry}
-          disableRipple
-        >
-          <RefreshIcon className="mr-2" style={{ fontSize: 20 }} />
-          Retry
-        </Button>
+        <RetryButton onRetry={onRetry} />
       </>
     );
   } else if (loading) {
-    content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />;
+    content = (
+      <>
+        <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
+        {slow && <div><RetryButton onRetry={onRetry} /></div>}
+      </>
+    );
   } else {
     return null;
   }
@@ -75,6 +85,7 @@ class RouteVideo extends Component {
 
     this.state = {
       loading: true,
+      slow: false,
       videoError: null,
     };
   }
@@ -107,7 +118,7 @@ class RouteVideo extends Component {
   componentWillUnmount() {
     this.unmounted = true;
     cancelAnimationFrame(this.frame);
-    clearTimeout(this.stallTimer);
+    clearTimeout(this.slowTimer);
     if (this.hls) {
       this.hls.destroy();
     } else if (useNativeHls()) {
@@ -166,6 +177,7 @@ class RouteVideo extends Component {
       this.hls.destroy();
       this.hls = null;
     }
+    this.setLoaded();
     this.setState({ videoError: null });
     this.setLoading();
     this.attachSource();
@@ -299,25 +311,25 @@ class RouteVideo extends Component {
   }
 
   setLoading() {
-    if (!this.stallTimer) {
-      this.stallTimer = setTimeout(() => this.showError(LOAD_ERROR), STALL_TIMEOUT);
+    if (!this.slowTimer) {
+      this.slowTimer = setTimeout(() => this.setState({ slow: true }), SLOW_LOAD_TIMEOUT);
     }
     this.setState({ loading: true });
   }
 
   setLoaded() {
-    clearTimeout(this.stallTimer);
-    this.stallTimer = null;
-    this.setState({ loading: false });
+    clearTimeout(this.slowTimer);
+    this.slowTimer = null;
+    this.setState({ loading: false, slow: false });
   }
 
   render() {
     const { isMuted } = this.props;
-    const { loading, videoError } = this.state;
+    const { loading, slow, videoError } = this.state;
 
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-        <VideoOverlay loading={loading} error={videoError} onRetry={this.reload} />
+        <VideoOverlay loading={loading} slow={slow} error={videoError} onRetry={this.reload} />
         <video
           ref={this.video}
           className="w-full h-full"
