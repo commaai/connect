@@ -172,8 +172,11 @@ test('a missing manifest shows a retry action and recovers at the selected posit
   expect(failures).toContain('video.m3u8');
   await page.getByRole('button', { name: 'Select 8–12 second clip' }).click();
   failed = false;
-  await page.getByRole('button', { name: 'Retry video' }).click();
+  // Retry from the keyboard; focus must stay in the player, not drop to <body>.
+  await page.getByRole('button', { name: 'Retry video' }).focus();
+  await page.keyboard.press('Enter');
   await expect.poll(async () => (await video(page)).time, { timeout: 20000 }).toBeGreaterThan(8500);
+  expect(await page.evaluate(() => document.activeElement.closest('.DriveView') !== null)).toBe(true);
   expect((await video(page)).paused).toBe(false);
   await expect(page.getByRole('button', { name: 'Retry video' })).toHaveCount(0);
   await expect.poll(async () => (await state(page)).buffering).toBe(false);

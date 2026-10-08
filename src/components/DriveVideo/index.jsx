@@ -60,6 +60,7 @@ const VideoErrorBanner = ({ error, onRetry }) => (
 );
 
 export class DriveVideo extends Component {
+  root = React.createRef();
   videoPlayer = React.createRef();
   state = { videoError: null, retry: 0, route: null };
 
@@ -257,6 +258,8 @@ export class DriveVideo extends Component {
   };
 
   retry = () => {
+    // The Retry button is about to disappear; keep keyboard focus in place.
+    if (this.root.current?.contains(document.activeElement)) this.root.current.focus({ preventScroll: true });
     this.detachMedia();
     this.props.onAudioStatusChange?.(false);
     this.props.dispatch(bufferVideo(true));
@@ -271,7 +274,7 @@ export class DriveVideo extends Component {
     const src = currentRoute && api.video.getQcameraStreamUrl(route, currentRoute.share_exp, currentRoute.share_sig);
     // A hidden player stays mounted and keeps playing so it can drive the map.
     return (
-      <>
+      <div ref={this.root} tabIndex={-1} className="outline-none">
         {hidden && videoError && <VideoErrorBanner error={videoError} onRetry={this.retry} />}
         <div inert={hidden ? '' : undefined} className={hidden ? 'absolute w-px h-px overflow-hidden opacity-0 pointer-events-none' : undefined}>
           <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] overflow-hidden rounded-lg bg-[#16181A]">
@@ -292,7 +295,7 @@ export class DriveVideo extends Component {
             />}
           </div>
         </div>
-      </>
+      </div>
     );
   }
 }
