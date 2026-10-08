@@ -62,9 +62,9 @@ export function reducer(_state, action) {
       };
       break;
     case Types.ACTION_RESET:
+      // Reset the playhead without discarding the user's chosen play speed.
       state = {
         ...state,
-        desiredPlaySpeed: 1,
         isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),

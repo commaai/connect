@@ -38,8 +38,9 @@ export function selectBackendType(pathname) {
     || pathname.startsWith(`${demoDevicePath}/`)) ? 'demo' : 'real';
 }
 
-// Select the backend once during startup. /demo and URLs belonging to its
+// Select the backend once per page load. /demo and URLs belonging to its
 // synthetic device use the demo backend; all other paths use the real backend.
+// Deciding once guarantees a demo session can never drift into real data.
 export function initBackend(pathname = window.location.pathname) {
   if (!backend) {
     const realBackend = createRealBackend();

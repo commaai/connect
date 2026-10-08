@@ -10,16 +10,17 @@ import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
-import init from '../actions/startup';
+import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { destinationFromUrl } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -97,13 +98,6 @@ class ExplorerApp extends Component {
 
     window.scrollTo({ top: 0 }); // for ios header
 
-    const q = new URLSearchParams(window.location.search);
-    if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
-    }
-
-    this.props.dispatch(init());
-
     let pairToken;
     try {
       pairToken = await localforage.getItem('pairToken');
@@ -153,8 +147,8 @@ class ExplorerApp extends Component {
     this.unsubscribeWindowSize?.();
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+  componentDidUpdate(prevProps) {
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -165,13 +159,6 @@ class ExplorerApp extends Component {
     }
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
-    }
-
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
     }
   }
 
@@ -198,12 +185,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, settingsOpen,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = destinationFromUrl(pathname).kind === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -250,6 +237,11 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            <DeviceSettingsModal
+              isOpen={ Boolean(settingsOpen && dongleId) }
+              dongleId={ dongleId }
+              onClose={ () => dispatch(replace(`/${dongleId}`)) }
+            />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -282,7 +274,7 @@ const stateToProps = (state) => ({
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
+  settingsOpen: state.settingsOpen,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
 });

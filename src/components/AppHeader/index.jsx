@@ -11,6 +11,7 @@ import { selectDevice } from '../../actions';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
+import { destinationFromUrl } from '../../url';
 
 import AccountMenu from './AccountMenu';
 
@@ -99,7 +100,7 @@ const AppHeader = ({
   }, []);
 
   const openReferrals = useCallback(() => {
-    if (pathname === '/referrals') return;
+    if (destinationFromUrl(pathname).kind === 'referrals') return;
     dispatch(push('/referrals'));
   }, [dispatch, pathname]);
 
@@ -114,7 +115,7 @@ const AppHeader = ({
   }, [drawerIsOpen, handleDrawerStateChanged]);
 
   const open = menuOpen;
-  const referralsOpen = pathname === '/referrals';
+  const referralsOpen = destinationFromUrl(pathname).kind === 'referrals';
   const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
 
   return (

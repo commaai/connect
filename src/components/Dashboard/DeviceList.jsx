@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -14,7 +15,20 @@ import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
+
+// Display order for the device drawer: owned devices first, then by alias.
+const deviceCompareFn = (a, b) => {
+  if (a.is_owner !== b.is_owner) {
+    return b.is_owner - a.is_owner;
+  }
+  if (a.alias && b.alias) {
+    return a.alias.localeCompare(b.alias);
+  }
+  if (!a.alias && !b.alias) {
+    return a.dongle_id.localeCompare(b.dongle_id);
+  }
+  return Boolean(b.alias) - Boolean(a.alias);
+};
 
 const styles = (theme) => ({
   deviceList: {
@@ -88,24 +102,15 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
-    this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
+    this.openDeviceSettings = this.openDeviceSettings.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
-  handleOpenedSettingsModal(dongleId, ev) {
+  openDeviceSettings(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    this.props.dispatch(push(`/${dongleId}/settings`));
   }
 
   async onVisible() {
@@ -148,7 +153,7 @@ class DeviceList extends Component {
           <IconButton
             className={classes.settingsButton}
             aria-label="device settings"
-            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
+            onClick={ (ev) => this.openDeviceSettings(device.dongle_id, ev) }
           >
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
@@ -158,13 +163,13 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
     if (devices === null) {
       return null;
     }
+    devices = [...devices].sort(deviceCompareFn);
 
     const found = devices.some((d) => d.dongle_id === dongleId);
     if (!found && device && dongleId === device.dongle_id) {
@@ -202,11 +207,6 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }
