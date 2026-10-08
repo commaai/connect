@@ -4,7 +4,7 @@ import { CircularProgress, Typography } from '@material-ui/core';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { getVideo, playIgnoringInterruptions } from '../../timeline/video';
-import { seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
+import { seekToRouteMs, toRouteMs, toVideoSeconds } from '../../timeline/routeTime';
 import { useVideoBuffering, useVideoEvent, useVideoFrame } from '../../hooks/video';
 import Video from './Video';
 
@@ -113,7 +113,15 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
     <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
       <VideoOverlay loading={buffering} error={error} />
       <div className="w-full h-full">
-        <Video src={src} onError={handleError} autoPlay muted className="w-full h-full" {...props} />
+        <Video
+          src={src}
+          startPosition={toVideoSeconds(videoStartOffset, loopStart ?? 0)}
+          onError={handleError}
+          autoPlay
+          muted
+          className="w-full h-full"
+          {...props}
+        />
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ function mediaErrorKind(error) {
   return 'media';
 }
 
-function useHls(video, src, onError) {
+function useHls(video, src, startPosition, onError) {
   const [hls, setHls] = useState(null);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ function useHls(video, src, onError) {
     const controller = new AbortController();
     import('hls.js').then(({ default: Hls }) => {
       if (controller.signal.aborted) return;
-      const instance = new Hls(HLS_CONFIG);
+      const instance = new Hls({ ...HLS_CONFIG, startPosition });
       instance.loadSource(src);
       instance.attachMedia(video);
       controller.signal.addEventListener('abort', () => instance.destroy());
@@ -120,9 +120,9 @@ function useHlsAudioDetection(hls, onHasAudioChange) {
   }, [hls, onHasAudioChange]);
 }
 
-export default function Video({ src, onError, onHasAudioChange, ...props }) {
+export default function Video({ src, startPosition, onError, onHasAudioChange, ...props }) {
   const video = useVideo();
-  const hls = useHls(video, src, onError);
+  const hls = useHls(video, src, startPosition, onError);
   useHlsErrors(hls, onError);
   useVideoErrors(video, onError);
   useAudioTrackDetection(video, onHasAudioChange);
