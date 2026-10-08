@@ -5,9 +5,9 @@ import dayjs from 'dayjs';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
-import { Tooltip } from '@material-ui/core';
+import { Menu, MenuItem, Tooltip } from '@material-ui/core';
 
-import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
+import { Forward10, Pause, PlayArrow, Replay10, VolumeUp, VolumeOff } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
@@ -46,13 +46,6 @@ const styles = (theme) => ({
       paddingTop: 0,
     },
   },
-  desiredPlaySpeedContainer: {
-    marginRight: theme.spacing.unit * 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minWidth: '40px',
-  },
   icon: {
     width: '98%',
     height: '98%',
@@ -71,14 +64,6 @@ const styles = (theme) => ({
   iconButton: {
     width: '40px',
     height: '40px',
-  },
-  tinyArrowIcon: {
-    width: 12,
-    height: 12,
-    color: theme.palette.grey[500],
-    '&[disabled]': {
-      visibility: 'hidden',
-    },
   },
   rightBorderBox: {
     borderRight: `1px solid ${theme.palette.grey[900]}`,
@@ -103,13 +88,12 @@ class TimeDisplay extends Component {
 
     this.updateTime = this.updateTime.bind(this);
     this.togglePause = this.togglePause.bind(this);
-    this.increaseSpeed = this.increaseSpeed.bind(this);
-    this.decreaseSpeed = this.decreaseSpeed.bind(this);
     this.jumpBack = this.jumpBack.bind(this);
     this.jumpForward = this.jumpForward.bind(this);
 
     this.state = {
       displayTime: this.getDisplayTime(),
+      speedMenu: null,
     };
   }
 
@@ -159,17 +143,9 @@ class TimeDisplay extends Component {
     requestAnimationFrame(this.updateTime);
   }
 
-  speedIndex() {
-    const curIndex = timerSteps.indexOf(this.props.playSpeed);
-    return curIndex === -1 ? timerSteps.indexOf(1) : curIndex;
-  }
-
-  decreaseSpeed() {
-    this.props.dispatch(play(timerSteps[Math.max(0, this.speedIndex() - 1)]));
-  }
-
-  increaseSpeed() {
-    this.props.dispatch(play(timerSteps[Math.min(timerSteps.length - 1, this.speedIndex() + 1)]));
+  setSpeed(speed) {
+    this.setState({ speedMenu: null });
+    this.props.dispatch(play(speed));
   }
 
   togglePause() {
@@ -179,7 +155,7 @@ class TimeDisplay extends Component {
 
   render() {
     const { classes, zoom, isPaused, playSpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime } = this.state;
+    const { displayTime, speedMenu } = this.state;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (
@@ -210,28 +186,22 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           <span ref={this.textHolder}>{ displayTime }</span>
         </Typography>
-        <div className={ classes.desiredPlaySpeedContainer }>
-          <IconButton
-            className={classes.tinyArrowIcon}
-            onClick={this.increaseSpeed}
-            disabled={this.speedIndex() === timerSteps.length - 1}
-            aria-label="Increase play speed by 1 step"
-          >
-            <UpArrow className={classes.tinyArrowIcon} />
-          </IconButton>
-          <Typography variant="body2" align="center">
-            {playSpeed}
-            ×
-          </Typography>
-          <IconButton
-            className={classes.tinyArrowIcon}
-            onClick={this.decreaseSpeed}
-            disabled={this.speedIndex() === 0}
-            aria-label="Decrease play speed by 1 step"
-          >
-            <DownArrow className={classes.tinyArrowIcon} />
-          </IconButton>
-        </div>
+        <button
+          type="button"
+          onClick={(ev) => this.setState({ speedMenu: ev.currentTarget })}
+          aria-label="Play speed"
+          aria-haspopup="true"
+          className="mr-2 h-8 min-w-12 rounded-full bg-white/10 px-2.5 text-sm font-semibold text-white tabular-nums cursor-pointer"
+        >
+          {`${playSpeed}×`}
+        </button>
+        <Menu open={Boolean(speedMenu)} anchorEl={speedMenu} onClose={() => this.setState({ speedMenu: null })}>
+          {timerSteps.map((speed) => (
+            <MenuItem key={speed} selected={speed === playSpeed} onClick={() => this.setSpeed(speed)}>
+              {`${speed}×`}
+            </MenuItem>
+          ))}
+        </Menu>
         <div className={ classes.leftBorderBox }>
           <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
             <div>

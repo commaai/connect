@@ -183,13 +183,6 @@ export const ChevronIcon = (props) => (
     {chevronPath(270)}
   </SvgIcon>
 );
-export const DownArrow = ChevronIcon;
-
-export const UpArrow = (props) => (
-  <SvgIcon {...props}>
-    {chevronPath(90)}
-  </SvgIcon>
-);
 
 export const RightArrow = (props) => (
   <SvgIcon {...props}>
