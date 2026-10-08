@@ -143,8 +143,35 @@ class RouteVideo extends Component {
     });
   };
 
+  onBuffer = () => {
+    if (this.props.videoStatus !== VideoStatus.FAILED) this.props.dispatch(setVideoStatus(VideoStatus.LOADING));
+  };
+
+  onPlay = () => {
+    if (!this.props.isPlaying) this.props.dispatch(play());
+  };
+
+  onPause = () => {
+    if (this.props.isPlaying && !this.player.current.getInternalPlayer().ended) this.props.dispatch(pause());
+  };
+
+  onPlaybackRateChange = (rate) => {
+    if (rate !== this.props.desiredPlaySpeed) this.props.dispatch(setPlaybackSpeed(rate));
+  };
+
+  config = {
+    hlsVersion: '1.4.8',
+    hlsOptions: { maxBufferLength: 40, ...api.video.getHlsOptions?.(this.props.currentRoute) },
+    attributes: {
+      onTimeUpdate: (event) => this.updateOffset(event.target),
+      onSeeking: this.onSeeking,
+      onSeeked: this.onPlayable,
+      onCanPlay: this.onPlayable,
+    },
+  };
+
   render() {
-    const { currentRoute, isPlaying, desiredPlaySpeed, videoStatus, isMuted, dispatch } = this.props;
+    const { currentRoute, isPlaying, desiredPlaySpeed, videoStatus, isMuted } = this.props;
     const { videoError } = this.state;
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
@@ -159,31 +186,14 @@ class RouteVideo extends Component {
           playing={isPlaying}
           playbackRate={desiredPlaySpeed}
           onReady={this.onReady}
-          onBuffer={() => {
-            if (videoStatus !== VideoStatus.FAILED) dispatch(setVideoStatus(VideoStatus.LOADING));
-          }}
+          onBuffer={this.onBuffer}
           onBufferEnd={this.onPlayable}
-          onPlay={() => {
-            if (!isPlaying) dispatch(play());
-          }}
-          onPause={() => {
-            if (isPlaying && !this.player.current.getInternalPlayer().ended) dispatch(pause());
-          }}
-          onPlaybackRateChange={(rate) => {
-            if (rate !== desiredPlaySpeed) dispatch(setPlaybackSpeed(rate));
-          }}
+          onPlay={this.onPlay}
+          onPause={this.onPause}
+          onPlaybackRateChange={this.onPlaybackRateChange}
           onEnded={this.onEnded}
           onError={this.onError}
-          config={{
-            hlsVersion: '1.4.8',
-            hlsOptions: { maxBufferLength: 40, ...api.video.getHlsOptions?.(currentRoute) },
-            attributes: {
-              onTimeUpdate: (event) => this.updateOffset(event.target),
-              onSeeking: this.onSeeking,
-              onSeeked: this.onPlayable,
-              onCanPlay: this.onPlayable,
-            },
-          }}
+          config={this.config}
         />
       </div>
     );
