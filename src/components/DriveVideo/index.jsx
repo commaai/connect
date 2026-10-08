@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 
 import { api } from '../../api/backend';
 import { ErrorOutline } from '../../icons';
-import { holdVideo, setVideo, videoReady } from '../../timeline';
+import { currentOffset, holdVideo, setVideo, videoReady } from '../../timeline';
 import { pause, play, seek, setMaxPlaySpeed } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
@@ -75,7 +75,7 @@ class DriveVideo extends Component {
     // The cap goes in before the video is attached, so the play() at the end of load() applies it.
     this.props.dispatch(setMaxPlaySpeed(native ? 2 : null));
     // attaching holds the clock at the requested time while hls.js downloads
-    const start = setVideo(video);
+    setVideo(video);
     if (native) {
       video.src = this.src;
     } else {
@@ -90,8 +90,9 @@ class DriveVideo extends Component {
       if (this.loading !== loading) {
         return;
       }
-      // start loading at the requested time, not at segment 0 (deep links, route changes)
-      this.hls = new Hls({ maxBufferLength: 40, startPosition: start });
+      // start loading at the requested time, not at segment 0 (deep links, route changes), and
+      // at a seek made during the download
+      this.hls = new Hls({ maxBufferLength: 40, startPosition: Math.max(0, this.videoTime(currentOffset())) });
       this.hls.on(Hls.Events.ERROR, this.onHlsError);
       this.hls.on(Hls.Events.BUFFER_CODECS, (_, data) => this.props.onAudioStatusChange?.(Boolean(data.audio)));
       this.hls.loadSource(this.src);

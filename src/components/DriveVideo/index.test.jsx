@@ -145,4 +145,34 @@ describe('DriveVideo', () => {
     expect(seeks).toEqual([]);
     expect(HTMLMediaElement.prototype.load).not.toHaveBeenCalled();
   });
+
+  it('starts the next drive at its own start, not where the last drive stopped', async () => {
+    const store = createAppStore(createMemoryHistory());
+    store.dispatch({
+      type: Types.ACTION_ROUTES_METADATA,
+      routes: [{ log_id: 'r', fullname: 'x|r', duration: 180000 }, { log_id: 's', fullname: 'x|s', duration: 180000 }],
+    });
+    store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 'r', start: 0, end: 180000 });
+    render(<Provider store={store}><DriveVideo /></Provider>);
+    await act(async () => {});
+    const video = document.querySelector('video');
+    Object.defineProperty(video, 'currentTime', { get: () => 42, set: () => {} });
+    fireEvent.loadedMetadata(video);
+    // what pushTimelineRange dispatches when history goes straight to another drive
+    await act(async () => {
+      store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 's', start: 0, end: 180000 });
+      store.dispatch(resetPlayback());
+      store.dispatch(selectLoop(0, 180000));
+    });
+    // the wall clock may tick a millisecond between the selection and the new player
+    expect(hls.instances[1].config.startPosition).toBeCloseTo(0, 1);
+  });
+
+  it('starts where the user seeked while the player code loaded', async () => {
+    let store;
+    hls.load = () => { store.dispatch(seek(60000)); return FakeHls; };
+    store = renderPlayer();
+    await act(async () => {});
+    expect(hls.instances[0].config.startPosition).toEqual(60);
+  });
 });

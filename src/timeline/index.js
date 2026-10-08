@@ -50,20 +50,24 @@ export function currentOffset(state = null) {
 }
 
 // Attach the element that plays the current route (again after a new source), or null to hand
-// time back to the wall clock at the video's position. Returns the video time to start at, or
-// the route offset handed back (null if no video was attached).
+// time back to the wall clock at the video's position. Returns the route offset handed back
+// (null if no video was attached).
 export function setVideo(el) {
   let offset = null;
   if (video && !el) {
     offset = currentOffset();
     video = null;
-    store.dispatch({ type: Types.ACTION_SEEK, offset });
+    // another drive already has its own start: the old video's time means nothing there
+    const route = store.getState().currentRoute?.fullname;
+    if (!route || route === videoRoute) {
+      store.dispatch({ type: Types.ACTION_SEEK, offset });
+    }
   }
   video = null;
   startOffset = el ? currentOffset() : null;
   video = el;
   videoRoute = el ? store.getState().currentRoute?.fullname : null;
-  return el ? videoTime(store.getState(), startOffset) : offset;
+  return offset;
 }
 
 // Call on loadedmetadata: move the new video to where playback should start.
