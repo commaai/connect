@@ -23,6 +23,7 @@ export class DriveVideo extends Component {
   componentDidMount() {
     this.mounted = true;
     this.playback = this.props.playback;
+    this.route = this.playback.currentRoute.fullname;
     this.props.onAudioStatusChange?.(false);
     this.unbind = this.props.dispatch(bindMedia({
       route: this.playback.currentRoute.fullname,
@@ -34,6 +35,7 @@ export class DriveVideo extends Component {
   componentDidUpdate(prevProps) {
     const state = this.props.playback;
     const previous = prevProps.playback;
+    if (state.currentRoute?.fullname !== this.route) { this.sync(state, false); return; }
     this.playback = state;
     if (state.currentRoute.videoStartOffset !== previous.currentRoute.videoStartOffset
       || state.loop !== previous.loop) {
@@ -67,6 +69,13 @@ export class DriveVideo extends Component {
   };
 
   sync = (state, shouldSeek) => {
+    if (state.currentRoute?.fullname !== this.route) {
+      const video = this.element;
+      this.retired = true;
+      this.detach();
+      video?.pause();
+      return;
+    }
     this.playback = state;
     const video = this.element;
     if (!video || !this.mounted) return;
@@ -183,7 +192,7 @@ export class DriveVideo extends Component {
   onCodecs = (event, data) => this.props.onAudioStatusChange?.(Boolean(data.audio));
 
   onReady = () => {
-    if (!this.mounted) return;
+    if (!this.mounted || this.retired) return;
     const player = this.videoPlayer.current;
     if (this.element === player.getInternalPlayer()) { this.onPlayable(); return; }
     this.detach();

@@ -26,14 +26,18 @@ function mount({ offset = 0, videoOffset = 0, speed = 1, readyState = 4 } = {}) 
   });
   window.testVideo = video;
   window.testHls = null;
-  store = createStore(reducer, {
+  const transportReducer = (state, action) => reducer(action.type === 'CHANGE_SOURCE' ? { ...state, currentRoute: action.route } : state, action);
+  store = createStore(transportReducer, {
     currentRoute: { fullname: 'device|drive', duration: 65000, videoStartOffset: videoOffset },
     desiredPlaySpeed: speed, offset, startTime: Date.now(),
     loop: { startTime: 0, duration: 65000 },
   }, applyMiddleware(mediaMiddleware));
   const props = () => ({ playback: store.getState(), dispatch: store.dispatch, isMuted: true, onAudioStatusChange: vi.fn() });
   view = render(<DriveVideo {...props()} />);
-  unsubscribe = store.subscribe(() => view.rerender(<DriveVideo {...props()} />));
+  unsubscribe = store.subscribe(() => {
+    // The keyed outer component disposes this instance on route removal.
+    if (store.getState().currentRoute) view.rerender(<DriveVideo {...props()} />);
+  });
   act(() => window.playerProps.onReady());
 }
 afterEach(() => { unsubscribe?.(); view?.unmount(); delete window.testVideo; delete window.testHls; delete window.playerProps; });
@@ -189,6 +193,16 @@ describe('media transport', () => {
     act(() => store.dispatch(play()));
     expect(video.currentTime).toBe(10);
     expect(currentOffset(store.getState())).toBe(10000);
+  });
+
+  it('ignores transport commands after selection changes before React disposal', () => {
+    mount();
+    act(() => {
+      store.dispatch({ type: 'CHANGE_SOURCE', route: null });
+      store.dispatch(pause());
+    });
+    expect(video.paused).toBe(true);
+    expect(store.getState().desiredPlaySpeed).toBe(0);
   });
 
 });

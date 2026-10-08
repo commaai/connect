@@ -168,6 +168,16 @@ describe('whole-app behavior', () => {
     mocks.hardNavigate.mockClear();
   });
 
+  test('switching between map and video keeps the same media element and clock', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    const player = screen.getByTestId('video-player');
+    fireEvent.click(screen.getByText('Map', { exact: true }));
+    expect(screen.getByTestId('video-player')).toBe(player);
+    expect(store.getState().mediaRoute).toBe(`${FIRST}|${LOG}`);
+    fireEvent.click(screen.getByText('Video', { exact: true }));
+    expect(screen.getByTestId('video-player')).toBe(player);
+  });
+
   test('root uses a valid stored device and keeps the selection', async () => {
     const app = await renderApp('/', { selected: FIRST });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
@@ -305,15 +315,6 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
-  });
-  test('switching between map and video keeps the same media element and clock', async () => {
-    const { store } = await renderApp(`/${FIRST}/${LOG}`);
-    const player = screen.getByTestId('video-player');
-    fireEvent.click(screen.getByText('Map', { exact: true }));
-    expect(screen.getByTestId('video-player')).toBe(player);
-    expect(store.getState().mediaRoute).toBe(`${FIRST}|${LOG}`);
-    fireEvent.click(screen.getByText('Video', { exact: true }));
-    expect(screen.getByTestId('video-player')).toBe(player);
   });
 
 });
