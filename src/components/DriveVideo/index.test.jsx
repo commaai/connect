@@ -86,6 +86,95 @@ describe('DriveVideo player lifecycle', () => {
     callbacks().onProgress();
     expect(video.pendingSeek).toBeNull();
   });
+  it('does not report an unavailable video from an older seek completion', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    media.getDuration = vi.fn(() => 10);
+
+    changeProps({ offset: 10000, seekRevision: 1 });
+    media.time = 10;
+    callbacks().onSeek(10);
+    expect(video.pendingSeek).toBeNull();
+
+    changeProps({ offset: 12000, seekRevision: 2 });
+    dispatch.mockClear();
+
+    // Delayed event from the previous seek.
+    callbacks().onSeek(10);
+
+    expect(video.state.videoError).toBeNull();
+    expect(video.pendingSeek).toEqual({ revision: 2, target: 12 });
+    expect(
+      dispatch.mock.calls.some(([action]) => action.type === ACTION_VIDEO_PROGRESS),
+    ).toBe(false);
+  });
+  it('does not fail playback after repeated stale seeks when media duration grows', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    let duration = 10;
+    media.getDuration = vi.fn(() => duration);
+
+    // The initial seek completes at the current end of the media.
+    changeProps({ offset: 10000, seekRevision: 1 });
+    media.time = 10;
+    callbacks().onSeek(10);
+    expect(video.pendingSeek).toBeNull();
+
+    // A newer seek targets a position that may become available shortly.
+    changeProps({ offset: 12000, seekRevision: 2 });
+    dispatch.mockClear();
+
+    // Repeated old-position events must not permanently fail playback.
+    callbacks().onSeek(10);
+    callbacks().onSeek(10);
+    expect(video.state.videoError).toBeNull();
+
+    // The stream's duration grows, and the desired position becomes available.
+    duration = 12;
+    media.time = 12;
+    callbacks().onProgress();
+
+    expect(video.pendingSeek).toBeNull();
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ACTION_VIDEO_PROGRESS,
+        offset: 12000,
+        seekRevision: 2,
+      }),
+    );
+  });
+
+  it('does not mark a clamped seek unavailable based only on seek callbacks', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    // Route requests 12 seconds, but the available video ends at 10.
+    media.getDuration = vi.fn(() => 10);
+
+    changeProps({ offset: 12000, seekRevision: 1 });
+    expect(media.seekTo).toHaveBeenCalledWith(12, 'seconds');
+
+    // Simulate the browser clamping the seek to the end of the media.
+    media.time = 10;
+
+    // First mismatch: retry the latest seek instead of reporting an error.
+    callbacks().onSeek(10);
+    expect(video.state.videoError).toBeNull();
+    expect(video.pendingSeek).toEqual({ revision: 1, target: 12 });
+    expect(media.seekTo).toHaveBeenCalledTimes(2);
+
+    // Second mismatch: the retried seek also stops at the media's end.
+    callbacks().onSeek(10);
+    callbacks().onProgress();
+
+    // Two seek callbacks cannot prove that the requested position is unavailable.
+    expect(video.state.videoError).toBeNull();
+    expect(video.pendingSeek).toEqual({ revision: 1, target: 12 });
+
+    // Never overwrite the requested timeline with an incorrect timestamp.
+    expect(
+      dispatch.mock.calls.some(([action]) => action.type === ACTION_VIDEO_PROGRESS),
+    ).toBe(false);
+  });
 
   it('ignores late errors, buffer events and progress from a prior route even when the URL is shared', () => {
     const { video, media, callbacks, playerElement, changeProps, dispatch } = playerFixture();
