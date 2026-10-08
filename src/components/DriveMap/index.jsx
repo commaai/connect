@@ -44,7 +44,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -53,10 +53,6 @@ class DriveMap extends Component {
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
-    }
-
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
-      this.shouldFlyTo = true;
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
@@ -97,7 +93,13 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        const offset = currentOffset();
+        // a seek or loop wrap: animate the viewport to the new position
+        if (this.lastOffset !== undefined && Math.abs(offset - this.lastOffset) > 1000) {
+          this.shouldFlyTo = true;
+        }
+        this.lastOffset = offset;
+        const pos = this.posAtOffset(offset);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -306,9 +308,7 @@ class DriveMap extends Component {
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
 });
 
 export default connect(stateToProps)(DriveMap);
