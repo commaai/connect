@@ -240,6 +240,7 @@ class ClipMenu extends Component {
     this.poll = null;
     this.mounted = false;
     this.previewRequest = 0;
+    this.deleteRequestId = 0;
   }
 
   componentDidMount() {
@@ -249,10 +250,11 @@ class ClipMenu extends Component {
 
   componentDidUpdate(prevProps) {
     const opened = this.props.open && !prevProps.open;
+    const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
     const routeTargetChanged = this.props.routeModal !== prevProps.routeModal
       || this.props.routeModalClip !== prevProps.routeModalClip
-      || this.props.dongleId !== prevProps.dongleId;
-    const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
+      || this.props.dongleId !== prevProps.dongleId
+      || routeChanged;
     const deviceChanged = this.props.dongleId !== prevProps.dongleId;
     const reconnected = this.props.deviceOnline && !prevProps.deviceOnline;
     const loadingRouteTarget = (opened || routeChanged || deviceChanged || reconnected) && this.props.open;
@@ -261,11 +263,20 @@ class ClipMenu extends Component {
       if (prevProps.routeModal === 'clip-viewer'
         && (this.props.routeModal !== 'clip-viewer'
           || prevProps.routeModalClip !== this.props.routeModalClip
-          || prevProps.dongleId !== this.props.dongleId)) this.closeViewer(false);
-      if (prevProps.routeModal === 'clip-delete' && this.props.routeModal !== 'clip-delete') {
-        this.setState({ deletingClip: null, deleteDialogOpen: false });
+          || prevProps.dongleId !== this.props.dongleId
+          || routeChanged)) this.closeViewer(false);
+      if (prevProps.routeModal === 'clip-delete'
+        && (this.props.routeModal !== 'clip-delete'
+          || prevProps.routeModalClip !== this.props.routeModalClip
+          || prevProps.dongleId !== this.props.dongleId
+          || routeChanged)) {
+        this.setState({ deletingClip: null, deleteDialogOpen: false, deleting: false });
       }
       this.routeTargetKey = null;
+      this.deleteRequestId += 1;
+      if (['clip-viewer', 'clip-delete'].includes(prevProps.routeModal)) {
+        this.setState({ error: null });
+      }
       if (!loadingRouteTarget) this.applyRouteTarget();
     }
     if (!this.props.deviceOnline && prevProps.deviceOnline) {
@@ -281,6 +292,7 @@ class ClipMenu extends Component {
   componentWillUnmount() {
     this.mounted = false;
     this.previewRequest += 1;
+    this.deleteRequestId += 1;
     this.stopPolling();
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
   }
@@ -319,7 +331,9 @@ class ClipMenu extends Component {
         this.poll = setTimeout(() => this.loadClips(false), POLL_INTERVAL);
       }
     } catch (err) {
-      if (this.mounted) this.setState({ loading: false, error: err.message || 'Could not reach the device' });
+      if (this.mounted && dongleId === this.props.dongleId && routeName === deviceRouteName(this.props.route)) {
+        this.setState({ loading: false, error: err.message || 'Could not reach the device' });
+      }
     }
   }
 
@@ -361,17 +375,23 @@ class ClipMenu extends Component {
 
   async removeClip(clip) {
     if (!this.props.deviceOnline) return false;
+    const dongleId = this.props.dongleId;
+    const requestId = this.deleteRequestId;
+    const isCurrentTarget = () => this.mounted
+      && requestId === this.deleteRequestId
+      && dongleId === this.props.dongleId;
     if (clip.filename === this.state.previewingClip) {
       this.previewRequest += 1;
       this.setState({ previewingClip: null, previewProgress: 0 });
     }
     try {
-      await clipDevice.deleteClip(this.props.dongleId, { filename: clip.filename });
+      await clipDevice.deleteClip(dongleId, { filename: clip.filename });
+      if (!isCurrentTarget()) return true;
       if (clip.filename === this.state.autoDownloadFilename) this.setState({ autoDownloadFilename: null });
-      if (this.mounted) await this.loadClips(false);
+      await this.loadClips(false);
       return true;
     } catch (err) {
-      if (this.mounted) this.setState({ error: err.message || 'Could not remove clip' });
+      if (isCurrentTarget()) this.setState({ error: err.message || 'Could not remove clip' });
       return false;
     }
   }
@@ -379,10 +399,13 @@ class ClipMenu extends Component {
   async confirmDelete() {
     const { deletingClip } = this.state;
     if (!deletingClip || this.state.deleting) return;
+    this.deleteRequestId += 1;
+    const requestId = this.deleteRequestId;
     this.setState({ deleting: true });
     const deleted = await this.removeClip(deletingClip);
+    if (!this.mounted || requestId !== this.deleteRequestId) return;
     if (deleted) this.updateRoute('clips');
-    if (this.mounted) this.setState({ deleteDialogOpen: !deleted, deleting: false });
+    this.setState({ deleteDialogOpen: !deleted, deleting: false });
   }
 
   async openViewer(clip) {
