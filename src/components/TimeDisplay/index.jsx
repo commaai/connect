@@ -8,8 +8,8 @@ import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
+import { currentOffset, seek } from '../../timeline';
+import { play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -151,11 +151,11 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
+    seek(currentOffset() - amount);
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
+    seek(currentOffset() + amount);
   }
 
   updateTime() {
@@ -212,19 +212,19 @@ class TimeDisplay extends Component {
   }
 
   togglePause() {
-    const { desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed === 0) {
+    const { isPlaying, dispatch } = this.props;
+    if (isPlaying) {
+      dispatch(pause());
+    } else {
       // eslint-disable-next-line react/destructuring-assignment
       dispatch(play(this.state.desiredPlaySpeed));
-    } else {
-      dispatch(pause());
     }
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
+    const { classes, zoom, isPlaying, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
     const { displayTime, desiredPlaySpeed } = this.state;
-    const isPaused = videoPlaySpeed === 0;
+    const isPaused = !isPlaying;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (
@@ -314,6 +314,7 @@ const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
   desiredPlaySpeed: state.desiredPlaySpeed,
+  isPlaying: state.isPlaying,
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));
