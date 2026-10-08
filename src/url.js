@@ -3,13 +3,19 @@
 // Route tree:
 //   /
 //   /referrals
+//   /demo
 //   /:dongleId
-//   /:dongleId/settings
 //   /:dongleId/prime
 //   /:dongleId/stream
 //   /:dongleId/:logId
 //   /:dongleId/:logId/:start/:end   (seconds since the start of the drive)
 //   /:dongleId/:legacyStart/:legacyEnd   (absolute unix milliseconds, migrated on load)
+//
+// Dialogs that layer over whatever page they are opened from are query
+// parameters, not pathnames, so they never disturb the underlying destination:
+//   ?settings=<dongleId>   device settings for any accessible device
+//   ?dates=1               the dashboard date filter
+//   ?uploads=1             the upload queue
 //
 // `destinationFromUrl` and `urlForDestination` are pure and are exact inverses
 // for every canonical URL the app produces. Anything unrecognized parses to
@@ -73,6 +79,8 @@ export function destinationFromUrl(pathname) {
   if (parts.length === 1) {
     return { kind: 'dashboard', dongleId };
   }
+  // The draft-era settings path, kept parseable so existing links migrate to
+  // the overlay form instead of dying as not-found.
   if (parts.length === 2 && branch === 'settings') {
     return { kind: 'settings', dongleId };
   }
@@ -124,9 +132,6 @@ export function urlForDestination(destination) {
   if (!dongleId) {
     return '/';
   }
-  if (destination.kind === 'settings') {
-    return `/${dongleId}/settings`;
-  }
   if (destination.kind === 'prime') {
     return `/${dongleId}/prime`;
   }
@@ -139,11 +144,90 @@ export function urlForDestination(destination) {
   if (destination.kind === 'drive' && destination.logId) {
     const path = [dongleId, destination.logId];
     if (destination.start != null && destination.end != null) {
-      path.push(Math.floor(destination.start / 1000), Math.floor(destination.end / 1000));
+      // Serialization policy for sub-second bounds: floor the start and round
+      // the end up, so the URL range only ever grows. ceil(end) is strictly
+      // greater than floor(start) whenever the selection is nonempty, which
+      // guarantees a nonzero interval the parser accepts — flooring both
+      // bounds here once turned a 500 ms selection into the invalid `/10/10`.
+      path.push(Math.floor(destination.start / 1000), Math.ceil(destination.end / 1000));
     }
     return `/${path.join('/')}`;
   }
   return `/${dongleId}`;
+}
+
+// Each dialog owns one query parameter; `parse` and `format` are inverses and
+// the only definition of what a valid value is.
+const overlayParams = {
+  settings: {
+    format: (overlay) => (exactDongleIdRegex.test(overlay.dongleId) ? overlay.dongleId : null),
+    parse: (value) => (exactDongleIdRegex.test(value) ? { kind: 'settings', dongleId: value } : null),
+  },
+  dates: {
+    format: () => '1',
+    parse: (value) => (value === '1' ? { kind: 'dates' } : null),
+  },
+  uploads: {
+    format: () => '1',
+    parse: (value) => (value === '1' ? { kind: 'uploads' } : null),
+  },
+};
+
+/**
+ * Parse the dialog overlay out of a location's search string. Pure.
+ *
+ * Overlay parameters are validated strictly: an unrecognized value means the
+ * overlay is simply not opened, never a broken page under it.
+ *
+ * @param {string} search
+ * @returns {{kind: 'settings', dongleId: string}|{kind: 'dates'}|{kind: 'uploads'}|null}
+ */
+export function overlayFromSearch(search) {
+  const params = new URLSearchParams(search || '');
+  for (const kind of Object.keys(overlayParams)) {
+    const value = params.get(kind);
+    if (value === null) {
+      continue;
+    }
+    const overlay = overlayParams[kind].parse(value);
+    if (overlay) {
+      return overlay;
+    }
+  }
+  return null;
+}
+
+/**
+ * Replace the overlay part of a search string, or remove it when `overlay` is
+ * null. Pure.
+ *
+ * @param {string} search
+ * @param {{kind: string, dongleId?: string}|null} overlay
+ * @returns {string}
+ */
+export function withOverlaySearch(search, overlay) {
+  const params = new URLSearchParams(search || '');
+  for (const kind of Object.keys(overlayParams)) {
+    params.delete(kind);
+  }
+  if (overlay) {
+    const value = overlayParams[overlay.kind]?.format(overlay) ?? null;
+    if (value !== null) {
+      params.set(overlay.kind, value);
+    }
+  }
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : '';
+}
+
+/**
+ * Remove every overlay parameter from a search string. Pure.
+ *
+ * @param {string} search
+ * @returns {string}
+ */
+export function stripOverlaySearch(search) {
+  return withOverlaySearch(search, null);
 }
 
 /**

@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { destinationFromUrl } from './url';
+import { destinationFromUrl, safeInternalPath } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -98,7 +98,9 @@ class App extends Component {
       url = sessionStorage.getItem('redirectURL');
       sessionStorage.removeItem('redirectURL');
     }
-    return url;
+    // Defense in depth: the stored value is validated where it is written,
+    // and validated again where it becomes a router redirect.
+    return safeInternalPath(url) ?? '/';
   }
 
   authRoutes() {

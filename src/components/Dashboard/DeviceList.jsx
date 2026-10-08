@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -9,6 +8,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
+import { openOverlay } from '../../actions/history';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
@@ -110,7 +110,9 @@ class DeviceList extends Component {
   openDeviceSettings(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.props.dispatch(push(`/${dongleId}/settings`));
+    // Settings are an overlay on the current page: opening them for another
+    // device never switches devices or discards what is underneath.
+    this.props.dispatch(openOverlay({ kind: 'settings', dongleId }));
   }
 
   async onVisible() {

@@ -256,10 +256,32 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, profile, devicesReady } = this.props;
     const commacare = device?.commacare;
+    // The same rule that decides whether the settings button is shown in the
+    // device drawer governs the URL-addressable modal. A device unknown to the
+    // account is denied once the device list has had a chance to load.
     if (!device) {
-      return null;
+      return (
+        <Modal open={ Boolean(this.props.isOpen && devicesReady) } onClose={this.props.onClose}>
+          <Paper className={classes.modal}>
+            <Typography variant="title">Device settings</Typography>
+            <hr />
+            <Typography>Device not found.</Typography>
+          </Paper>
+        </Modal>
+      );
+    }
+    if (!(device.is_owner || profile?.superuser)) {
+      return (
+        <Modal open={this.props.isOpen} onClose={this.props.onClose}>
+          <Paper className={classes.modal}>
+            <Typography variant="title">Device settings</Typography>
+            <hr />
+            <Typography>Only the device owner can manage these settings.</Typography>
+          </Paper>
+        </Modal>
+      );
     }
 
     return (
@@ -438,6 +460,8 @@ const stateToProps = (state, ownProps) => {
   return {
     subscription: state.subscription,
     device,
+    profile: state.profile,
+    devicesReady: state.devices !== null,
   };
 };
 

@@ -28,7 +28,6 @@ export default function reducer(_state, action) {
         deviceNotFound: false,
         primeNav: kind === 'prime',
         streamNav: kind === 'stream',
-        settingsOpen: kind === 'settings',
       };
 
       // Invalidate device-scoped data only when the device actually changes.
@@ -81,15 +80,42 @@ export default function reducer(_state, action) {
       }
       break;
     }
-    case Types.ACTION_DEVICE_NOT_FOUND:
+    case Types.ACTION_DEVICE_NOT_FOUND: {
+      // A missing device is a destination too: nothing from the previous view
+      // may keep controlling what renders. Device-scoped data is invalidated
+      // like any other device change, so a later navigation cannot inherit it.
+      const deviceChanged = state.dongleId !== (action.dongleId ?? null);
       state = {
         ...state,
         destinationKind: 'not-found',
         dongleId: action.dongleId ?? null,
         deviceNotFound: true,
         device: null,
+        primeNav: false,
+        streamNav: false,
+        selectedRouteId: null,
+        currentRoute: null,
+        zoom: null,
+        loop: null,
       };
+      if (deviceChanged) {
+        state = {
+          ...state,
+          subscription: null,
+          subscribeInfo: null,
+          files: null,
+          routes: null,
+          lastRoutes: null,
+          routesMeta: {
+            dongleId: null,
+            start: null,
+            end: null,
+          },
+          limit: 0,
+        };
+      }
       break;
+    }
     case Types.ACTION_STARTUP_DATA: {
       const devices = action.devices.map(populateFetchedAt);
 

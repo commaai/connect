@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { push } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -14,13 +14,16 @@ import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import TimeSelect from './TimeSelect';
+import UploadQueue from './Files/UploadQueue';
 
 import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
+import { closeOverlay } from '../actions/history';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
-import { destinationFromUrl } from '../url';
+import { overlayFromSearch } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -185,12 +188,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, settingsOpen,
+      classes, currentRoute, device, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, profile, overlay, destinationKind,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = destinationFromUrl(pathname).kind === 'referrals';
+    const referralsOpen = destinationKind === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -238,10 +241,21 @@ class ExplorerApp extends Component {
             </div>
             <IosPwaPopup />
             <DeviceSettingsModal
-              isOpen={ Boolean(settingsOpen && dongleId) }
-              dongleId={ dongleId }
-              onClose={ () => dispatch(replace(`/${dongleId}`)) }
+              isOpen={ overlay?.kind === 'settings' }
+              dongleId={ overlay?.dongleId ?? null }
+              onClose={ () => dispatch(closeOverlay()) }
             />
+            { overlay?.kind === 'dates' && (
+              <TimeSelect onClose={ () => dispatch(closeOverlay()) } />
+            ) }
+            { overlay?.kind === 'uploads' && device && (
+              <UploadQueue
+                open
+                update
+                device={ device }
+                onClose={ () => dispatch(closeOverlay()) }
+              />
+            ) }
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -271,12 +285,16 @@ const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
+  device: state.device,
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
-  settingsOpen: state.settingsOpen,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
+  destinationKind: state.destinationKind,
+  // Dialog overlays live in the URL: rendering reads them straight from the
+  // location, so cold loads, refresh, and Back/Forward need no reconciliation.
+  overlay: overlayFromSearch(state.router.location.search),
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

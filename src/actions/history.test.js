@@ -5,7 +5,7 @@ import { api, initBackend } from '../api/backend';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { resetPlayback } from '../timeline/playback';
 import * as Types from './types';
-import { onHistoryMiddleware, syncStateFromUrl } from './history';
+import { closeOverlay, onHistoryMiddleware, openOverlay, syncStateFromUrl } from './history';
 import * as actions from './index';
 
 vi.mock('../api/backend', () => ({
@@ -33,8 +33,13 @@ vi.mock('connected-react-router', async () => {
   return {
     __esModule: true,
     ...originalModule,
-    push: vi.fn((pathname) => ({ type: 'PUSH', pathname })),
+    push: vi.fn((location) => (
+      typeof location === 'string'
+        ? { type: 'PUSH', pathname: location }
+        : { type: 'PUSH', ...location }
+    )),
     replace: vi.fn((pathname) => ({ type: 'REPLACE', pathname })),
+    goBack: vi.fn(() => ({ type: 'GO_BACK' })),
   };
 });
 
@@ -222,10 +227,35 @@ describe('syncStateFromUrl', () => {
     expect(actions.checkLastRoutesData).not.toHaveBeenCalled();
   });
 
-  it('opens device settings as a destination', async () => {
+  it('reconciles referrals as a destination and closes the previous view', async () => {
+    const { dispatched } = run('/referrals', {
+      ...baseState, destinationKind: 'stream', streamNav: true,
+    });
+    await Promise.resolve();
+    expect(destinations(dispatched)).toContainEqual({ kind: 'referrals', dongleId: DONGLE });
+  });
+
+  it('applies referrals from a cold entry without a selected device', async () => {
+    const { dispatched } = run('/referrals', {
+      ...baseState, dongleId: null, destinationKind: null, device: null,
+    });
+    await Promise.resolve();
+    expect(destinations(dispatched)).toContainEqual({ kind: 'referrals', dongleId: null });
+  });
+
+  it('does not re-apply referrals the store already matches', async () => {
+    const { dispatched } = run('/referrals', {
+      ...baseState, destinationKind: 'referrals',
+    });
+    await Promise.resolve();
+    expect(destinations(dispatched)).toEqual([]);
+  });
+
+  it('migrates the draft-era settings path to the overlay form', async () => {
     const { dispatched } = run(`/${OTHER}/settings`);
     await Promise.resolve();
-    expect(destinations(dispatched)).toContainEqual({ kind: 'settings', dongleId: OTHER });
+    expect(dispatched).toContainEqual({ type: 'REPLACE', pathname: `/${OTHER}?settings=${OTHER}` });
+    expect(destinations(dispatched)).toEqual([]);
   });
 
   it('keeps a fetched shared device out of the owned list', async () => {
@@ -247,6 +277,62 @@ describe('syncStateFromUrl', () => {
     expect(dispatched).toContainEqual(expect.objectContaining({
       type: Types.ACTION_DEVICE_NOT_FOUND, dongleId: UNKNOWN,
     }));
+  });
+
+  it('reports a missing device when the API resolves to null', async () => {
+    // The request layer resolves to null on an error status; it only throws
+    // for network-level failures.
+    api.devices.fetchDevice.mockResolvedValue(null);
+    const { dispatched, promise } = run(`/${UNKNOWN}`);
+    await promise;
+    expect(dispatched).toContainEqual(expect.objectContaining({
+      type: Types.ACTION_DEVICE_NOT_FOUND, dongleId: UNKNOWN,
+    }));
+  });
+
+  it('ignores a device lookup that fails after the user navigates away', async () => {
+    let rejectDevice;
+    api.devices.fetchDevice.mockReturnValue(new Promise((_resolve, reject) => { rejectDevice = reject; }));
+    const { dispatched, promise, state } = run(`/${UNKNOWN}`);
+    // The user moves on to another device while the lookup is in flight.
+    state.router.location.pathname = `/${DONGLE}`;
+    rejectDevice({ resp: { status: 404 } });
+    await promise;
+    expect(dispatched).not.toContainEqual(expect.objectContaining({ type: Types.ACTION_DEVICE_NOT_FOUND }));
+    // ...and the success path is held to the same rule.
+    expect(dispatched).not.toContainEqual(expect.objectContaining({ type: Types.ACTION_UPDATE_SHARED_DEVICE }));
+  });
+
+  it('a superseded run cannot mark a repeated navigation not-found', async () => {
+    const rejects = [];
+    api.devices.fetchDevice.mockImplementation(() => new Promise((_resolve, reject) => { rejects.push(reject); }));
+    const first = run(`/${UNKNOWN}`);
+    const second = run(`/${UNKNOWN}`); // same path, a newer navigation
+    rejects[1]({ resp: { status: 404 } }); // the current lookup legitimately fails
+    await second.promise;
+    expect(second.dispatched).toContainEqual(expect.objectContaining({
+      type: Types.ACTION_DEVICE_NOT_FOUND, dongleId: UNKNOWN,
+    }));
+    rejects[0]({ resp: { status: 404 } }); // the stale lookup fails late
+    await first.promise;
+    expect(first.dispatched).not.toContainEqual(expect.objectContaining({
+      type: Types.ACTION_DEVICE_NOT_FOUND,
+    }));
+  });
+
+  it('recovers with a normal destination after a failed lookup', async () => {
+    api.devices.fetchDevice.mockRejectedValueOnce({ resp: { status: 404 } });
+    const failed = run(`/${UNKNOWN}`);
+    await failed.promise;
+    const recovered = run(`/${OTHER}`, {
+      ...failed.state,
+      destinationKind: 'not-found',
+      deviceNotFound: true,
+      device: null,
+    });
+    await recovered.promise;
+    expect(destinations(recovered.dispatched)).toContainEqual({ kind: 'dashboard', dongleId: OTHER });
+    expect(recovered.dispatched).not.toContainEqual(expect.objectContaining({ type: Types.ACTION_DEVICE_NOT_FOUND }));
   });
 
   it.each([
@@ -278,16 +364,68 @@ describe('syncStateFromUrl', () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it('does nothing for the referrals page', async () => {
-    const { dispatched } = run('/referrals', { ...baseState, destinationKind: null });
-    await Promise.resolve();
-    expect(destinations(dispatched)).toEqual([]);
-    expect(dispatched).not.toContainEqual(expect.objectContaining({ type: Types.ACTION_APPLY_DESTINATION }));
-  });
-
   it('initializes the backend for the URL', async () => {
     run(`/${DONGLE}`);
     await Promise.resolve();
     expect(initBackend).toHaveBeenCalledWith(`/${DONGLE}`);
+  });
+});
+
+describe('dialog overlay navigation', () => {
+  const dispatchOver = (pathname, search, thunk, locationState) => {
+    const dispatched = [];
+    const getState = () => ({ router: { location: { pathname, search, state: locationState } } });
+    const dispatch = vi.fn((action) => {
+      if (typeof action === 'function') {
+        return action(dispatch, getState);
+      }
+      dispatched.push(action);
+      return action;
+    });
+    dispatch(thunk);
+    return dispatched;
+  };
+
+  it('openOverlay pushes the current page with the overlay parameter', () => {
+    const dispatched = dispatchOver(`/${DONGLE}`, '', openOverlay({ kind: 'settings', dongleId: OTHER }));
+    expect(dispatched).toEqual([{
+      type: 'PUSH',
+      pathname: `/${DONGLE}`,
+      state: { overlayOpenedInApp: true },
+      search: `?settings=${OTHER}`,
+    }]);
+  });
+
+  it('openOverlay keeps other parameters and replaces its own', () => {
+    const dispatched = dispatchOver(
+      `/${DONGLE}/${LOG}`, `?settings=${OTHER}`, openOverlay({ kind: 'dates' }),
+    );
+    expect(dispatched).toEqual([expect.objectContaining({
+      type: 'PUSH',
+      search: '?dates=1',
+      state: { overlayOpenedInApp: true },
+    })]);
+  });
+
+  it('openOverlay is a no-op when that overlay is already open', () => {
+    const dispatched = dispatchOver(
+      `/${DONGLE}`, `?settings=${OTHER}`, openOverlay({ kind: 'settings', dongleId: OTHER }),
+    );
+    expect(dispatched).toEqual([]);
+  });
+
+  it('closeOverlay goes back over an overlay opened in-app', () => {
+    const dispatched = dispatchOver(`/${DONGLE}`, `?settings=${OTHER}`, closeOverlay(), { overlayOpenedInApp: true });
+    expect(dispatched).toEqual([{ type: 'GO_BACK' }]);
+  });
+
+  it('closeOverlay replaces a cold-loaded overlay in place', () => {
+    const dispatched = dispatchOver(`/${DONGLE}`, `?settings=${OTHER}&keep=1`, closeOverlay());
+    expect(dispatched).toEqual([{ type: 'REPLACE', pathname: `/${DONGLE}?keep=1` }]);
+  });
+
+  it('closeOverlay is a no-op without an overlay', () => {
+    const dispatched = dispatchOver(`/${DONGLE}`, '', closeOverlay());
+    expect(dispatched).toEqual([]);
   });
 });

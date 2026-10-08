@@ -30,7 +30,6 @@ export function createInitialState() {
 
     primeNav: false,
     streamNav: false,
-    settingsOpen: false,
     subscription: null,
     subscribeInfo: null,
 

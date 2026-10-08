@@ -66,6 +66,7 @@ vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() 
 const FIRST = 'aaaaaaaaaaaaaaaa';
 const SECOND = 'bbbbbbbbbbbbbbbb';
 const SHARED = 'cccccccccccccccc';
+const UNKNOWN = 'dddddddddddddddd';
 const LOG = '2026-08-06--12-00-00';
 const RECENT_LOG = '2026-08-06--13-00-00';
 const START = Date.UTC(2026, 7, 6, 12);
@@ -122,6 +123,7 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/stats')) return json(null);
   if (/^\/v1\.1\/devices\/[a-f0-9]{16}\/$/.test(url.pathname)) {
     const dongleId = url.pathname.split('/')[3];
+    if (options.unknownDevices?.includes(dongleId)) return json({ error: 'unknown device' }, 404);
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
@@ -398,12 +400,54 @@ describe('whole-app behavior', () => {
       fireEvent.click(screen.getByRole('button', { name: 'menu' }));
       // The drawer lists devices alphabetically, so Alpha/Second is first.
       fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
-      await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+      await waitFor(() => expect(history.location.search).toBe(`?settings=${SECOND}`));
       expect(await screen.findByText('Device settings')).toBeVisible();
 
       act(() => history.goBack());
       await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
       await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    });
+
+    test('settings for another device overlay the drive without disturbing it', async () => {
+      const { history, store } = await renderApp(`/${FIRST}/${LOG}`, { selected: FIRST });
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+      fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+      await waitFor(() => expect(history.location.search).toBe(`?settings=${SECOND}`));
+      expect(await screen.findByText('Device settings')).toBeVisible();
+
+      // The underlying drive is untouched: same path, same route, still
+      // rendered (the open modal hides it from the accessibility tree, so
+      // query the DOM directly).
+      expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+      expect(store.getState().selectedRouteId).toBe(LOG);
+      expect(document.querySelector('[aria-label="Drive timeline"]')).not.toBeNull();
+
+      act(() => history.goBack());
+      await waitFor(() => expect(history.location.search).toBe(''));
+      await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+      // The drive underneath was never disturbed (role queries stay hidden by
+      // the closed modal's leaked aria-hidden under jsdom, so query the DOM).
+      expect(document.querySelector('[aria-label="Drive timeline"]')).not.toBeNull();
+    });
+
+    test('a non-owner cannot open a shared device\'s settings by URL', async () => {
+      const { history } = await renderApp(`/${SHARED}`);
+      await screen.findByText('Shared device');
+      act(() => history.push(`/${SHARED}?settings=${SHARED}`));
+      await waitFor(() => expect(history.location.search).toBe(`?settings=${SHARED}`));
+      expect(await screen.findByText('Only the device owner can manage these settings.')).toBeVisible();
+      // Management controls never rendered.
+      expect(screen.queryByText('Unpair')).not.toBeInTheDocument();
+    });
+
+    test('settings for a device outside the account are denied once devices load', async () => {
+      const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+      await screen.findByText('Mock recent route start');
+      act(() => history.push(`/${FIRST}?settings=dddddddddddddddd`));
+      expect(await screen.findByText('Device not found.')).toBeVisible();
+      expect(screen.queryByText('Unpair')).not.toBeInTheDocument();
     });
 
     test.each([
@@ -412,6 +456,112 @@ describe('whole-app behavior', () => {
     ])('validates %s in ?r=', async (_name, entry, expected) => {
       const { history } = await renderApp(entry);
       await waitFor(() => expect(history.location.pathname).toBe(expected));
+    });
+
+    test('the login redirect target is sanitized before it is stored', async () => {
+      await renderApp('/?r=//evil.example/foo', { authenticated: false });
+      expect(await screen.findByText('Sign in with Google')).toBeVisible();
+      expect(sessionStorage.getItem('redirectURL')).toBe('/');
+    });
+  });
+
+  describe('stale and failed navigations', () => {
+    test('an unknown device from a drive shows not-found and clears the drive view', async () => {
+      const { history, store } = await renderApp(`/${FIRST}/${RECENT_LOG}`, { selected: FIRST, unknownDevices: [UNKNOWN] });
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+
+      act(() => history.push(`/${UNKNOWN}`));
+      // The rendered screen, not just the store, follows the URL.
+      expect(await screen.findByText('Page not found')).toBeVisible();
+      expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument();
+      expect(history.location.pathname).toBe(`/${UNKNOWN}`);
+      expect(store.getState().selectedRouteId).toBeNull();
+      expect(store.getState().zoom).toBeNull();
+      expect(store.getState().deviceNotFound).toBe(true);
+
+      // Navigating to a valid destination recovers normally.
+      act(() => history.push(`/${FIRST}`));
+      expect(await screen.findByText('Mock recent route start')).toBeVisible();
+      expect(screen.queryByText('Page not found')).not.toBeInTheDocument();
+    });
+
+    test('an unknown device from a stream closes the teleop view', async () => {
+      const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
+      const { history, store } = await renderApp(`/${FIRST}/stream`, { devices: online, unknownDevices: [UNKNOWN] });
+      expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+
+      act(() => history.push(`/${UNKNOWN}`));
+      expect(await screen.findByText('Page not found')).toBeVisible();
+      expect(screen.queryByRole('button', { name: 'Close teleop' })).not.toBeInTheDocument();
+      expect(store.getState().streamNav).toBe(false);
+    });
+
+    test('a delayed unknown-device failure after navigating on never wins', async () => {
+      let resolveLookup;
+      const realFetch = globalThis.fetch;
+      vi.stubGlobal('fetch', vi.fn(async (input, init) => {
+        const url = new URL(typeof input === 'string' ? input : input.url);
+        if (url.pathname === `/v1.1/devices/${UNKNOWN}/`) {
+          await new Promise((resolve) => { resolveLookup = resolve; });
+          return json({ error: 'unknown device' }, 404);
+        }
+        return realFetch(input, init);
+      }));
+      const { history, store } = await renderApp(`/${FIRST}`, { selected: FIRST, unknownDevices: [UNKNOWN] });
+      await screen.findByText('Mock recent route start');
+
+      act(() => history.push(`/${UNKNOWN}`));
+      act(() => history.push(`/${SECOND}`));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+      resolveLookup();
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+
+      // The stale 404 must not turn B's dashboard into a not-found page.
+      expect(await screen.findByText('Mock recent route start')).toBeVisible();
+      expect(screen.queryByText('Page not found')).not.toBeInTheDocument();
+      expect(store.getState().dongleId).toBe(SECOND);
+      expect(store.getState().deviceNotFound).toBe(false);
+      vi.stubGlobal('fetch', realFetch);
+    });
+  });
+
+  describe('url dialogs and history', () => {
+    test('referrals closes the previous view and Back restores it', async () => {
+      const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
+      const { history } = await renderApp(`/${FIRST}/stream`, { devices: online });
+      expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+
+      act(() => history.push('/referrals'));
+      expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
+      expect(screen.queryByRole('button', { name: 'Close teleop' })).not.toBeInTheDocument();
+
+      act(() => history.goBack());
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/stream`));
+      expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+    });
+
+    test('the date filter is a URL overlay that Back closes', async () => {
+      const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+      await screen.findByText('Mock recent route start');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+      await waitFor(() => expect(history.location.search).toBe('?dates=1'));
+      expect(await screen.findByText('Start date:')).toBeVisible();
+
+      act(() => history.goBack());
+      await waitFor(() => expect(screen.queryByText('Start date:')).not.toBeInTheDocument());
+      expect(history.location.search).toBe('');
+    });
+
+    test('a sub-second selection serializes to a URL that still parses', async () => {
+      const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+
+      act(() => { store.dispatch(pushTimelineRange(LOG, 10_200, 10_700)); });
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/11`));
+      expect(store.getState().zoom).toEqual({ start: 10_000, end: 11_000 });
+      expect(screen.queryByText('Page not found')).not.toBeInTheDocument();
+      expect(screen.getByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     });
   });
 });

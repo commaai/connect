@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { destinationFromUrl, urlForDestination, safeInternalPath } from './url';
+import {
+  destinationFromUrl, urlForDestination, safeInternalPath,
+  overlayFromSearch, withOverlaySearch, stripOverlaySearch,
+} from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
@@ -61,15 +64,91 @@ describe('urlForDestination', () => {
     [{ kind: 'root' }, '/'],
     [{ kind: 'not-found' }, '/'],
     [{ kind: 'dashboard', dongleId: DONGLE }, `/${DONGLE}`],
-    [{ kind: 'settings', dongleId: DONGLE }, `/${DONGLE}/settings`],
     [{ kind: 'prime', dongleId: DONGLE }, `/${DONGLE}/prime`],
     [{ kind: 'stream', dongleId: DONGLE }, `/${DONGLE}/stream`],
     [{ kind: 'drive', dongleId: DONGLE, logId: LOG }, `/${DONGLE}/${LOG}`],
-    [{ kind: 'drive', dongleId: DONGLE, logId: LOG, start: 10500, end: 20400 }, `/${DONGLE}/${LOG}/10/20`],
+    [{ kind: 'drive', dongleId: DONGLE, logId: LOG, start: 10500, end: 20400 }, `/${DONGLE}/${LOG}/10/21`],
     [{ kind: 'drive', dongleId: DONGLE, logId: LOG, start: 0, end: 20000 }, `/${DONGLE}/${LOG}/0/20`],
     [{ kind: 'legacy', dongleId: DONGLE, start: 1000, end: 2000 }, `/${DONGLE}/1000/2000`],
   ])('formats %j', (destination, expected) => {
     expect(urlForDestination(destination)).toBe(expected);
+  });
+});
+
+describe('range serialization', () => {
+  // A valid selection must never serialize to a URL the parser rejects: the
+  // start is floored, the end rounded up, so the interval can only grow.
+  it.each([
+    ['a sub-second range at zero', 0, 500, 0, 1000],
+    ['a range inside one second', 10_200, 10_700, 10_000, 11_000],
+    ['a range straddling one second', 10_900, 11_100, 10_000, 12_000],
+    ['exact whole seconds', 10_000, 20_000, 10_000, 20_000],
+    ['a selection near the route end', 59_500, 60_000, 59_000, 60_000],
+    ['the full drive', 0, 60_000, 0, 60_000],
+  ])('serializes %s canonically', (_name, start, end, parsedStart, parsedEnd) => {
+    const pathname = urlForDestination({ kind: 'drive', dongleId: DONGLE, logId: LOG, start, end });
+    expect(destinationFromUrl(pathname)).toEqual({
+      kind: 'drive', dongleId: DONGLE, logId: LOG, start: parsedStart, end: parsedEnd,
+    });
+  });
+
+  it('never produces a zero-length or inverted range from a valid selection', () => {
+    for (let start = 0; start < 3000; start += 97) {
+      for (let width = 1; width <= 2000; width += 173) {
+        const pathname = urlForDestination({ kind: 'drive', dongleId: DONGLE, logId: LOG, start, end: start + width });
+        const parsed = destinationFromUrl(pathname);
+        expect(parsed.kind).toBe('drive');
+        expect(parsed.end).toBeGreaterThan(parsed.start);
+        // Formatting the parsed range again is a fixed point.
+        expect(urlForDestination(parsed)).toBe(pathname);
+      }
+    }
+  });
+
+  it.each([
+    'a safe-integer overflow start',
+    'a safe-integer overflow end',
+  ])('rejects %s', (name) => {
+    const huge = Number.MAX_SAFE_INTEGER + 1;
+    const start = name.endsWith('start') ? huge : 0;
+    const end = name.endsWith('end') ? huge : 1000;
+    const pathname = urlForDestination({ kind: 'drive', dongleId: DONGLE, logId: LOG, start, end });
+    expect(destinationFromUrl(pathname).kind).toBe('not-found');
+  });
+});
+
+describe('overlay query parameters', () => {
+  it.each([
+    [`?settings=${OTHER}`, { kind: 'settings', dongleId: OTHER }],
+    ['?dates=1', { kind: 'dates' }],
+    ['?uploads=1', { kind: 'uploads' }],
+    ['', null],
+    ['?settings=nothex', null],
+    [`?settings=${DONGLE.slice(0, 8)}`, null],
+    ['?dates=true', null],
+    ['?uploads=0', null],
+  ])('parses %s', (search, expected) => {
+    expect(overlayFromSearch(search)).toEqual(expected);
+  });
+
+  it.each([
+    ['', { kind: 'settings', dongleId: OTHER }, `?settings=${OTHER}`],
+    ['', { kind: 'dates' }, '?dates=1'],
+    [`?settings=${OTHER}`, { kind: 'dates' }, '?dates=1'],
+    ['', null, ''],
+    ['?keep=1', { kind: 'uploads' }, '?keep=1&uploads=1'],
+    [`?keep=1&settings=${OTHER}`, null, '?keep=1'],
+  ])('rewrites %s with %j to %s', (search, overlay, expected) => {
+    expect(withOverlaySearch(search, overlay)).toBe(expected);
+    // Removing the overlay restores the bare search.
+    expect(stripOverlaySearch(expected)).toBe(withOverlaySearch(search, null));
+  });
+
+  it('round-trips parse and format', () => {
+    const overlay = { kind: 'settings', dongleId: OTHER };
+    expect(overlayFromSearch(withOverlaySearch('', overlay))).toEqual(overlay);
+    expect(overlayFromSearch(withOverlaySearch(withOverlaySearch('', overlay), { kind: 'dates' })))
+      .toEqual({ kind: 'dates' });
   });
 });
 
@@ -78,7 +157,6 @@ describe('parse/format round trip', () => {
     '/referrals',
     '/demo',
     `/${DONGLE}`,
-    `/${DONGLE}/settings`,
     `/${DONGLE}/prime`,
     `/${DONGLE}/stream`,
     `/${DONGLE}/${LOG}`,
@@ -86,6 +164,12 @@ describe('parse/format round trip', () => {
     `/${DONGLE}/${LOG}/0/20`,
   ])('is stable for %s', (pathname) => {
     expect(urlForDestination(destinationFromUrl(pathname))).toBe(pathname);
+  });
+
+  it('migrates the draft-era settings path to the overlay form', () => {
+    expect(destinationFromUrl(`/${DONGLE}/settings`)).toEqual({ kind: 'settings', dongleId: DONGLE });
+    // urlForDestination no longer emits a settings path: it is overlay-only.
+    expect(urlForDestination({ kind: 'settings', dongleId: DONGLE })).toBe(`/${DONGLE}`);
   });
 
   it('canonicalizes ranges to whole seconds', () => {

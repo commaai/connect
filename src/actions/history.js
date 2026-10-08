@@ -1,8 +1,11 @@
-import { LOCATION_CHANGE, push, replace } from 'connected-react-router';
+import { LOCATION_CHANGE, goBack, push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { api, initBackend } from '../api/backend';
-import { destinationFromUrl, urlForDestination, safeInternalPath } from '../url';
+import {
+  destinationFromUrl, urlForDestination, safeInternalPath,
+  overlayFromSearch, withOverlaySearch, stripOverlaySearch,
+} from '../url';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { resetPlayback } from '../timeline/playback';
 import * as Types from './types';
@@ -16,6 +19,34 @@ import {
 
 // Navigate by formatting a destination into the one canonical URL shape.
 export const navigateTo = (destination) => push(urlForDestination(destination));
+
+// Open a dialog overlay on top of the current page by pushing its URL, so
+// browser Back closes the overlay and Forward reopens it. The underlying
+// destination in the pathname is never touched.
+export const openOverlay = (overlay) => (dispatch, getState) => {
+  const { pathname, search } = getState().router.location;
+  const current = overlayFromSearch(search);
+  if (current?.kind !== overlay.kind || current?.dongleId !== overlay.dongleId) {
+    // The flag marks history entries this flow created, so closing can tell
+    // an in-app open (undo with Back) from a cold-loaded overlay.
+    dispatch(push({ pathname, search: withOverlaySearch(search, overlay), state: { overlayOpenedInApp: true } }));
+  }
+};
+
+// Close any dialog overlay. Closing one that was opened in-app undoes the open
+// with a Back so no dead entry is left behind; a cold-loaded overlay is
+// replaced in place, leaving the page exactly as it was entered.
+export const closeOverlay = () => (dispatch, getState) => {
+  const { pathname, search, state } = getState().router.location;
+  if (!overlayFromSearch(search)) {
+    return;
+  }
+  if (state?.overlayOpenedInApp) {
+    dispatch(goBack());
+  } else {
+    dispatch(replace(pathname + stripOverlaySearch(search)));
+  }
+};
 
 export const applyDestination = (destination) => ({
   type: Types.ACTION_APPLY_DESTINATION,
@@ -115,10 +146,17 @@ const applyEntryDestination = (dispatch, getState, destination, devices) => {
 
 // The single url -> state entry point. Runs for every LOCATION_CHANGE (initial
 // load, PUSH, POP, REPLACE, refresh) and for nothing else.
+let navigationGeneration = 0;
+
 export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   const destination = destinationFromUrl(pathname);
-  const isCurrent = () => (getState().router?.location?.pathname
-    ?? window.location.pathname) === pathname;
+  navigationGeneration += 1;
+  const generation = navigationGeneration;
+  // Freshness is keyed on the navigation generation, with the pathname as a
+  // second condition. The generation also catches repeated navigation to the
+  // same path, where a pathname comparison alone would let a stale run pass.
+  const isCurrent = () => generation === navigationGeneration
+    && (getState().router?.location?.pathname ?? window.location.pathname) === pathname;
 
   // /demo and its synthetic device use the demo backend; every other path uses
   // the real one. The backend is chosen once per page load, so this only warms
@@ -142,14 +180,25 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
 
   const { devices, profile } = getState();
 
-  // /referrals is a full-page view rendered straight from the URL; it still
-  // needs the startup profile, loaded above.
+  // /referrals is a first-class destination like any other: the store
+  // reconciles to it (closing any drive, stream, or Prime presentation), while
+  // the device-scoped cache stays put for when the user comes back.
   if (destination.kind === 'referrals') {
+    const next = { kind: 'referrals', dongleId: getState().dongleId ?? null };
+    if (!stateMatches(getState(), next)) {
+      dispatch(applyDestination(next));
+    }
     return;
   }
 
   if (destination.kind === 'root' || destination.kind === 'demo') {
     applyEntryDestination(dispatch, getState, destination, devices);
+    return;
+  }
+
+  // The draft-era settings path is now an overlay over the device dashboard.
+  if (destination.kind === 'settings') {
+    dispatch(replace(`/${destination.dongleId}${withOverlaySearch('', { kind: 'settings', dongleId: destination.dongleId })}`));
     return;
   }
 
@@ -176,10 +225,22 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
       if (!isCurrent()) {
         return;
       }
+      if (!device) {
+        // The request layer resolves to null on an HTTP error status rather
+        // than throwing, so a missing device lands here, not in the catch.
+        dispatch({ type: Types.ACTION_DEVICE_NOT_FOUND, dongleId });
+        return;
+      }
     } catch (err) {
       if (err?.resp?.status !== 404) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'sync_fetch_device' });
+      }
+      // A failed lookup obeys the same freshness rule as a successful one: a
+      // delayed failure for device A must never mark the store not-found after
+      // the user has already moved on to device B.
+      if (!isCurrent()) {
+        return;
       }
       dispatch({ type: Types.ACTION_DEVICE_NOT_FOUND, dongleId });
       return;

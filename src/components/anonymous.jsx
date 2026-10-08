@@ -9,6 +9,7 @@ import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 import { stringifyQuery } from '../utils/query';
+import { safeInternalPath } from '../url';
 
 const AUTH_PROVIDERS = { GOOGLE: 'g', APPLE: 'a', GITHUB: 'h' };
 
@@ -51,7 +52,11 @@ const AnonymousLanding = ({ classes, pathname }) => {
   useEffect(() => {
     if (typeof window.sessionStorage !== 'undefined') {
       const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
+      // Same policy as every other redirect in the app: only same-origin
+      // absolute paths survive, wherever they come from.
+      const redirectURL = safeInternalPath(q.get('r'))
+        ?? safeInternalPath(sessionStorage.getItem('redirectURL'))
+        ?? pathname;
       sessionStorage.setItem('redirectURL', redirectURL);
     }
 

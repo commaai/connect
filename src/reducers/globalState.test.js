@@ -29,7 +29,6 @@ const baseState = {
   limit: 5,
   primeNav: false,
   streamNav: false,
-  settingsOpen: false,
   deviceNotFound: false,
 };
 
@@ -91,10 +90,10 @@ describe('ACTION_APPLY_DESTINATION', () => {
   });
 
   it.each([
-    ['settings', 'settingsOpen', true],
     ['prime', 'primeNav', true],
     ['stream', 'streamNav', true],
-    ['dashboard', 'settingsOpen', false],
+    ['dashboard', 'primeNav', false],
+    ['dashboard', 'streamNav', false],
   ])('sets %s view flags', (kind, flag, expected) => {
     const state = apply({ kind, dongleId: DONGLE });
     expect(state[flag]).toBe(expected);
@@ -108,12 +107,50 @@ describe('ACTION_APPLY_DESTINATION', () => {
     expect(state.deviceNotFound).toBe(false);
   });
 
-  it('records a missing device', () => {
-    const state = reducer(baseState, { type: Types.ACTION_DEVICE_NOT_FOUND, dongleId: OTHER });
-    expect(state.deviceNotFound).toBe(true);
-    expect(state.destinationKind).toBe('not-found');
-    expect(state.dongleId).toBe(OTHER);
-    expect(state.device).toBeNull();
+  describe('ACTION_DEVICE_NOT_FOUND', () => {
+    const driveState = {
+      ...baseState,
+      destinationKind: 'drive',
+      selectedRouteId: LOG,
+      currentRoute: route,
+      zoom: { start: 0, end: 60000 },
+      loop: { startTime: 0, duration: 60000 },
+      primeNav: false,
+      streamNav: true,
+    };
+
+    it('clears every navigation-dependent view state', () => {
+      const state = reducer(driveState, { type: Types.ACTION_DEVICE_NOT_FOUND, dongleId: OTHER });
+      expect(state.deviceNotFound).toBe(true);
+      expect(state.destinationKind).toBe('not-found');
+      expect(state.dongleId).toBe(OTHER);
+      expect(state.device).toBeNull();
+      // Nothing from the previous view may keep controlling what renders.
+      expect(state.streamNav).toBe(false);
+      expect(state.primeNav).toBe(false);
+      expect(state.selectedRouteId).toBeNull();
+      expect(state.currentRoute).toBeNull();
+      expect(state.zoom).toBeNull();
+      expect(state.loop).toBeNull();
+    });
+
+    it('invalidates the previous device-scoped data', () => {
+      const state = reducer(driveState, { type: Types.ACTION_DEVICE_NOT_FOUND, dongleId: OTHER });
+      expect(state.routes).toBeNull();
+      expect(state.lastRoutes).toBeNull();
+      expect(state.routesMeta).toEqual({ dongleId: null, start: null, end: null });
+      expect(state.files).toBeNull();
+      expect(state.subscription).toBeNull();
+      expect(state.limit).toBe(0);
+    });
+
+    it('keeps the cache when the missing device is the one already selected', () => {
+      const state = reducer(baseState, { type: Types.ACTION_DEVICE_NOT_FOUND, dongleId: DONGLE });
+      expect(state.deviceNotFound).toBe(true);
+      expect(state.routes).toBe(baseState.routes);
+      expect(state.files).toBe(baseState.files);
+      expect(state.limit).toBe(baseState.limit);
+    });
   });
 
   it('backs the selected device with a fetched shared device', () => {

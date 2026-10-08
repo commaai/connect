@@ -49,8 +49,9 @@ export function checkRoutesData({ force = false } = {}) {
         dongleId,
       };
     }
+    const request = routesRequest;
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    routesRequestPromise = request.req.then((routesData) => {
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
@@ -58,13 +59,20 @@ export function checkRoutesData({ force = false } = {}) {
         || state.limit !== fetchLimit
         || state.dongleId !== dongleId
         || (state.selectedRouteId ?? null) !== fetchRouteId) {
-        routesRequest = null;
+        // This response is stale. Clear the coalescing slot only if it still
+        // holds this exact request: a newer request must keep its bookkeeping
+        // so it can still absorb duplicate callers.
+        if (routesRequest === request) {
+          routesRequest = null;
+        }
         dispatch(checkRoutesData());
         return;
       }
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
-        routesRequest = null;
+        if (routesRequest === request) {
+          routesRequest = null;
+        }
         hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
         return;
       }
@@ -109,13 +117,17 @@ export function checkRoutesData({ force = false } = {}) {
         routes,
       });
 
-      routesRequest = null;
+      if (routesRequest === request) {
+        routesRequest = null;
+      }
 
       return routes
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
+      if (routesRequest === request) {
+        routesRequest = null;
+      }
     });
 
     return routesRequestPromise
