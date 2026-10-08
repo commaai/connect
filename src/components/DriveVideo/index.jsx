@@ -3,7 +3,7 @@ import { CircularProgress, Typography } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { getVideo, playIgnoringInterruptions } from '../../timeline/video';
+import { getVideo, playIgnoringInterruptions, setPlaybackRate } from '../../timeline/video';
 import { seekToRouteMs, toRouteMs, toVideoSeconds } from '../../timeline/routeTime';
 import { useVideoBuffering, useVideoEvent, useVideoFrame } from '../../hooks/video';
 import Video from './Video';
@@ -105,7 +105,7 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
       const video = getVideo();
       if (!video) return;
       seekToRouteMs(video, videoStartOffset, loopStart ?? 0);
-      video.playbackRate = 1;
+      setPlaybackRate(video, 1);
       playIgnoringInterruptions(video);
     },
   }), [videoStartOffset, loopStart]);

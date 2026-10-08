@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import hlsWorkerUrl from 'hls.js/dist/hls.worker.js?url';
 
-import { setVideo } from '../../timeline/video';
+import { setPlaybackRate, setVideo } from '../../timeline/video';
 import { useVideo, useVideoEvent } from '../../hooks/video';
 import { playsHlsNatively } from '../../utils/browser.js';
 
@@ -25,6 +25,7 @@ function useHls(video, src, startPosition, onError) {
 
   useEffect(() => {
     if (!video || !src) return undefined;
+    setPlaybackRate(video, 1);
 
     if (playsHlsNatively()) {
       video.src = src;

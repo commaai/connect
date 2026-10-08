@@ -15,6 +15,11 @@ export function getPlaybackSpeed(element) {
   return element.playbackRate;
 }
 
+export function setPlaybackRate(element, rate) {
+  element.defaultPlaybackRate = rate;
+  element.playbackRate = rate;
+}
+
 export function playIgnoringInterruptions(element) {
   element.play().catch(() => {});
 }

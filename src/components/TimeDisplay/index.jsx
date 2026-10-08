@@ -11,7 +11,7 @@ import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, Vo
 import { useVideo, useVideoControls, useVideoFrame } from '../../hooks/video';
 import { getCurrentRouteMs, seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
 import { videoPaused, videoPlayed, videoSeeked } from '../../timeline/playback';
-import { getPlaybackSpeed, playIgnoringInterruptions } from '../../timeline/video';
+import { getPlaybackSpeed, playIgnoringInterruptions, setPlaybackRate } from '../../timeline/video';
 import { segmentAtRouteMs } from '../../utils';
 import { playsHlsNatively } from '../../utils/browser.js';
 
@@ -151,7 +151,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     if (!video) return;
     const lastIndex = timerSteps.length - 1;
     const nextIndex = Math.min(Math.max(speedStepIndex(video.playbackRate) + steps, 0), lastIndex);
-    video.playbackRate = timerSteps[nextIndex];
+    setPlaybackRate(video, timerSteps[nextIndex]);
     play();
   };
 
