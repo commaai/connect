@@ -447,7 +447,7 @@ class AddDevice extends Component {
                     </>
                     ) }
                   </div>
-                  <video className={ classes.video } ref={ this.onVideoRef } />
+                  <video className={ classes.video } ref={ this.onVideoRef } muted playsInline />
                 </div>
               )}
           </Paper>
