@@ -9,7 +9,7 @@ import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, bufferVideo, videoProgress } from '../../timeline/playback';
+import { seek, pause, bufferVideo, videoProgress } from '../../timeline/playback';
 import { isIos } from '../../utils/browser.js';
 
 const SEEK_TOLERANCE_SECONDS = 1;
@@ -54,6 +54,7 @@ export class DriveVideo extends Component {
     this.onVideoProgress = this.onVideoProgress.bind(this);
     this.onPlayerReady = this.onPlayerReady.bind(this);
     this.onPlayerSeek = this.onPlayerSeek.bind(this);
+    this.onPlayerEnded = this.onPlayerEnded.bind(this);
     this.appliedSeekRevision = null;
     this.pendingSeek = null;
     this.reseekedRevision = null;
@@ -66,13 +67,14 @@ export class DriveVideo extends Component {
     this.state = {
       videoError: null,
       retryGeneration: 0,
+      restartingLoop: false,
     };
   }
 
   componentDidUpdate(prevProps) {
     if (routeSourceKey(prevProps.currentRoute) !== routeSourceKey(this.props.currentRoute)) {
       this.resetPlayer();
-      this.setState({ videoError: null, retryGeneration: 0 });
+      this.setState({ videoError: null, retryGeneration: 0, restartingLoop: false });
       this.props.dispatch(bufferVideo(true));
     }
     if (prevProps.loop !== this.props.loop && this.props.loop?.duration > 0
@@ -103,12 +105,17 @@ export class DriveVideo extends Component {
 
   retryVideo() {
     this.resetPlayer();
-    this.setState((state) => ({ videoError: null, retryGeneration: state.retryGeneration + 1 }));
+    this.setState((state) => ({ videoError: null, retryGeneration: state.retryGeneration + 1, restartingLoop: false }));
     this.props.dispatch(bufferVideo(true));
   }
 
   onVideoBuffering(key) {
     if (this.isCurrentPlayer(key) && !this.state.videoError) this.props.dispatch(bufferVideo(true));
+  }
+
+  completeSeek() {
+    this.pendingSeek = null;
+    if (this.state.restartingLoop) this.setState({ restartingLoop: false });
   }
 
   applyPendingSeek() {
@@ -121,7 +128,7 @@ export class DriveVideo extends Component {
     this.pendingSeek = { revision, target };
     this.reseekedRevision = null;
     if (Math.abs(player.getCurrentTime() - target) <= 0.03) {
-      this.pendingSeek = null;
+      this.completeSeek();
     } else {
       player.seekTo(target, 'seconds');
     }
@@ -160,7 +167,7 @@ export class DriveVideo extends Component {
     if (!Number.isFinite(seconds)) return false;
     if (this.pendingSeek.revision !== this.props.seekRevision) return false;
     if (Math.abs(seconds - this.pendingSeek.target) > SEEK_TOLERANCE_SECONDS) return false;
-    this.pendingSeek = null;
+    this.completeSeek();
     return true;
   }
 
@@ -179,9 +186,24 @@ export class DriveVideo extends Component {
         }
         return;
       }
-      this.pendingSeek = null;
+      this.completeSeek();
     }
     this.onVideoProgress(key);
+  }
+
+  onPlayerEnded(key) {
+    if (!this.isCurrentPlayer(key) || !this.ready || this.state.videoError || this.state.restartingLoop) return;
+    const { currentRoute, loop, desiredPlaySpeed, dispatch } = this.props;
+    if (!currentRoute || desiredPlaySpeed <= 0) return;
+
+    // A seek alone cannot restart ReactPlayer after its native ended event:
+    // ReactPlayer needs a false-to-true `playing` prop transition to call play().
+    if (loop?.duration > 0 && Number.isFinite(loop.startTime)) {
+      this.setState({ restartingLoop: true });
+      dispatch(seek(loop.startTime));
+    } else {
+      dispatch(pause());
+    }
   }
 
   onVideoProgress(key) {
@@ -275,7 +297,7 @@ export class DriveVideo extends Component {
 
   render() {
     const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted } = this.props;
-    const { videoError } = this.state;
+    const { videoError, restartingLoop } = this.state;
     const src = sourceForRoute(currentRoute);
     const key = this.playerKey();
 
@@ -290,12 +312,12 @@ export class DriveVideo extends Component {
           muted={isMuted}
           width="100%"
           height="100%"
-          playing={Boolean(currentRoute && desiredPlaySpeed && !videoError)}
+          playing={Boolean(currentRoute && desiredPlaySpeed && !videoError && !restartingLoop)}
           onReady={(player) => this.onPlayerReady(player, key)}
           onProgress={() => this.onVideoProgress(key)}
           progressInterval={33}
           onSeek={(seconds) => this.onPlayerSeek(seconds, key)}
-          onEnded={() => this.onVideoProgress(key)}
+          onEnded={() => this.onPlayerEnded(key)}
           config={{
             hlsVersion: '1.4.8',
             hlsOptions: {

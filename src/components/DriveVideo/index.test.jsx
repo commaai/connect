@@ -180,4 +180,96 @@ describe('DriveVideo player lifecycle', () => {
     expect(dispatch).toHaveBeenCalledWith(seek(0));
     expect(dispatch.mock.calls.some(([a]) => a.type === ACTION_SEEK)).toBe(true);
   });
+
+  it('restarts a natively ended loop after its restart seek is acknowledged', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+    changeProps({ loop: { startTime: 1000, duration: 9000 }, offset: 10000 });
+    dispatch.mockClear();
+
+    // Native HTMLVideoElement is now paused/ended even though desired speed remains 1x.
+    callbacks().onEnded();
+    expect(dispatch).toHaveBeenCalledWith(seek(1000));
+    expect(video.state.restartingLoop).toBe(true);
+    expect(callbacks().playing).toBe(false); // Force ReactPlayer's playback edge.
+
+    changeProps({ offset: 1000, seekRevision: 1 });
+    media.time = 1;
+    callbacks().onSeek(1);
+    expect(video.pendingSeek).toBeNull();
+    expect(video.state.restartingLoop).toBe(false);
+    expect(callbacks().playing).toBe(true);
+  });
+
+  it('does not replay an ended loop until the newest seek actually reaches its target', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+    changeProps({ loop: { startTime: 1000, duration: 9000 }, offset: 10000 });
+    dispatch.mockClear();
+    callbacks().onEnded();
+    changeProps({ offset: 1000, seekRevision: 1 });
+
+    media.time = 10;
+    callbacks().onSeek(10); // Delayed seek completion from the previous position.
+    expect(video.state.restartingLoop).toBe(true);
+    expect(callbacks().playing).toBe(false);
+
+    media.time = 1;
+    callbacks().onProgress(); // Some browsers report progress before `seeked`.
+    expect(video.state.restartingLoop).toBe(false);
+    expect(callbacks().playing).toBe(true);
+  });
+
+  it('recovers from native end even when an earlier seek target was unreachable', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+    changeProps({ loop: { startTime: 1000, duration: 9000 }, offset: 9500, seekRevision: 1 });
+    media.time = 8; // Media ended short of the requested target.
+    dispatch.mockClear();
+    callbacks().onProgress();
+    expect(video.pendingSeek).toEqual({ revision: 1, target: 9.5 });
+    expect(dispatch).not.toHaveBeenCalled();
+
+    callbacks().onEnded(); // Must not be blocked by the previous seek acknowledgment.
+    expect(dispatch).toHaveBeenCalledWith(seek(1000));
+    expect(callbacks().playing).toBe(false);
+
+    changeProps({ offset: 1000, seekRevision: 2 });
+    media.time = 1;
+    callbacks().onSeek(1);
+    expect(video.pendingSeek).toBeNull();
+    expect(callbacks().playing).toBe(true);
+  });
+
+  it('does not issue duplicate loop restarts for repeated native ended events', () => {
+    const { video, callbacks, changeProps, dispatch } = playerFixture();
+    changeProps({ loop: { startTime: 0, duration: 1000 } });
+    dispatch.mockClear();
+    callbacks().onEnded();
+    callbacks().onEnded();
+    expect(video.state.restartingLoop).toBe(true);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith(seek(0));
+  });
+
+  it('does not restart an ended video when playback was intentionally paused', () => {
+    const { callbacks, changeProps, dispatch } = playerFixture();
+    changeProps({ loop: { startTime: 0, duration: 1000 }, desiredPlaySpeed: 0 });
+    dispatch.mockClear();
+    callbacks().onEnded();
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(callbacks().playing).toBe(false);
+  });
+
+  it('reflects natural video completion as paused when no loop is selected', () => {
+    const { callbacks, dispatch } = playerFixture();
+    callbacks().onEnded();
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ACTION_PAUSE' }));
+  });
+
+  it('ignores stale ended events from previous players', () => {
+    const { callbacks, changeProps, dispatch } = playerFixture();
+    const oldEnded = callbacks().onEnded;
+    changeProps({ loop: { startTime: 0, duration: 1000 }, currentRoute: route('route-B') });
+    dispatch.mockClear();
+    oldEnded();
+    expect(dispatch).not.toHaveBeenCalled();
+  });
 });
