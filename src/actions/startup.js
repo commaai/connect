@@ -60,8 +60,9 @@ export default function init() {
       if (!state.dongleId) {
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
         const dongleId = devices.some((d) => d.dongle_id === selectedDongleId) ? selectedDongleId : devices[0].dongle_id;
-        if (parseLocation(state.router.location).page === 'home') {
-          dispatch(replace(urlFor({ page: 'dashboard', dongleId })));
+        const { location } = state.router;
+        if (parseLocation(location).page === 'home') {
+          dispatch(replace({ pathname: urlFor({ page: 'dashboard', dongleId }), search: location.search }));
         } else {
           dispatch(selectDevice(dongleId));
         }

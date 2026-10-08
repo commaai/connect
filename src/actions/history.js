@@ -32,7 +32,7 @@ export function applyLocation(location) {
     if (url.page === 'home') {
       const { dongleId } = getState();
       if (dongleId) {
-        dispatch(replace(urlFor({ page: 'dashboard', dongleId })));
+        dispatch(replace({ pathname: urlFor({ page: 'dashboard', dongleId }), search: location.search }));
       }
       return;
     }

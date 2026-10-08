@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
+import { navigate } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
@@ -11,7 +12,6 @@ import { RightArrow } from '../../icons';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Timeline from '../Timeline';
-import { navigate } from '../../actions';
 import { urlFor } from '../../url';
 
 const styles = () => ({

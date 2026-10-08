@@ -4,9 +4,9 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
+import { navigate } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
-import { navigate } from '../../actions';
 import { urlFor } from '../../url';
 
 import Media from './Media';

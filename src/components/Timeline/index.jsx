@@ -8,11 +8,11 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
+import { navigate } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
-import { navigate } from '../../actions';
 import { urlFor } from '../../url';
 
 const styles = () => ({

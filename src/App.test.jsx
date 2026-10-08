@@ -343,6 +343,12 @@ describe('whole-app behavior', () => {
     expect(history.entries.map((entry) => entry.pathname + entry.search)).toEqual([`/${FIRST}`]);
   });
 
+  test('a device settings link without a device path keeps settings open on the default device', async () => {
+    const { history } = await renderApp(`/?settings=${FIRST}`, { selected: FIRST });
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname + history.location.search).toBe(`/${FIRST}?settings=${FIRST}`);
+  });
+
   test('a device settings link for a device the user does not own is ignored', async () => {
     await renderApp(`/${FIRST}?settings=${SHARED}`);
     expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
