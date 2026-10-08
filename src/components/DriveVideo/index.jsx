@@ -5,9 +5,9 @@ import { CircularProgress, Typography } from '@material-ui/core';
 import { api } from '../../api/backend';
 
 import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
+import { ErrorOutline, Pause, PlayArrow } from '../../icons';
 import { applyPendingSeek, currentOffset, seekTo, setVideo, toVideoTime } from '../../timeline';
-import { videoState } from '../../timeline/playback';
+import { pause, play, seek, videoState } from '../../timeline/playback';
 
 const NOT_UPLOADED_ERROR = 'This video segment has not uploaded yet or has been deleted.';
 const NETWORK_ERROR = 'Unable to load video. Check network connection.';
@@ -29,7 +29,7 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
   } else if (loading) {
     content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />;
   }
-  const visibleCls = error ? 'opacity-100' : 'opacity-100 delay-300';
+  const visibleCls = error ? 'opacity-100' : 'opacity-100 delay-300 pointer-events-none';
   return (
     <div className={`z-50 absolute h-full w-full flex flex-col items-center justify-center text-center bg-[#16181AAA] transition-opacity ${content ? visibleCls : 'opacity-0 pointer-events-none'}`}>
       {content}
@@ -47,6 +47,7 @@ class RouteVideo extends Component {
 
     this.state = {
       error: null,
+      feedback: null,
     };
   }
 
@@ -76,6 +77,7 @@ class RouteVideo extends Component {
     const video = this.video.current;
     video.audioTracks?.removeEventListener('addtrack', this.onAddAudioTrack);
     video.cancelVideoFrameCallback?.(this.frameRequest);
+    clearTimeout(this.tapTimer);
     this.unload();
     setVideo(null);
   }
@@ -216,6 +218,40 @@ class RouteVideo extends Component {
     this.syncState();
   };
 
+  // a tap plays or pauses. On touch, a double tap on either side jumps 10 s
+  // and each further tap another 10 s, so a single tap waits to see if a
+  // second one follows
+  onVideoPointerDown = (ev) => {
+    this.tapPointer = ev.pointerType;
+  };
+
+  onVideoClick = (ev) => {
+    const box = ev.currentTarget.getBoundingClientRect();
+    const x = (ev.clientX - box.left) / box.width;
+    const side = (x < 0.4 && -1) || (x > 0.6 && 1) || 0;
+    const now = performance.now();
+    const last = this.lastTap;
+    clearTimeout(this.tapTimer);
+    if (this.tapPointer !== 'touch') {
+      this.togglePlay();
+    } else if (side && last?.side === side && now - last.time < 300) {
+      const jumps = last.jumps + 1;
+      this.lastTap = { side, time: now, jumps };
+      this.props.dispatch(seek(currentOffset() + (side * 10000)));
+      this.setState({ feedback: { id: now, side, seconds: jumps * 10 } });
+      return;
+    } else {
+      this.tapTimer = setTimeout(this.togglePlay, 300);
+    }
+    this.lastTap = { side, time: now, jumps: 0 };
+  };
+
+  togglePlay = () => {
+    const video = this.video.current;
+    this.props.dispatch(video.paused ? play() : pause());
+    this.setState({ feedback: { id: performance.now(), paused: video.paused } });
+  };
+
   onError = () => {
     const { error } = this.video.current;
     // hls.js reports its own errors with more detail
@@ -251,15 +287,30 @@ class RouteVideo extends Component {
 
   render() {
     const { isMuted, isBufferingVideo } = this.props;
-    const { error } = this.state;
+    const { error, feedback } = this.state;
 
     return (
       <>
+        {feedback && (
+          <div key={feedback.id} className="absolute inset-0 z-40 flex items-center pointer-events-none animate-flash text-white">
+            {feedback.side ? (
+              <div className={`h-full w-2/5 grid place-items-center bg-white/15 text-lg font-semibold ${feedback.side < 0 ? 'rounded-r-[50%]' : 'ml-auto rounded-l-[50%]'}`}>
+                {`${feedback.side < 0 ? '−' : '+'}${feedback.seconds} s`}
+              </div>
+            ) : (
+              <div className="mx-auto grid place-items-center w-16 h-16 rounded-full bg-black/50">
+                {feedback.paused ? <Pause className="w-9 h-9" /> : <PlayArrow className="w-9 h-9" />}
+              </div>
+            )}
+          </div>
+        )}
         <VideoOverlay loading={isBufferingVideo} error={error} onRetry={() => this.load(currentOffset())} />
         <video
           ref={this.video}
-          className="w-full h-full"
+          className="w-full h-full cursor-pointer touch-manipulation"
           playsInline
+          onPointerDown={this.onVideoPointerDown}
+          onClick={this.onVideoClick}
           muted={isMuted}
           onLoadStart={this.syncState}
           onLoadedMetadata={this.onLoadedMetadata}
