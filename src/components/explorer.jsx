@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, closeModal, navigate, updateDevices } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -22,6 +22,9 @@ import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 
 import DriveView from './DriveView';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import UploadQueue from './Files/UploadQueue';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
 
@@ -82,10 +85,11 @@ class ExplorerApp extends Component {
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+    this.closeModal = () => this.props.dispatch(closeModal());
   }
 
   closeBodyTeleop() {
-    this.props.dispatch(streamNav(false));
+    this.props.dispatch(navigate({ page: 'dashboard' }));
   }
 
   async componentDidMount() {
@@ -154,7 +158,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -166,20 +170,13 @@ class ExplorerApp extends Component {
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
     }
-
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
-    }
   }
 
   async closePair() {
     const { pairDongleId } = this.state;
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      this.props.dispatch(navigate({ page: 'dashboard', dongleId: pairDongleId }));
     }
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
@@ -198,12 +195,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, device, devices, dispatch, dongleId, modal, page, selectedRouteId, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -221,10 +218,13 @@ class ExplorerApp extends Component {
     const drawerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
+    const modalDevice = modal && (devices?.find((d) => d.dongle_id === modal.dongleId)
+      || (device?.dongle_id === modal.dongleId ? device : null));
+    const canManage = Boolean(modalDevice && (modalDevice.is_owner || profile?.superuser));
 
     return (
       <div className={classes.app}>
-        { bodyTeleopOpen ? (
+        { page === 'stream' ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
           <>
@@ -244,12 +244,17 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(navigate({ page: 'dashboard' }))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            { modal?.name === 'settings' && canManage
+              && <DeviceSettingsModal dongleId={ modal.dongleId } onClose={ this.closeModal } /> }
+            { modal?.name === 'add-device' && api.auth.isAuthenticated() && <AddDevice onClose={ this.closeModal } /> }
+            { modal?.name === 'uploads' && modalDevice && (page !== 'drive' || modal.dongleId !== dongleId)
+              && <UploadQueue open update device={ modalDevice } onClose={ this.closeModal } /> }
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -279,11 +284,12 @@ const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
+  device: state.device,
   devices: state.devices,
+  modal: state.modal,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
+  page: state.page,
   profile: state.profile,
 });
 

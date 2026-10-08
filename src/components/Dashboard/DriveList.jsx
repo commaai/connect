@@ -59,6 +59,11 @@ const DriveList = (props) => {
     fetchDeviceInfo();
   }, [fetchDeviceInfo]);
 
+  // a drive opened by link loads alone; fill in the list when it shows
+  useEffect(() => {
+    dispatch(checkRoutesData());
+  }, [dispatch]);
+
   const onVisible = useCallback(() => {
     dispatch(checkRoutesData());
     fetchDeviceInfo();
