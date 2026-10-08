@@ -24,7 +24,7 @@ export class RouteVideo extends Component {
     this.clearClock = setVideoClock(() => this.video.current?.readyState && this.pendingSeek === null
       ? this.routeOffset : null);
     this.loadSource();
-    this.frame = requestAnimationFrame(this.checkLoop);
+    document.addEventListener('visibilitychange', this.onProgress);
   }
 
   componentDidUpdate(prevProps) {
@@ -41,6 +41,7 @@ export class RouteVideo extends Component {
     this.playRequest += 1;
     this.sourceRequest += 1;
     clearTimeout(this.loadTimeout);
+    document.removeEventListener('visibilitychange', this.onProgress);
     cancelAnimationFrame(this.frame);
     this.clearClock();
     const hls = this.hls;
@@ -99,10 +100,13 @@ export class RouteVideo extends Component {
         this.fail(forceHls ? unplayable : 'This browser cannot play this video. Try an updated browser.');
         return;
       }
-      const hls = new Hls({ maxBufferLength: 30 });
+      const hls = new Hls({ maxBufferLength: 30, autoStartLoad: false });
       this.hls = hls;
       video.removeAttribute('src');
       video.load();
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (this.hls === hls) hls.startLoad(Math.max(0, ((this.pendingSeek ?? this.routeOffset) - this.videoStart) / 1000));
+      });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (this.hls !== hls || !data.fatal) return;
         if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !this.recovered) {
@@ -166,8 +170,12 @@ export class RouteVideo extends Component {
   seekTo = (offset) => {
     const video = this.video.current;
     this.pendingSeek = offset;
-    if (!video.readyState) return false;
+    if (!video.readyState) {
+      if (this.hls?.loadingEnabled) this.hls.startLoad(Math.max(0, (offset - this.videoStart) / 1000));
+      return false;
+    }
     const { start, end } = this.range;
+    video.loop = Boolean(this.props.loop && start === 0 && end === video.duration);
     if (end <= start) {
       this.fail('There is no video in this selection. Choose another part of the drive.');
       return false;
@@ -199,15 +207,19 @@ export class RouteVideo extends Component {
     this.setState({ position: offset });
   };
 
-  checkLoop = () => {
+  enforceLoop = () => {
     const video = this.video.current;
-    if (video.readyState && !video.paused && !video.seeking && this.props.loop && !this.state.error) {
+    if (video.readyState && !video.paused && !video.seeking && !video.loop && this.props.loop && !this.state.error) {
       const { start, end } = this.range;
       if (end > start && (video.currentTime >= end || video.currentTime < start)) {
         this.seekTo(start * 1000 + this.videoStart);
       }
     }
-    this.frame = requestAnimationFrame(this.checkLoop);
+  };
+
+  checkLoop = () => {
+    this.enforceLoop();
+    if (!this.video.current.paused) this.frame = requestAnimationFrame(this.checkLoop);
   };
 
   onEnded = () => {
@@ -221,6 +233,7 @@ export class RouteVideo extends Component {
   };
 
   onPause = () => {
+    cancelAnimationFrame(this.frame);
     if (this.ignoreSourcePause) {
       this.ignoreSourcePause = false;
       return;
@@ -232,6 +245,8 @@ export class RouteVideo extends Component {
   };
 
   onPlay = () => {
+    cancelAnimationFrame(this.frame);
+    this.frame = requestAnimationFrame(this.checkLoop);
     this.props.dispatch(play(this.video.current.playbackRate));
     this.setState({ needsPlay: false, playbackRate: this.video.current.playbackRate });
   };
@@ -268,10 +283,18 @@ export class RouteVideo extends Component {
     clearTimeout(this.loadTimeout);
     this.setState({ loading });
     if (loading) {
+      const fragment = this.hls?.inFlightFragments.main?.frag;
+      const loaded = fragment?.stats.loaded;
       this.loadTimeout = setTimeout(() => {
-        if (!this.state.error) this.fail('Video is taking too long to load. Check your connection and try again.');
+        const current = this.hls?.inFlightFragments.main?.frag;
+        if (document.hidden || (current && (current !== fragment || current.stats.loaded > loaded))) this.setLoading(true);
+        else if (!this.state.error) this.fail('Video is taking too long to load. Check your connection and try again.');
       }, 20000);
     }
+  };
+
+  onProgress = () => {
+    if (this.state.loading) this.setLoading(true);
   };
 
   onSeeked = () => {
@@ -329,7 +352,8 @@ export class RouteVideo extends Component {
             muted
             preload="auto"
             onLoadedMetadata={this.onMetadata}
-            onTimeUpdate={this.reportProgress}
+            onProgress={this.onProgress}
+            onTimeUpdate={() => { this.enforceLoop(); this.reportProgress(); }}
             onSeeked={this.onSeeked}
             onWaiting={() => this.setLoading(true)}
             onSeeking={() => this.setLoading(true)}

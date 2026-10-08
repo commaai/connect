@@ -14,14 +14,15 @@ vi.mock('hls.js', () => {
   class MockHls {
     static instances = [];
     static isSupported = vi.fn(() => true);
-    static Events = { ERROR: 'error' };
+    static Events = { ERROR: 'error', MANIFEST_PARSED: 'manifestParsed' };
     static ErrorTypes = { MEDIA_ERROR: 'mediaError', NETWORK_ERROR: 'networkError' };
     handlers = {};
+    inFlightFragments = {};
     loadSource = vi.fn();
     attachMedia = vi.fn();
     destroy = vi.fn();
     stopLoad = vi.fn();
-    startLoad = vi.fn();
+    startLoad = vi.fn(() => { this.loadingEnabled = true; });
     recoverMediaError = vi.fn();
     on = (event, handler) => { this.handlers[event] = handler; };
     constructor() { MockHls.instances.push(this); }
@@ -149,8 +150,13 @@ it('publishes media time without seeking or changing rate to chase a clock', asy
 it('keeps only the latest seek while loading and seeks immediately after metadata', async () => {
   const { video, metadata, store } = await mount();
   act(() => { store.dispatch(seek(10000)); store.dispatch(seek(25000)); });
+  const hls = Hls.instances[0];
+  act(() => hls.handlers.manifestParsed());
+  expect(hls.startLoad).toHaveBeenLastCalledWith(23);
+  act(() => store.dispatch(seek(30000)));
+  expect(hls.startLoad).toHaveBeenLastCalledWith(28);
   metadata();
-  expect(video.currentTime).toBe(23);
+  expect(video.currentTime).toBe(28);
   act(() => store.dispatch(seek(15000)));
   expect(video.currentTime).toBe(13);
   act(() => store.dispatch(seek(15000)));
@@ -189,12 +195,18 @@ it.each([0, 1])('preserves a speed selected before metadata without changing pla
 it('loops from zero and clips to actual duration, preserving the selected speed', async () => {
   const { video, metadata, store } = await mount();
   metadata();
+  expect(video.loop).toBe(true);
   act(() => { store.dispatch(selectLoop(0, 10000)); store.dispatch(play(2)); });
+  expect(video.loop).toBe(false);
   video.currentTime = 8.1;
   act(() => [...frames.values()][0]());
   expect(video.currentTime).toBe(0);
   expect(video.playbackRate).toBe(2);
+  video.currentTime = 8.1;
+  fireEvent.timeUpdate(video); // RAF is suspended in background tabs.
+  expect(video.currentTime).toBe(0);
   act(() => store.dispatch(selectLoop(0, 90000)));
+  expect(video.loop).toBe(true);
   video.currentTime = 58;
   Object.defineProperty(video, 'ended', { configurable: true, value: true });
   fireEvent.pause(video);
@@ -256,6 +268,18 @@ it('times out stalled loading and ignores an interrupted play promise', async ()
   await act(async () => metadata());
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   fireEvent.waiting(video);
+  const hls = Hls.instances[0];
+  hls.inFlightFragments.main = { frag: { stats: { loaded: 100 } } };
+  act(() => vi.advanceTimersByTime(20000));
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  hls.inFlightFragments.main.frag.stats.loaded += 100;
+  act(() => vi.advanceTimersByTime(20000));
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+  act(() => vi.advanceTimersByTime(20000));
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  hidden.mockReturnValue(false);
+  fireEvent(document, new Event('visibilitychange'));
   act(() => vi.advanceTimersByTime(20000));
   expect(screen.getByRole('alert')).toHaveTextContent('taking too long');
   expect(store.getState().desiredPlaySpeed).toBe(0);
