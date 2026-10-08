@@ -9,6 +9,7 @@ import { useVideoBuffering, useVideoEvent, useVideoFrame } from '../../hooks/vid
 import Video from './Video';
 
 const SPINNER_STYLE = { color: Colors.white };
+const SEEK_PRECISION_MS = 1;
 
 const ERROR_MESSAGES = {
   'not-found': 'This video segment has not uploaded yet or has been deleted.',
@@ -74,7 +75,7 @@ function useLoopBounds(videoStartOffset, loopStart, loopDuration) {
 
     const routeMs = toRouteMs(videoStartOffset, videoSeconds);
     const loopEnd = loopStart + loopDuration;
-    const isOutsideLoop = routeMs < loopStart || routeMs >= loopEnd;
+    const isOutsideLoop = routeMs < loopStart - SEEK_PRECISION_MS || routeMs >= loopEnd;
     if (!isOutsideLoop) return;
 
     seekToRouteMs(video, videoStartOffset, loopStart);
