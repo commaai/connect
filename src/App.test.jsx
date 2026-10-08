@@ -553,6 +553,15 @@ describe('whole-app behavior', () => {
       expect(history.location.search).toBe('');
     });
 
+    test('a cold dates overlay on a drive does not render the filter', async () => {
+      const { history } = await renderApp(`/${FIRST}/${LOG}?dates=1`);
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+      // The filter's Save would destroy the drive view while the URL keeps
+      // pointing at it, so it only exists on dashboards.
+      expect(screen.queryByText('Start date:')).not.toBeInTheDocument();
+      expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    });
+
     test('a sub-second selection serializes to a URL that still parses', async () => {
       const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
       await screen.findByRole('slider', { name: 'Drive timeline' });

@@ -140,7 +140,11 @@ const applyEntryDestination = (dispatch, getState, destination, devices) => {
       dispatch(applyDestination(next));
     }
   } else {
-    dispatch(replace(`/${device.dongle_id}`));
+    // Keep the dialog overlay parameters across the remembered-device
+    // redirect; the rest of the root page's search (?r= was consumed above)
+    // is not meaningful on the device dashboard.
+    const search = getState().router?.location?.search ?? window.location.search;
+    dispatch(replace(`/${device.dongle_id}${withOverlaySearch('', overlayFromSearch(search))}`));
   }
 };
 
@@ -217,8 +221,13 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
     webrtcConnectionManager.disconnect();
   }
 
-  // Resolve the device: owned list first, then a direct fetch for shared devices.
+  // Resolve the device: owned list first, then a direct fetch for shared
+  // devices. A shared device that is already backed by the store does not need
+  // a second fetch just because a dialog overlay toggled the URL.
   let device = devices?.find((candidate) => candidate.dongle_id === dongleId) || null;
+  if (authenticated && !device && !deviceChanged) {
+    device = getState().device?.dongle_id === dongleId ? getState().device : null;
+  }
   if (authenticated && !device) {
     try {
       device = await api.devices.fetchDevice(dongleId);

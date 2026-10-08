@@ -168,6 +168,10 @@ export function pushTimelineRange(log_id, start, end) {
     const route = state.routes?.find((candidate) => candidate.log_id === log_id)
       || state.lastRoutes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+    // A degenerate selection (a >3px drag over a very short zoom can round
+    // both bounds together) must never serialize to the zero-length URL the
+    // parser rejects; keep it a valid one-second range instead.
+    const safeEnd = start != null && end != null && end <= start ? start + 1 : end;
 
     const destination = log_id
       ? {
@@ -175,7 +179,7 @@ export function pushTimelineRange(log_id, start, end) {
         dongleId: state.dongleId,
         logId: log_id,
         start: wholeDrive ? null : start,
-        end: wholeDrive ? null : end,
+        end: wholeDrive ? null : safeEnd,
       }
       : { kind: 'dashboard', dongleId: state.dongleId };
     const desiredPath = urlForDestination(destination);
@@ -206,7 +210,7 @@ export function primeFetchSubscription(dongleId, device, profile) {
       profile = state.profile;
     }
 
-    if (device && (device.is_owner || profile.superuser)) {
+    if (device && (device.is_owner || profile?.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
           dispatch(primeGetSubscription(dongleId, subscription));

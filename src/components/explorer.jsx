@@ -151,9 +151,11 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { pathname, zoom } = this.props;
+    const { pathname, zoom, overlay } = this.props;
+    const overlayChanged = prevProps.overlay?.kind !== overlay?.kind
+      || prevProps.overlay?.dongleId !== overlay?.dongleId;
 
-    if (prevProps.pathname !== pathname) {
+    if (prevProps.pathname !== pathname || overlayChanged) {
       this.setState({ drawerIsOpen: false });
     }
 
@@ -245,7 +247,10 @@ class ExplorerApp extends Component {
               dongleId={ overlay?.dongleId ?? null }
               onClose={ () => dispatch(closeOverlay()) }
             />
-            { overlay?.kind === 'dates' && (
+            { overlay?.kind === 'dates' && destinationKind === 'dashboard' && (
+              // The date filter shapes the dashboard's route list; over a drive
+              // its Save would destroy the drive view while the URL keeps
+              // pointing at it, so it only exists on the dashboard.
               <TimeSelect onClose={ () => dispatch(closeOverlay()) } />
             ) }
             { overlay?.kind === 'uploads' && device && (

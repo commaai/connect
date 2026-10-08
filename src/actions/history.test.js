@@ -131,6 +131,18 @@ describe('syncStateFromUrl', () => {
     expect(dispatched).toContainEqual({ type: 'REPLACE', pathname: `/${OTHER}` });
   });
 
+  it('keeps dialog overlay parameters across the root redirect', async () => {
+    window.localStorage.setItem('selectedDongleId', OTHER);
+    const { dispatched } = run('/', {
+      ...baseState,
+      dongleId: null,
+      destinationKind: null,
+      router: { location: { pathname: '/', search: `?settings=${OTHER}` } },
+    });
+    await Promise.resolve();
+    expect(dispatched).toContainEqual({ type: 'REPLACE', pathname: `/${OTHER}?settings=${OTHER}` });
+  });
+
   it('honors a safe ?r= target', async () => {
     const { dispatched } = run('/', {
       ...baseState,

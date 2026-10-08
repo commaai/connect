@@ -65,6 +65,7 @@ describe('navigation actions push one canonical URL', () => {
     ['whole drive', ['log_id', 0, 60000], '/statedongle/log_id'],
     ['drive range', ['log_id', 10000, 20000], '/statedongle/log_id/10/20'],
     ['zero-start range', ['log_id', 0, 20000], '/statedongle/log_id/0/20'],
+    ['a degenerate zero-length selection', ['log_id', 10000, 10000], '/statedongle/log_id/10/11'],
     ['dashboard', [null, null, null], '/statedongle'],
   ])('pushes the %s', (_name, args, expected) => {
     run(pushTimelineRange(...args), { pathname: '/elsewhere' });
