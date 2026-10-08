@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
-import { CircularProgress, Typography } from '@material-ui/core';
+import { Button, CircularProgress, Typography } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
@@ -17,23 +17,33 @@ const ERROR_MESSAGES = {
   media: 'Unable to load video',
 };
 
-const OverlayContent = ({ error }) => {
+const RetryButton = ({ onRetry }) => {
+  if (!onRetry) return null;
+  return (
+    <Button onClick={onRetry} className="mt-3 rounded-[15px] bg-white/10 px-6 py-1.5 normal-case text-white hover:bg-white/20">
+      Retry
+    </Button>
+  );
+};
+
+const OverlayContent = ({ error, onRetry }) => {
   if (!error) return <CircularProgress style={SPINNER_STYLE} thickness={4} size={50} />;
   return (
     <>
       <ErrorOutline className="mb-2" />
       <Typography>{error}</Typography>
+      <RetryButton onRetry={onRetry} />
     </>
   );
 };
 
-const VideoOverlay = ({ loading, error }) => {
+const VideoOverlay = ({ loading, error, onRetry }) => {
   const hasNothingToShow = !error && !loading;
   if (hasNothingToShow) return null;
   return (
     <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
       <div className="relative text-center top-[calc(50%_-_25px)]">
-        <OverlayContent error={error} />
+        <OverlayContent error={error} onRetry={onRetry} />
       </div>
     </div>
   );
@@ -42,11 +52,11 @@ const VideoOverlay = ({ loading, error }) => {
 function usePlaybackError(src) {
   const [failure, setFailure] = useState(null);
 
-  const handleError = useCallback(({ kind }) => {
+  const handleError = useCallback(({ kind, retry }) => {
     setFailure((current) => {
       const isSameFailure = current?.src === src && current.kind === kind;
       if (isSameFailure) return current;
-      return { src, kind };
+      return { src, kind, retry };
     });
   }, [src]);
 
@@ -55,7 +65,13 @@ function usePlaybackError(src) {
 
   const hasCurrentSourceFailed = failure !== null && failure.src === src;
   if (!hasCurrentSourceFailed) return { error: null, handleError };
-  return { error: ERROR_MESSAGES[failure.kind], handleError };
+  if (!failure.retry) return { error: ERROR_MESSAGES[failure.kind], handleError };
+
+  const retry = () => {
+    setFailure(null);
+    failure.retry();
+  };
+  return { error: ERROR_MESSAGES[failure.kind], retry, handleError };
 }
 
 function loopContainsVideo(video, videoStartOffset, loopStart, loopDuration) {
@@ -99,7 +115,7 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
   const loopDuration = loop?.duration;
 
   const buffering = useVideoBuffering();
-  const { error, handleError } = usePlaybackError(src);
+  const { error, retry, handleError } = usePlaybackError(src);
   useLoopBounds(videoStartOffset, loopStart, loopDuration);
 
   useImperativeHandle(ref, () => ({
@@ -114,7 +130,7 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
 
   return (
     <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-      <VideoOverlay loading={buffering} error={error} />
+      <VideoOverlay loading={buffering} error={error} onRetry={retry} />
       <div className="w-full h-full">
         <Video
           src={src}

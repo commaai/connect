@@ -76,11 +76,15 @@ function useHlsErrors(hls, onError) {
     const video = hls.media;
     const missingFragments = new Map();
     let hasTriedRecovery = false;
+    const recover = (kind) => {
+      if (kind === 'media') return hls.recoverMediaError();
+      hls.startLoad(video.currentTime);
+    };
     const recoverOrReport = (error) => {
       const canRecover = error.kind === 'media' && !hasTriedRecovery;
-      if (!canRecover) return onError?.(error);
+      if (!canRecover) return onError?.({ ...error, retry: () => recover(error.kind) });
       hasTriedRecovery = true;
-      hls.recoverMediaError();
+      recover(error.kind);
     };
 
     const isMissingAtPlayhead = () => {
@@ -127,7 +131,12 @@ function useHlsErrors(hls, onError) {
 function useNativeVideoErrors(video, onError) {
   const handleError = useCallback(() => {
     if (!playsHlsNatively()) return;
-    onError?.({ kind: mediaErrorKind(video.error), cause: video.error });
+    const position = video.currentTime;
+    const retry = () => {
+      video.load();
+      video.currentTime = position;
+    };
+    onError?.({ kind: mediaErrorKind(video.error), cause: video.error, retry });
   }, [video, onError]);
 
   useVideoEvent('error', handleError);
