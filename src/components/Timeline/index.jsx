@@ -170,7 +170,6 @@ class Timeline extends Component {
     const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
-      exited: null,
       hoverX: null,
       zoom: zoomOverride || zoom,
       thumbnail: {
@@ -201,12 +200,7 @@ class Timeline extends Component {
   componentDidUpdate(prevProps) {
     const { zoomOverride, zoom } = this.props;
     if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
-      const previous = prevProps.zoomOverride || prevProps.zoom;
-      const next = zoomOverride || zoom;
-      // after zooming out, the range that was left stays marked for a moment
-      const exited = previous && next && next.start <= previous.start && next.end >= previous.end
-        && next.end - next.start > previous.end - previous.start;
-      this.setState({ zoom: next, exited: exited ? previous : null });
+      this.setState({ zoom: zoomOverride || zoom });
     }
   }
 
@@ -392,7 +386,7 @@ class Timeline extends Component {
 
   render() {
     const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
-    const { thumbnail, hoverX, dragging, zoom, exited } = this.state;
+    const { thumbnail, hoverX, dragging, zoom } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
 
@@ -472,17 +466,6 @@ class Timeline extends Component {
               >
                 <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
                 { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
-                { exited && (
-                  <div
-                    key={`${exited.start}-${exited.end}`}
-                    className={`${classes.dragHighlight} animate-fadeout`}
-                    style={{
-                      left: `${100 * this.offsetToPercent(exited.start)}%`,
-                      width: `${(100 * (exited.end - exited.start)) / (zoom.end - zoom.start)}%`,
-                    }}
-                    onAnimationEnd={() => this.setState({ exited: null })}
-                  />
-                ) }
               </div>
               { hoverString && (
                 <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>

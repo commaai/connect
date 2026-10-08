@@ -12,7 +12,6 @@
 
 @theme {
   --animate-fadein: fadein 0.25s;
-  --animate-fadeout: fadeout 2s ease-in forwards;
   --animate-flash: fadeout 0.6s ease-out forwards;
   --breakpoint-xxs: 360px;
   --breakpoint-xs: 480px;
