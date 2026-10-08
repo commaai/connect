@@ -161,7 +161,9 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     if (!video) {
       return;
     }
-    video.playbackRate = timerSteps[speedIndex + steps];
+    const lastIndex = timerSteps.length - 1;
+    const nextIndex = Math.min(Math.max(speedStepIndex(video.playbackRate) + steps, 0), lastIndex);
+    video.playbackRate = timerSteps[nextIndex];
     play();
   };
 
@@ -169,7 +171,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     if (!video) {
       return;
     }
-    if (paused) {
+    if (video.paused) {
       play();
       return;
     }
@@ -181,7 +183,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     if (!video) {
       return;
     }
-    video.muted = !muted;
+    video.muted = !video.muted;
   };
 
   const isExpandedCls = zoom ? 'isExpanded' : '';
