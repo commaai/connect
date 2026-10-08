@@ -29,7 +29,7 @@ const styles = (theme) => ({
     backgroundColor: theme.palette.grey[999],
     height: '64px',
     borderRadius: '32px',
-    padding: theme.spacing.unit,
+    padding: `${theme.spacing.unit}px ${theme.spacing.unit / 2}px`,
     width: 400,
     maxWidth: '100%',
     margin: '0 auto',
@@ -47,11 +47,10 @@ const styles = (theme) => ({
     },
   },
   desiredPlaySpeedContainer: {
-    marginRight: theme.spacing.unit * 1,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    minWidth: '40px',
+    minWidth: 32,
   },
   icon: {
     width: '98%',
@@ -87,11 +86,15 @@ const styles = (theme) => ({
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
   },
   currentTime: {
-    margin: `0 ${theme.spacing.unit * 1}px`,
+    margin: `0 ${theme.spacing.unit / 2}px`,
     fontSize: 15,
     fontWeight: 500,
     display: 'block',
     flexGrow: 1,
+    // the time and segment stay on one line on a 375 px phone
+    '@media (max-width: 399.95px)': {
+      fontSize: 14,
+    },
   },
 });
 
