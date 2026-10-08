@@ -1,4 +1,4 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import * as Types from './types';
 import { parseRoute } from '../url';
 import { checkLastRoutesData, checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, popTimelineRange } from './index';
@@ -42,7 +42,10 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => {
         const logId = routesData[0].fullname.split('|')[1];
         const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
         if (!logId || !Number.isFinite(duration) || duration <= 0) return;
-        dispatch(pushTimelineRange(logId, null, null, true));
+        const routePath = `/${path.dongleId}/${logId}`;
+        if (parseRoute(routePath).routeId !== logId) return;
+        const latestLocation = getState().router?.location || location;
+        dispatch(replace(`${routePath}${latestLocation.search || ''}${latestLocation.hash || ''}`));
       }).catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);
       });
