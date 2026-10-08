@@ -1,6 +1,6 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek, selectLoop, syncOffset } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -103,6 +103,27 @@ describe('playback', () => {
     state = reducer(state, seek(0));
     expect(state.loop.startTime).toEqual(1000);
     expect(state.offset).toEqual(1000);
+  });
+
+  it('should follow the video time without restarting the clock', () => {
+    newNow();
+    let state = makeDefaultStruct();
+    state = reducer(state, play());
+    state.startTime = Date.now() - 1000;
+
+    state = reducer(state, syncOffset(400));
+    expect(currentOffset(state)).toEqual(400);
+    expect(state.startTime).toEqual(Date.now() - 1000);
+  });
+
+  it('should wrap the video time around the loop', () => {
+    newNow();
+    let state = makeDefaultStruct();
+    state = reducer(state, play());
+    state = reducer(state, selectLoop(1000, 2000));
+
+    state = reducer(state, syncOffset(2100));
+    expect(currentOffset(state)).toEqual(1100);
   });
 
   it('should buffer video and data', async () => {

@@ -25,6 +25,12 @@ export function reducer(_state, action) {
         }
       }
       break;
+    case Types.ACTION_SYNC_OFFSET:
+      state = {
+        ...state,
+        offset: action.offset - ((Date.now() - state.startTime) * (state.isBufferingVideo ? 0 : state.desiredPlaySpeed)),
+      };
+      break;
     case Types.ACTION_PAUSE:
       state = {
         ...state,
@@ -109,6 +115,14 @@ export function reducer(_state, action) {
 export function seek(offset) {
   return {
     type: Types.ACTION_SEEK,
+    offset,
+  };
+}
+
+// move the clock to the video's position without restarting it
+export function syncOffset(offset) {
+  return {
+    type: Types.ACTION_SYNC_OFFSET,
     offset,
   };
 }
