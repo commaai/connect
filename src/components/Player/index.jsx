@@ -6,7 +6,7 @@ import { Tooltip } from '@material-ui/core';
 
 import { api } from '../../api/backend';
 import {
-  ErrorOutline, Forward10, Pause, PlayArrow, Replay10, VolumeOff, VolumeUp,
+  ErrorOutline, Forward10, Fullscreen, FullscreenExit, Pause, PlayArrow, Replay10, VolumeOff, VolumeUp,
 } from '../../icons';
 import { currentOffset } from '../../timeline';
 import {
@@ -64,7 +64,9 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
   const [muted, setMuted] = useState(true);
   const [hasAudio, setHasAudio] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [fullscreen, setFullscreen] = useState(false);
   const hlsRef = useRef(null);
+  const frameRef = useRef(null);
   const errRef = useRef(err);
   const srcRef = useRef(null);
   const fatalRef = useRef('');
@@ -120,6 +122,12 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
       video.load();
     };
   }, [video, src]);
+
+  useEffect(() => {
+    const onChange = () => setFullscreen(Boolean(document.fullscreenElement) && document.fullscreenElement === frameRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
 
   useEffect(() => {
     if (!video) {
@@ -240,7 +248,7 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
 
   const value = useMemo(() => ({
     state: {
-      playing, spinner: showSpinner, error: error ? ERROR_TEXT[error] : '', muted, hasAudio, speed,
+      playing, spinner: showSpinner, error: error ? ERROR_TEXT[error] : '', muted, hasAudio, speed, fullscreen,
       loopStart: bounds.loopStart, loopEnd: bounds.loopEnd, bufferedTo,
     },
     actions: {
@@ -261,9 +269,19 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
         }
         setMuted(!muted);
       },
+      // iPhone can only fullscreen the <video> itself
+      toggleFullscreen: () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else if (frameRef.current?.requestFullscreen) {
+          frameRef.current.requestFullscreen();
+        } else {
+          video?.webkitEnterFullscreen?.();
+        }
+      },
     },
-    meta: { videoRef: setVideo },
-  }), [playing, showSpinner, error, muted, hasAudio, speed, bounds.loopStart, bounds.loopEnd, bufferedTo, video, dispatch]);
+    meta: { videoRef: setVideo, frameRef },
+  }), [playing, showSpinner, error, muted, hasAudio, speed, fullscreen, bounds.loopStart, bounds.loopEnd, bufferedTo, video, dispatch]);
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }
@@ -298,8 +316,19 @@ function useOffset() {
   return offset;
 }
 
+const SHORTCUTS = {
+  ' ': (actions) => actions.togglePlay(),
+  k: (actions) => actions.togglePlay(),
+  j: (actions) => actions.jump(-10000),
+  l: (actions) => actions.jump(10000),
+  ArrowLeft: (actions) => actions.jump(-5000),
+  ArrowRight: (actions) => actions.jump(5000),
+  m: (actions, state) => state.hasAudio && actions.toggleMute(),
+  f: (actions) => actions.toggleFullscreen(),
+};
+
 function PlayerFrame({ className = '', children }) {
-  const { state, actions } = usePlayer();
+  const { state, actions, meta } = usePlayer();
   const [active, setActive] = useState(true);
   const [keyboardFocus, setKeyboardFocus] = useState(false);
   const timer = useRef(null);
@@ -310,6 +339,34 @@ function PlayerFrame({ className = '', children }) {
     timer.current = setTimeout(() => setActive(false), IDLE_MS);
   };
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  const latest = useRef(null);
+  latest.current = { actions, state, wake };
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      const frame = meta.frameRef.current;
+      const shortcut = SHORTCUTS[event.key];
+      if (!frame || !frame.offsetParent || !shortcut || event.metaKey || event.ctrlKey || event.altKey) {
+        return; // offsetParent is null while hidden in map-only view
+      }
+      const { target } = event;
+      const inPlayer = frame.contains(target);
+      if (!inPlayer && target !== document.body) {
+        return;
+      }
+      // a focused control keeps Space and its own arrow keys
+      const onControl = inPlayer && target !== frame;
+      if (onControl && (event.key === ' ' || ['INPUT', 'SELECT'].includes(target.tagName))) {
+        return;
+      }
+      event.preventDefault();
+      latest.current.wake();
+      shortcut(latest.current.actions, latest.current.state);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [meta.frameRef]);
+
   const onFocus = (event) => {
     setKeyboardFocus(event.target.matches(':focus-visible'));
     wake();
@@ -338,8 +395,10 @@ function PlayerFrame({ className = '', children }) {
   const idle = state.playing && !active && !keyboardFocus;
   return (
     <div
+      ref={meta.frameRef}
       role="region"
       aria-label="Drive video"
+      tabIndex={0}
       onPointerMove={wake}
       onPointerDown={onPointerDown}
       onClick={onClick}
@@ -347,7 +406,7 @@ function PlayerFrame({ className = '', children }) {
       onBlur={onBlur}
       data-idle={idle}
       className={`group relative mx-auto aspect-[1.593] min-h-[200px] w-full max-w-[964px] overflow-hidden rounded-xl bg-black
-        ${idle ? 'cursor-none' : ''} ${className}`}
+        focus-visible:outline-2 focus-visible:outline-white/60 ${idle ? 'cursor-none' : ''} ${className}`}
     >
       {children}
     </div>
@@ -355,13 +414,14 @@ function PlayerFrame({ className = '', children }) {
 }
 
 function PlayerVideo() {
-  const { state, meta } = usePlayer();
+  const { state, actions, meta } = usePlayer();
   return (
     <video
       ref={meta.videoRef}
       className="size-full"
       muted={state.muted}
       playsInline
+      onDoubleClick={actions.toggleFullscreen}
     />
   );
 }
@@ -474,6 +534,14 @@ function ControlsBar({ currentRoute }) {
             {SPEEDS.map((step) => <option key={step} value={step} className="bg-[#1e2224]">{`${step}×`}</option>)}
           </select>
         )}
+        <button
+          type="button"
+          className={iconButton}
+          onClick={actions.toggleFullscreen}
+          aria-label={state.fullscreen ? 'Exit full screen' : 'Full screen'}
+        >
+          {state.fullscreen ? <FullscreenExit className="size-6" /> : <Fullscreen className="size-6" />}
+        </button>
       </div>
     </div>
   );

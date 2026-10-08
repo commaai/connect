@@ -251,6 +251,18 @@ export const SaveIcon = (props) => (
   </SvgIcon>
 );
 
+export const Fullscreen = (props) => (
+  <SvgIcon {...props} viewBox="0 -960 960 960">
+    <path d="M120-120v-200h80v120h120v80H120Zm520 0v-80h120v-120h80v200H640ZM120-640v-200h200v80H200v120h-80Zm640 0v-120H640v-80h200v200h-80Z" />
+  </SvgIcon>
+);
+
+export const FullscreenExit = (props) => (
+  <SvgIcon {...props} viewBox="0 -960 960 960">
+    <path d="M240-120v-120H120v-80h200v200h-80Zm400 0v-200h200v80H720v120h-80ZM120-640v-80h120v-120h80v200H120Zm520 0v-200h80v120h120v80H640Z" />
+  </SvgIcon>
+);
+
 export const VolumeUp = (props) => (
   <SvgIcon {...props}>
     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
