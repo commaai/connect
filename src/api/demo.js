@@ -98,15 +98,12 @@ const MISSING_DATA_CASES = [
   {
     title: 'Missing thumbnails',
     missingThumbnails: true,
-    route() {},
   },
 ];
-
 
 const TEST_CASES = [
   {
     title: 'Public route (no issues)',
-    route() {},
   },
   ...MISSING_DATA_CASES.flatMap((testCase) => [
     testCase,
@@ -119,18 +116,17 @@ const TEST_CASES = [
   {
     title: 'Video not recorded (first segment, qlog present)',
     missingVideoSegments: (route) => [route.segment_numbers[0]],
-    route() {},
   },
   {
     title: 'Video not recorded (middle segment, qlog present)',
     missingVideoSegments: (route) => [route.segment_numbers[Math.floor(route.segment_numbers.length / 2)]],
-    route() {},
   },
 ];
 
 // Serve the real playlist with the missing segments pointing at files that do
-// not exist. hls.js and native HLS on iOS both load a data: playlist, so both
-// players hit the same 404 and keep the segment's duration in the timeline.
+// not exist, so both players hit the same 404 and keep the segment's duration
+// in the timeline. The #.m3u8 suffix is what makes react-player reach for
+// hls.js off iOS; native HLS ignores the fragment and sniffs the data: type.
 function missingVideoPlaylist(playlist, missingUrl, missingSegments) {
   const lines = playlist.split('\n').map((line) => {
     if (!line.startsWith('http')) return line;
@@ -221,7 +217,7 @@ export function createDemoBackend(realBackend) {
       route.dongle_id = DEMO_DONGLE_ID;
       route.fullname = `${DEMO_DONGLE_ID}|${logId}`;
       route.demo_title = testCase.title;
-      testCase.route(route, testCase.affectedSegment);
+      testCase.route?.(route, testCase.affectedSegment);
       if (testCase.missingVideoSegments) {
         const missing = testCase.missingVideoSegments(route);
         routeMissingSegments.set(route.fullname, missing);
