@@ -3,10 +3,12 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { createMemoryHistory } from 'history';
 
 import App from './App';
+import { updateDevices } from './actions';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+let previousMediaDevices;
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -89,7 +91,7 @@ async function mockFetch(input, init = {}) {
   const options = mocks.options;
   const deviceList = options.devices ?? devices;
   if (url.pathname === '/v1/me/turn') return json(null);
-  if (url.pathname === '/v1/me/') return json({ id: 'test-user', superuser: false });
+  if (url.pathname === '/v1/me/') return json({ id: 'test-user', superuser: Boolean(options.superuser) });
   if (url.pathname === '/v1/me/devices/') return json(deviceList);
   if (url.pathname === '/v1/referrals') return json(options.referrals ?? {
     code: 'ABC1234',
@@ -126,8 +128,15 @@ async function mockFetch(input, init = {}) {
   }
   if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
+  if (url.pathname.endsWith('/athena_offline_queue')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const payload = JSON.parse(init.body || '{}');
+    const result = payload.method === 'listUploadQueue' ? []
+      : payload.method === 'getVersion' ? { commit_date: START }
+        : payload.method === 'getClipState' ? { clips: [], cameras: {} } : {};
+    return json({ jsonrpc: '2.0', id: payload.id, result });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -168,6 +177,10 @@ describe('whole-app behavior', () => {
     });
   });
   afterEach(() => {
+    if (previousMediaDevices) {
+      Object.defineProperty(window.navigator, 'mediaDevices', previousMediaDevices);
+      previousMediaDevices = null;
+    }
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
@@ -337,6 +350,77 @@ describe('whole-app behavior', () => {
     expect(store.getState().routes).toBe(routes);
   });
 
+  test('cold device settings URL initializes the target device alias', async () => {
+    const target = { ...devices[1], alias: 'Other car' };
+    await renderApp(`/${FIRST}?modal=device-settings&device=${SECOND}`, { devices: [devices[0], target] });
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Other car');
+  });
+
+  test('late device arrival initializes the alias without replacing a draft', async () => {
+    const { store } = await renderApp(`/${FIRST}?modal=device-settings&device=${SECOND}`, {
+      devices: [devices[0]], superuser: true,
+    });
+    await act(async () => store.dispatch(updateDevices([devices[0], devices[1]])));
+    const alias = await screen.findByLabelText('Device name');
+    expect(alias).toHaveValue('Alpha');
+    fireEvent.change(alias, { target: { value: 'My car' } });
+    await act(async () => store.dispatch(updateDevices([devices[0], { ...devices[1], alias: 'Server name' }])));
+    expect(alias).toHaveValue('My car');
+  });
+
+  test('a camera permission result after Back stops the acquired stream', async () => {
+    let resolveStream;
+    const track = { stop: vi.fn() };
+    const stream = { getTracks: () => [track] };
+    previousMediaDevices = Object.getOwnPropertyDescriptor(window.navigator, 'mediaDevices');
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: vi.fn(async () => [{ kind: 'videoinput' }]),
+        getUserMedia: vi.fn(() => new Promise((resolve) => { resolveStream = resolve; })),
+      },
+    });
+    const { history } = await renderApp(`/${FIRST}`);
+    act(() => history.push(`/${FIRST}?modal=add-device`));
+    await waitFor(() => expect(window.navigator.mediaDevices.getUserMedia).toHaveBeenCalled());
+
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.search).toBe(''));
+    await act(async () => resolveStream(stream));
+    expect(track.stop).toHaveBeenCalledOnce();
+  });
+
+  test('Drive files opens the shared-device upload queue from its URL', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const shared = {
+      ...devices[0], alias: 'Shared car', dongle_id: SHARED, is_owner: false,
+      last_athena_ping: now, openpilot_version: '0.11.2',
+    };
+    const { history, store } = await renderApp(`/${SHARED}/${LOG}`, { devices: [shared] });
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(screen.getByText('Files'));
+    const queueItem = await screen.findByRole('menuitem', { name: 'View upload queue' });
+    await waitFor(() => {
+      expect(store.getState().files).not.toBeNull();
+      expect(queueItem).not.toHaveAttribute('aria-disabled', 'true');
+    });
+    fireEvent.click(queueItem);
+    expect(history.location.search).toBe(`?modal=upload-queue&device=${SHARED}`);
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${SHARED}/${LOG}`);
+  });
+
+  test('Drive clip menu opens from the route modal URL', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const online = { ...devices[0], last_athena_ping: now, openpilot_version: '0.11.2' };
+    const { history } = await renderApp(`/${FIRST}/${LOG}`, { devices: [online] });
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => history.push(`/${FIRST}/${LOG}?modal=clips`));
+    expect(await screen.findByText('Create a clip')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(history.location.search).toBe('?modal=clips');
+  });
+
   test('date filter modal opens from its URL and closes through history state', async () => {
     const { history } = await renderApp(`/${FIRST}?modal=date-filter`);
     expect(await screen.findByText('Start date:')).toBeVisible();
@@ -345,11 +429,13 @@ describe('whole-app behavior', () => {
   });
 
   test('direct navigation fetches a route missing from the same-device list', async () => {
-    const { history } = await renderApp(`/${FIRST}`);
+    const { history, store } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    const recentRoute = store.getState().routes[0];
     act(() => history.push(`/${FIRST}/${LOG}`));
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     expect(mocks.requests.some(({ url }) => new URL(url).searchParams.get('route_str') === `${FIRST}|${LOG}`)).toBe(true);
+    expect(store.getState().routes).toContain(recentRoute);
   });
 
   test('ignores a legacy URL conversion after navigating elsewhere', async () => {
