@@ -1,66 +1,94 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+// Every URL connect understands. parseUrl() reads one, the *Url() helpers
+// write one, and nothing else in the app looks at a pathname.
+//
+//   /                                home: redirects to the selected device
+//   /referrals                       referrals
+//   /:dongleId                       device dashboard
+//   /:dongleId/prime                 comma prime
+//   /:dongleId/stream                live stream
+//   /:dongleId/:logId                drive
+//   /:dongleId/:logId/:start/:end    drive, zoomed to [start, end] in seconds
+//   /:dongleId/:start/:end           old link to a time range in ms, opens its drive
+//
+// Dialogs open over any page with a query argument:
+//
+//   ?settings=:dongleId              device settings
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const DONGLE_ID = /^[a-f0-9]{16}$/;
+const LOG_ID = /^[a-f0-9-]{20}$/;
+const INTEGER = /^\d+$/;
 
-  if (!dongleIdRegex.test(parts[0])) {
+function parseRange(start, end, scale) {
+  if (!INTEGER.test(start) || !INTEGER.test(end) || Number(start) >= Number(end)) {
     return null;
   }
-
-  return parts[0] || null;
+  return { start: Number(start) * scale, end: Number(end) * scale };
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+// zoom is in milliseconds from the start of the drive, legacyRange in absolute milliseconds
+export function parseUrl({ pathname, search = '' }) {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const [dongleId, second, third, fourth] = parts;
+  const settings = new URLSearchParams(search).get('settings');
+  const url = {
+    page: 'home',
+    dongleId: null,
+    logId: null,
+    zoom: null,
+    legacyRange: null,
+    settings: DONGLE_ID.test(settings) ? settings : null,
+  };
+
+  if (parts.length === 1 && dongleId === 'referrals') {
+    return { ...url, page: 'referrals' };
   }
-  return null;
+  if (!DONGLE_ID.test(dongleId)) {
+    return url;
+  }
+  if (parts.length === 2 && (second === 'prime' || second === 'stream')) {
+    return { ...url, page: second, dongleId };
+  }
+  if (LOG_ID.test(second)) {
+    return { ...url, page: 'drive', dongleId, logId: second, zoom: parseRange(third, fourth, 1000) };
+  }
+  if (parts.length === 3 && parseRange(second, third, 1)) {
+    return { ...url, page: 'legacy', dongleId, legacyRange: parseRange(second, third, 1) };
+  }
+  return { ...url, page: 'dashboard', dongleId };
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
-  }
-  return false;
+export function currentUrl(state) {
+  return parseUrl(state.router.location);
 }
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+export const REFERRALS_URL = '/referrals';
 
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
+export function deviceUrl(dongleId) {
+  return dongleId ? `/${dongleId}` : '/';
+}
+
+export function primeUrl(dongleId) {
+  return `/${dongleId}/prime`;
+}
+
+export function streamUrl(dongleId) {
+  return `/${dongleId}/stream`;
+}
+
+// widen the zoom to whole seconds so the URL range always covers it
+export function driveUrl(dongleId, logId, zoom = null) {
+  const range = zoom ? `/${Math.floor(zoom.start / 1000)}/${Math.ceil(zoom.end / 1000)}` : '';
+  return `/${dongleId}/${logId}${range}`;
+}
+
+// the current page with the settings dialog opened for a device, or closed
+export function settingsUrl({ pathname, search }, dongleId) {
+  const params = new URLSearchParams(search);
+  if (dongleId) {
+    params.set('settings', dongleId);
+  } else {
+    params.delete('settings');
   }
-  return false;
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
 }
