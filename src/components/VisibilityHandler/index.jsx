@@ -1,7 +1,7 @@
 import { Component } from 'react';
 import { connect } from 'react-redux';
 
-class VisibilityHandler extends Component {
+export class VisibilityHandler extends Component {
   constructor(props) {
     super(props);
 
@@ -15,8 +15,8 @@ class VisibilityHandler extends Component {
 
   componentDidMount() {
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
-    document.addEventListener('focus', this.handleFocus);
-    document.addEventListener('blur', this.handleBlur);
+    window.addEventListener('focus', this.handleFocus);
+    window.addEventListener('blur', this.handleBlur);
     this.prevVisibleCall = Date.now() / 1000;
 
     const { onInit, onInterval, onVisible } = this.props;
@@ -38,8 +38,8 @@ class VisibilityHandler extends Component {
 
   componentWillUnmount() {
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-    document.removeEventListener('focus', this.handleFocus);
-    document.removeEventListener('blur', this.handleBlur);
+    window.removeEventListener('focus', this.handleFocus);
+    window.removeEventListener('blur', this.handleBlur);
     if (this.intervalHandle) {
       clearInterval(this.intervalHandle);
       this.intervalHandle = null;
@@ -67,7 +67,7 @@ class VisibilityHandler extends Component {
 
     const newDate = Date.now() / 1000;
     const dt = newDate - this.prevVisibleCall;
-    if (visible && (!minInterval || dt > minInterval)) {
+    if (visible && (!minInterval || dt >= minInterval)) {
       this.prevVisibleCall = newDate;
       onVisible();
     }
