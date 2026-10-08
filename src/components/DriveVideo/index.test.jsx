@@ -205,4 +205,17 @@ describe('media transport', () => {
     expect(store.getState().desiredPlaySpeed).toBe(0);
   });
 
+  it('ignores late loader errors after navigation retires the media source', () => {
+    mount();
+    const oldPlayer = window.playerProps;
+    act(() => {
+      store.dispatch({ type: 'CHANGE_SOURCE', route: null });
+      store.dispatch(pause());
+    });
+    const state = store.getState();
+    act(() => oldPlayer.onError(Object.assign(new Error('blocked'), { name: 'NotAllowedError' })));
+    expect(store.getState()).toBe(state);
+    expect(screen.queryByText('Play video')).not.toBeInTheDocument();
+  });
+
 });

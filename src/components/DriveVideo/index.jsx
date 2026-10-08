@@ -219,7 +219,7 @@ export class DriveVideo extends Component {
   };
 
   onError = (error, data) => {
-    if (!this.mounted || error?.name === 'AbortError') return;
+    if (!this.mounted || this.retired || error?.name === 'AbortError') return;
     if (error === 'hlsError') {
       // HLS retries transient errors itself; only unrecovered fatal errors
       // should obscure the video. One recovery per fatal category is bounded.
