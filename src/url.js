@@ -64,3 +64,13 @@ export function getStreamNav(pathname) {
   }
   return false;
 }
+
+export function getSettingsNav(pathname) {
+  let parts = pathname.split('/');
+  parts = parts.filter((m) => m.length);
+
+  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'settings') {
+    return true;
+  }
+  return false;
+}

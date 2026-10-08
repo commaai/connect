@@ -303,4 +303,35 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('device settings URL opens the settings modal and Close returns to the dashboard', async () => {
+    const { history } = await renderApp(`/${SECOND}/settings`, { selected: FIRST });
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+  });
+
+  test('device settings button selects its device and routes to its settings', async () => {
+    // the device list lives in the permanent drawer, which only renders on wide screens
+    const { innerWidth } = window;
+    window.innerWidth = 1400;
+    try {
+      const { history, store } = await renderApp(`/${FIRST}`);
+      const row = await screen.findByRole('link', { name: new RegExp(SECOND) });
+      fireEvent.click(within(row).getByRole('button', { name: 'device settings' }));
+      expect(await screen.findByText('Device settings')).toBeVisible();
+      expect(history.location.pathname).toBe(`/${SECOND}/settings`);
+      expect(store.getState().dongleId).toBe(SECOND);
+    } finally {
+      window.innerWidth = innerWidth;
+    }
+  });
+
+  test('prime settings from device settings opens Prime rather than closing to the dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/prime`);
+  });
 });

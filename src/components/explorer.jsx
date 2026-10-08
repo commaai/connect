@@ -13,12 +13,14 @@ import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
+import { getSettingsNav } from '../url';
 import { subscribeWindowSize } from '../hooks/window';
 
 import DriveView from './DriveView';
@@ -82,10 +84,15 @@ class ExplorerApp extends Component {
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+    this.closeDeviceSettings = this.closeDeviceSettings.bind(this);
   }
 
   closeBodyTeleop() {
     this.props.dispatch(streamNav(false));
+  }
+
+  closeDeviceSettings() {
+    this.props.dispatch(push(`/${this.props.dongleId}`));
   }
 
   async componentDidMount() {
@@ -268,6 +275,11 @@ class ExplorerApp extends Component {
                 </Button>
               </Paper>
             </Modal>
+            <DeviceSettingsModal
+              isOpen={ getSettingsNav(pathname) }
+              dongleId={ dongleId }
+              onClose={ this.closeDeviceSettings }
+            />
           </>
         ) }
       </div>
