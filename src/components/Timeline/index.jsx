@@ -3,15 +3,16 @@
 // rapid seeking, etc
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import { withStyles } from '@material-ui/core/styles';
 import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
+import { buildUrl } from '../../url';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -266,16 +267,10 @@ class Timeline extends Component {
     const startOffset = Math.round(this.percentToOffset(startPercent));
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
-    if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+    // zooms are kept in whole seconds in the URL, so they need to span at least one
+    if (Math.abs(dragging[1] - dragging[0]) > 3 && endOffset - startOffset >= 1000) {
+      const zoom = { start: startOffset, end: endOffset };
+      this.props.dispatch(push(buildUrl({ dongleId: route.dongle_id, logId: route.log_id, zoom })));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

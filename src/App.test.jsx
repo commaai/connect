@@ -278,6 +278,39 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
+  test('device settings open from their URL, the gear, and browser history', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goForward());
+    fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
+    const secondDevice = (await screen.findByText(SECOND)).closest('a');
+    fireEvent.click(within(secondDevice).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('closing a drive opened by its URL loads the drive list', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(mocks.requests.some(({ url }) => url.includes('routes_segments') && url.includes('start='))).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('a shared device opens from inside the app', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${SHARED}`));
+    expect(await screen.findByText('Shared device')).toBeVisible();
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
   test('device browser history restores exact dashboards', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();

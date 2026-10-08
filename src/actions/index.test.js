@@ -1,53 +1,50 @@
 import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
 
-vi.mock('../timeline/playback', () => ({
-  reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
+import { api } from '../api/backend';
+import { checkRoutesData } from './index';
+import { ACTION_ROUTES_METADATA } from './types';
+
+vi.mock('../api/backend', () => ({
+  api: {
+    auth: { isAuthenticated: () => true },
+    routes: { getRoutesSegments: vi.fn() },
+  },
 }));
 
-vi.mock('connected-react-router', async () => {
-  const originalModule = await vi.importActual('connected-react-router');
-  return {
-    __esModule: true,
-    ...originalModule,
-    push: vi.fn(),
+const DONGLE = '0000aaaa0000aaaa';
+const LOG = '2026-08-06--12-00-00';
+const filter = { start: 1000, end: 100000 };
+const route = {
+  fullname: `${DONGLE}|${LOG}`, url: 'https://routes.example.com', create_time: 1000,
+  segment_numbers: [0], segment_start_times: [1000], segment_end_times: [61000],
+  start_time_utc_millis: 1000, end_time_utc_millis: 61000,
+};
+
+async function fetchRoutes(selectedRouteId) {
+  const state = {
+    dongleId: DONGLE, devices: [], filter, limit: 5, selectedRouteId,
+    routes: null, routesMeta: { dongleId: null, start: null, end: null },
   };
-});
+  const dispatch = vi.fn();
+  await checkRoutesData()(dispatch, () => state);
+  return dispatch.mock.calls.map(([action]) => action).find((action) => action.type === ACTION_ROUTES_METADATA);
+}
 
-describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+describe('checkRoutesData', () => {
+  beforeEach(() => {
+    api.routes.getRoutesSegments.mockResolvedValue([route]);
   });
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+  it('fetches the drive list for the filter', async () => {
+    const action = await fetchRoutes(null);
+    expect(api.routes.getRoutesSegments).toHaveBeenCalledWith(DONGLE, filter.start, filter.end, 5);
+    expect(action).toMatchObject({ dongleId: DONGLE, start: filter.start, end: filter.end });
   });
 
-  it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
-    expect(push).toHaveBeenCalledWith(expected);
+  it('fetches only the drive opened by its URL, without taking it for the drive list', async () => {
+    const action = await fetchRoutes(LOG);
+    expect(api.routes.getRoutesSegments).toHaveBeenCalledWith(DONGLE, undefined, undefined, undefined, `${DONGLE}|${LOG}`);
+    expect(action).toMatchObject({ dongleId: DONGLE, start: null, end: null });
+    expect(action.routes).toHaveLength(1);
   });
 });

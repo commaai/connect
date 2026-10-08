@@ -1,61 +1,88 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
-import { api } from '../api/backend';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
+import { api } from '../api/backend';
+import { resetPlayback, selectLoop } from '../timeline/playback';
+import { buildUrl, parseUrl } from '../url';
+import { webrtcConnectionManager } from '../utils/webrtc';
+import { checkLastRoutesData, fetchDeviceOnline, fetchSharedDevice, primeFetchSubscription } from './index';
+
+// Every URL change comes through here, whether from a link, a redirect or the
+// back button. By the time next(action) returns, the reducer has put the new
+// location into the state (see reducers/location.js). What's left is to start
+// loading whatever the new screen needs.
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (!action) {
     return;
   }
-
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  if (action.type !== LOCATION_CHANGE) {
+    return next(action);
   }
+
+  const prev = getState();
+  const result = next(action);
+  const state = getState();
+
+  if (state.dongleId !== prev.dongleId) {
+    window.localStorage.setItem('selectedDongleId', state.dongleId);
+    if (prev.dongleId) {
+      webrtcConnectionManager.disconnect();
+    }
+    dispatch(loadDevice(state.dongleId));
+  }
+  if (state.zoom?.start !== prev.zoom?.start || state.zoom?.end !== prev.zoom?.end) {
+    dispatch(resetPlayback());
+    dispatch(selectLoop(state.zoom?.start, state.zoom?.end));
+  }
+
+  const { legacyRange } = parseUrl(action.payload.location.pathname);
+  if (legacyRange) {
+    dispatch(openLegacyRange(state.dongleId, legacyRange));
+  }
+  dispatch(openDefaultDevice(state.devices));
+
+  return result;
 };
+
+function loadDevice(dongleId) {
+  return (dispatch, getState) => {
+    const { device, devices, profile } = getState();
+    if ((device && !device.shared) || profile?.superuser) {
+      dispatch(primeFetchSubscription(dongleId, device));
+      dispatch(fetchDeviceOnline(dongleId));
+    } else if (devices && !device) {
+      dispatch(fetchSharedDevice(dongleId));
+    }
+    dispatch(checkLastRoutesData());
+  };
+}
+
+// Old links name a time range instead of a drive. Look up the drive and
+// replace the URL with its own.
+function openLegacyRange(dongleId, { start, end }) {
+  return async (dispatch) => {
+    try {
+      const routes = await api.routes.getRoutesSegments(dongleId, start, end);
+      if (routes?.length) {
+        dispatch(replace(buildUrl({ dongleId, logId: routes[0].fullname.split('|')[1] })));
+      }
+    } catch (err) {
+      console.error('Error fetching routes data for log ID conversion', err);
+    }
+  };
+}
+
+// A URL without a device or page, like "/", opens the device you were looking
+// at, or else the one picked last time, or else the first of your devices.
+export function openDefaultDevice(devices) {
+  return (dispatch, getState) => {
+    const { dongleId, router } = getState();
+    const location = parseUrl(router.location.pathname);
+    if (location.dongleId || location.page || !devices?.length) {
+      return;
+    }
+
+    const stored = window.localStorage.getItem('selectedDongleId');
+    const fallback = devices.some((device) => device.dongle_id === stored) ? stored : devices[0].dongle_id;
+    dispatch(replace(buildUrl({ dongleId: dongleId || fallback })));
+  };
+}

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
@@ -7,8 +8,9 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
-import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { analyticsEvent, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
+import { buildUrl } from '../../url';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
 import VisibilityHandler from '../VisibilityHandler';
@@ -170,7 +172,7 @@ class DeviceInfo extends Component {
   }
 
   openBodyTeleop() {
-    this.props.dispatch(streamNav(true));
+    this.props.dispatch(push(buildUrl({ dongleId: this.props.dongleId, page: 'stream' })));
   }
 
   componentDidMount() {
@@ -323,7 +325,7 @@ class DeviceInfo extends Component {
         <div className={`${classes.container} px-4`}>
           <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1 flex-wrap`}>
             <div className={`flex flex-row gap-4 items-center shrink-0`}>
-              {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
+              {commacare && <CommacareBadge onClick={() => this.props.dispatch(push(buildUrl({ dongleId: this.props.dongleId, page: 'prime' })))} />}
               <Typography variant="title">{truncateName(deviceNamePretty(device))}</Typography>
             </div>
             { this.renderButtons() }

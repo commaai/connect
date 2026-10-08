@@ -39,6 +39,11 @@ const DriveList = (props) => {
   const [deviceStats, setDeviceStats] = useState({});
   const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
 
+  // after opening a drive by its URL only that drive is loaded, not the list
+  useEffect(() => {
+    dispatch(checkRoutesData());
+  }, [dispatch]);
+
   const fetchDeviceInfo = useCallback(async () => {
     if (!dongleId || device?.shared) {
       return;
