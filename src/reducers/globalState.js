@@ -336,12 +336,10 @@ export default function reducer(_state, action) {
       };
       break;
     case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
+      // Legacy: zoom stack removed. Browser history owns back/forward now;
+      // the drive back button zooms out via pushTimelineRange instead.
+      state.zoom = null;
+      state.loop = null;
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
@@ -355,13 +353,11 @@ export default function reducer(_state, action) {
           state.zoom = {
             start: action.start,
             end: action.end,
-            previous: state.zoom,
           };
         } else {
           state.zoom = state.currentRoute ? {
             start: 0,
             end: state.currentRoute.duration,
-            previous: state.zoom,
           } : null;
           state.loop = null;
         }
@@ -411,19 +407,31 @@ export default function reducer(_state, action) {
       break;
     case Types.ACTION_ROUTES_METADATA:
       // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
-        return {
-          ...existingRoute,
-          ...route,
+      if (action.driveOnly) {
+        // Drive-only fetch: merge the open drive into any cached list without
+        // claiming dashboard filter coverage, so closing the drive refetches it.
+        const known = new Map((state.routes || []).map((r) => [r.fullname, r]));
+        for (const route of action.routes) {
+          const existingRoute = state.lastRoutes?.find((r) => r.fullname === route.fullname) || known.get(route.fullname) || {};
+          known.set(route.fullname, { ...existingRoute, ...route });
         }
-      });
-      state.routesMeta = {
-        dongleId: action.dongleId,
-        start: action.start,
-        end: action.end,
-      };
+        state.routes = [...known.values()];
+        state.routesMeta = { dongleId: null, start: null, end: null };
+      } else {
+        state.routes = action.routes.map((route) => {
+          const existingRoute = state.lastRoutes ?
+            state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+          return {
+            ...existingRoute,
+            ...route,
+          }
+        });
+        state.routesMeta = {
+          dongleId: action.dongleId,
+          start: action.start,
+          end: action.end,
+        };
+      }
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
         if (curr) {

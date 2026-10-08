@@ -250,7 +250,11 @@ describe('whole-app behavior', () => {
   test('legacy timestamp URL converts after a successful lookup', async () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    // zero-start ranges keep their range in the URL (reload-safe), with replace so
+    // browser back never lands on the legacy URL again.
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/60`));
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).not.toContain(String(START)));
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
@@ -302,5 +306,23 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('device settings has a URL with back/forward and reload', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/settings`);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('closing a cold drive URL restores the dashboard list', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
   });
 });

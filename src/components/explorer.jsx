@@ -14,8 +14,10 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, navigate, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
+import { syncInitialUrl } from '../actions/history';
+import { currentPage, deviceUrl } from '../url';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
@@ -24,6 +26,7 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 const styles = (theme) => ({
   app: {
@@ -82,6 +85,12 @@ class ExplorerApp extends Component {
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+    this.closeSettings = this.closeSettings.bind(this);
+  }
+
+  closeSettings() {
+    const { dongleId } = this.props;
+    this.props.dispatch(navigate(dongleId ? deviceUrl(dongleId) : '/'));
   }
 
   closeBodyTeleop() {
@@ -103,6 +112,8 @@ class ExplorerApp extends Component {
     }
 
     this.props.dispatch(init());
+    // Reconcile the initial URL (cold deep links, legacy ranges) without pushing history.
+    this.props.dispatch(syncInitialUrl());
 
     let pairToken;
     try {
@@ -203,7 +214,13 @@ class ExplorerApp extends Component {
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const page = currentPage(pathname);
+    const referralsOpen = page === 'referrals';
+    const settingsOpen = page === 'settings';
+    const settingsDongleId = settingsOpen ? dongleId : null;
+    const canManageSettings = settingsDongleId && (
+      devices?.some((d) => d.dongle_id === settingsDongleId && d.is_owner) || profile?.superuser
+    );
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -250,6 +267,13 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            {settingsOpen && canManageSettings && (
+              <DeviceSettingsModal
+                isOpen
+                dongleId={settingsDongleId}
+                onClose={this.closeSettings}
+              />
+            )}
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
