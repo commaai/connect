@@ -213,6 +213,7 @@ function logAction(action, prevState, state) {
       return;
 
     case Types.ACTION_PLAY:
+    case Types.ACTION_PLAYBACK_SPEED:
       if (state.zoom) {
         percent = getVideoPercent(state);
         gtag('event', 'video_play', {
