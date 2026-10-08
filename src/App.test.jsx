@@ -8,7 +8,7 @@ import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
-let previousMediaDevices;
+const originalMediaDevices = Object.getOwnPropertyDescriptor(window.navigator, 'mediaDevices');
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -177,10 +177,8 @@ describe('whole-app behavior', () => {
     });
   });
   afterEach(() => {
-    if (previousMediaDevices) {
-      Object.defineProperty(window.navigator, 'mediaDevices', previousMediaDevices);
-      previousMediaDevices = null;
-    }
+    if (originalMediaDevices) Object.defineProperty(window.navigator, 'mediaDevices', originalMediaDevices);
+    else delete window.navigator.mediaDevices;
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
@@ -372,7 +370,6 @@ describe('whole-app behavior', () => {
     let resolveStream;
     const track = { stop: vi.fn() };
     const stream = { getTracks: () => [track] };
-    previousMediaDevices = Object.getOwnPropertyDescriptor(window.navigator, 'mediaDevices');
     Object.defineProperty(window.navigator, 'mediaDevices', {
       configurable: true,
       value: {
