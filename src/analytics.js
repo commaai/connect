@@ -4,25 +4,15 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseURL } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
+  const { page, dongleId, logId, range } = parseURL(pathname);
+  if (!dongleId) return pathname.replace(/\/$/, '');
+  if (page === 'drive') return `/<dongleId>/${logId}${range ? '/<zoomStart>/<zoomEnd>' : ''}`;
+  if (page === 'legacy-drive') return '/<dongleId>/<zoomStart>/<zoomEnd>';
+  return `/<dongleId>${page === 'dashboard' ? '' : `/${page}`}`;
 }
 
 const clusterMap = {
