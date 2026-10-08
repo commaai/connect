@@ -112,7 +112,7 @@ const styles = (theme) => ({
   },
 });
 
-class UploadQueue extends Component {
+export class UploadQueue extends Component {
   constructor(props) {
     super(props);
 
@@ -191,7 +191,7 @@ class UploadQueue extends Component {
       uploadSorted.unshift(curr[0]);
     }
 
-    const allPaused = uploadSorted.every((upload) => upload.paused);
+    const allPaused = uploadSorted.every(([, upload]) => upload.paused);
 
     return (
       <>
