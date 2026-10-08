@@ -9,6 +9,9 @@ and POP through one sequence: publish the location, select a changed device,
 update a changed drive path, fetch device metadata, and apply Prime/stream state.
 Dialog-only navigation preserves the drive, playback, and loaded routes. Stale
 legacy timestamp lookups cannot redirect after newer navigation.
+Successful legacy conversions replace their history entry and retain query
+arguments and hashes, so Back does not revisit the redirect. Dialog navigation
+also preserves the current hash.
 Returning to the previous drive range restores the existing zoom selection only
 after history publishes its URL. Referrals rendering also uses the parsed page,
 including trailing-slash URLs. Shared device, pairing, and clip dialog hosts stay

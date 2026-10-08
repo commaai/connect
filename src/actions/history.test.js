@@ -118,19 +118,25 @@ describe('history middleware', () => {
   it('ignores a legacy lookup after navigating elsewhere', async () => {
     let resolveLookup;
     Drives.getRoutesSegments.mockReturnValue(new Promise((resolve) => { resolveLookup = resolve; }));
-    const { invoke } = create();
+    const { store, invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
     invoke(location(`/${DONGLE}`, 'PUSH'));
     resolveLookup([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
     await Promise.resolve();
-    expect(actions.goToRange).not.toHaveBeenCalled();
+    expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: '@@router/CALL_HISTORY_METHOD' }));
   });
 
   it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
-    const { invoke } = create();
-    invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.goToRange).toHaveBeenCalledWith(LOG, 0, 60000, { wholeDrive: true }));
+    const { store, invoke } = create();
+    const action = location(`/${DONGLE}/1000/2000`);
+    action.payload.location.search = '?camera=driver';
+    action.payload.location.hash = '#timeline';
+    invoke(action);
+    await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith({
+      type: '@@router/CALL_HISTORY_METHOD',
+      payload: { method: 'replace', args: [{ pathname: `/${DONGLE}/${LOG}`, search: '?camera=driver', hash: '#timeline' }] },
+    }));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 

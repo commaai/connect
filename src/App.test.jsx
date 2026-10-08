@@ -270,6 +270,22 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.length).toBe(1);
+  });
+
+  test('legacy conversion preserves query/hash and Back/Forward never revisits the legacy link', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    const legacy = `/${FIRST}/${START}/${START + 60_000}?camera=driver#timeline`;
+    act(() => history.push(legacy));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.location.search).toBe('?camera=driver');
+    expect(history.location.hash).toBe('#timeline');
+    expect(history.length).toBe(2);
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    act(() => history.goForward());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.length).toBe(2);
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {

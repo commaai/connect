@@ -1,6 +1,6 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { parseUrl } from '../url';
-import { checkRoutesData, checkLastRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, popTimelineRange, goToRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { buildUrl, parseUrl } from '../url';
+import { checkRoutesData, checkLastRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, popTimelineRange } from './index';
 import { api } from '../api/backend';
 
 // History is the entry point for clicks, redirects, and browser Back/Forward.
@@ -27,8 +27,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => {
         if (navigationRevision !== revision || !routes?.length) return;
         const route = routes[0];
         const logId = route.fullname.split('|')[1];
-        const duration = route.end_time_utc_millis - route.start_time_utc_millis;
-        dispatch(goToRange(logId, 0, duration, { wholeDrive: true }));
+        dispatch(replace({ ...location, pathname: buildUrl({ page: 'drive', dongleId: url.dongleId, logId }) }));
       }).catch((error) => {
         console.error('Error fetching routes data for log ID conversion', error);
       });

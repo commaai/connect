@@ -75,6 +75,13 @@ describe('buildUrl', () => {
 });
 
 describe('withModal', () => {
+  it('preserves the hash and unrelated query arguments when opening and closing', () => {
+    const pathname = `/${DONGLE}/${LOG}/10/20`;
+    const opened = withModal({ pathname, search: '?camera=driver', hash: '#timeline' }, 'settings', DONGLE);
+    expect(opened).toBe(`${pathname}?camera=driver&modal=settings&device=${DONGLE}#timeline`);
+    const location = new URL(opened, 'https://connect.comma.ai');
+    expect(withModal(location, null)).toBe(`${pathname}?camera=driver#timeline`);
+  });
   it('encodes clip identities and removes them when the dialog closes', () => {
     const pathname = `/${DONGLE}/${LOG}`;
     const opened = withModal({ pathname, search: '?camera=driver' }, 'clip', DONGLE, 'drive clip.mp4');

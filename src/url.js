@@ -86,7 +86,7 @@ export function buildUrl({ page = 'device', dongleId, logId, range, legacyRange,
 }
 
 // The current page with a modal opened, or closed when modal is null.
-export function withModal({ pathname, search }, modal, modalDongleId, clipFilename) {
+export function withModal({ pathname, search, hash = '' }, modal, modalDongleId, clipFilename) {
   const query = new URLSearchParams(search);
   query.delete('modal');
   query.delete('device');
@@ -96,5 +96,5 @@ export function withModal({ pathname, search }, modal, modalDongleId, clipFilena
     if (DEVICE_MODALS.includes(modal) && dongleIdRegex.test(modalDongleId)) query.set('device', modalDongleId);
     if (['clip', 'clip-delete'].includes(modal) && clipFilename) query.set('clip', clipFilename);
   }
-  return `${pathname}${query.size ? `?${query}` : ''}`;
+  return `${pathname}${query.size ? `?${query}` : ''}${hash}`;
 }
