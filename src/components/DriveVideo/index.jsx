@@ -70,10 +70,11 @@ class DriveVideo extends Component {
     // session; iPhones before iOS 17.1 have no MediaSource at all. Everything else gets hls.js.
     const native = !window.MediaSource || (window.ManagedMediaSource && video.canPlayType('application/vnd.apple.mpegurl'));
     // native HLS stalls above 2x (iOS simulator: 4x and 8x spin even on a direct playbackRate write).
-    // No video is attached here, so the play() at the end of load() applies the capped rate.
+    // The cap goes in before the video is attached, so the play() at the end of load() applies it.
     this.props.dispatch(setMaxPlaySpeed(native ? 2 : null));
+    // attaching holds the clock at the requested time while hls.js downloads
+    const start = setVideo(video);
     if (native) {
-      setVideo(video);
       video.src = this.src;
     } else {
       const loading = this.loading = {};
@@ -88,7 +89,7 @@ class DriveVideo extends Component {
         return;
       }
       // start loading at the requested time, not at segment 0 (deep links, route changes)
-      this.hls = new Hls({ maxBufferLength: 40, startPosition: setVideo(video) });
+      this.hls = new Hls({ maxBufferLength: 40, startPosition: start });
       this.hls.on(Hls.Events.ERROR, this.onHlsError);
       this.hls.on(Hls.Events.BUFFER_CODECS, (_, data) => this.props.onAudioStatusChange?.(Boolean(data.audio)));
       this.hls.loadSource(this.src);

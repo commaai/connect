@@ -207,6 +207,16 @@ describe('video clock', () => {
     expect(seeks).toEqual([28]);
   });
 
+  it('starts a deep link at its start however long the drive takes to load', () => {
+    store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: null });
+    // what the URL of a deep link to 30 s to 40 s dispatches before the drive list has loaded
+    store.dispatch(resetPlayback());
+    store.dispatch(selectLoop(30000, 40000));
+    mostRecentNow += 800;
+    store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 'r', start: 30000, end: 40000 });
+    expect(currentOffset()).toEqual(30000);
+  });
+
   it('shows a paused state when the browser blocks play()', async () => {
     const video = fakeVideo();
     video.play = vi.fn(() => Promise.reject(new DOMException('blocked', 'NotAllowedError')));

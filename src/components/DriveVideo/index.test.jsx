@@ -110,4 +110,20 @@ describe('DriveVideo', () => {
     await act(async () => {});
     expect(hls.instances).toHaveLength(0);
   });
+
+  it('starts at the requested time however long the player code takes to load', async () => {
+    let now = 1000000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    hls.load = () => { now += 450; return FakeHls; };
+    const store = createAppStore(createMemoryHistory());
+    store.dispatch({ type: Types.ACTION_ROUTES_METADATA, routes: [{ log_id: 'r', fullname: 'x|r', duration: 180000 }] });
+    store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 'r', start: 0, end: 180000 });
+    store.dispatch(seek(150000));
+    store.dispatch(play(1));
+    render(<Provider store={store}><DriveVideo /></Provider>);
+    await act(async () => {});
+    expect(hls.instances[0].config.startPosition).toEqual(150);
+    vi.restoreAllMocks();
+  });
+
 });
