@@ -212,15 +212,17 @@ test('Map mode explains a video failure and retries it from the map', async ({ p
   await expect.poll(async () => (await state(page)).offset).toBeGreaterThan(500);
 });
 
-test('a missing media fragment cannot advance the map clock and retry restores playback', async ({ page }) => {
+test('a missing media fragment cannot advance the map clock, and Play tries again', async ({ page }) => {
   let failed = true;
   await openPlayer(page, { segmentFails: () => failed });
   await expect(page.getByRole('button', { name: 'Retry video' })).toBeVisible({ timeout: 45000 });
   expect(failures.some((file) => file.endsWith('.ts'))).toBe(true);
   expect((await state(page)).offset).toBe(0);
+  // The controls show the failed video as paused, and Play tries again.
   failed = false;
-  await page.getByRole('button', { name: 'Retry video' }).click();
-  await playing(page);
+  await page.getByRole('button', { name: 'Unpause', exact: true }).click();
+  await expect.poll(async () => (await video(page)).time, { timeout: 20000 }).toBeGreaterThan(500);
+  await expect(page.getByRole('button', { name: 'Retry video' })).toHaveCount(0);
   await expect.poll(async () => (await state(page)).buffering).toBe(false);
 });
 

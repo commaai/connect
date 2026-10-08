@@ -73,6 +73,7 @@ export class DriveVideo extends Component {
   frameRequest = null;
   hasAudio = false;
   seekAttempts = 0;
+  resumeSpeed = 0;
 
   componentDidUpdate(prevProps) {
     if (sourceIdentity(prevProps.currentRoute) !== sourceIdentity(this.props.currentRoute)) {
@@ -83,6 +84,8 @@ export class DriveVideo extends Component {
       || prevProps.currentRoute?.videoStartOffset !== this.props.currentRoute?.videoStartOffset) {
       this.seekMedia();
     }
+    // Play on a failed video means try again.
+    if (this.state.videoError && this.props.desiredPlaySpeed && !prevProps.desiredPlaySpeed) this.retry();
   }
 
   componentWillUnmount() {
@@ -245,6 +248,9 @@ export class DriveVideo extends Component {
       return;
     }
     this.publishPosition();
+    // The controls show the failed video as paused; retry resumes the speed.
+    this.resumeSpeed = this.props.desiredPlaySpeed;
+    this.props.dispatch(pause());
     this.props.dispatch(bufferVideo(false));
     this.setState({ videoError: HTTP_ERRORS[(data || error)?.response?.code]
       || 'Unable to load video. Check your connection and try again.' });
@@ -255,6 +261,7 @@ export class DriveVideo extends Component {
     this.props.onAudioStatusChange?.(false);
     this.props.dispatch(bufferVideo(true));
     this.setState(({ retry }) => ({ retry: retry + 1, videoError: null }));
+    if (this.resumeSpeed && !this.props.desiredPlaySpeed) this.props.dispatch(play(this.resumeSpeed));
   };
 
   render() {

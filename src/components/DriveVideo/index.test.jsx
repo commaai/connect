@@ -93,15 +93,33 @@ describe('DriveVideo media events', () => {
     expect(props.onAudioStatusChange).not.toHaveBeenCalled();
   });
 
-  it('retains requested speed across fatal errors and retry', () => {
+  it('shows a failed video as paused and resumes at the previous speed on retry', () => {
     const { player, props, media } = fixture({ desiredPlaySpeed: 2 });
     player.onError('hlsError', { fatal: true }, 'route', 0);
-    expect(props.dispatch).not.toHaveBeenCalledWith({ type: Types.ACTION_PAUSE });
+    expect(props.dispatch).toHaveBeenCalledWith({ type: Types.ACTION_PAUSE });
+    player.props = { ...props, desiredPlaySpeed: 0 };
     props.dispatch.mockClear();
     media.dispatchEvent(new Event('timeupdate'));
     expect(props.dispatch).not.toHaveBeenCalled();
     player.retry();
-    expect(player.props.desiredPlaySpeed).toBe(2);
+    expect(props.dispatch).toHaveBeenLastCalledWith({ type: Types.ACTION_PLAY, speed: 2 });
+  });
+
+  it('retries when the viewer presses play on a failed video', () => {
+    const { player, props } = fixture();
+    player.onError('hlsError', { fatal: true }, 'route', 0);
+    const paused = { ...props, desiredPlaySpeed: 0 };
+    player.props = { ...props, desiredPlaySpeed: 1 };
+    player.componentDidUpdate(paused);
+    expect(player.state).toMatchObject({ videoError: null, retry: 1 });
+  });
+
+  it('stays paused after retry if the viewer had paused before the failure', () => {
+    const { player, props } = fixture({ desiredPlaySpeed: 0 });
+    player.onError('hlsError', { fatal: true }, 'route', 0);
+    props.dispatch.mockClear();
+    player.retry();
+    expect(props.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: Types.ACTION_PLAY }));
   });
 
   it.each([401, 403])('explains an expired stream link (HTTP %i) instead of blaming the connection', (code) => {
