@@ -1,3 +1,4 @@
+import { parseLocation } from '../../url';
 import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
 import { push } from 'connected-react-router';
@@ -187,7 +188,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   filter: state.filter,
   profile: state.profile,
-  primeNav: state.primeNav,
+  primeNav: parseLocation(state.router.location).page === 'prime',
   pathname: state.router.location.pathname,
 });
 

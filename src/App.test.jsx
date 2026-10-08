@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { api } from './api/backend';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -116,10 +117,15 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription || null);
+  if (['/v1/prime/switch_plan', '/v1/prime/cancel'].includes(url.pathname) && options.billingMutation) return options.billingMutation;
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const method = JSON.parse(init.body || '{}').method;
+    return json({ jsonrpc: '2.0', id: 0, result: method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -241,10 +247,30 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
   });
 
-  test('a missing public route redirects to login with the requested route', async () => {
-    const pathname = `/${FIRST}/2026-08-06--99-99-99`;
+  test('a missing public route redirects to login with the requested route, dialog, and hash', async () => {
+    const pathname = `/${FIRST}/2026-08-06--99-99-99?dialog=info&ci=one%26two#point`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${encodeURIComponent(pathname)}`));
+  });
+
+  test.each([`/${FIRST}?dialog=settings&device=${SECOND}#point`, '/?dialog=pair#point'])('signed-out link retains the full authentication continuation: %s', async target => {
+    const { history } = await renderApp(target, { authenticated: false });
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+    expect(sessionStorage.getItem('redirectURL')).toBe(target);
+    act(() => history.push(`/${FIRST}/prime?dialog=prime-cancel`));
+    expect(sessionStorage.getItem('redirectURL')).toBe(`/${FIRST}/prime?dialog=prime-cancel`);
+  });
+
+  test('login redirect parameter decodes the full URL once', async () => {
+    const target = `/${FIRST}/${LOG}?dialog=info&ci=one%26two#point`;
+    await renderApp(`/?r=${encodeURIComponent(target)}`, { authenticated: false });
+    expect(sessionStorage.getItem('redirectURL')).toBe(target);
+  });
+
+  test('a newly requested root dialog replaces a stale saved login continuation', async () => {
+    sessionStorage.setItem('redirectURL', `/${FIRST}/${LOG}`);
+    await renderApp('/?dialog=pair#point', { authenticated: false });
+    expect(sessionStorage.getItem('redirectURL')).toBe('/?dialog=pair#point');
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {
@@ -297,10 +323,143 @@ describe('whole-app behavior', () => {
     fireEvent.pointerDown(timeline, { button: 0, clientX: 200, pageX: 200 });
     fireEvent.pointerMove(document, { clientX: 700, pageX: 700 });
     fireEvent.pointerUp(document, { button: 0, clientX: 700, pageX: 700 });
-    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
+    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/[0-9.]+/[0-9.]+$`)));
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+  test('regression: direct PUSH opens a drive and reuses dashboard data', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    const routes = store.getState().routes;
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}/0/20`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(store.getState().zoom).toMatchObject({ start: 0, end: 20000 });
+    expect(store.getState().routes).toBe(routes);
+  });
+
+  test('regression: closing a cold drive fetches the dashboard instead of reusing one drive', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(store.getState().routes[0].log_id).toBe(RECENT_LOG);
+  });
+
+  test('a known drive remains visible when the dashboard filter has no routes', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    act(() => store.dispatch({ type: 'ACTION_ROUTES_METADATA', dongleId: FIRST, routes: [] }));
+    expect(store.getState().routes).toEqual([]);
+    expect(screen.getByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(screen.getByTestId('video-player')).toBeVisible();
+    expect(screen.queryByText('Route does not exist.')).not.toBeInTheDocument();
+  });
+
+  test.each(['files', 'info'])('cached drive navigation loads the correct %s data and restores it with Back', async dialog => {
+    const files = vi.spyOn(api.routes, 'getRouteFiles');
+    try {
+      const { history } = await renderApp(`/${FIRST}/${LOG}?dialog=${dialog}`);
+      await waitFor(() => expect(files).toHaveBeenCalledWith(`${FIRST}|${LOG}`, false));
+      act(() => history.push(`/${FIRST}/${RECENT_LOG}?dialog=${dialog}`));
+      await waitFor(() => expect(files).toHaveBeenCalledWith(`${FIRST}|${RECENT_LOG}`, false));
+      files.mockClear();
+      act(() => history.goBack());
+      await waitFor(() => expect(files).toHaveBeenCalledWith(`${FIRST}|${LOG}`, false));
+    } finally {
+      files.mockRestore();
+    }
+  });
+
+  test('regression: settings for another device opens above the mobile drawer and navigates to its Prime page', async () => {
+    const oldWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    try {
+      const { history, store } = await renderApp(`/${FIRST}/${LOG}?dialog=settings&device=${SECOND}`);
+      expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+      const before = store.getState();
+      expect(screen.getByRole('textbox', { name: 'Device name' })).toHaveValue('Alpha');
+      expect(store.getState().dongleId).toBe(FIRST);
+      expect(store.getState().currentRoute.log_id).toBe(LOG);
+      fireEvent.click(screen.getByRole('button', { name: /Prime settings/ }));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+      expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+      act(() => history.goBack());
+      expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+      expect(before.currentRoute.log_id).toBe(LOG);
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: oldWidth });
+    }
+  });
+
+  test.each(['filter', 'pair'])('regression: cold %s dialog opens without a drawer', async dialog => {
+    await renderApp(`/${FIRST}?dialog=${dialog}`);
+    expect(await screen.findByText(dialog === 'filter' ? 'Start date:' : 'Pair device')).toBeVisible();
+  });
+
+  test.each([SHARED, 'dddddddddddddddd'])('settings stays closed for shared or unknown device %s', async dongle => {
+    await renderApp(`/${FIRST}?dialog=settings&device=${dongle}`);
+    expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument();
+  });
+
+  test('cold nested settings upload dialog closes to settings', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=settings-uploads`);
+    expect(await screen.findByText('Uploads')).toBeVisible();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Close' }).at(-1));
+    await waitFor(() => expect(history.location.search).toBe(`?dialog=settings&device=${FIRST}`));
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+  });
+
+  test.each(['prime-cancel', 'prime-switch'])('cold %s confirms without making a billing change', async dialog => {
+    const subscription = { user_id: 'test-user', plan: 'data', amount: 2400, status: 'active', next_charge_at: 1800000000 };
+    const { history } = await renderApp(`/${FIRST}/prime?dialog=${dialog}`, {
+      devices: devices.map(device => ({ ...device, prime: true })), subscription,
+    });
+    expect(await screen.findByRole('heading', { name: dialog === 'prime-cancel' ? 'Cancel prime subscription' : 'Switch to Lite plan' })).toBeVisible();
+    expect(mocks.requests.some(request => request.method !== 'GET')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: dialog === 'prime-cancel' ? 'Close' : 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+  });
+
+  test.each(['prime-cancel', 'prime-switch'])('pending %s response belongs to the device where it was confirmed', async dialog => {
+    let resolveMutation;
+    const billingMutation = new Promise(resolve => { resolveMutation = resolve; });
+    const subscription = { user_id: 'test-user', plan: 'data', amount: 2400, status: 'active', next_charge_at: 1800000000 };
+    const { history } = await renderApp(`/${FIRST}/prime?dialog=${dialog}`, {
+      devices: devices.map(device => ({ ...device, prime: true })), subscription, billingMutation,
+    });
+    fireEvent.click(await screen.findByRole('button', { name: dialog === 'prime-cancel' ? 'Cancel subscription' : 'Confirm switch' }));
+    await waitFor(() => expect(mocks.requests.some(request => request.method === 'POST')).toBe(true));
+    act(() => history.push(`/${SECOND}/prime?dialog=${dialog}`));
+    await waitFor(() => expect(screen.getByRole('button', { name: dialog === 'prime-cancel' ? 'Cancel subscription' : 'Confirm switch' })).toBeEnabled());
+    const count = mocks.requests.filter(request => request.url.includes(SECOND) && request.url.includes('/subscription')).length;
+    await act(async () => { resolveMutation(await json({ success: true })); await billingMutation; });
+    expect(screen.queryByText('Cancelled subscription.')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Your subscription has been switched/)).not.toBeInTheDocument();
+    expect(mocks.requests.filter(request => request.url.includes(SECOND) && request.url.includes('/subscription')).length).toBe(count);
+    expect(history.location.pathname).toBe(`/${SECOND}/prime`);
+  });
+
+  test('shared-device billing links keep the existing ownership gate', async () => {
+    await renderApp(`/${SHARED}/prime?dialog=prime-cancel`);
+    expect(await screen.findByText('No access')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Cancel prime subscription' })).not.toBeInTheDocument();
+    expect(mocks.requests.some(request => request.method !== 'GET')).toBe(false);
+  });
+
+  test('cold unpair dialog requires an explicit confirmation', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=unpair`);
+    expect(await screen.findByRole('heading', { name: 'Unpair device' })).toBeVisible();
+    expect(mocks.requests.some(request => request.method !== 'GET')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(`?dialog=settings&device=${FIRST}`));
+  });
+
+  test('root dialog links preserve their query and hash through default device selection', async () => {
+    const { history } = await renderApp('/?dialog=filter&ci=1#point');
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    expect(history.location).toMatchObject({ pathname: `/${FIRST}`, search: '?dialog=filter&ci=1', hash: '#point' });
+    expect(history.length).toBe(1);
+  });
+
 });

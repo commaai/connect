@@ -1,3 +1,4 @@
+import { parseLocation } from '../url';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
@@ -14,7 +15,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav, closeDialog } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -24,6 +25,9 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import TimeSelect from './TimeSelect';
 
 const styles = (theme) => ({
   app: {
@@ -154,7 +158,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -167,12 +171,7 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
 
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
-    }
+
   }
 
   async closePair() {
@@ -201,6 +200,9 @@ class ExplorerApp extends Component {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+    const { route } = this.props;
+    const settingsDevice = devices?.find((device) => device.dongle_id === route.settingsDevice);
+    const canConfigure = settingsDevice && (settingsDevice.is_owner || profile?.superuser);
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const referralsOpen = pathname === '/referrals';
@@ -270,6 +272,14 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        {canConfigure && <DeviceSettingsModal
+          key={route.settingsDevice}
+          isOpen
+          dongleId={route.settingsDevice}
+          onClose={() => dispatch(closeDialog())}
+        />}
+        <AddDevice showButton={false} />
+        {route.dialog === 'filter' && <TimeSelect onClose={() => dispatch(closeDialog())} />}
       </div>
     );
   }
@@ -282,8 +292,8 @@ const stateToProps = (state) => ({
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
+  route: parseLocation(state.router.location),
+  bodyTeleopOpen: parseLocation(state.router.location).page === 'stream',
   profile: state.profile,
 });
 

@@ -1,3 +1,6 @@
+import { connect } from 'react-redux';
+import { parseLocation } from '../../url';
+import { openDialog, closeDialog } from '../../actions/navigation';
 import React, { Component } from 'react';
 import {
   Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, LinearProgress, Menu, Typography, withStyles,
@@ -223,7 +226,7 @@ function cameraCoversRange(cameraRanges, camera, startTime, endTime) {
   return Boolean(cameraRanges?.[camera]?.available_ranges?.some(([start, end]) => start <= startTime && end >= endTime));
 }
 
-class ClipMenu extends Component {
+export class ClipMenu extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -232,11 +235,13 @@ class ClipMenu extends Component {
       autoDownloadFilename: null,
       downloadedClips: new Set(),
       viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0,
-      deletingClip: null, deleteDialogOpen: false, deleting: false,
+      deleting: false,
     };
     this.poll = null;
     this.mounted = false;
     this.previewRequest = 0;
+    this.contextRevision = 0;
+    this.deleteRequest = 0;
   }
 
   componentDidMount() {
@@ -249,20 +254,27 @@ class ClipMenu extends Component {
     const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
     const deviceChanged = this.props.dongleId !== prevProps.dongleId;
     const reconnected = this.props.deviceOnline && !prevProps.deviceOnline;
+    if (routeChanged || deviceChanged) this.contextRevision += 1;
     if ((opened || routeChanged || deviceChanged || reconnected) && this.props.open) this.loadClips();
     if (!this.props.deviceOnline && prevProps.deviceOnline) {
       this.stopPolling();
       this.setState({ loading: false });
     }
+    if (prevProps.clipFilename !== this.props.clipFilename || prevProps.dialog !== this.props.dialog || routeChanged || deviceChanged) {
+      this.deleteRequest += 1;
+      this.setState({ deleting: false });
+      this.clearViewer(() => this.syncViewer());
+    }
     if (!this.props.open && prevProps.open) {
       this.stopPolling();
-      if (this.state.viewingClip) this.closeViewer();
+      this.clearViewer();
     }
   }
 
   componentWillUnmount() {
     this.mounted = false;
     this.previewRequest += 1;
+    this.contextRevision += 1;
     this.stopPolling();
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
   }
@@ -273,6 +285,7 @@ class ClipMenu extends Component {
   }
 
   async loadClips(showLoading = true) {
+    const revision = this.contextRevision;
     const routeName = deviceRouteName(this.props.route);
     const { dongleId } = this.props;
     if (!this.props.deviceOnline) {
@@ -282,29 +295,33 @@ class ClipMenu extends Component {
     if (showLoading) this.setState({ loading: true, error: null });
     try {
       const state = await clipDevice.getClipState(dongleId, routeName ? { route: this.props.route.fullname } : {});
-      if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
+      if (!this.mounted || revision !== this.contextRevision) return;
       const { clips } = state;
       const downloadedClips = new Set((await Promise.all(clips
         .filter(clip => clip.status === 'ready')
         .map(async clip => ([clip.filename, await clipDevice.hasClipBlob(dongleId, clip.filename, clip.requested_at)]))))
         .filter(([, downloaded]) => downloaded)
         .map(([filename]) => filename));
-      if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
+      if (!this.mounted || revision !== this.contextRevision) return;
       const cameraRanges = routeName ? state.cameras || {} : null;
       this.setState({ clips, downloadedClips, cameraRanges, loading: false }, () => {
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
         if (this.props.open && autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
+        this.syncViewer();
       });
       this.stopPolling();
       if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
         this.poll = setTimeout(() => this.loadClips(false), POLL_INTERVAL);
       }
     } catch (err) {
-      if (this.mounted) this.setState({ loading: false, error: err.message || 'Could not reach the device' });
+      if (this.mounted && revision === this.contextRevision) {
+        this.setState({ loading: false, error: err.message || 'Could not reach the device' });
+      }
     }
   }
 
   async createClip() {
+    const revision = this.contextRevision;
     const { dongleId, route, zoom } = this.props;
     const { camera, bitrate, speedup, filename } = this.state;
     if (!route || !zoom || !this.props.deviceOnline || !validFilename(filename)) return;
@@ -323,11 +340,11 @@ class ClipMenu extends Component {
           filename: outputFilename,
         },
       });
-      if (!this.mounted) return;
+      if (!this.mounted || revision !== this.contextRevision) return;
       this.setState({ creating: false });
       await this.loadClips(false);
     } catch (err) {
-      if (this.mounted) this.setState({ creating: false, autoDownloadFilename: null, error: err.message || 'Could not create clip' });
+      if (this.mounted && revision === this.contextRevision) this.setState({ creating: false, autoDownloadFilename: null, error: err.message || 'Could not create clip' });
     }
   }
 
@@ -341,6 +358,7 @@ class ClipMenu extends Component {
   }
 
   async removeClip(clip) {
+    const revision = this.contextRevision;
     if (!this.props.deviceOnline) return false;
     if (clip.filename === this.state.previewingClip) {
       this.previewRequest += 1;
@@ -348,24 +366,41 @@ class ClipMenu extends Component {
     }
     try {
       await clipDevice.deleteClip(this.props.dongleId, { filename: clip.filename });
+      if (!this.mounted || revision !== this.contextRevision) return true;
       if (clip.filename === this.state.autoDownloadFilename) this.setState({ autoDownloadFilename: null });
       if (this.mounted) await this.loadClips(false);
       return true;
     } catch (err) {
-      if (this.mounted) this.setState({ error: err.message || 'Could not remove clip' });
+      if (this.mounted && revision === this.contextRevision) this.setState({ error: err.message || 'Could not remove clip' });
       return false;
     }
   }
 
   async confirmDelete() {
-    const { deletingClip } = this.state;
+    const deletingClip = this.state.clips.find(clip => clip.filename === this.props.clipFilename);
     if (!deletingClip || this.state.deleting) return;
+    this.deleteRequest += 1;
+    const request = this.deleteRequest;
     this.setState({ deleting: true });
     const deleted = await this.removeClip(deletingClip);
-    if (this.mounted) this.setState({ deleteDialogOpen: !deleted, deleting: false });
+    if (this.mounted && request === this.deleteRequest) {
+      this.setState({ deleting: false });
+      if (deleted && this.props.dialog === 'delete-clip' && this.props.clipFilename === deletingClip.filename) this.props.dispatch(closeDialog());
+    }
   }
 
-  async openViewer(clip) {
+  openViewer(clip) {
+    this.props.dispatch(openDialog('clip', null, clip.filename));
+  }
+
+  syncViewer() {
+    const { clipFilename } = this.props;
+    if (!this.props.open || this.state.loading || this.props.dialog !== 'clip' || !clipFilename || this.state.viewingClip?.filename === clipFilename || this.state.previewingClip === clipFilename) return;
+    const clip = this.state.clips.find(item => item.filename === clipFilename && item.status === 'ready');
+    if (clip) this.loadViewer(clip);
+  }
+
+  async loadViewer(clip) {
     if (!this.props.deviceOnline) return;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
@@ -379,7 +414,7 @@ class ClipMenu extends Component {
         URL.revokeObjectURL(previewUrl);
         return;
       }
-      if (this.props.open) {
+      if (this.props.open && this.props.dialog === 'clip' && this.props.clipFilename === clip.filename) {
         this.setState(({ downloadedClips }) => ({
           viewingClip: clip,
           previewingClip: null,
@@ -399,9 +434,13 @@ class ClipMenu extends Component {
   }
 
   closeViewer() {
+    this.props.dispatch(closeDialog());
+  }
+
+  clearViewer(afterClear) {
     this.previewRequest += 1;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
-    this.setState({ viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0 });
+    this.setState({ viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0 }, afterClear);
   }
 
   renderViewer() {
@@ -439,14 +478,14 @@ class ClipMenu extends Component {
 
   renderDeleteConfirmation() {
     const { classes } = this.props;
-    const { deleteDialogOpen, deleting, deletingClip } = this.state;
+    const { deleting } = this.state;
+    const deletingClip = this.state.clips.find(clip => clip.filename === this.props.clipFilename);
     const title = deletingClip?.filename?.replace(/\.mp4$/i, '') || 'this clip';
     return (
       <Dialog
-        open={deleteDialogOpen}
-        onClose={() => !deleting && this.setState({ deleteDialogOpen: false })}
+        open={this.props.dialog === 'delete-clip' && Boolean(deletingClip)}
+        onClose={() => !deleting && this.props.dispatch(closeDialog())}
         classes={{ paper: classes.deletePaper }}
-        TransitionProps={{ onExited: () => this.setState({ deletingClip: null }) }}
       >
         <DialogTitle className={classes.deleteTitle}>Delete clip?</DialogTitle>
         <DialogContent>
@@ -455,7 +494,7 @@ class ClipMenu extends Component {
           </Typography>
         </DialogContent>
         <DialogActions className={classes.deleteActions}>
-          <Button disabled={deleting} onClick={() => this.setState({ deleteDialogOpen: false })}>Cancel</Button>
+          <Button disabled={deleting} onClick={() => this.props.dispatch(closeDialog())}>Cancel</Button>
           <Button className={classes.deleteButton} disabled={deleting} onClick={() => this.confirmDelete()}>
             {deleting ? <CircularProgress size={18} /> : 'Delete'}
           </Button>
@@ -510,7 +549,7 @@ class ClipMenu extends Component {
               title={this.props.deviceOnline ? (ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip') : 'Device offline'}
               onClick={() => (ACTIVE_STATUSES.has(clip.status)
                 ? this.removeClip(clip)
-                : this.setState({ deletingClip: clip, deleteDialogOpen: true }))}
+                : this.props.dispatch(openDialog('delete-clip', null, clip.filename)))}
             >
               {ACTIVE_STATUSES.has(clip.status)
                 ? <CloseBold className={classes.actionIcon} />
@@ -548,6 +587,8 @@ class ClipMenu extends Component {
         <Menu
           open={open}
           anchorEl={anchorEl}
+          anchorReference={anchorEl ? 'anchorEl' : 'anchorPosition'}
+          anchorPosition={{ top: window.innerHeight / 2, left: window.innerWidth / 2 }}
           onClose={onClose}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -630,6 +671,8 @@ class ClipMenu extends Component {
               <InfoTooltip title="Clips are stored on your device and may be cleared to make room for more recent driving footage." />
             </div>
             {error && <Typography className={classes.error}>{error}</Typography>}
+            {this.props.clipFilename && !loading && !clips.some(clip => clip.filename === this.props.clipFilename)
+              && <Typography role="status">Clip not found on this device.</Typography>}
             {loading && <div className={classes.empty}><CircularProgress size={18} /></div>}
             {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Device offline'}</Typography>}
             {!loading && clips.map(clip => this.renderClip(clip))}
@@ -642,4 +685,8 @@ class ClipMenu extends Component {
   }
 }
 
-export default withStyles(styles)(ClipMenu);
+const stateToProps = (state) => {
+  const route = parseLocation(state.router.location);
+  return { clipFilename: route.clipFilename, dialog: route.dialog };
+};
+export default connect(stateToProps)(withStyles(styles)(ClipMenu));

@@ -1,3 +1,5 @@
+import { parseLocation } from '../../url';
+import { openDialog, closeDialog } from '../../actions/navigation';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
@@ -330,10 +332,11 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
+          key={this.props.dongleId}
+          open={['clips', 'clip', 'delete-clip'].includes(this.props.dialog)}
           dongleId={this.props.dongleId}
           anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          onClose={() => this.props.dispatch(closeDialog())}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -413,7 +416,10 @@ class DeviceInfo extends Component {
             <button
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              onClick={(event) => {
+                this.setState({ clipMenu: event.currentTarget });
+                this.props.dispatch(openDialog('clips'));
+              }}
               disabled={offline}
             >
               <ContentCut />
@@ -514,6 +520,7 @@ class DeviceInfo extends Component {
 }
 
 const stateToProps = (state) => ({
+  dialog: parseLocation(state.router.location).dialog,
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,

@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { pushTimelineRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -17,14 +17,8 @@ class DriveView extends Component {
     this.close = this.close.bind(this);
   }
 
-  onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
+  onBack(_zoom, currentRoute) {
+    if (currentRoute) this.props.dispatch(pushTimelineRange(currentRoute.log_id, null, null));
   }
 
   close() {
@@ -32,18 +26,22 @@ class DriveView extends Component {
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dongleId, zoom, currentRoute } = this.props;
 
     if (!currentRoute) {
       return (
         <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+          <Typography>{!this.props.driveLoaded ? 'Loading...' : 'Route does not exist.'}</Typography>
         </div>
       );
     }
 
+    if (!Number.isFinite(currentRoute.duration) || currentRoute.duration <= 0) {
+      return <div className="DriveView p-8"><Typography>Route has no usable duration.</Typography></div>;
+    }
+
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const backButtonDisabled = currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -86,9 +84,7 @@ class DriveView extends Component {
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
           <div className='px-3 pb-3 md:px-8 md:pb-8'>
-            {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
-              : <Media />}
+            <Media key={currentRoute.fullname} />
           </div>
         </div>
       </div>
@@ -98,9 +94,9 @@ class DriveView extends Component {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  routes: state.routes,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
+  driveLoaded: Object.hasOwn(state.driveRoutes, state.selectedRouteId),
 });
 
 export default connect(stateToProps)(DriveView);

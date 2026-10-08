@@ -22,9 +22,9 @@ const Prime = (props) => {
     return (<Typography>No access</Typography>);
   }
   if (device.prime || stripeSuccess) {
-    return (<PrimeManage stripeSuccess={ stripeSuccess } />);
+    return (<PrimeManage key={device.dongle_id} stripeSuccess={ stripeSuccess } />);
   }
-  return (<PrimeCheckout stripeCancelled={ stripeCancelled } />);
+  return (<PrimeCheckout key={device.dongle_id} stripeCancelled={ stripeCancelled } />);
 };
 
 const stateToProps = (state) => ({
