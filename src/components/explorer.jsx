@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { goBack, push, replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -13,6 +13,7 @@ import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 import { analyticsEvent, updateDevices, checkLastRoutesData, navigate } from '../actions';
 import init from '../actions/startup';
@@ -83,10 +84,16 @@ class ExplorerApp extends Component {
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+    this.closeSettings = this.closeSettings.bind(this);
   }
 
   closeBodyTeleop() {
     this.props.dispatch(navigate(urlFor({ page: 'dashboard', dongleId: this.props.dongleId })));
+  }
+
+  closeSettings() {
+    const { location } = this.props;
+    this.props.dispatch(location.state?.openedInApp ? goBack() : replace(location.pathname));
   }
 
   async componentDidMount() {
@@ -200,11 +207,14 @@ class ExplorerApp extends Component {
   render() {
     const {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      settingsDongleId,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const referralsOpen = pathname === '/referrals';
+    const settingsDevice = devices?.find((device) => device.dongle_id === settingsDongleId);
+    const settingsOpen = Boolean(settingsDongleId && (settingsDevice?.is_owner || profile?.superuser));
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -250,6 +260,11 @@ class ExplorerApp extends Component {
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
+            <DeviceSettingsModal
+              isOpen={ settingsOpen }
+              dongleId={ settingsOpen ? settingsDongleId : null }
+              onClose={ this.closeSettings }
+            />
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
@@ -279,6 +294,8 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  location: state.router.location,
+  settingsDongleId: parseLocation(state.router.location).settingsDongleId,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,

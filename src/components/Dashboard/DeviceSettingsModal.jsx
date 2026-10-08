@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -14,7 +15,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { updateDevice, navigate } from '../../actions';
+import { updateDevice } from '../../actions';
 import { urlFor } from '../../url';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
@@ -226,8 +227,8 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    this.props.onClose();
-    this.props.dispatch(navigate(urlFor({ page: 'prime', dongleId: this.props.dongleId })));
+    // replaces the settings entry, so back from Prime returns to the page below settings
+    this.props.dispatch(replace(urlFor({ page: 'prime', dongleId: this.props.dongleId })));
   }
 
   async unpairDevice() {
@@ -434,7 +435,7 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,

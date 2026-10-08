@@ -163,6 +163,7 @@ describe('whole-app behavior', () => {
     });
   });
   afterEach(() => {
+    Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true });
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
@@ -304,6 +305,48 @@ describe('whole-app behavior', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
     expect(history.location.pathname).toBe(`/${SECOND}/prime`);
+  });
+
+  test('device settings opens over a drive with its own URL and browser back closes it', async () => {
+    const { history } = await renderApp(`/${SECOND}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    // the drawer lists Alpha (SECOND) first
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname + history.location.search).toBe(`/${SECOND}/${LOG}?settings=${SECOND}`);
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    // the drive stays mounted under the still-open mobile drawer
+    expect(screen.getByRole('slider', { name: 'Drive timeline', hidden: true })).toBeInTheDocument();
+    expect(history.location.pathname).toBe(`/${SECOND}/${LOG}`);
+  });
+
+  test('closing device settings opened in the app returns to the page', async () => {
+    const { history } = await renderApp(`/${SECOND}`);
+    await screen.findByRole('heading', { name: 'Alpha' });
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(history.location.search).toBe('');
+    expect(history.index).toBe(0);
+  });
+
+  test.each([[1024], [1280]])('a device settings link opens settings at %ipx wide and closing keeps the page', async (width) => {
+    Object.defineProperty(window, 'innerWidth', { value: width, configurable: true });
+    const { history } = await renderApp(`/${FIRST}?settings=${FIRST}`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByDisplayValue('Zulu')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(history.entries.map((entry) => entry.pathname + entry.search)).toEqual([`/${FIRST}`]);
+  });
+
+  test('a device settings link for a device the user does not own is ignored', async () => {
+    await renderApp(`/${FIRST}?settings=${SHARED}`);
+    expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
   });
 
   test('going back two pages from Prime to a drive keeps the history', async () => {
