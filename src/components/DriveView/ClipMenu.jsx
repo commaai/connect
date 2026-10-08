@@ -8,6 +8,7 @@ import { clipDevice } from '../../api/clips';
 import { CloseBold, Download as DownloadIcon, PlayArrow, Trash } from '../../icons';
 import { shareOrDownload } from '../../utils/file';
 import InfoTooltip from '../utils/InfoTooltip';
+import { menuPosition } from './menuPosition';
 
 const MAX_CLIP_DURATION = 30 * 60;
 const POLL_INTERVAL = 1000;
@@ -223,7 +224,7 @@ function cameraCoversRange(cameraRanges, camera, startTime, endTime) {
   return Boolean(cameraRanges?.[camera]?.available_ranges?.some(([start, end]) => start <= startTime && end >= endTime));
 }
 
-class ClipMenu extends Component {
+export class ClipMenu extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -232,7 +233,7 @@ class ClipMenu extends Component {
       autoDownloadFilename: null,
       downloadedClips: new Set(),
       viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0,
-      deletingClip: null, deleteDialogOpen: false, deleting: false,
+      deletingClip: null, deleting: false,
     };
     this.poll = null;
     this.mounted = false;
@@ -245,6 +246,7 @@ class ClipMenu extends Component {
   }
 
   componentDidUpdate(prevProps) {
+    if (prevProps.modal !== this.props.modal || prevProps.clip !== this.props.clip) this.syncClip();
     const opened = this.props.open && !prevProps.open;
     const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
     const deviceChanged = this.props.dongleId !== prevProps.dongleId;
@@ -293,7 +295,8 @@ class ClipMenu extends Component {
       const cameraRanges = routeName ? state.cameras || {} : null;
       this.setState({ clips, downloadedClips, cameraRanges, loading: false }, () => {
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
-        if (this.props.open && autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
+        if (this.props.open && autoClip) this.setState({ autoDownloadFilename: null }, () => this.props.onOpen('clip', autoClip.filename));
+        this.syncClip();
       });
       this.stopPolling();
       if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
@@ -362,7 +365,18 @@ class ClipMenu extends Component {
     if (!deletingClip || this.state.deleting) return;
     this.setState({ deleting: true });
     const deleted = await this.removeClip(deletingClip);
-    if (this.mounted) this.setState({ deleteDialogOpen: !deleted, deleting: false });
+    if (this.mounted) {
+      this.setState({ deleting: false });
+      if (deleted) this.props.onClose();
+    }
+  }
+
+  syncClip() {
+    const { modal, clip: filename } = this.props;
+    const clip = this.state.clips.find(item => item.filename === filename);
+    if (modal !== 'clip' && (this.state.viewingClip || this.state.previewingClip)) this.closeViewer();
+    if (modal === 'clip' && clip && this.state.viewingClip?.filename !== filename && this.state.previewingClip !== filename) this.openViewer(clip);
+    if (modal === 'delete-clip' && clip !== this.state.deletingClip) this.setState({ deletingClip: clip || null });
   }
 
   async openViewer(clip) {
@@ -379,7 +393,7 @@ class ClipMenu extends Component {
         URL.revokeObjectURL(previewUrl);
         return;
       }
-      if (this.props.open) {
+      if (this.props.open && this.props.modal === 'clip' && this.props.clip === clip.filename) {
         this.setState(({ downloadedClips }) => ({
           viewingClip: clip,
           previewingClip: null,
@@ -413,7 +427,7 @@ class ClipMenu extends Component {
       ? formatDuration((viewingClip.source_end_time - viewingClip.source_start_time) / (viewingClip.speedup || 1))
       : '';
     return (
-      <Dialog open={Boolean(viewingClip)} onClose={() => this.closeViewer()} classes={{ paper: classes.viewerPaper }} maxWidth="md">
+      <Dialog open={this.props.modal === 'clip'} onClose={this.props.onClose} classes={{ paper: classes.viewerPaper }} maxWidth="md">
         <DialogTitle disableTypography className={classes.viewerTitle}>
           <div className={classes.viewerDetails}>
             <Typography className={`${classes.header} ${classes.viewerHeader}`}>{title}</Typography>
@@ -425,12 +439,13 @@ class ClipMenu extends Component {
             <IconButton aria-label="Download clip" title="Download clip" onClick={() => this.downloadViewedClip()}>
               <DownloadIcon className={classes.actionIcon} />
             </IconButton>
-            <IconButton aria-label="Close video" title="Close" onClick={() => this.closeViewer()}>
+            <IconButton aria-label="Close video" title="Close" onClick={this.props.onClose}>
               <CloseBold className={classes.actionIcon} />
             </IconButton>
           </div>
         </DialogTitle>
         <DialogContent className={classes.viewerContent}>
+          {!previewUrl && <Typography>{this.state.error || (this.state.loading || this.state.previewingClip ? 'Loading clip...' : 'Clip is unavailable.')}</Typography>}
           {previewUrl && <video className={classes.viewerVideo} src={previewUrl} controls autoPlay playsInline />}
         </DialogContent>
       </Dialog>
@@ -439,24 +454,25 @@ class ClipMenu extends Component {
 
   renderDeleteConfirmation() {
     const { classes } = this.props;
-    const { deleteDialogOpen, deleting, deletingClip } = this.state;
+    const { deleting, deletingClip } = this.state;
     const title = deletingClip?.filename?.replace(/\.mp4$/i, '') || 'this clip';
     return (
       <Dialog
-        open={deleteDialogOpen}
-        onClose={() => !deleting && this.setState({ deleteDialogOpen: false })}
+        open={this.props.modal === 'delete-clip'}
+        onClose={() => !deleting && this.props.onClose()}
         classes={{ paper: classes.deletePaper }}
         TransitionProps={{ onExited: () => this.setState({ deletingClip: null }) }}
       >
         <DialogTitle className={classes.deleteTitle}>Delete clip?</DialogTitle>
         <DialogContent>
+          {!deletingClip && <Typography>{this.state.loading ? 'Loading clip...' : this.state.error || 'Clip is unavailable.'}</Typography>}
           <Typography className={classes.deleteContent}>
             {`${title} will be permanently deleted from your comma device.`}
           </Typography>
         </DialogContent>
         <DialogActions className={classes.deleteActions}>
-          <Button disabled={deleting} onClick={() => this.setState({ deleteDialogOpen: false })}>Cancel</Button>
-          <Button className={classes.deleteButton} disabled={deleting} onClick={() => this.confirmDelete()}>
+          <Button disabled={deleting} onClick={this.props.onClose}>Cancel</Button>
+          <Button className={classes.deleteButton} disabled={deleting || !deletingClip} onClick={() => this.confirmDelete()}>
             {deleting ? <CircularProgress size={18} /> : 'Delete'}
           </Button>
         </DialogActions>
@@ -494,7 +510,7 @@ class ClipMenu extends Component {
                 className={classes.clipAction}
                 disabled={!this.props.deviceOnline || previewing}
                 title={this.props.deviceOnline ? (previewing ? 'Downloading' : (downloaded ? 'Play clip' : 'Download clip')) : 'Device offline'}
-                onClick={() => this.openViewer(clip)}
+                onClick={() => this.props.onOpen('clip', clip.filename)}
               >
                 {downloaded
                   ? <PlayArrow className={classes.playIcon} />
@@ -510,7 +526,7 @@ class ClipMenu extends Component {
               title={this.props.deviceOnline ? (ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip') : 'Device offline'}
               onClick={() => (ACTIVE_STATUSES.has(clip.status)
                 ? this.removeClip(clip)
-                : this.setState({ deletingClip: clip, deleteDialogOpen: true }))}
+                : this.props.onOpen('delete-clip', clip.filename))}
             >
               {ACTIVE_STATUSES.has(clip.status)
                 ? <CloseBold className={classes.actionIcon} />
@@ -546,8 +562,8 @@ class ClipMenu extends Component {
     return (
       <>
         <Menu
-          open={open}
-          anchorEl={anchorEl}
+          open={open && this.props.modal === 'clips'}
+          {...menuPosition(anchorEl)}
           onClose={onClose}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}

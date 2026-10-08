@@ -14,11 +14,14 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
+
+import { openModal, closeModal, navigate } from '../../actions/navigation';
+import { canManageDevice } from '../../url/modals';
 
 const styles = (theme) => ({
   modal: {
@@ -115,12 +118,10 @@ const initialState = {
   loadingDeviceShare: false,
   hasSavedAlias: false,
   shareEmail: '',
-  unpairConfirm: false,
   unpaired: false,
   loadingUnpair: false,
   error: null,
   unpairError: null,
-  uploadModal: false,
 };
 
 class DeviceSettingsModal extends Component {
@@ -129,6 +130,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -173,6 +175,7 @@ class DeviceSettingsModal extends Component {
   }
 
   async setDeviceAlias() {
+    if (!canManageDevice(this.props.device, this.props.profile)) return;
     const { dongle_id: dongleId } = this.props.device;
 
     if (this.state.loadingDeviceAlias) {
@@ -197,6 +200,7 @@ class DeviceSettingsModal extends Component {
   }
 
   async shareDevice() {
+    if (!canManageDevice(this.props.device, this.props.profile)) return;
     if (this.state.loadingDeviceShare) {
       return;
     }
@@ -225,14 +229,11 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
-    this.props.onClose();
+    this.props.dispatch(navigate({ page: 'prime', dongleId: this.props.dongleId, demo: false, modal: null, modalDevice: null, clip: null }));
   }
 
   async unpairDevice() {
+    if (!canManageDevice(this.props.device, this.props.profile)) return;
     this.setState({ loadingUnpair: true });
     try {
       const resp = await api.devices.unpair(this.props.device.dongle_id);
@@ -254,14 +255,14 @@ class DeviceSettingsModal extends Component {
     if (this.state.unpaired) {
       window.location = window.location.origin;
     } else {
-      this.setState({ unpairConfirm: false });
+      this.props.dispatch(closeModal());
     }
   }
 
   render() {
     const { classes, device } = this.props;
     const commacare = device?.commacare;
-    if (!device) {
+    if (!canManageDevice(device, this.props.profile)) {
       return null;
     }
 
@@ -290,7 +291,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ unpairConfirm: true }) }
+                onClick={ () => this.props.dispatch(openModal('unpair', { modalDevice: this.props.dongleId })) }
               >
                 Unpair
               </Button>
@@ -299,7 +300,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.props.dispatch(openModal('settings-uploads', { modalDevice: this.props.dongleId })) }
               >
                 Uploads
               </Button>
@@ -362,7 +363,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.state.unpairConfirm}
+          open={this.props.modal === 'unpair'}
           onClose={ this.closeUnpair }
         >
           <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
@@ -425,9 +426,9 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          open={ this.props.modal === 'settings-uploads' }
+          update={ this.props.modal === 'settings-uploads' }
+          onClose={ this.props.onClose }
           device={ device }
         />
       </>
@@ -436,12 +437,12 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
+    profile: state.profile,
     device,
-    globalDongleId: state.dongleId,
   };
 };
 

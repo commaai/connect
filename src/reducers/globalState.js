@@ -58,14 +58,20 @@ export default function reducer(_state, action) {
         ...state,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
+        routeRevision: (state.routeRevision || 0) + 1,
         primeNav: false,
         streamNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
-        limit: 0,
+        limit: 5,
+        selectedRouteId: null,
+        zoom: null,
+        loop: null,
+        currentRoute: null,
+        missingRouteId: null,
       };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
+      if (action.dongleId) window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
         const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
         if (!state.device || state.device.dongle_id !== action.dongleId) {
@@ -87,6 +93,7 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         lastRoutes: state.routes,
+        routeRevision: (state.routeRevision || 0) + 1,
         filter: {
           start: action.start,
           end: action.end,
@@ -151,6 +158,10 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_UPDATE_ROUTE:
+      if (state.routeCache?.[action.fullname]) state.routeCache = {
+        ...state.routeCache,
+        [action.fullname]: { ...state.routeCache[action.fullname], ...action.route },
+      };
       if (state.routes) {
         state.routes = state.routes.map((route) => {
           if (route.fullname === action.fullname) {
@@ -176,6 +187,10 @@ export default function reducer(_state, action) {
         events: action.events,
         videoStartOffset,
       }
+      if (state.routeCache?.[action.fullname]) state.routeCache = {
+        ...state.routeCache,
+        [action.fullname]: { ...state.routeCache[action.fullname], events: action.events, videoStartOffset },
+      };
       if (state.routes) {
         state.routes = state.routes.map((route) => {
           const ev = eventsMap[route.fullname];
@@ -203,6 +218,10 @@ export default function reducer(_state, action) {
         location: action.location,
         locationKey: action.locationKey,
       }
+      if (state.routeCache?.[action.fullname]) state.routeCache = {
+        ...state.routeCache,
+        [action.fullname]: { ...state.routeCache[action.fullname], [action.locationKey]: action.location },
+      };
       if (state.routes) {
         state.routes = state.routes.map((route) => {
           const loc = locationMap[route.fullname];
@@ -231,7 +250,7 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_DEVICE_ONLINE:
       state = {
         ...state,
-        devices: [...state.devices],
+        devices: [...(state.devices || [])],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
 
@@ -243,7 +262,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           last_athena_ping: action.last_athena_ping,
@@ -254,7 +273,7 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_DEVICE_NETWORK:
       state = {
         ...state,
-        devices: [...state.devices],
+        devices: [...(state.devices || [])],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
 
@@ -265,7 +284,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           network_metered: action.networkMetered,
@@ -276,7 +295,7 @@ export default function reducer(_state, action) {
       // merge RPC-fetched values (e.g. not_car) into a specific device's `rpc` field
       state = {
         ...state,
-        devices: [...state.devices],
+        devices: [...(state.devices || [])],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
 
@@ -290,7 +309,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           rpc: {
@@ -335,33 +354,26 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
+      if (state.selectedRouteId !== action.log_id) {
         state.files = null;
       }
 
+      if (state.selectedRouteId !== action.log_id) state.routeRevision = (state.routeRevision || 0) + 1;
       state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
+      state.missingRouteId = null;
+      state.currentRoute = state.routeCache?.[`${state.dongleId}|${action.log_id}`]
+        || state.routes?.find((route) => route.log_id === action.log_id) || null;
       if (action.log_id) {
         if (action.start != null && action.end != null) {
           state.zoom = {
             start: action.start,
             end: action.end,
-            previous: state.zoom,
           };
         } else {
           state.zoom = state.currentRoute ? {
             start: 0,
             end: state.currentRoute.duration,
-            previous: state.zoom,
           } : null;
           state.loop = null;
         }
@@ -409,43 +421,37 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
-      // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
-        return {
-          ...existingRoute,
-          ...route,
-        }
+    case Types.ACTION_ROUTES_METADATA: {
+      if (action.dongleId !== state.dongleId) break;
+      const cache = { ...state.routeCache };
+      const routes = action.routes.map((route) => {
+        const merged = { ...cache[route.fullname], ...route,
+          ...eventsMap[route.fullname],
+          ...(locationMap[route.fullname] ? { [locationMap[route.fullname].locationKey]: locationMap[route.fullname].location } : {}) };
+        cache[route.fullname] = merged;
+        return merged;
       });
-      state.routesMeta = {
-        dongleId: action.dongleId,
-        start: action.start,
-        end: action.end,
-      };
-      if (!state.currentRoute && state.selectedRouteId) {
-        const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
-        if (curr) {
-          state.currentRoute = {
-            ...curr,
+      state.routeCache = cache;
+      if (!action.routeId) {
+        state.routes = routes;
+        state.routesMeta = {
+          dongleId: action.dongleId, start: action.start, end: action.end, limit: action.limit,
+        };
+      } else {
+        state.missingRouteId = routes.length ? null : `${action.dongleId}|${action.routeId}`;
+      }
+      if (state.selectedRouteId) {
+        const current = cache[`${state.dongleId}|${state.selectedRouteId}`];
+        if (current) {
+          state.currentRoute = current;
+          if (!state.zoom) state.zoom = { start: 0, end: current.duration };
+          if (!state.loop && state.zoom) state.loop = {
+            startTime: state.zoom.start, duration: state.zoom.end - state.zoom.start,
           };
-          if (!state.zoom) {
-            state.zoom = {
-              start: 0,
-              end: state.currentRoute.duration,
-            };
-          }
-
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
-            state.loop = {
-              startTime: state.zoom.start,
-              duration: state.zoom.end - state.zoom.start,
-            };
-          }
         }
       }
       break;
+    }
     default:
       return state;
   }

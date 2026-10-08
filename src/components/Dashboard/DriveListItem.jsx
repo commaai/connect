@@ -4,7 +4,9 @@ import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
-import { pushTimelineRange } from '../../actions';
+import { navigate } from '../../actions/navigation';
+import { buildLocation } from '../../url';
+import { driveSelection } from '../../utils/links';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
@@ -57,7 +59,9 @@ const DriveListItem = (props) => {
   const el = useRef();
   const [isVisible, setVisible] = useState(false);
   const windowWidth = useWindowWidth();
-  const { classes, dispatch, drive } = props;
+  const { classes, dispatch, drive, location } = props;
+  const destination = { ...driveSelection(drive.dongle_id, drive.log_id), search: location.search, hash: location.hash };
+  const link = buildLocation(destination);
 
   useEffect(() => {
     const onScroll = () => {
@@ -84,7 +88,7 @@ const DriveListItem = (props) => {
   }, [drive, dispatch, isVisible, el]);
 
   const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
+    () => dispatch(navigate(destination)),
   );
 
   const small = windowWidth < 580;
@@ -119,7 +123,7 @@ const DriveListItem = (props) => {
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
+      href={`${link.pathname}${link.search}${link.hash}`}
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
@@ -161,4 +165,4 @@ const DriveListItem = (props) => {
   );
 };
 
-export default connect(() => ({}))(withStyles(styles)(DriveListItem));
+export default connect((state) => ({ location: state.router.location }))(withStyles(styles)(DriveListItem));

@@ -6,6 +6,12 @@ export function hasRoutesData(state) {
     // new users without devices won't have segment metadata
     return true;
   }
+  if (state.selectedRouteId) {
+    const fullname = `${state.dongleId}|${state.selectedRouteId}`;
+    return Boolean(state.routeCache?.[fullname]
+      || state.routes?.some((route) => route.fullname === fullname)
+      || state.missingRouteId === fullname);
+  }
   if (!state.routesMeta || !state.routesMeta.dongleId || state.routesMeta.start === null
     || state.routesMeta.end === null) {
     console.debug('No routes data at all');
@@ -29,5 +35,5 @@ export function hasRoutesData(state) {
     return false;
   }
 
-  return true;
+  return (state.routesMeta.limit ?? 0) >= (state.limit ?? 0);
 }

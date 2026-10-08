@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { navigate } from './navigation';
+import { primeFetchSubscription, checkRoutesData, selectDevice, fetchSharedDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -44,7 +45,7 @@ export default function init() {
   return async (dispatch, getState) => {
     let state = getState();
     if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
+      dispatch(checkRoutesData());
     }
 
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
@@ -55,13 +56,17 @@ export default function init() {
     }
 
     if (devices.length > 0) {
-      if (!state.dongleId) {
+      if (!state.dongleId && state.router.location.pathname === '/') {
         const allowPathChange = state.router.location.pathname === '/';
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
         if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
+          dispatch(allowPathChange
+            ? navigate({ page: 'dashboard', dongleId: selectedDongleId, logId: null, zoom: null }, { replace: true })
+            : selectDevice(selectedDongleId, false));
         } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+          dispatch(allowPathChange
+            ? navigate({ page: 'dashboard', dongleId: devices[0].dongle_id, logId: null, zoom: null }, { replace: true })
+            : selectDevice(devices[0].dongle_id, false));
         }
       }
       const dongleId = getState().dongleId;

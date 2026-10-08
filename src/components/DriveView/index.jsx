@@ -4,7 +4,9 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { closeDrive, navigate } from '../../actions/navigation';
+import { buildLocation } from '../../url';
+import { dashboardSelection, driveSelection } from '../../utils/links';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -17,33 +19,23 @@ class DriveView extends Component {
     this.close = this.close.bind(this);
   }
 
-  onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
-  }
-
   close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(closeDrive());
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dongleId, zoom, currentRoute, routes, location, missingRouteId } = this.props;
 
     if (!currentRoute) {
       return (
         <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+          <Typography>{routes === null && !missingRouteId ? 'Loading...' : 'Route does not exist.'}</Typography>
         </div>
       );
     }
 
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const dashboard = buildLocation({ ...dashboardSelection(dongleId), search: location.search, hash: location.hash });
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -58,9 +50,9 @@ class DriveView extends Component {
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
+                onClick={ () => this.props.dispatch(navigate(driveSelection(dongleId, currentRoute.log_id))) }
                 aria-label="Go Back"
-                disabled={ backButtonDisabled }
+                disabled={ currentRouteBoundsSelected }
               >
                 <ArrowBackBold />
               </IconButton>
@@ -78,7 +70,7 @@ class DriveView extends Component {
               <IconButton
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={ `${dashboard.pathname}${dashboard.search}${dashboard.hash}` }
               >
                 <CloseBold />
               </IconButton>
@@ -101,6 +93,8 @@ const stateToProps = (state) => ({
   routes: state.routes,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
+  missingRouteId: state.missingRouteId,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(DriveView);
