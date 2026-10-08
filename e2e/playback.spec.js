@@ -58,3 +58,29 @@ test('blocked playback leaves Play available on Map', async ({ page }) => {
   await page.getByText('Map', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Play video', exact: true })).toBeVisible();
 });
+
+test('timeline gesture, speed, range reload and drive switch use real media', async ({ page }) => {
+  await page.goto(`/demo/${LOG}`);
+  const video = page.getByLabel('Drive video');
+  await expect.poll(() => video.evaluate(element => element.readyState)).toBeGreaterThan(1);
+  await page.getByRole('button', { name: 'Increase play speed by 1 step' }).click();
+  await expect.poll(() => video.evaluate(element => element.playbackRate)).toBeGreaterThan(1);
+  await page.getByRole('slider', { name: 'Drive timeline' }).scrollIntoViewIfNeeded();
+  const timeline = await page.getByRole('slider', { name: 'Drive timeline' }).boundingBox();
+  await page.mouse.move(timeline.x + timeline.width * 0.1, timeline.y + 10);
+  await page.mouse.down();
+  await page.waitForTimeout(100);
+  await page.mouse.move(timeline.x + timeline.width * 0.5, timeline.y + 10, { steps: 4 });
+  await page.waitForTimeout(100);
+  await page.mouse.up();
+  await expect(page).toHaveURL(new RegExp(`/demo/${LOG}/\\d+/\\d+`));
+  const rangeUrl = page.url();
+  await page.reload();
+  await expect.poll(() => video.evaluate(element => element.readyState)).toBeGreaterThan(1);
+  expect(page.url()).toBe(rangeUrl);
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByText('Missing start/end GPS (1 segment)', { exact: true }).click();
+  await expect.poll(() => video.evaluate(element => element.readyState)).toBeGreaterThan(1);
+  await expect(page).toHaveURL(/00000000--0000000004/);
+  await expect(page.locator('video[aria-label="Drive video"]')).toHaveCount(1);
+});

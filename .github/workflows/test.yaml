@@ -43,6 +43,28 @@ jobs:
           name: navigation-failures
           path: test-results/
 
+  playback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: bunx playwright install --with-deps ${{ matrix.browser }}
+      - run: bun run test:e2e -- e2e/playback.spec.js --project ${{ matrix.browser }}
+        env:
+          PLAYBACK_MATRIX: '1'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playback-${{ matrix.browser }}
+          path: test-results/
+
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 1
