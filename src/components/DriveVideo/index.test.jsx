@@ -123,3 +123,14 @@ test('changing routes resets playback and ignores events from the old video', as
   expect(store.getState().offset).toBe(0);
   expect(store.getState().videoStatus).toBe(VideoStatus.LOADING);
 });
+
+test('a paused seek lands the clock where the video landed', async () => {
+  const { store, video } = await mountVideo();
+  act(() => store.dispatch(pause()));
+  act(() => store.dispatch(seek(-5000)));
+  expect(video.currentTime).toBe(0);
+  fireEvent.seeking(video);
+  fireEvent.timeUpdate(video);
+  fireEvent.seeked(video);
+  expect(store.getState().offset).toBe(2000);
+});

@@ -113,6 +113,11 @@ class RouteVideo extends Component {
     this.player.current.getInternalPlayer('hls')?.startLoad(event.target.currentTime);
   };
 
+  onSeeked = (event) => {
+    this.onPlayable();
+    this.updateOffset(event.target);
+  };
+
   onEnded = () => {
     const { isPlaying, loop, dispatch } = this.props;
     if (isPlaying && loop?.duration > 0) {
@@ -165,7 +170,7 @@ class RouteVideo extends Component {
     attributes: {
       onTimeUpdate: (event) => this.updateOffset(event.target),
       onSeeking: this.onSeeking,
-      onSeeked: this.onPlayable,
+      onSeeked: this.onSeeked,
       onCanPlay: this.onPlayable,
     },
   };
