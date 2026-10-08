@@ -1,5 +1,5 @@
 import store from '../store';
-import { attachVideo, currentOffset, detachVideo, seek } from './clock';
+import { attachVideo, currentOffset, detachVideo, seek } from '.';
 import { selectLoop } from './playback';
 
 // stands in for a <video>: jsdom does not play media
@@ -113,6 +113,20 @@ describe('playback clock', () => {
     video.dispatchEvent(new Event('ended'));
     expect(video.currentTime).toEqual(10);
     expect(video.play).toHaveBeenCalled();
+  });
+
+  it('keeps the position while the video reloads', () => {
+    attachVideo(video);
+    video.loadMetadata();
+    video.playTo(7);
+
+    video.readyState = HTMLMediaElement.HAVE_NOTHING;
+    video.currentTime = 0;
+    video.dispatchEvent(new Event('timeupdate'));
+    expect(currentOffset()).toEqual(7000);
+
+    video.loadMetadata();
+    expect(video.currentTime).toEqual(7);
   });
 
   it('keeps the last position after the video is detached', () => {

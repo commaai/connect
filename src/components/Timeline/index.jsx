@@ -8,10 +8,9 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { pushTimelineRange, seek } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
-import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
