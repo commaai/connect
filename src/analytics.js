@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
+import { currentOffset } from './timeline';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
@@ -52,12 +53,9 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
   }
 }
 
-function getVideoPercent(state, offset) {
+function getVideoPercent(state) {
   const { zoom } = state;
-  if (!offset) {
-    offset = state.offset;
-  }
-  return (offset - (zoom.start)) / (zoom.end - zoom.start);
+  return (currentOffset(state) - zoom.start) / (zoom.end - zoom.start);
 }
 
 function logAction(action, prevState, state) {
@@ -193,7 +191,7 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_seek', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playSpeed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -205,7 +203,7 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_pause', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playSpeed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -217,7 +215,7 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_play', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: action.speed || state.playSpeed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });

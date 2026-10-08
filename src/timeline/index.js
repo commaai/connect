@@ -1,33 +1,27 @@
 import store from '../store';
 
+// The <video> element playing the current route. It is the playback clock:
+// everything that shows the playback position reads it through currentOffset().
+let video = null;
+
+export function getVideo() {
+  return video;
+}
+
+export function setVideo(element) {
+  video = element;
+}
+
 /**
- * Get current playback offset
+ * Get the current playback position, in milliseconds from the start of the route.
+ * Comes from the video once it has loaded, otherwise from the last seek.
  *
  * @param {object} state
  * @returns {number}
  */
-export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
+export function currentOffset(state = store.getState()) {
+  if (video?.readyState >= HTMLMediaElement.HAVE_METADATA) {
+    return (video.currentTime * 1000) + (state.currentRoute?.videoStartOffset || 0);
   }
-
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
-
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
-  }
-  return offset;
+  return state.offset ?? state.loop?.startTime ?? 0;
 }
