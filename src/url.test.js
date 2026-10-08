@@ -43,6 +43,10 @@ describe('parseUrl', () => {
     expect(parseUrl(`/${DONGLE}`, '?modal=nope').modal).toBeNull();
     expect(parseUrl(`/${DONGLE}`, '?modal=settings&device=zzz').modalDongleId).toBeNull();
   });
+
+  it.each(['-1/20', '20/10', '10/10', 'NaN/20', '0/Infinity'])('ignores invalid drive range %s', (range) => {
+    expect(parseUrl(`/${DONGLE}/${LOG}/${range}`).range).toBeNull();
+  });
 });
 
 describe('buildUrl', () => {
@@ -71,6 +75,12 @@ describe('buildUrl', () => {
 });
 
 describe('withModal', () => {
+  it('preserves legacy paths and unrelated query arguments', () => {
+    const pathname = `/${DONGLE}/1000/2000`;
+    const opened = withModal({ pathname, search: '?camera=driver' }, 'settings', DONGLE);
+    expect(opened).toBe(`${pathname}?camera=driver&modal=settings&device=${DONGLE}`);
+    expect(withModal({ pathname, search: opened.split('?')[1] }, null)).toBe(`${pathname}?camera=driver`);
+  });
   it('opens and closes a modal without touching the page', () => {
     const location = { pathname: `/${DONGLE}/${LOG}/5/9`, search: '' };
     const opened = withModal(location, 'settings', DONGLE);

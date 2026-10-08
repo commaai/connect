@@ -22,6 +22,10 @@ export function checkRoutesData() {
     if (!state.dongleId) {
       return;
     }
+    if (state.limit === 0) {
+      dispatch({ type: Types.ACTION_UPDATE_ROUTE_LIMIT, limit: LIMIT_INCREMENT });
+      state = getState();
+    }
     if (hasRoutesData(state)) {
       // already has metadata, don't bother
       return;
@@ -143,11 +147,12 @@ export function checkLastRoutesData() {
   };
 }
 
-// Navigation is explicit: go*() actions change the URL (and the state that goes with it), while
-// the state-only actions below are what the history middleware calls after the URL already changed.
+// Navigation actions only write history. The history middleware applies every
+// location (PUSH, REPLACE, and POP) to state through the same path.
 function goTo(path) {
   return (dispatch, getState) => {
-    if (currentPathname(getState()) !== path) {
+    const location = getState().router?.location;
+    if (`${location?.pathname ?? currentPathname(getState())}${location?.search ?? ''}` !== path) {
       dispatch(push(path));
     }
   };
@@ -210,7 +215,6 @@ export function goBackRange(log_id) {
 export function goToRange(log_id, start, end, { wholeDrive = false } = {}) {
   return (dispatch, getState) => {
     const state = getState();
-    dispatch(pushTimelineRange(log_id, start, end));
     dispatch(goTo(rangeUrl(state, log_id, start, end, wholeDrive)));
   };
 }
@@ -324,7 +328,6 @@ export function selectDevice(dongleId, fetchRoutes = true) {
 
 export function goToDevice(dongleId) {
   return (dispatch) => {
-    dispatch(selectDevice(dongleId));
     dispatch(goTo(buildUrl({ dongleId })));
   };
 }
@@ -348,7 +351,6 @@ export function primeNav(nav) {
 export function goToPrime(nav) {
   return (dispatch, getState) => {
     const { dongleId } = getState();
-    dispatch(primeNav(nav));
     if (dongleId) {
       dispatch(goTo(buildUrl({ page: nav ? 'prime' : 'device', dongleId })));
     }
@@ -374,7 +376,6 @@ export function streamNav(nav) {
 export function goToStream(nav) {
   return (dispatch, getState) => {
     const { dongleId } = getState();
-    dispatch(streamNav(nav));
     if (dongleId) {
       dispatch(goTo(buildUrl({ page: nav ? 'stream' : 'device', dongleId })));
     }

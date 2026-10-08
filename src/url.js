@@ -12,6 +12,7 @@
 
 const dongleIdRegex = /^[a-f0-9]{16}$/;
 const logIdRegex = /^[a-f0-9-]{20}$/;
+const validRange = (start, end) => Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end > start;
 
 // Dialogs that belong to one device carry its id as &device=
 export const DEVICE_MODALS = ['settings', 'unpair', 'uploads'];
@@ -32,7 +33,7 @@ export function parseUrl(pathname = '/', search = '') {
     modalDongleId: DEVICE_MODALS.includes(modal) && dongleIdRegex.test(query.get('device')) ? query.get('device') : null,
   };
 
-  if (first === 'referrals') {
+  if (first === 'referrals' && parts.length === 1) {
     return { ...url, page: 'referrals' };
   }
   if (!dongleIdRegex.test(first)) {
@@ -43,19 +44,19 @@ export function parseUrl(pathname = '/', search = '') {
   url.page = 'device';
   if (parts.length === 2 && (second === 'prime' || second === 'stream')) {
     url.page = second;
-  } else if (logIdRegex.test(second)) {
+  } else if (logIdRegex.test(second) && [2, 4].includes(parts.length)) {
     url.page = 'drive';
     url.logId = second;
-    if (parts.length >= 4) {
+    if (parts.length === 4 && validRange(Number(third), Number(fourth))) {
       url.range = { start: Number(third), end: Number(fourth) };
     }
-  } else if (parts.length >= 3) {
+  } else if (parts.length === 3 && validRange(Number(second), Number(third))) {
     url.legacyRange = { start: Number(second), end: Number(third) };
   }
   return url;
 }
 
-export function buildUrl({ page = 'device', dongleId, logId, range, modal, modalDongleId } = {}) {
+export function buildUrl({ page = 'device', dongleId, logId, range, legacyRange, modal, modalDongleId } = {}) {
   let path = '/';
   if (page === 'referrals') {
     path = '/referrals';
@@ -68,6 +69,8 @@ export function buildUrl({ page = 'device', dongleId, logId, range, modal, modal
       if (range) {
         path += `/${range.start}/${range.end}`;
       }
+    } else if (legacyRange) {
+      path += `/${legacyRange.start}/${legacyRange.end}`;
     }
   }
   if (!modal) {
@@ -82,6 +85,12 @@ export function buildUrl({ page = 'device', dongleId, logId, range, modal, modal
 
 // The current page with a modal opened, or closed when modal is null.
 export function withModal({ pathname, search }, modal, modalDongleId) {
-  const current = parseUrl(pathname, search);
-  return buildUrl({ ...current, modal, modalDongleId });
+  const query = new URLSearchParams(search);
+  query.delete('modal');
+  query.delete('device');
+  if (MODALS.includes(modal)) {
+    query.set('modal', modal);
+    if (DEVICE_MODALS.includes(modal) && dongleIdRegex.test(modalDongleId)) query.set('device', modalDongleId);
+  }
+  return `${pathname}${query.size ? `?${query}` : ''}`;
 }

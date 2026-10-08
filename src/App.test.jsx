@@ -269,6 +269,22 @@ describe('whole-app behavior', () => {
     expect(screen.queryByText('Device settings')).toBeNull();
   });
 
+  test('opening settings over a drive preserves loaded routes and selection through history', async () => {
+    const pathname = `/${FIRST}/${LOG}/10/20`;
+    const { history, store } = await renderApp(pathname);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const { routes, currentRoute, zoom, loop } = store.getState();
+    const requestCount = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    act(() => history.push(`${pathname}?modal=settings&device=${FIRST}`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByText('Device settings')).toBeNull());
+    for (const [key, value] of Object.entries({ routes, currentRoute, zoom, loop })) {
+      expect(store.getState()[key]).toBe(value);
+    }
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requestCount);
+  });
+
   test('unpair dialog opens from the URL and cancelling returns to settings', async () => {
     const { history } = await renderApp(`/${FIRST}?modal=unpair&device=${FIRST}`);
     expect(await screen.findByText('Unpair device')).toBeVisible();

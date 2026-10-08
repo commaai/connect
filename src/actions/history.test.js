@@ -30,7 +30,7 @@ const baseState = {
 function create(state = baseState) {
   const store = { getState: vi.fn(() => state), dispatch: vi.fn() };
   const next = vi.fn();
-  const invoke = (action) => onHistoryMiddleware(store)(next)(action);
+  const invoke = onHistoryMiddleware(store)(next);
   return { store, next, invoke };
 }
 
@@ -52,7 +52,7 @@ describe('history middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it.each(['PUSH', undefined])('passes through a non-history %s action', (historyAction) => {
+  it.each(['PUSH', undefined])('passes through an unchanged or non-history %s action', (historyAction) => {
     const { next, invoke } = create();
     const action = historyAction ? location(`/${DONGLE}`, historyAction) : { type: 'TEST' };
     invoke(action);
@@ -60,7 +60,7 @@ describe('history middleware', () => {
     expect(actions.selectDevice).not.toHaveBeenCalled();
   });
 
-  it.each(['POP', 'REPLACE'])('selects a changed device for %s and refreshes routes', (historyAction) => {
+  it.each(['PUSH', 'POP', 'REPLACE'])('selects a changed device for %s and refreshes routes', (historyAction) => {
     const { store, next, invoke } = create(baseState);
     const action = location(`/${OTHER}`, historyAction);
     invoke(action);
@@ -86,6 +86,27 @@ describe('history middleware', () => {
     const { invoke } = create({ ...baseState, selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
     invoke(location(`/${DONGLE}`));
     expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null);
+  });
+
+  it('preserves drive state when only a modal query changes', () => {
+    const pathname = `/${DONGLE}/${LOG}`;
+    const { store, invoke } = create({ ...baseState, selectedRouteId: LOG,
+      zoom: { start: 0, end: 60000 }, router: { location: { pathname } } });
+    const action = location(pathname, 'PUSH');
+    action.payload.location.search = `?modal=settings&device=${DONGLE}`;
+    invoke(action);
+    expect(store.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('ignores a legacy lookup after navigating elsewhere', async () => {
+    let resolveLookup;
+    Drives.getRoutesSegments.mockReturnValue(new Promise((resolve) => { resolveLookup = resolve; }));
+    const { invoke } = create();
+    invoke(location(`/${DONGLE}/1000/2000`));
+    invoke(location(`/${DONGLE}`, 'PUSH'));
+    resolveLookup([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
+    await Promise.resolve();
+    expect(actions.goToRange).not.toHaveBeenCalled();
   });
 
   it('converts a legacy timestamp range to a route', async () => {
