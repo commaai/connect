@@ -69,6 +69,20 @@ describe('playback', () => {
     expect(currentOffset(state)).toEqual(123);
   });
 
+  it('respects and wraps a loop that starts at zero', () => {
+    newNow();
+    let state = makeDefaultStruct();
+    state = reducer(state, selectLoop(0, 1000));
+    state = reducer(state, seek(900));
+    expect(currentOffset(state)).toBe(900);
+    state = reducer(state, seek(1500));
+    expect(state.offset).toBe(1000);
+    state = reducer(state, seek(-200));
+    expect(state.offset).toBe(0);
+    state = { ...state, offset: 2500, isBufferingVideo: true };
+    expect(currentOffset(state)).toBe(500);
+  });
+
   it('should clamp loop when seeked after loop end time', () => {
     newNow();
     let state = makeDefaultStruct();
