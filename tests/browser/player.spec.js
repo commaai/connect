@@ -116,6 +116,22 @@ test('a nonzero clip starts at its boundary and loops using the real decoder', a
   await expect(page.locator('video')).toHaveCount(1);
 });
 
+test('changing the section keeps pause and moves only a playhead outside it', async ({ page }) => {
+  await openPlayer(page);
+  await playing(page);
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await page.getByRole('button', { name: 'Select 8–12 second clip' }).click();
+  await expect.poll(async () => (await video(page)).time).toBeGreaterThanOrEqual(8000);
+  // Back to the whole drive contains the playhead, so nothing should move.
+  await page.getByRole('button', { name: 'Go Back' }).click();
+  await page.waitForTimeout(500);
+  const media = await video(page);
+  expect(media.paused).toBe(true);
+  expect(media.time).toBeGreaterThanOrEqual(8000);
+  expect(media.time).toBeLessThan(8500);
+  expect((await state(page)).speed).toBe(0);
+});
+
 test('a missing manifest shows a retry action and recovers at the selected position', async ({ page }) => {
   let failed = true;
   await openPlayer(page, { manifestFails: () => failed });
