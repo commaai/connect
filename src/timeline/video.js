@@ -1,4 +1,6 @@
-// The <video> element is the clock. Everyone else reads it.
+const CLOSE_ENOUGH_SECONDS = 0.25;
+const HAVE_METADATA = 1;
+
 let video = null;
 let pendingOffset = null;
 
@@ -9,30 +11,35 @@ export function bindVideo(element) {
 
 export function videoOffset(route) {
   if (pendingOffset != null) {
-    const seconds = videoSeconds(pendingOffset, route);
-    if (!video || video.readyState < 1 || Math.abs(video.currentTime - seconds) > 0.25) {
-      return pendingOffset;
-    }
+    if (!near(pendingOffset, route)) return pendingOffset;
     pendingOffset = null;
   }
 
-  if (!video || video.readyState < 1 || !Number.isFinite(video.currentTime)) return null;
+  if (!hasTime(video)) return null;
   return (route?.videoStartOffset || 0) + video.currentTime * 1000;
 }
 
 export function seekVideo(offset, route) {
   pendingOffset = offset;
-  if (!video || video.readyState < 1 || !Number.isFinite(offset)) return;
-  const seconds = videoSeconds(offset, route);
-  if (Math.abs(video.currentTime - seconds) < 0.05) {
+  if (!hasTime(video) || !Number.isFinite(offset)) return;
+  if (near(offset, route)) {
     pendingOffset = null;
     return;
   }
-  video.currentTime = seconds;
+  video.currentTime = videoSeconds(offset, route);
 }
 
 export function seekPending() {
   return pendingOffset != null;
+}
+
+function near(offset, route) {
+  return hasTime(video)
+    && Math.abs(video.currentTime - videoSeconds(offset, route)) <= CLOSE_ENOUGH_SECONDS;
+}
+
+function hasTime(element) {
+  return Boolean(element) && element.readyState >= HAVE_METADATA && Number.isFinite(element.currentTime);
 }
 
 function videoSeconds(offset, route) {

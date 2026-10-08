@@ -7,8 +7,17 @@ import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { bufferVideo } from '../../timeline/playback';
-import { bindVideo, seekPending, seekVideo } from '../../timeline/video';
-import { isFirefox, isIos } from '../../utils/browser.js';
+import { bindVideo, seekPending, seekVideo, videoOffset } from '../../timeline/video';
+import { isIos } from '../../utils/browser.js';
+
+const ABORT_ERROR = 'AbortError';
+const HLS_ERROR = 'hlsError';
+const NETWORK_ERROR = 'networkError';
+const NOT_FOUND = 404;
+
+const MISSING_SEGMENT = 'This video segment has not uploaded yet or has been deleted.';
+const OFFLINE = 'Unable to load video. Check network connection.';
+const UNAVAILABLE = 'Unable to load video';
 
 const VideoOverlay = ({ loading, error }) => {
   if (!loading && !error) return null;
@@ -26,9 +35,20 @@ const VideoOverlay = ({ loading, error }) => {
   );
 };
 
-function playbackRate(speed, muted) {
+function playbackRate(speed) {
   if (isIos() || !(speed > 0)) return 1;
-  return Math.min(isFirefox() && !muted ? 8 : 16, speed);
+  return speed;
+}
+
+function videoMessage(error) {
+  if (error.response?.code === NOT_FOUND) return MISSING_SEGMENT;
+  if (error.type === NETWORK_ERROR) return OFFLINE;
+  return error.response?.text || UNAVAILABLE;
+}
+
+function loopBounds(loop) {
+  if (loop?.startTime == null || !loop.duration) return null;
+  return { start: loop.startTime, end: loop.startTime + loop.duration };
 }
 
 class DriveVideo extends Component {
@@ -40,7 +60,6 @@ class DriveVideo extends Component {
     this.onPlaying = this.onPlaying.bind(this);
     this.onError = this.onError.bind(this);
     this.state = { src: null, videoError: null };
-    this.rate = 1;
   }
 
   componentDidMount() {
@@ -67,7 +86,6 @@ class DriveVideo extends Component {
   componentWillUnmount() {
     this.mounted = false;
     bindVideo(null);
-    clearTimeout(this.loadingTimer);
     cancelAnimationFrame(this.frame);
   }
 
@@ -78,53 +96,21 @@ class DriveVideo extends Component {
   }
 
   onBuffer() {
-    if (this.props.desiredPlaySpeed <= 0 || this.props.isBufferingVideo) return;
-    clearTimeout(this.loadingTimer);
-    this.loadingTimer = setTimeout(() => {
-      if (this.mounted) this.setBuffering(true);
-    }, 180);
+    if (this.props.desiredPlaySpeed > 0) this.setBuffering(true);
   }
 
   onPlaying() {
-    clearTimeout(this.loadingTimer);
     this.setBuffering(false);
-    if (this.state.videoError) this.setState({ videoError: null });
+    if (this.mounted && this.state.videoError) this.setState({ videoError: null });
   }
 
   onError(error, data) {
-    if (!error || error.name === 'AbortError') return;
-    if (error === 'hlsError') {
-      this.onHlsError(data);
-      return;
-    }
-    const src = error.target?.src;
-    if (src && src.startsWith(window.location.origin) && src.endsWith('undefined')) return;
+    if (!this.mounted || !error || error.name === ABORT_ERROR) return;
+    const info = error === HLS_ERROR ? data : error;
+    if (!info || info.fatal === false) return;
 
-    clearTimeout(this.loadingTimer);
     this.setBuffering(false);
-    if (error.type === 'networkError') {
-      this.setState({ videoError: 'Unable to load video. Check network connection.' });
-      return;
-    }
-    const missing = error.response?.code === 404;
-    this.setState({
-      videoError: missing
-        ? 'This video segment has not uploaded yet or has been deleted.'
-        : (error.response?.text || 'Unable to load video'),
-    });
-  }
-
-  onHlsError(data) {
-    if (!data || data.fatal === false) return;
-    if (data.details === 'bufferStalledError' || data.details === 'bufferNudgeOnStall') return;
-    clearTimeout(this.loadingTimer);
-    this.setBuffering(false);
-    const missing = data.type === 'networkError' && data.response?.code === 404;
-    this.setState({
-      videoError: missing
-        ? 'This video segment has not uploaded yet or has been deleted.'
-        : 'Unable to load video',
-    });
+    this.setState({ videoError: videoMessage(info) });
   }
 
   setBuffering(buffering) {
@@ -149,49 +135,44 @@ class DriveVideo extends Component {
     }
   }
 
-  // Playhead command: a user seek, a new route, or the stored offset.
   seekToCommand() {
     const { offset, loop, currentRoute } = this.props;
-    seekVideo(commandOffset(offset, loop), currentRoute);
+    const bounds = loopBounds(loop);
+    if (!bounds) {
+      seekVideo(offset ?? 0, currentRoute);
+      return;
+    }
+    const outside = offset == null || offset < bounds.start || offset > bounds.end;
+    seekVideo(outside ? bounds.start : offset, currentRoute);
   }
 
-  // A new loop should not yank the video back if it is already inside it.
   seekInsideLoop() {
     const { loop, currentRoute, offset } = this.props;
-    if (loop?.startTime == null || !loop.duration) return;
-    const played = this.playedOffset();
-    const position = played == null ? offset : played;
-    const end = loop.startTime + loop.duration;
-    if (position == null || position < loop.startTime || position >= end) {
-      seekVideo(loop.startTime, currentRoute);
+    const bounds = loopBounds(loop);
+    if (!bounds) return;
+    const position = videoOffset(currentRoute) ?? offset;
+    if (position == null || position < bounds.start || position >= bounds.end) {
+      seekVideo(bounds.start, currentRoute);
     }
-  }
-
-  playedOffset() {
-    const video = this.player.current?.getInternalPlayer?.();
-    if (!video || video.readyState < 1 || !Number.isFinite(video.currentTime)) return null;
-    return (this.props.currentRoute?.videoStartOffset || 0) + video.currentTime * 1000;
   }
 
   holdLoop() {
     const { loop, currentRoute, desiredPlaySpeed } = this.props;
-    const video = this.player.current?.getInternalPlayer?.();
-    if (!video || desiredPlaySpeed <= 0 || seekPending() || loop?.startTime == null || !loop.duration) return;
-    const offset = (currentRoute?.videoStartOffset || 0) + video.currentTime * 1000;
-    if (offset < loop.startTime + loop.duration && !video.ended) return;
-    seekVideo(loop.startTime, currentRoute);
-    if (video.paused) {
-      const pending = video.play();
-      if (pending) pending.catch(() => {});
-    }
+    const bounds = loopBounds(loop);
+    const element = this.player.current?.getInternalPlayer?.();
+    if (!element || desiredPlaySpeed <= 0 || seekPending() || !bounds) return;
+    const offset = videoOffset(currentRoute);
+    if ((offset == null || offset < bounds.end) && !element.ended) return;
+    seekVideo(bounds.start, currentRoute);
+    if (element.paused) element.play()?.catch(() => {});
   }
 
   watchAudio(player) {
     const { onAudioStatusChange } = this.props;
     if (!onAudioStatusChange) return;
     if (isIos()) {
-      const video = player.getInternalPlayer();
-      onAudioStatusChange(Boolean(video?.audioTracks?.length));
+      const element = player.getInternalPlayer();
+      onAudioStatusChange(Boolean(element?.audioTracks?.length));
       return;
     }
     player.getInternalPlayer('hls')?.on('hlsBufferCodecs', (_event, data) => {
@@ -202,12 +183,10 @@ class DriveVideo extends Component {
   render() {
     const { desiredPlaySpeed, isBufferingVideo, isMuted, currentRoute } = this.props;
     const { src, videoError } = this.state;
-    if (desiredPlaySpeed > 0) this.rate = playbackRate(desiredPlaySpeed, isMuted);
     const playing = Boolean(currentRoute && desiredPlaySpeed > 0);
 
     return (
       <div className="relative m-[0_auto] aspect-[1.593] min-h-[200px] max-w-[964px] overflow-hidden rounded-lg bg-black">
-        <VideoOverlay loading={isBufferingVideo && !videoError} error={videoError} />
         {src && (
           <ReactPlayer
             ref={this.player}
@@ -217,7 +196,7 @@ class DriveVideo extends Component {
             playsinline
             muted={isMuted}
             playing={playing}
-            playbackRate={this.rate}
+            playbackRate={playbackRate(desiredPlaySpeed)}
             onReady={this.onReady}
             onBuffer={this.onBuffer}
             onBufferEnd={this.onPlaying}
@@ -229,16 +208,10 @@ class DriveVideo extends Component {
             }}
           />
         )}
+        <VideoOverlay loading={isBufferingVideo && !videoError} error={videoError} />
       </div>
     );
   }
-}
-
-function commandOffset(offset, loop) {
-  if (loop?.startTime == null || !loop.duration) return offset ?? 0;
-  const end = loop.startTime + loop.duration;
-  if (offset == null || offset < loop.startTime || offset > end) return loop.startTime;
-  return offset;
 }
 
 const stateToProps = (state) => ({

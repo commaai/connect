@@ -5,10 +5,10 @@ export function createInitialState(pathname = window.location.pathname) {
   return {
     dongleId: getDongleID(pathname),
 
-    desiredPlaySpeed: 1,    // speed set by user; 0 is paused. The video element is the clock.
-    isBufferingVideo: true, // video is waiting on data
-    offset: null,           // last seek, in milliseconds from the route start
-    startTime: Date.now(),  // wall time of the last seek; the map flies when this changes
+    desiredPlaySpeed: 1,    // 0 is paused
+    isBufferingVideo: true,
+    offset: null,           // last seek, ms from the route start
+    startTime: Date.now(),  // last seek; the map flies when this changes
 
     routes: null,
     routesMeta: {

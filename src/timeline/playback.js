@@ -1,5 +1,3 @@
-// User intent for playback. The video element owns the clock; these actions
-// only record seeks, speed, and the loop. They do not advance time.
 import * as Types from '../actions/types';
 
 export function reducer(state, action) {
@@ -36,7 +34,7 @@ export function reducer(state, action) {
   }
 }
 
-// The log can start before the first video frame. Don't loop that gap.
+// The log can start before the first video frame. Skip that gap when the route arrives.
 function alignLoop(state) {
   const videoStart = state.currentRoute?.videoStartOffset;
   const { loop, zoom } = state;

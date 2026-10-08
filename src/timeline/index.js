@@ -1,8 +1,6 @@
 import store from '../store';
 import { videoOffset } from './video';
 
-// Route offset in milliseconds. The video element wins; Redux is only the fallback
-// before it has a frame, and the loop still traps the playhead.
 export function currentOffset(state = null) {
   if (!state) state = store.getState();
 

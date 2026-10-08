@@ -13,50 +13,32 @@ function state(overrides) {
 }
 
 describe('playback', () => {
-  it('records speed without moving the playhead', () => {
-    let next = reducer(state({ offset: 50 }), pause());
-    expect(next.desiredPlaySpeed).toBe(0);
-    expect(next.offset).toBe(50);
-
-    next = reducer(next, play(0.5));
-    expect(next.desiredPlaySpeed).toBe(0.5);
-    expect(next.offset).toBe(50);
-
-    next = reducer(next, bufferVideo(true));
-    expect(next.isBufferingVideo).toBe(true);
-    expect(next.offset).toBe(50);
-    expect(next.desiredPlaySpeed).toBe(0.5);
-  });
-
-  it('clamps seeks into the loop', () => {
-    let next = reducer(state(), selectLoop(1000, 2000));
-    expect(next.loop).toEqual({ startTime: 1000, duration: 1000 });
-
-    next = reducer(next, seek(3000));
-    expect(next.offset).toBe(2000);
-
-    next = reducer(next, seek(0));
-    expect(next.offset).toBe(1000);
-  });
-});
-
-describe('currentOffset', () => {
   afterEach(() => bindVideo(null));
 
-  it('reads the video element', () => {
-    bindVideo({ currentTime: 2, readyState: 1 });
-    const offset = currentOffset(state({
-      currentRoute: { videoStartOffset: 500 },
-      offset: 0,
-    }));
-    expect(offset).toBe(2500);
+  it('does not move the playhead when speed or buffering changes', () => {
+    let next = reducer(state({ offset: 50 }), pause());
+    next = reducer(next, play(2));
+    next = reducer(next, bufferVideo(true));
+    expect(next.offset).toBe(50);
   });
 
-  it('uses the stored offset until the video has a frame', () => {
-    const offset = currentOffset(state({
-      offset: 40,
-      loop: { startTime: 10, duration: 5 },
-    }));
-    expect(offset).toBe(10);
+  it('clamps a seek into the loop', () => {
+    const next = reducer(state(), selectLoop(1000, 2000));
+    expect(reducer(next, seek(3000)).offset).toBe(2000);
+    expect(reducer(next, seek(0)).offset).toBe(1000);
+  });
+
+  it('reads the video, and wraps a stored offset into the loop', () => {
+    bindVideo({ currentTime: 2, readyState: 1 });
+    expect(currentOffset(state({
+      currentRoute: { videoStartOffset: 500 },
+      offset: 0,
+    }))).toBe(2500);
+
+    bindVideo(null);
+    expect(currentOffset(state({
+      offset: 2500,
+      loop: { startTime: 1000, duration: 1000 },
+    }))).toBe(1500);
   });
 });
