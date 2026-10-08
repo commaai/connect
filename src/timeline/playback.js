@@ -18,6 +18,9 @@ export function reducer(_state, action) {
       if (loop?.duration > 0) {
         if (offset < loop.startTime) {
           offset = loop.startTime;
+          if (state.offset !== loop.startTime) {
+            state.seekRevision = (state.seekRevision || 0) + 1;
+          }
         } else if (offset > loop.startTime + loop.duration) {
           offset = loop.startTime + ((offset - loop.startTime) % loop.duration);
           state.seekRevision = (state.seekRevision || 0) + 1;
@@ -36,6 +39,16 @@ export function reducer(_state, action) {
       state.loop = action.start != null && action.end != null
         ? { startTime: action.start, duration: action.end - action.start }
         : null;
+      if (state.loop?.duration > 0) {
+        const end = state.loop.startTime + state.loop.duration;
+        if (state.offset == null || state.offset < state.loop.startTime) {
+          state.offset = state.loop.startTime;
+          state.seekRevision = (state.seekRevision || 0) + 1;
+        } else if (state.offset > end) {
+          state.offset = end;
+          state.seekRevision = (state.seekRevision || 0) + 1;
+        }
+      }
       break;
     case Types.ACTION_BUFFER_VIDEO:
       state.isBufferingVideo = action.buffering;
