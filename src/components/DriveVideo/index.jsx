@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { CircularProgress, Typography } from '@material-ui/core';
+import { Button, CircularProgress, Typography } from '@material-ui/core';
 import ReactPlayer from 'react-player/file';
 
 import { api } from '../../api/backend';
@@ -9,7 +9,7 @@ import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, bufferVideo } from '../../timeline/playback';
+import { seek, pause, bufferVideo } from '../../timeline/playback';
 import { isIos, isFirefox } from '../../utils/browser.js';
 
 // Leading-edge debounce: run immediately, then ignore calls until `wait` ms after the last one.
@@ -43,13 +43,14 @@ function debounceLeading(func, wait) {
   };
 }
 
-const VideoOverlay = ({ loading, error }) => {
+const VideoOverlay = ({ loading, error, onRetry }) => {
   let content;
   if (error) {
     content = (
       <>
         <ErrorOutline className="mb-2" />
         <Typography>{error}</Typography>
+        <Button onClick={onRetry} color="inherit">Retry video</Button>
       </>
     );
   } else if (loading) {
@@ -92,7 +93,7 @@ class DriveVideo extends Component {
     this.onVideoBuffering = this.onVideoBuffering.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
-    this.onVideoResume = this.onVideoResume.bind(this);
+    this.retryVideo = this.retryVideo.bind(this);
     this.syncVideo = debounceLeading(this.syncVideo.bind(this), 200);
     this.firstSeek = true;
 
@@ -101,6 +102,7 @@ class DriveVideo extends Component {
     this.state = {
       src: null,
       videoError: null,
+      loadId: 0,
     };
   }
 
@@ -131,6 +133,7 @@ class DriveVideo extends Component {
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !currentRoute || !videoPlayer.getDuration()) {
       dispatch(bufferVideo(true));
+      return;
     }
 
     if (this.firstSeek) {
@@ -149,13 +152,13 @@ class DriveVideo extends Component {
    * @param {Error} e
    */
   onHlsError(e) {
-    const { dispatch } = this.props;
-    dispatch(bufferVideo(true));
-
-    if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
-      // buffer but no error
+    // hls.js retries nonfatal failures itself, including fragments fetched ahead
+    // of the playhead. Only an exhausted recovery needs the user's intervention.
+    if (!e.fatal) {
       return;
     }
+    const { dispatch } = this.props;
+    dispatch(bufferVideo(true));
 
     if (e.type === 'networkError' && (e.response?.code === 404)) {
       this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
@@ -184,6 +187,13 @@ class DriveVideo extends Component {
       return;
     }
 
+    if (e.name === 'NotAllowedError') {
+      // A freshly loaded video with audio may need another user gesture.
+      this.props.dispatch(pause());
+      this.props.dispatch(bufferVideo(false));
+      return;
+    }
+
     if (e.target?.src?.startsWith(window.location.origin) && e.target.src.endsWith('undefined')) {
       // TODO: figure out why the src isn't set properly
       // Sometimes an error will be thrown because we try to play
@@ -207,9 +217,12 @@ class DriveVideo extends Component {
     this.setState({ videoError });
   }
 
-  onVideoResume() {
-    const { videoError } = this.state;
-    if (videoError) this.setState({ videoError: null });
+  retryVideo() {
+    this.firstSeek = true;
+    this.props.dispatch(bufferVideo(true));
+    // Recreate both the media element and its HLS loader. play() alone cannot
+    // recover a fatal loader error. The frozen timeline retains the seek target.
+    this.setState(({ loadId }) => ({ loadId: loadId + 1, videoError: null }));
   }
 
   updateVideoSource(prevProps) {
@@ -217,19 +230,23 @@ class DriveVideo extends Component {
     const { currentRoute } = this.props;
     if (!currentRoute) {
       if (src !== '') {
-        this.setState({ src: '', videoError: null });
+        this.setState(({ loadId }) => ({ src: '', loadId: loadId + 1, videoError: null }));
       }
       return;
     }
 
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
+      this.firstSeek = true;
       src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
-      this.setState({ src, videoError: null });
+      this.setState(({ loadId }) => ({ src, loadId: loadId + 1, videoError: null }));
       this.syncVideo();
     }
   }
 
   syncVideo() {
+    if (this.state.videoError) {
+      return;
+    }
     const { dispatch, isBufferingVideo, isMuted } = this.props;
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
@@ -301,7 +318,7 @@ class DriveVideo extends Component {
 
   render() {
     const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
-    const { src, videoError } = this.state;
+    const { src, videoError, loadId } = this.state;
 
     const onPlayerReady = (player) => {
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
@@ -325,15 +342,16 @@ class DriveVideo extends Component {
 
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-        <VideoOverlay loading={isBufferingVideo} error={videoError} />
+        <VideoOverlay loading={isBufferingVideo} error={videoError} onRetry={this.retryVideo} />
         <ReactPlayer
+          key={loadId}
           ref={this.videoPlayer}
           url={src}
           playsinline
           muted={isMuted}
           width="100%"
           height="100%"
-          playing={Boolean(currentRoute && desiredPlaySpeed)}
+          playing={Boolean(currentRoute && desiredPlaySpeed && !videoError)}
           onReady={onPlayerReady}
           config={{
             hlsVersion: '1.4.8',
@@ -343,9 +361,12 @@ class DriveVideo extends Component {
           }}
           playbackRate={desiredPlaySpeed}
           onBuffer={this.onVideoBuffering}
-          onBufferEnd={this.onVideoResume}
-          onPlay={this.onVideoResume}
-          onError={this.onVideoError}
+          onError={(...args) => {
+            // A request from a replaced player may finish after retry/navigation.
+            if (this.videoPlayer.current && this.state.loadId === loadId) {
+              this.onVideoError(...args);
+            }
+          }}
         />
       </div>
     );
