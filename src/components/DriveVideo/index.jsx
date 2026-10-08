@@ -33,7 +33,6 @@ class DriveVideo extends Component {
     this.state = {
       buffering: true,
       error: null,
-      picture: false,
     };
   }
 
@@ -46,7 +45,6 @@ class DriveVideo extends Component {
     // a missing segment: seeking to another segment tries again from there
     const movedAfterError = this.state.error === NOT_UPLOADED
       && getSegmentNumber(currentRoute, offset) !== getSegmentNumber(currentRoute, this.failedAt);
-    // a closed drive keeps its last picture until the player unmounts
     if ((currentRoute && prevProps.currentRoute?.fullname !== currentRoute.fullname) || movedAfterError) {
       this.load();
     }
@@ -63,10 +61,7 @@ class DriveVideo extends Component {
     const video = this.video.current;
     this.unload();
     onAudioStatusChange?.(false);
-    this.setState({ buffering: Boolean(currentRoute), error: null });
-    if (!currentRoute) {
-      return;
-    }
+    this.setState({ buffering: true, error: null });
 
     this.src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
     // Safari 17+ (macOS, iPadOS, iOS) plays HLS natively, keeping AirPlay and the system audio
@@ -91,8 +86,7 @@ class DriveVideo extends Component {
       if (this.loading !== loading) {
         return;
       }
-      // start loading at the requested time, not at segment 0 (deep links, route changes), and
-      // at a seek made during the download
+      // start where playback starts (deep links, seeks during the download), not at segment 0
       this.hls = new Hls({ maxBufferLength: 40, startPosition: Math.max(0, this.videoTime(currentOffset())) });
       this.hls.on(Hls.Events.ERROR, this.onHlsError);
       this.hls.on(Hls.Events.BUFFER_CODECS, (_, data) => this.props.onAudioStatusChange?.(Boolean(data.audio)));
@@ -105,8 +99,7 @@ class DriveVideo extends Component {
   }
 
   // Stop the video and hand the clock back to Redux first, since the teardown resets currentTime.
-  // Returns the offset handed back, if a video was attached. `later` resets the element after
-  // the next paint, once the page no longer shows it.
+  // Returns the offset handed back, if any. `later` resets the element after the next paint.
   unload(later = false) {
     const offset = setVideo(null);
     this.loading = null;
@@ -120,11 +113,8 @@ class DriveVideo extends Component {
         video.load();
       }
     };
-    if (later) {
-      requestAnimationFrame(() => setTimeout(reset));
-    } else {
-      reset();
-    }
+    if (later) requestAnimationFrame(() => setTimeout(reset));
+    else reset();
     return offset;
   }
 
@@ -262,8 +252,7 @@ class DriveVideo extends Component {
           onError={this.onError}
         />
         {showSpinner && (
-          // over a picture it fades in after 300 ms, so quick seeks do not flash it; an empty
-          // player shows it at once
+          // waits 300 ms over a picture, so quick seeks do not flash it; an empty player shows it now
           <div className={`pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 ${picture ? 'animate-[fadein_200ms_300ms_both]' : ''}`}>
             <div aria-hidden="true" className="size-12 rounded-full border-4 border-white/20 border-t-white animate-spin" />
           </div>

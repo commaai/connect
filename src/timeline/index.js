@@ -63,7 +63,6 @@ export function setVideo(el) {
       store.dispatch({ type: Types.ACTION_SEEK, offset });
     }
   }
-  video = null;
   startOffset = el ? currentOffset() : null;
   video = el;
   videoRoute = el ? store.getState().currentRoute?.fullname : null;
