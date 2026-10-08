@@ -42,7 +42,12 @@ class DriveMap extends Component {
 
   componentDidUpdate(prevProps) {
     this.updateMarkerPos();
-    const { dispatch, currentRoute } = this.props;
+    const { dispatch, currentRoute, seekRequest } = this.props;
+
+    // a user seek should glide the viewport to the new position
+    if (seekRequest && seekRequest !== prevProps.seekRequest) {
+      this.shouldFlyTo = true;
+    }
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -296,6 +301,7 @@ class DriveMap extends Component {
 const stateToProps = (state) => ({
   offset: state.offset,
   currentRoute: state.currentRoute,
+  seekRequest: state.seekRequest,
 });
 
 export default connect(stateToProps)(DriveMap);

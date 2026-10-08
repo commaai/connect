@@ -39,9 +39,13 @@ describe('playback', () => {
     expect(state.offset).toEqual(123);
 
     const seekRequest = state.seekRequest;
-    state = reducer(state, videoProgress(456));
+    state = reducer(state, videoProgress(null, 456));
     expect(state.offset).toBe(456);
     expect(state.seekRequest).toBe(seekRequest);
+
+    // a stale element reporting under a different route is ignored
+    state = reducer(state, videoProgress('other-route', 999));
+    expect(state.offset).toBe(456);
 
     // reset clears offset
     state = reducer(state, resetPlayback());

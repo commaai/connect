@@ -12,15 +12,8 @@ import { VideoStatus, seek, play, pause, setPlaybackSpeed } from '../../timeline
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
-const timerSteps = [
-  0.1,
-  0.25,
-  0.5,
-  1,
-  2,
-  4,
-  8,
-];
+// iOS exposes the speeds its native player supports; the others are flaky
+const timerSteps = isIos() ? [0.5, 1, 2] : [0.1, 0.25, 0.5, 1, 2, 4, 8];
 
 const styles = (theme) => ({
   base: {
@@ -155,30 +148,28 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           {this.getDisplayTime()}
         </Typography>
-        {!isIos() && (
-          <div className={ classes.desiredPlaySpeedContainer }>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={() => this.changeSpeed(1)}
-              disabled={controlsDisabled || speedIndex >= timerSteps.length - 1}
-              aria-label="Increase play speed by 1 step"
-            >
-              <UpArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-            <Typography variant="body2" align="center">
-              {desiredPlaySpeed}
-              ×
-            </Typography>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={() => this.changeSpeed(-1)}
-              disabled={controlsDisabled || speedIndex <= 0}
-              aria-label="Decrease play speed by 1 step"
-            >
-              <DownArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-          </div>
-        )}
+        <div className={ classes.desiredPlaySpeedContainer }>
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={() => this.changeSpeed(1)}
+            disabled={controlsDisabled || speedIndex >= timerSteps.length - 1}
+            aria-label="Increase play speed by 1 step"
+          >
+            <UpArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+          <Typography variant="body2" align="center">
+            {desiredPlaySpeed}
+            ×
+          </Typography>
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={() => this.changeSpeed(-1)}
+            disabled={controlsDisabled || speedIndex <= 0}
+            aria-label="Decrease play speed by 1 step"
+          >
+            <DownArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+        </div>
         <div className={ classes.leftBorderBox }>
           <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
             <div>

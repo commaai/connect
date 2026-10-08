@@ -11,8 +11,12 @@ export const VideoStatus = {
 export function reducer(state, action) {
   switch (action.type) {
     case Types.ACTION_SEEK:
+      if (!Number.isFinite(action.offset)) return state;
       return { ...state, offset: action.offset, seekRequest: action };
     case Types.ACTION_VIDEO_PROGRESS:
+      if (!Number.isFinite(action.offset)) return state;
+      // a stale element can still report progress after a route swap
+      if (action.route && action.route !== state.currentRoute?.fullname) return state;
       return { ...state, offset: action.offset };
     case Types.ACTION_PLAYBACK_SPEED:
       return { ...state, desiredPlaySpeed: action.speed };
@@ -46,8 +50,8 @@ export function reducer(state, action) {
   }
 }
 
-export function videoProgress(offset) {
-  return { type: Types.ACTION_VIDEO_PROGRESS, offset };
+export function videoProgress(route, offset) {
+  return { type: Types.ACTION_VIDEO_PROGRESS, route, offset };
 }
 
 // seek to a specific offset

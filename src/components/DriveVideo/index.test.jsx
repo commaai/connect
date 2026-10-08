@@ -79,20 +79,106 @@ test('seeks to the selected loop and wraps while playing', async () => {
 });
 
 test('shows media errors without overwriting timeline navigation and recovers when playable', async () => {
-  const { store, video, getByText, queryByText } = await mountVideo();
+  const { store, video, container, getByText, queryByText } = await mountVideo();
   fireEvent.error(video);
   fireEvent.waiting(video);
   expect(store.getState().videoStatus).toBe('failed');
   expect(getByText('Unable to load video')).toBeVisible();
 
+  // a scrub on a dead player remounts it and lands on the requested offset
   act(() => store.dispatch(seek(16000)));
-  video.currentTime = 0;
-  fireEvent.timeUpdate(video);
   expect(store.getState().offset).toBe(16000);
-
-  fireEvent.canPlay(video);
+  await waitFor(() => {
+    const newVideo = container.querySelector('video');
+    expect(newVideo).not.toBe(video);
+  });
+  const newVideo = container.querySelector('video');
+  Object.defineProperty(newVideo, 'duration', { value: 60 });
+  fireEvent.canPlay(newVideo); // onReady binds on canplay and re-seeks to the offset
+  expect(newVideo.currentTime).toBe(14);
   expect(store.getState().videoStatus).toBe('ready');
   expect(queryByText('Unable to load video')).toBeNull();
+});
+
+test('retry button remounts the player', async () => {
+  const { store, video, container, getByText } = await mountVideo();
+  fireEvent.error(video);
+  fireEvent.waiting(video);
+  expect(store.getState().videoStatus).toBe('failed');
+
+  fireEvent.click(getByText('Try again'));
+  expect(store.getState().videoStatus).toBe('loading');
+  const newVideo = container.querySelector('video');
+  expect(newVideo).not.toBe(video);
+  Object.defineProperty(newVideo, 'duration', { value: 60 });
+  fireEvent.canPlay(newVideo);
+  expect(store.getState().videoStatus).toBe('ready');
+});
+
+test('shows an empty-range notice instead of playing dead air', async () => {
+  const { store, video, getByText } = await mountVideo();
+  video.currentTime = 10;
+  // the whole loop sits before videoStartOffset (2000ms)
+  act(() => store.dispatch(selectLoop(0, 1000)));
+  expect(store.getState().isPlaying).toBe(false);
+  expect(getByText('No video is available in the selected range.')).toBeVisible();
+  // and the media was not seeked into the dead range
+  expect(video.currentTime).toBe(10);
+});
+
+test('rebases without rewinding when videoStartOffset arrives late', async () => {
+  const { store, video } = await mountVideo();
+  video.currentTime = 12;
+  fireEvent.timeUpdate(video);
+  expect(store.getState().offset).toBe(14000);
+
+  // the same route resolves its true video start a moment later
+  act(() => {
+    store.dispatch({
+      type: 'TEST_ROUTE',
+      route: { ...route, videoStartOffset: 5000 },
+    });
+  });
+  // media position is untouched; the reported offset rebases instead
+  expect(video.currentTime).toBe(12);
+  expect(store.getState().offset).toBe(17000);
+});
+
+test('reports a stalled buffer instead of spinning forever', async () => {
+  const { store, video, container } = await mountVideo();
+  Object.defineProperty(video, 'paused', { value: false });
+  vi.useFakeTimers({ shouldAdvanceTime: false });
+  try {
+    fireEvent.waiting(video);
+    expect(store.getState().videoStatus).toBe('loading');
+    // under the overlay delay the spinner hasn't painted yet
+    expect(container.querySelector('[class*="MuiCircularProgress"]')).toBeNull();
+
+    act(() => { vi.advanceTimersByTime(301); });
+    expect(container.querySelector('[class*="MuiCircularProgress"]')).not.toBeNull();
+
+    // 15s with zero buffer growth becomes an actionable error
+    act(() => { vi.advanceTimersByTime(15000); });
+    expect(store.getState().videoStatus).toBe('failed');
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test('keeps a short stall invisible and heals on canplay', async () => {
+  const { store, video, container } = await mountVideo();
+  vi.useFakeTimers({ shouldAdvanceTime: false });
+  try {
+    fireEvent.waiting(video);
+    act(() => { vi.advanceTimersByTime(250); });
+    expect(container.querySelector('[class*="MuiCircularProgress"]')).toBeNull();
+    fireEvent.canPlay(video);
+    expect(store.getState().videoStatus).toBe('ready');
+    act(() => { vi.advanceTimersByTime(100); });
+    expect(container.querySelector('[class*="MuiCircularProgress"]')).toBeNull();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test('changing routes resets playback and ignores events from the old video', async () => {

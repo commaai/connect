@@ -1,5 +1,7 @@
 export function isIos() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  // iPadOS in desktop mode reports as Macintosh; the touch points give it away
+  return /iphone|ipad|ipod/i.test(navigator.userAgent)
+    || (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 }
 
 export function isMobileDevice(navigatorLike = navigator) {
