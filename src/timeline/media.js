@@ -7,6 +7,7 @@ export function createController(video, callbacks = {}) {
   let revision;
   let pending = null;
   let issued = false;
+  let initialized = false;
   let playRequest = 0;
   let starting = false;
   let frame = null;
@@ -58,10 +59,15 @@ export function createController(video, callbacks = {}) {
     if (!Number.isFinite(mapped)) return;
     const target = Math.min(last, Math.max(first, mapped));
     if (!Number.isFinite(target)) return;
+    // MSE metadata can arrive before an append supplies a seekable frame.
+    // WebKit may never finish a seek issued in that empty-buffer interval.
+    if (!initialized && intent.waitForBuffer && video.currentTime !== target
+      && (video.readyState < 2 || !video.buffered?.length)) return;
     try {
       // No dead band: a 1ms command is just as explicit as a one-minute seek.
       if (!issued && video.currentTime !== target) video.currentTime = target;
       issued = true;
+      initialized = true;
     } catch { return; } // Metadata may exist before the source can accept a seek.
     if (!video.seeking && Math.abs(video.currentTime - target) < 0.001) {
       pending = null;
@@ -92,6 +98,8 @@ export function createController(video, callbacks = {}) {
   }
   listen('loadedmetadata', () => { seekPending(); resume(); });
   listen('durationchange', seekPending);
+  listen('loadeddata', seekPending);
+  listen('progress', seekPending);
   listen('timeupdate', sample);
   listen('seeked', () => {
     // Native completion is authoritative even if the browser snapped the target.

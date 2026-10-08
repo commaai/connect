@@ -219,3 +219,35 @@ it('seeks after metadata even before the duration is known', () => {
   expect(video.currentTime).toBe(2.5);
   expect(callbacks.onProgress).toHaveBeenLastCalledWith(2500, 1);
 });
+
+describe('initial MSE seek readiness', () => {
+  it('waits across metadata and an empty buffer, then seeks after canplay', () => {
+    const { video, controller, callbacks } = setup();
+    video.readyState = 0;
+    video.buffered = { length: 0 };
+    controller.update({ waitForBuffer: true, ...command(100) });
+    video.readyState = 1;
+    video.fire('loadedmetadata');
+    expect(video.currentTime).toBe(0);
+    video.readyState = 4;
+    video.fire('canplay');
+    expect(video.currentTime).toBe(0);
+    expect(callbacks.onProgress).not.toHaveBeenCalled();
+    video.buffered = { length: 1 };
+    video.fire('progress');
+    expect(video.currentTime).toBe(0.1);
+    video.fire('seeked');
+    expect(callbacks.onProgress).toHaveBeenLastCalledWith(100, 1);
+  });
+
+  it('does not hold subsequent explicit seeks until their target is buffered', () => {
+    const { video, controller } = setup();
+    video.buffered = { length: 1 };
+    video.readyState = 4;
+    controller.update({ waitForBuffer: true, ...command(100) });
+    video.fire('seeked');
+    video.buffered = { length: 0 };
+    controller.update(command(10000, 2));
+    expect(video.currentTime).toBe(10);
+  });
+});
