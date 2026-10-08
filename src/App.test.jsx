@@ -338,8 +338,8 @@ describe('whole-app behavior', () => {
     expect(screen.queryByTestId('video-player')).not.toBeInTheDocument();
   });
 
-  test('cold date-filter URL opens over the dashboard', async () => {
-    const { history } = await renderApp(`/${FIRST}?dialog=filter`);
+  test.each([`/${FIRST}`, '/', '/demo'])('cold date-filter URL opens over %s', async (path) => {
+    const { history } = await renderApp(`${path}?dialog=filter`);
     expect(screen.getByText('Start date:')).toBeVisible();
     expect(history.location.search).toBe('?dialog=filter');
   });
