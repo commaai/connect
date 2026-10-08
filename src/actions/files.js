@@ -108,13 +108,13 @@ export function fetchFiles(routeName, nocache = false) {
     }
 
     const dongleId = routeName.split('|')[0];
-    const urlName = routeName.replace('|', '/');
     const urls = Object
       .keys(FILE_NAMES)
       .filter((type) => files[type])
       .flatMap((type) => files[type].map((file) => ([type, file])))
       .reduce((state, [type, file]) => {
-        const segmentNum = parseInt(file.split(urlName)[1].split('/')[1], 10);
+        const pathParts = new URL(file).pathname.split('/');
+        const segmentNum = Number(pathParts[pathParts.length - 2]);
         const fileName = `${routeName}--${segmentNum}/${type}`;
         state[fileName] = {
           url: file,
