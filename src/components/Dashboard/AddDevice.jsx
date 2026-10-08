@@ -5,7 +5,7 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
+import { analyticsEvent, navigate, navigateModal, updateDevices } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
@@ -101,7 +101,6 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -130,20 +129,34 @@ class AddDevice extends Component {
   }
 
   async componentDidMount() {
-    this.componentDidUpdate({}, {});
+    this._mounted = true;
+    this.componentDidUpdate({}, this.props);
   }
 
-  async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+  async componentDidUpdate(prevProps = {}) {
+    const { pairLoading, pairError, pairDongleId } = this.state;
+    const modalOpen = Boolean(this.props.open);
     let { hasCamera } = this.state;
+
+    if (!modalOpen) {
+      if (prevProps.open && this.stream) {
+        this.stopScanning();
+        this.stream.getTracks().forEach((track) => track.stop());
+        this.stream = null;
+        this.detector = null;
+      }
+      return;
+    }
 
     // Check for camera availability
     if (hasCamera === null) {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
+        if (!this._mounted) return;
         hasCamera = devices.some((d) => d.kind === 'videoinput');
         this.setState({ hasCamera });
       } catch {
+        if (!this._mounted) return;
         hasCamera = false;
         this.setState({ hasCamera });
       }
@@ -153,9 +166,15 @@ class AddDevice extends Component {
     if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
-        this.stream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
+        if (!this._mounted || !this.props.open) {
+          stream.getTracks().forEach((track) => track.stop());
+          this.detector = null;
+          return;
+        }
+        this.stream = stream;
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
@@ -255,6 +274,7 @@ class AddDevice extends Component {
   }
 
   async componentWillUnmount() {
+    this._mounted = false;
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
@@ -262,12 +282,12 @@ class AddDevice extends Component {
     }
   }
 
-  async onVideoRef(ref) {
+  onVideoRef(ref) {
     this.videoRef = ref;
     this.componentDidUpdate();
   }
 
-  async onCanvasRef(ref) {
+  onCanvasRef(ref) {
     this.canvasRef = ref;
     this.componentDidUpdate();
   }
@@ -290,16 +310,13 @@ class AddDevice extends Component {
     }
     this.detector = null;
 
-    if (pairDongleId && this.props.devices.length === 0) {
-      this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
-      window.location = `${window.location.origin}/${pairDongleId}`;
-      return;
+    if (pairDongleId) {
+      this.props.dispatch(navigate({ page: 'dashboard', dongleId: pairDongleId }));
+    } else {
+      this.props.dispatch(navigateModal(null));
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
-    if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
-    }
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
 
   async onQrRead({ data: result }) {
@@ -349,15 +366,13 @@ class AddDevice extends Component {
       return;
     }
 
-    const { devices, dispatch } = this.props;
+    const { devices = [], dispatch } = this.props;
     try {
       const resp = await api.devices.pilotPair(pairToken);
       if (resp.dongle_id) {
         const deviceList = await api.devices.listDevices();
-        if (devices.length > 0) { // state change from no device to a device requires reload.
-          dispatch(updateDevices(deviceList));
-          dispatch(analyticsEvent('pair_device', { method: 'add_device_sidebar' }));
-        }
+        dispatch(updateDevices(deviceList));
+        dispatch(analyticsEvent('pair_device', { method: devices.length ? 'add_device_sidebar' : 'add_device_new' }));
         this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
       } else {
         this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: could not pair' });
@@ -370,22 +385,22 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    this.props.dispatch(navigateModal('pair'));
   }
 
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes, buttonText, buttonStyle, buttonIcon, hideButton, open } = this.props;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
+        {!hideButton && <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
           { buttonText }
           { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
-        <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
+        </Button>}
+        <Modal aria-labelledby="add-device-modal" open={ Boolean(open) } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
               <Typography variant="title">Pair device</Typography>
@@ -442,9 +457,6 @@ class AddDevice extends Component {
   }
 }
 
-const stateToProps = (state) => ({
-  profile: state.profile,
-  devices: state.devices,
-});
+const stateToProps = (state) => ({ devices: state.devices || [] });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));

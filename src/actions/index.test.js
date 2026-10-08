@@ -1,6 +1,8 @@
-import { vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { api } from '../api/backend';
+import { navigate, navigateModal, primeNav, pushTimelineRange, streamNav, checkRoutesData } from './index';
+import * as Types from './types';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -10,44 +12,107 @@ vi.mock('../timeline/playback', () => ({
 
 vi.mock('connected-react-router', async () => {
   const originalModule = await vi.importActual('connected-react-router');
-  return {
-    __esModule: true,
-    ...originalModule,
-    push: vi.fn(),
-  };
+  return { __esModule: true, ...originalModule, push: vi.fn((url) => ({ type: 'push', url })) };
 });
 
-describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+vi.mock('../api/backend', () => ({
+  api: {
+    routes: { getRoutesSegments: vi.fn() },
+    auth: { isAuthenticated: () => true },
+  },
+}));
+
+function invoke(action, state) {
+  const getState = () => state;
+  const dispatch = (next) => (typeof next === 'function' ? next(dispatch, getState) : next);
+  dispatch(action);
+}
+
+describe('URL navigation actions', () => {
+  beforeEach(() => push.mockClear());
+
+  it('builds a whole-drive URL', () => {
+    invoke(pushTimelineRange('2026-08-06--12-00-00', null, null), {
+      dongleId: '0000aaaa0000aaaa', currentRoute: null, routes: null,
+      router: { location: { pathname: '/0000aaaa0000aaaa', search: '', hash: '' } },
+    });
+    expect(push).toHaveBeenCalledWith('/0000aaaa0000aaaa/2026-08-06--12-00-00');
   });
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
+  it('keeps a valid zero start and rounds range end up to the next second', () => {
+    invoke(pushTimelineRange('2026-08-06--12-00-00', 0, 10001), {
+      dongleId: '0000aaaa0000aaaa', currentRoute: null, routes: null,
+      router: { location: { pathname: '/0000aaaa0000aaaa', search: '', hash: '' } },
+    });
+    expect(push).toHaveBeenCalledWith('/0000aaaa0000aaaa/2026-08-06--12-00-00/0/11');
+  });
 
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+  it('preserves route state and existing query arguments when opening a modal', () => {
+    invoke(navigateModal('filter'), {
+      dongleId: '0000aaaa0000aaaa',
+      router: { location: { pathname: '/0000aaaa0000aaaa/2026-08-06--12-00-00', search: '?tab=clips', hash: '' } },
+    });
+    expect(push).toHaveBeenCalledWith('/0000aaaa0000aaaa/2026-08-06--12-00-00?tab=clips&modal=filter');
   });
 
   it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    ['Prime', primeNav, '/0000aaaa0000aaaa/prime'],
+    ['stream', streamNav, '/0000aaaa0000aaaa/stream'],
+  ])('navigates to %s through its URL', (_name, action, expected) => {
+    invoke(action(true), { dongleId: '0000aaaa0000aaaa' });
     expect(push).toHaveBeenCalledWith(expected);
+  });
+
+  it('does not push an unchanged URL', () => {
+    invoke(navigate({ page: 'dashboard', dongleId: '0000aaaa0000aaaa' }), {
+      router: { location: { pathname: '/0000aaaa0000aaaa', search: '', hash: '' } },
+    });
+    expect(push).not.toHaveBeenCalled();
+  });
+});
+
+describe('route metadata requests', () => {
+  beforeEach(() => api.routes.getRoutesSegments.mockReset());
+
+  it('drops a delayed response after navigating to another device', async () => {
+    let resolveA;
+    const state = {
+      dongleId: 'aaaaaaaaaaaaaaaa',
+      selectedRouteId: '2026-08-06--12-00-00',
+      currentRouteFetched: false,
+      routes: null,
+      filter: { start: null, end: null },
+      limit: 5,
+      router: { location: { pathname: '/aaaaaaaaaaaaaaaa/2026-08-06--12-00-00', search: '', hash: '' } },
+    };
+    api.routes.getRoutesSegments.mockImplementation((dongleId) => {
+      if (dongleId === 'aaaaaaaaaaaaaaaa') return new Promise((resolve) => { resolveA = resolve; });
+      return Promise.resolve([]);
+    });
+    const actions = [];
+    const promises = [];
+    const getState = () => state;
+    const dispatch = (action) => {
+      if (typeof action === 'function') {
+        const promise = action(dispatch, getState);
+        if (promise?.then) promises.push(promise);
+        return promise;
+      }
+      actions.push(action);
+      return action;
+    };
+
+    dispatch(checkRoutesData());
+    state.dongleId = 'bbbbbbbbbbbbbbbb';
+    state.selectedRouteId = null;
+    state.routes = null;
+    state.router.location.pathname = '/bbbbbbbbbbbbbbbb';
+    resolveA([{ segment_start_times: [1], segment_end_times: [1001], segment_numbers: [0],
+      start_time_utc_millis: 1, end_time_utc_millis: 1001,
+      fullname: 'aaaaaaaaaaaaaaaa|2026-08-06--12-00-00', url: 'https://files.example/route', create_time: 1 }]);
+
+    await Promise.all(promises);
+    expect(actions.filter((action) => action.type === Types.ACTION_ROUTES_METADATA))
+      .toEqual([expect.objectContaining({ dongleId: 'bbbbbbbbbbbbbbbb', routes: [] })]);
   });
 });

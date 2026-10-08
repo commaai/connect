@@ -21,6 +21,8 @@ const MAX_RETRIES = 5;
 const HIGH_PRIORITY = 0;
 
 let uploadQueueTimeout = null;
+let uploadQueueGeneration = 0;
+let uploadQueueDongleId = null;
 let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
@@ -131,6 +133,8 @@ export function fetchFiles(routeName, nocache = false) {
 }
 
 export function cancelFetchUploadQueue() {
+  uploadQueueGeneration += 1;
+  uploadQueueDongleId = null;
   if (uploadQueueTimeout) {
     if (uploadQueueTimeout !== true) {
       clearTimeout(uploadQueueTimeout);
@@ -142,8 +146,12 @@ export function cancelFetchUploadQueue() {
 export function fetchUploadQueue(dongleId) {
   return async (dispatch, getState) => {
     if (uploadQueueTimeout) {
-      return;
+      if (uploadQueueDongleId === dongleId) return;
+      cancelFetchUploadQueue();
     }
+    uploadQueueDongleId = dongleId;
+    uploadQueueGeneration += 1;
+    const requestGeneration = uploadQueueGeneration;
     uploadQueueTimeout = true;
 
     dispatch(fetchDeviceNetworkStatus(dongleId));
@@ -154,6 +162,7 @@ export function fetchUploadQueue(dongleId) {
       id: 0,
     };
     const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
+    if (requestGeneration !== uploadQueueGeneration) return;
     if (!uploadQueue || !uploadQueue.result) {
       if (uploadQueue && uploadQueue.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
@@ -201,12 +210,15 @@ export function fetchUploadQueue(dongleId) {
       uploading: newCurrentUploading,
       files: uploadingFiles,
     });
+    if (requestGeneration !== uploadQueueGeneration) return;
     if (uploadQueueTimeout === true && uploadQueue.result.length) {
-      cancelFetchUploadQueue();
       uploadQueueTimeout = setTimeout(() => {
+        if (requestGeneration !== uploadQueueGeneration) return;
         uploadQueueTimeout = null;
         dispatch(fetchUploadQueue(dongleId));
       }, 2000);
+    } else if (uploadQueueTimeout === true) {
+      uploadQueueTimeout = null;
     }
   };
 }

@@ -6,7 +6,7 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), reconnect: vi.fn() }));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -25,7 +25,7 @@ vi.mock('./utils/webrtc', () => ({
     connection: null,
     disconnect: vi.fn(),
     prewarm: vi.fn(),
-    reconnect: vi.fn(),
+    reconnect: mocks.reconnect,
     release: vi.fn(),
   },
 }));
@@ -107,6 +107,11 @@ async function mockFetch(input, init = {}) {
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
+    if (options.routeCount) {
+      return json(Array.from({ length: options.routeCount }, (_, index) => (
+        makeRoute(dongleId, `${RECENT_LOG.slice(0, -2)}${String(index).padStart(2, '0')}`)
+      )));
+    }
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
   }
@@ -119,7 +124,10 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const payload = JSON.parse(init.body || '{}');
+    return json({ jsonrpc: '2.0', id: 0, result: payload.method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -163,6 +171,7 @@ describe('whole-app behavior', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
+    mocks.reconnect.mockClear();
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -193,13 +202,15 @@ describe('whole-app behavior', () => {
   });
 
   test('referrals URL opens the referrals page', async () => {
-    await renderApp('/referrals');
+    const { history, store } = await renderApp('/referrals', { selected: SECOND });
     expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
     expect((await screen.findAllByText('$50', { selector: 'dd' }))).toHaveLength(3);
     expect(screen.getByRole('link', { name: 'claim rewards ($50)' })).toHaveAttribute(
       'href', expect.stringContaining('Referral%20coupon%3A%20ABC1234'),
     );
     expect(mocks.requests).toContainEqual({ method: 'GET', url: 'https://billing.comma.ai/v1/referrals' });
+    expect(history.location.pathname).toBe('/referrals');
+    expect(store.getState().dongleId).toBe(SECOND);
   });
 
   test.each([['owned', FIRST], ['shared', SHARED]])('direct entry opens %s device dashboard', async (_name, dongleId) => {
@@ -209,11 +220,68 @@ describe('whole-app behavior', () => {
   });
 
   test('dashboard filter and empty route states remain usable', async () => {
-    await renderApp(`/${FIRST}`, { emptyRoutes: true });
+    const { history, store } = await renderApp(`/${FIRST}`, { emptyRoutes: true });
     expect(await screen.findByText('No routes found in selected time range.')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=filter'));
+    const routes = store.getState().routes;
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(store.getState().routes).toBe(routes);
     expect(mocks.requests.some(({ url }) => url.includes('routes_segments'))).toBe(true);
+  });
+
+  test('modal URLs participate in browser Back and Forward', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=filter'));
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    act(() => history.goForward());
+    await waitFor(() => expect(history.location.search).toBe('?modal=filter'));
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeVisible();
+  });
+
+  test('pairing can open from its URL without the drawer', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=pair`);
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    expect(history.location.search).toBe('?modal=pair');
+  });
+
+  test('settings remains hidden for a shared device', async () => {
+    await renderApp(`/${SHARED}?modal=settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('closing a cold drive modal keeps the player and route data mounted', async () => {
+    const pathname = `/${FIRST}/${RECENT_LOG}?ci=1&modal=filter`;
+    const { history, store } = await renderApp(pathname);
+    await waitFor(() => expect(document.querySelector('[aria-label="Drive timeline"]')).not.toBeNull());
+    const player = document.querySelector('[data-testid="video-player"]');
+    expect(player).not.toBeNull();
+    const currentRoute = store.getState().currentRoute;
+    const requestCount = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe('?ci=1'));
+    expect(document.querySelector('[aria-label="Drive timeline"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="video-player"]')).toBe(player);
+    expect(store.getState().currentRoute).toBe(currentRoute);
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requestCount);
+  });
+
+  test('settings and uploads URLs select their target device', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=settings&device=${SECOND}`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByText(SECOND)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Uploads' }));
+    await waitFor(() => expect(history.location.search).toBe(`?modal=uploads&device=${SECOND}`));
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    expect(screen.getByText(SECOND)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
   });
 
   test.each([
@@ -244,7 +312,23 @@ describe('whole-app behavior', () => {
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${encodeURIComponent(pathname)}`));
+  });
+
+  test('a missing authenticated drive resolves to a finite empty state', async () => {
+    await renderApp(`/${FIRST}/2026-08-06--99-99-99`, { emptyRoutes: true });
+    expect(await screen.findByText('Route does not exist.')).toBeVisible();
+  });
+
+  test('auth view follows URL changes away from and back to a public drive', async () => {
+    const publicPath = `/${FIRST}/${LOG}`;
+    const { history } = await renderApp(publicPath, { authenticated: false });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${FIRST}`));
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+    expect(sessionStorage.getItem('redirectURL')).toBe(`/${FIRST}`);
+    act(() => history.push(publicPath));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {
@@ -276,6 +360,10 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+    mocks.reconnect.mockClear();
+    act(() => history.push(`/${SECOND}/stream`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/stream`));
+    await waitFor(() => expect(mocks.reconnect).toHaveBeenCalledWith(SECOND));
   });
 
   test('device browser history restores exact dashboards', async () => {
@@ -302,5 +390,33 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('a cold selected route returns to the full dashboard list', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${RECENT_LOG}`, { routeCount: 10 });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    await waitFor(() => expect(store.getState().routes).toHaveLength(10));
+    expect(await screen.findAllByText('Mock recent route start')).toHaveLength(10);
+  });
+
+  test('a dashboard-selected route and its list survive URL modal changes', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`, { routeCount: 10 });
+    expect(await screen.findAllByText('Mock recent route start')).toHaveLength(10);
+    const routes = store.getState().routes;
+    const driveLink = document.querySelector(`.DriveEntry[href="/${FIRST}/${RECENT_LOG}"]`);
+    fireEvent.click(driveLink);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    const currentRoute = store.getState().currentRoute;
+    const requestCount = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    act(() => history.push(`${history.location.pathname}?modal=filter`));
+    await waitFor(() => expect(history.location.search).toBe('?modal=filter'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(store.getState().routes).toBe(routes);
+    expect(store.getState().currentRoute).toBe(currentRoute);
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requestCount);
   });
 });

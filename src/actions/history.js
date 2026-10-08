@@ -1,61 +1,55 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { api } from '../api/backend';
+import { buildUrl, parseUrl } from '../url';
+import { applyUrl } from './index';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
-  }
+export const onHistoryMiddleware = ({ dispatch, getState }) => {
+  let legacyLookupKey = null;
+  let generation = 0;
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+  const resolveLegacyRange = (location) => {
+    const url = parseUrl(location);
+    if (url.page !== 'legacy') {
+      legacyLookupKey = null;
+      generation += 1;
+      return;
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
+    const { start, end } = url.legacyRange;
+    const key = `${url.dongleId}|${start}|${end}`;
+    if (legacyLookupKey === key) return;
+    legacyLookupKey = key;
+    generation += 1;
+    const requestGeneration = generation;
 
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
+    api.routes.getRoutesSegments(url.dongleId, start, end).then((routes) => {
+      const currentLocation = getState().router.location;
+      const currentUrl = parseUrl(currentLocation);
+      if (requestGeneration !== generation || currentUrl.page !== 'legacy'
+        || currentUrl.dongleId !== url.dongleId
+        || currentUrl.legacyRange?.start !== start || currentUrl.legacyRange?.end !== end
+        || !Array.isArray(routes) || routes.length === 0) {
+        return;
+      }
 
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
+      const routeId = routes[0].fullname.split('|')[1];
+      dispatch(replace(buildUrl({
+        ...currentUrl,
+        page: 'drive',
+        routeId,
+        zoom: null,
+        legacyRange: null,
+      }, currentLocation)));
+    }).catch((err) => {
+      console.error('Error fetching routes data for log ID conversion', err);
+    });
+  };
 
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
+  return (next) => (action) => {
+    if (action?.type !== LOCATION_CHANGE) return next(action);
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
     next(action);
-  }
+    dispatch(applyUrl(action.payload.location));
+    resolveLegacyRange(action.payload.location);
+  };
 };
