@@ -222,6 +222,7 @@ class Media extends Component {
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
+    this.openUploads = this.openUploads.bind(this);
     this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
@@ -319,6 +320,11 @@ class Media extends Component {
 
     await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}`);
     this.setState({ moreInfoMenu: null });
+  }
+
+  openUploads() {
+    this.setState({ downloadMenu: null });
+    this.props.dispatch(openOverlay({ kind: 'uploads', dongleId: this.props.dongleId }));
   }
 
   openInUseradmin() {
@@ -746,7 +752,7 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => { this.setState({ downloadMenu: null }); this.props.dispatch(openOverlay({ kind: 'uploads', dongleId: this.props.dongleId })); } : null }
+              onClick={ files ? () => this.openUploads() : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }

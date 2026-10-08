@@ -74,4 +74,21 @@ describe('analytics page views vs dialogs', () => {
     );
     expect(gtagCalls()[0].params.dialog).toBe('uploads');
   });
+
+  it('closing an overlay is reported with the dialog kind, not unknown', () => {
+    runLocationChange(
+      { pathname: '/aaaaaaaaaaaaaaaa', search: '?dates=1' },
+      { pathname: '/aaaaaaaaaaaaaaaa', search: '' },
+    );
+    expect(gtagCalls().filter(({ name }) => name === 'page_view')).toHaveLength(0);
+    expect(gtagCalls()[0]).toMatchObject({ name: 'view_dialog', params: { dialog: 'dates' } });
+  });
+
+  it('an unrelated query-only change still counts as a page view', () => {
+    runLocationChange(
+      { pathname: '/aaaaaaaaaaaaaaaa', search: '' },
+      { pathname: '/aaaaaaaaaaaaaaaa', search: '?utm_source=test' },
+    );
+    expect(gtagCalls()[0].name).toBe('page_view');
+  });
 });

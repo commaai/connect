@@ -247,7 +247,9 @@ class ExplorerApp extends Component {
               including stream/teleop; hoisting them out of the page branch is
               what makes a cold URL like /:dongleId/stream?settings=:dongle
               render its dialog. The dates overlay self-limits to the
-              dashboard because its Save reshapes the dashboard's route list. */ }
+              dashboard because its Save reshapes the dashboard's route list.
+              The settings modal stays mounted when closed so its cold-URL
+              alias adoption can run on arrival of a late device fetch. */ }
         <DeviceSettingsModal
           isOpen={ overlay?.kind === 'settings' }
           dongleId={ overlay?.dongleId ?? null }

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { destinationFromUrl } from './url';
+import { destinationFromUrl, overlayParamNames } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
@@ -108,10 +108,19 @@ function logAction(action, prevState, state) {
       if (prevPathname === pathname && search !== prevState.router?.location?.search) {
         // A query-only change is a dialog opening or closing on the same page,
         // not another view of that page; counting it as a page view inflated
-        // the numbers for every overlay interaction.
+        // the numbers for every overlay interaction. On a close the new search
+        // no longer names the dialog, so fall back to the previous search.
         const dialog = new URLSearchParams(search);
-        const kind = ['settings', 'dates', 'uploads'].find((param) => dialog.has(param));
-        tag('view_dialog', { page_location: getPageViewEventLocation(pathname), dialog: kind ?? 'unknown' });
+        const prevDialog = new URLSearchParams(prevState.router?.location?.search ?? '');
+        const kind = overlayParamNames.find((param) => dialog.has(param))
+          ?? overlayParamNames.find((param) => prevDialog.has(param));
+        if (kind) {
+          tag('view_dialog', { page_location: getPageViewEventLocation(pathname), dialog: kind });
+        } else {
+          gtag('event', 'page_view', {
+            page_location: getPageViewEventLocation(pathname),
+          });
+        }
         return;
       }
       gtag('event', 'page_view', {

@@ -159,8 +159,7 @@ export function urlForDestination(destination) {
 
 // Each dialog owns one query parameter; `parse` and `format` are inverses and
 // the only definition of what a valid value is.
-const overlayParams = {
-  settings: {
+const overlayParams = {  settings: {
     format: (overlay) => (exactDongleIdRegex.test(overlay.dongleId) ? overlay.dongleId : null),
     parse: (value) => (exactDongleIdRegex.test(value) ? { kind: 'settings', dongleId: value } : null),
   },
@@ -178,6 +177,9 @@ const overlayParams = {
     },
   },
 };
+
+// Query-parameter names of every dialog overlay, in precedence order.
+export const overlayParamNames = Object.keys(overlayParams);
 
 /**
  * Parse the dialog overlay out of a location's search string. Pure.

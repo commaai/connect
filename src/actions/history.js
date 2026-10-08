@@ -33,15 +33,21 @@ export const openOverlay = (overlay) => (dispatch, getState) => {
   }
 };
 
+// One close at a time: two synchronous onClose dispatches (backdrop click and
+// Escape in the same tick) must not pop two history entries. Keyed on the
+// location being closed; cleared on the next LOCATION_CHANGE.
+let closingOverlayAt = null;
+
 // Close any dialog overlay. Closing one that was opened in-app undoes the open
 // with a Back so no dead entry is left behind; a cold-loaded overlay is
 // replaced in place, leaving the page exactly as it was entered.
 export const closeOverlay = () => (dispatch, getState) => {
   const { pathname, search, state } = getState().router.location;
-  if (!overlayFromSearch(search)) {
+  if (!overlayFromSearch(search) || closingOverlayAt === pathname + search) {
     return;
   }
   if (state?.overlayOpenedInApp) {
+    closingOverlayAt = pathname + search;
     dispatch(goBack());
   } else {
     dispatch(replace(pathname + stripOverlaySearch(search)));
@@ -295,7 +301,9 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
       const log_id = routesData?.[0]?.fullname?.split('|')[1];
       if (log_id) {
         // Replace, so browser Back leaves the drive instead of re-running this.
-        dispatch(replace(`/${dongleId}/${log_id}`));
+        // Keep any dialog overlay: it layers over the migrated drive too.
+        const search = getState().router?.location?.search ?? '';
+        dispatch(replace(`/${dongleId}/${log_id}${withOverlaySearch('', overlayFromSearch(search))}`));
         return;
       }
     } catch (err) {
@@ -338,6 +346,7 @@ export function onHistoryMiddleware({ dispatch }) {
     }
     const result = next(action);
     if (action.type === LOCATION_CHANGE) {
+      closingOverlayAt = null;
       dispatch(syncStateFromUrl(action.payload.location.pathname));
     }
     return result;

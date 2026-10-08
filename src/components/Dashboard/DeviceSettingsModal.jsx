@@ -16,6 +16,7 @@ import {
 import { api } from '../../api/backend';
 import { updateDevice } from '../../actions';
 import { navigateTo, openOverlay } from '../../actions/history';
+import { destinationFromUrl } from '../../url';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
@@ -111,6 +112,7 @@ const styles = (theme) => ({
 
 const initialState = {
   deviceAlias: '',
+  dirtyAlias: false,
   loadingDeviceAlias: false,
   loadingDeviceShare: false,
   hasSavedAlias: false,
@@ -141,10 +143,22 @@ class DeviceSettingsModal extends Component {
   }
 
   componentDidMount() {
-    // Run the same adoption logic as updates once at mount, so a device object
-    // that is already in the store before the first render still populates the
-    // (empty) alias field.
-    this.componentDidUpdate({ dongleId: this.props.dongleId, device: null });
+    // Adopt the alias once at mount too: the modal is always rendered, so a
+    // device object already in the store before the first render would
+    // otherwise never see a device-prop transition.
+    this.adoptDeviceAlias(null, this.props.device);
+  }
+
+  adoptDeviceAlias(prevDevice, device) {
+    // Cold deep link: the modal mounts before the device fetch lands and the
+    // dongleId never changes afterwards, so adopt the alias when the data
+    // arrives. Guarded on an untouched field so a refresh never erases edits.
+    if (this.state.deviceAlias === '' && !this.state.dirtyAlias
+      && device?.dongle_id === this.props.dongleId
+      && device.alias
+      && prevDevice !== device) {
+      this.setState({ deviceAlias: device.alias });
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -154,20 +168,15 @@ class DeviceSettingsModal extends Component {
         ...initialState,
         deviceAlias: alias,
       });
-    } else if (this.state.deviceAlias === ''
-      && this.props.device?.dongle_id === this.props.dongleId
-      && this.props.device.alias
-      && prevProps.device !== this.props.device) {
-      // Cold deep link: the modal mounts before the device fetch lands and the
-      // dongleId never changes afterwards, so adopt the alias when the data
-      // arrives. Guarded on an empty field so a refresh never erases edits.
-      this.setState({ deviceAlias: this.props.device.alias });
+    } else {
+      this.adoptDeviceAlias(prevProps.device, this.props.device);
     }
   }
 
   handleAliasChange(e) {
     this.setState((state, props) => ({
       deviceAlias: e.target.value,
+      dirtyAlias: true,
       hasSavedAlias: e.target.value === props.device.dongle_id ? state.hasSavedAlias : false,
     }));
   }
@@ -461,10 +470,6 @@ class DeviceSettingsModal extends Component {
   }
 }
 
-function firstPathSegment(pathname) {
-  return String(pathname || '').split('/').filter(Boolean)[0] ?? null;
-}
-
 const stateToProps = (state, ownProps) => {
   const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
@@ -475,7 +480,7 @@ const stateToProps = (state, ownProps) => {
     // list is loaded and does not contain it, or reconciliation hit a 404. A
     // cold link whose device is still being fetched must not flash a denial.
     deviceNotFound: Boolean(!device && state.devices !== null
-      && !(firstPathSegment(state.router?.location?.pathname) === ownProps.dongleId
+      && !(destinationFromUrl(state.router?.location?.pathname).dongleId === ownProps.dongleId
         && state.deviceNotFound !== true)),
     profile: state.profile,
   };

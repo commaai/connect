@@ -137,6 +137,10 @@ class UploadQueue extends Component {
     if (prevProps.update !== this.props.update) {
       this.uploadQueue(this.props.update);
     } else if (this.props.update && prevProps.device.dongle_id !== this.props.device.dongle_id) {
+      // The old device's pending poll timeout would otherwise swallow the
+      // re-poll (the fetch guard sees a live timer and returns), leaving the
+      // loop pinned to the previous device.
+      cancelFetchUploadQueue();
       this.uploadQueue(true);
     } else if (this.props.update && prevProps.filesUploading !== this.props.filesUploading) {
       this.uploadQueue(Boolean(Object.keys(this.props.filesUploading).length));
