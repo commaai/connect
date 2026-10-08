@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
@@ -8,7 +9,7 @@ import { deviceNamePretty } from '../../utils';
 import { billing as Billing } from '../../api';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
-import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions';
+import { analyticsEvent, primeFetchSubscription } from '../../actions';
 import { CheckIcon, ErrorOutline, InfoOutline, KeyboardBackspaceIcon } from '../../icons';
 import CommacareIcon from '../../icons/commacare.png';
 import { COMMACARE_URL } from '../CommacareBadge';
@@ -326,7 +327,7 @@ class PrimeCheckout extends Component {
   }
 
   render() {
-    const { classes, dispatch, device, subscribeInfo } = this.props;
+    const { classes, dispatch, dongleId, device, subscribeInfo } = this.props;
     const { windowWidth, windowHeight, error, loadingCheckout, selectedPlan } = this.state;
 
     let chargeText = null;
@@ -375,7 +376,7 @@ class PrimeCheckout extends Component {
     return (
       <div className={ classes.primeBox } style={ containerPadding }>
         <div className={ classes.primeHeader }>
-          <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false)) }>
+          <IconButton aria-label="Go Back" onClick={() => dispatch(push(`/${dongleId}`)) }>
             <KeyboardBackspaceIcon />
           </IconButton>
           <div className={ classes.headerDevice }>
