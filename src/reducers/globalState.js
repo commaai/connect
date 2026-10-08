@@ -315,6 +315,13 @@ export default function reducer(_state, action) {
         streamNav: action.streamNav,
       };
       break;
+    case Types.ACTION_ROUTE_MODAL:
+      state = {
+        ...state,
+        routeModal: action.modal,
+        routeModalDeviceId: action.deviceId,
+      };
+      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
