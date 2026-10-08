@@ -9,7 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
-import { devicePath, drivePath } from '../url';
+import { devicePath, drivePath, urlForRoute } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -152,19 +152,22 @@ function updateTimeline(state, dispatch, start, end) {
   }
 }
 
-export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
+export function pushTimelineRange(log_id, start, end) {
   return (dispatch, getState) => {
     const state = getState();
-    if (allowPathChange) {
-      const route = state.routes?.find((candidate) => candidate.log_id === log_id);
-      const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-      const desiredPath = log_id
-        ? drivePath(state.dongleId, log_id, wholeDrive ? null : start, wholeDrive ? null : end)
-        : devicePath(state.dongleId);
-      if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
-      return;
-    }
+    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
+    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+    const desiredPath = log_id
+      ? drivePath(state.dongleId, log_id, wholeDrive ? null : start, wholeDrive ? null : end)
+      : devicePath(state.dongleId);
+    if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
+  };
+}
 
+// Apply a destination after a URL change, or clear it during default-device setup.
+export function syncTimelineRange(log_id, start, end) {
+  return (dispatch, getState) => {
+    const state = getState();
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
       dispatch({
         type: Types.TIMELINE_PUSH_SELECTION,
@@ -177,7 +180,6 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
     const nextState = getState();
     updateTimeline(nextState, dispatch, nextState.zoom?.start, nextState.zoom?.end);
   };
-
 }
 
 
@@ -237,16 +239,21 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
+export function selectDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();
-    if (allowPathChange) {
-      const desiredPath = devicePath(dongleId);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(currentPathname(state) === '/' ? replace(desiredPath) : push(desiredPath));
-      }
-      return;
+    const desiredPath = dongleId ? devicePath(dongleId) : urlForRoute({ page: 'home' });
+    if (currentPathname(state) !== desiredPath) {
+      dispatch(currentPathname(state) === '/' ? replace(desiredPath) : push(desiredPath));
     }
+  };
+}
+
+// Startup also uses this when the current URL has no device (for example,
+// referrals). It selects the default device without rewriting that URL.
+export function syncDevice(dongleId) {
+  return (dispatch, getState) => {
+    const state = getState();
     if (state.dongleId === dongleId) return;
     let device;
     if (state.devices && state.devices.length > 1) {
@@ -266,31 +273,29 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
       dongleId,
     });
 
-    dispatch(pushTimelineRange(null, null, null, false));
+    dispatch(syncTimelineRange(null, null, null));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
     }
 
-    if (fetchRoutes) {
-      dispatch(checkLastRoutesData());
-    }
-
   };
 }
 
-export function primeNav(nav, allowPathChange = true) {
+export function primeNav(nav) {
   return (dispatch, getState) => {
     const state = getState();
     if (!state.dongleId) {
       return;
     }
-    if (allowPathChange) {
-      const desiredPath = devicePath(state.dongleId, nav ? 'prime' : 'drives');
-      if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
-      return;
-    }
+    const desiredPath = devicePath(state.dongleId, nav ? 'prime' : 'drives');
+    if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
+  };
+}
 
+export function syncPrimeNav(nav) {
+  return (dispatch, getState) => {
+    const state = getState();
     if (state.primeNav !== nav) {
       dispatch({
         type: Types.ACTION_PRIME_NAV,
@@ -301,18 +306,20 @@ export function primeNav(nav, allowPathChange = true) {
   };
 }
 
-export function streamNav(nav, allowPathChange = true) {
+export function streamNav(nav) {
   return (dispatch, getState) => {
     const state = getState();
     if (!state.dongleId) {
       return;
     }
-    if (allowPathChange) {
-      const desiredPath = devicePath(state.dongleId, nav ? 'stream' : 'drives');
-      if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
-      return;
-    }
+    const desiredPath = devicePath(state.dongleId, nav ? 'stream' : 'drives');
+    if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
+  };
+}
 
+export function syncStreamNav(nav) {
+  return (dispatch, getState) => {
+    const state = getState();
     if (state.streamNav !== nav) {
       dispatch({
         type: Types.ACTION_STREAM_NAV,

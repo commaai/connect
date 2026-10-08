@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { parsePath, devicePath, drivePath } from '../url';
-import { checkRoutesData, checkLastRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { checkRoutesData, checkLastRoutesData, syncPrimeNav, syncStreamNav, syncDevice, syncTimelineRange } from './index';
 import { api } from '../api/backend';
 
 // History is the source of truth for navigable screens. This runs for PUSH as
@@ -21,7 +21,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
   }
   const deviceChanged = Boolean(route.dongleId && route.dongleId !== state.dongleId);
   if (deviceChanged) {
-    dispatch(selectDevice(route.dongleId, false, false));
+    dispatch(syncDevice(route.dongleId));
     state = getState();
   }
 
@@ -44,10 +44,10 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
     ? state.zoom?.start !== route.range.start || state.zoom?.end !== route.range.end
     : Boolean(state.zoom && (state.zoom.start !== 0 || state.zoom.end !== state.currentRoute?.duration));
   if (deviceChanged || routeChanged || rangeChanged) {
-    dispatch(pushTimelineRange(nextRouteId, route.range?.start ?? null, route.range?.end ?? null, false));
+    dispatch(syncTimelineRange(nextRouteId, route.range?.start ?? null, route.range?.end ?? null));
   }
-  if ((route.page === 'prime') !== state.primeNav) dispatch(primeNav(route.page === 'prime', false));
-  if ((route.page === 'stream') !== state.streamNav) dispatch(streamNav(route.page === 'stream', false));
+  if ((route.page === 'prime') !== state.primeNav) dispatch(syncPrimeNav(route.page === 'prime'));
+  if ((route.page === 'stream') !== state.streamNav) dispatch(syncStreamNav(route.page === 'stream'));
 
   if ((deviceChanged || routeChanged) && !nextRouteId) {
     dispatch(state.limit ? checkRoutesData() : checkLastRoutesData());

@@ -38,11 +38,35 @@ export function parsePath(pathname) {
   return { page: 'unknown', dongleId: null, routeId: null, range: null };
 }
 
+// Keep URL generation beside the grammar. A destination is the same shape
+// returned by parsePath, so new screens have one place to define their URL.
+export function urlForRoute({ page, dongleId = null, routeId = null, range = null }) {
+  if (page === 'home') return '/';
+  if (page === 'referrals') return '/referrals';
+  if (page === 'add-device' && !dongleId) return '/add-device';
+  if (!dongleId) throw new Error(`A device is required for ${page}`);
+
+  if (routeId) {
+    if (page !== 'drive' && !driveOverlays.has(page)) throw new Error(`Unknown drive page: ${page}`);
+    const base = `/${dongleId}/${routeId}`;
+    const ranged = range
+      ? `${base}/${Math.floor(range.start / 1000)}/${Math.ceil(range.end / 1000)}`
+      : base;
+    return page === 'drive' ? ranged : `${ranged}/${page}`;
+  }
+
+  if (page === 'drives') return `/${dongleId}`;
+  if (devicePages.has(page)) return `/${dongleId}/${page}`;
+  throw new Error(`Unknown device page: ${page}`);
+}
+
 export function devicePath(dongleId, page = 'drives') {
-  return page === 'drives' ? `/${dongleId}` : `/${dongleId}/${page}`;
+  return urlForRoute({ page, dongleId });
 }
 
 export function drivePath(dongleId, routeId, start, end) {
-  const base = `/${dongleId}/${routeId}`;
-  return start == null || end == null ? base : `${base}/${Math.floor(start / 1000)}/${Math.ceil(end / 1000)}`;
+  return urlForRoute({
+    page: 'drive', dongleId, routeId,
+    range: start == null || end == null ? null : { start, end },
+  });
 }

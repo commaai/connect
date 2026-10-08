@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePath, devicePath, drivePath } from './url';
+import { parsePath, urlForRoute, devicePath, drivePath } from './url';
 
 const DEVICE = '0000aaaa0000aaaa';
 const ROUTE = '2026-08-06--12-00-00';
@@ -55,5 +55,16 @@ describe('the URL grammar', () => {
     expect(drivePath(DEVICE, ROUTE, 0, 20000)).toBe(`/${DEVICE}/${ROUTE}/0/20`);
     expect(drivePath(DEVICE, ROUTE, 1001, 20001)).toBe(`/${DEVICE}/${ROUTE}/1/21`);
     expect(drivePath(DEVICE, ROUTE)).toBe(`/${DEVICE}/${ROUTE}`);
+  });
+
+  it.each([
+    '/', '/referrals', '/add-device', `/${DEVICE}`, `/${DEVICE}/settings`,
+    `/${DEVICE}/add-device`, `/${DEVICE}/filter`, `/${DEVICE}/uploads`,
+    `/${DEVICE}/prime`, `/${DEVICE}/stream`, `/${DEVICE}/${ROUTE}`,
+    `/${DEVICE}/${ROUTE}/clips`, `/${DEVICE}/${ROUTE}/uploads`,
+    `/${DEVICE}/${ROUTE}/10/20`, `/${DEVICE}/${ROUTE}/10/20/clips`,
+    `/${DEVICE}/${ROUTE}/10/20/uploads`,
+  ])('round-trips the canonical route %s', (path) => {
+    expect(urlForRoute(parsePath(path))).toBe(path);
   });
 });

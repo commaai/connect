@@ -24,7 +24,7 @@ import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
-import { parsePath } from '../../url';
+import { parsePath, urlForRoute } from '../../url';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -609,7 +609,9 @@ class Media extends Component {
                 className={classes.mediaOption}
                 style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
                 aria-haspopup="true"
-                onClick={() => deviceIsOnline(device) && dispatch(push(`${pathname}/clips`))}
+                onClick={() => deviceIsOnline(device) && dispatch(push(urlForRoute({
+                  ...parsePath(pathname), page: 'clips',
+                })))}
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
@@ -673,7 +675,9 @@ class Media extends Component {
           open={Boolean(alwaysOpen || clipsOpen)}
           dongleId={this.props.dongleId}
           anchorEl={() => this.clipAnchorRef.current}
-          onClose={() => this.props.dispatch(push(this.props.pathname.replace(/\/clips$/, '')))}
+          onClose={() => this.props.dispatch(push(urlForRoute({
+            ...parsePath(this.props.pathname), page: 'drive',
+          })))}
           route={currentRoute}
           routes={this.props.routes}
           zoom={this.props.zoom}
@@ -750,7 +754,9 @@ class Media extends Component {
             <MenuItem
               onClick={ files ? () => {
                 this.setState({ downloadMenu: null });
-                this.props.dispatch(push(`${this.props.pathname}/uploads`));
+                this.props.dispatch(push(urlForRoute({
+                  ...parsePath(this.props.pathname), page: 'uploads',
+                })));
               } : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }

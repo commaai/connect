@@ -349,6 +349,16 @@ describe('whole-app behavior', () => {
     expect(store.getState().dongleId).toBe(FIRST);
   });
 
+  test('an unknown URL cannot display a stale drive', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${FIRST}/prime/extra`));
+    expect(await screen.findByText('Page not found.')).toBeVisible();
+    expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
     const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));

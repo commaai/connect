@@ -122,7 +122,7 @@ class DeviceList extends Component {
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
         onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
+        href={ devicePath(device.dongle_id) }
       >
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
@@ -158,7 +158,7 @@ class DeviceList extends Component {
     }
 
     const found = devices.some((d) => d.dongle_id === dongleId);
-    if (!found && device && dongleId === device.dongle_id) {
+    if (dongleId && !found && device && dongleId === device.dongle_id) {
       devices = [{
         ...device,
         alias: emptyDevice.alias,

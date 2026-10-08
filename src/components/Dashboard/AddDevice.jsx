@@ -10,7 +10,7 @@ import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
-import { parsePath, devicePath } from '../../url';
+import { parsePath, urlForRoute } from '../../url';
 
 const styles = (theme) => ({
   titleContainer: {
@@ -318,14 +318,16 @@ class AddDevice extends Component {
 
     if (pairDongleId && this.props.devices?.length === 0) {
       this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
-      window.location = `${window.location.origin}/${pairDongleId}`;
+      window.location = `${window.location.origin}${urlForRoute({ page: 'drives', dongleId: pairDongleId })}`;
       return;
     }
 
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     } else {
-      this.props.dispatch(push(this.props.dongleId ? devicePath(this.props.dongleId) : '/'));
+      this.props.dispatch(push(urlForRoute({
+        page: this.props.dongleId ? 'drives' : 'home', dongleId: this.props.dongleId,
+      })));
     }
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
@@ -403,7 +405,7 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.props.dispatch(push(this.props.dongleId ? devicePath(this.props.dongleId, 'add-device') : '/add-device'));
+    this.props.dispatch(push(urlForRoute({ page: 'add-device', dongleId: this.props.dongleId })));
   }
 
   render() {

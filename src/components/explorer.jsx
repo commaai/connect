@@ -6,7 +6,7 @@ import { push, replace } from 'connected-react-router';
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
-import { api } from '../api/backend';
+import { api, DEMO_PATH } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
@@ -27,7 +27,7 @@ import Referrals from './Referrals';
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import AddDevice from './Dashboard/AddDevice';
 import UploadQueue from './Files/UploadQueue';
-import { parsePath, devicePath } from '../url';
+import { parsePath, devicePath, urlForRoute } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -202,12 +202,12 @@ class ExplorerApp extends Component {
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const settingsRoute = parsePath(pathname);
-    const routeDevice = devices?.find((item) => item.dongle_id === settingsRoute.dongleId)
-      || (device?.dongle_id === settingsRoute.dongleId ? device : null);
-    const settingsAllowed = settingsRoute.page === 'settings'
+    const route = parsePath(pathname);
+    const routeDevice = devices?.find((item) => item.dongle_id === route.dongleId)
+      || (device?.dongle_id === route.dongleId ? device : null);
+    const settingsAllowed = route.page === 'settings'
       && Boolean(routeDevice && (routeDevice.is_owner || profile?.superuser));
-    const uploadsOpen = settingsRoute.page === 'uploads' && Boolean(routeDevice);
+    const uploadsOpen = route.page === 'uploads' && Boolean(routeDevice);
     const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
@@ -249,7 +249,11 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(push(urlForRoute({
+                  page: dongleId ? 'drives' : 'home', dongleId,
+                })))} />
+                : route.page === 'unknown' && pathname !== DEMO_PATH
+                ? <Typography className="p-8">Page not found.</Typography>
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
@@ -260,12 +264,14 @@ class ExplorerApp extends Component {
               open
               update
               device={routeDevice}
-              onClose={() => dispatch(push(pathname.replace(/\/uploads$/, '')))}
+              onClose={() => dispatch(push(urlForRoute({
+                ...route, page: route.routeId ? 'drive' : 'drives',
+              })))}
             />}
             <DeviceSettingsModal
               isOpen={settingsAllowed}
-              dongleId={settingsAllowed ? settingsRoute.dongleId : null}
-              onClose={() => dispatch(push(devicePath(settingsRoute.dongleId)))}
+              dongleId={settingsAllowed ? route.dongleId : null}
+              onClose={() => dispatch(push(devicePath(route.dongleId)))}
             />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>

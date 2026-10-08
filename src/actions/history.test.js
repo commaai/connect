@@ -6,8 +6,8 @@ import { api } from '../api/backend';
 
 vi.mock('../api/backend', () => ({ api: { routes: { getRoutesSegments: vi.fn() } } }));
 vi.mock('./index', () => ({
-  selectDevice: vi.fn(), pushTimelineRange: vi.fn(), checkRoutesData: vi.fn(),
-  checkLastRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
+  syncDevice: vi.fn(), syncTimelineRange: vi.fn(), checkRoutesData: vi.fn(),
+  checkLastRoutesData: vi.fn(), syncPrimeNav: vi.fn(), syncStreamNav: vi.fn(),
 }));
 
 const DEVICE = '0000aaaa0000aaaa';
@@ -53,8 +53,8 @@ describe('history reconciliation', () => {
     const { store, next, invoke } = create();
     invoke(location(`/${OTHER}/${ROUTE}/0/20`, historyAction));
     expect(next).toHaveBeenCalledOnce();
-    expect(actions.selectDevice).toHaveBeenCalledWith(OTHER, false, false);
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(ROUTE, 0, 20000, false);
+    expect(actions.syncDevice).toHaveBeenCalledWith(OTHER);
+    expect(actions.syncTimelineRange).toHaveBeenCalledWith(ROUTE, 0, 20000);
     expect(actions.checkRoutesData).toHaveBeenCalledOnce();
     expect(store.dispatch).toHaveBeenCalledTimes(3);
   });
@@ -62,7 +62,7 @@ describe('history reconciliation', () => {
   it('keeps the device and route data when opening settings', () => {
     const { store, invoke } = create();
     invoke(location(`/${DEVICE}/settings`, 'PUSH'));
-    expect(actions.selectDevice).not.toHaveBeenCalled();
+    expect(actions.syncDevice).not.toHaveBeenCalled();
     expect(actions.checkRoutesData).not.toHaveBeenCalled();
     expect(store.dispatch).not.toHaveBeenCalled();
   });
@@ -78,7 +78,7 @@ describe('history reconciliation', () => {
   it('closes a drive and restores the device list', () => {
     const { invoke } = create({ selectedRouteId: ROUTE, zoom: { start: 0, end: 20000 }, limit: 5 });
     invoke(location(`/${DEVICE}`, 'POP'));
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
+    expect(actions.syncTimelineRange).toHaveBeenCalledWith(null, null, null);
     expect(actions.checkRoutesData).toHaveBeenCalledOnce();
     expect(actions.checkLastRoutesData).not.toHaveBeenCalled();
   });
