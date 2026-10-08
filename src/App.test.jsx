@@ -119,7 +119,10 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const isUploadQueue = init.body?.includes('listUploadQueue');
+    return json({ jsonrpc: '2.0', id: 0, result: isUploadQueue ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -209,11 +212,61 @@ describe('whole-app behavior', () => {
   });
 
   test('dashboard filter and empty route states remain usable', async () => {
-    await renderApp(`/${FIRST}`, { emptyRoutes: true });
+    const { history } = await renderApp(`/${FIRST}`, { emptyRoutes: true });
     expect(await screen.findByText('No routes found in selected time range.')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    expect(history.location.pathname).toBe(`/${FIRST}/filter`);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(history.location.pathname).toBe(`/${FIRST}`);
     expect(mocks.requests.some(({ url }) => url.includes('routes_segments'))).toBe(true);
+  });
+
+  test('pairing modal opens from a direct URL without a device', async () => {
+    const { history } = await renderApp('/add-device', { devices: [] });
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    expect(history.location.pathname).toBe('/add-device');
+  });
+
+  test('settings can be loaded directly and dismissed through history', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(store.getState().dongleId).toBe(FIRST);
+    const routeFetches = () => mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    const initialFetches = routeFetches();
+    act(() => history.push(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(routeFetches()).toBe(initialFetches);
+  });
+
+  test('Prime settings navigates from the settings URL of the same device', async () => {
+    const { history } = await renderApp(`/${SECOND}/settings`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('a shared device URL does not expose owner settings', async () => {
+    await renderApp(`/${SHARED}/settings`);
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('the upload queue opens from a cold owner URL and closes through history', async () => {
+    const { history } = await renderApp(`/${FIRST}/uploads`);
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Upload queue')).not.toBeInTheDocument());
+    act(() => history.goBack());
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+  });
+
+  test('a shared drive retains its existing upload queue access by URL', async () => {
+    await renderApp(`/${SHARED}/uploads`);
+    expect(await screen.findByText('Upload queue')).toBeVisible();
   });
 
   test.each([
@@ -279,14 +332,21 @@ describe('whole-app behavior', () => {
   });
 
   test('device browser history restores exact dashboards', async () => {
-    const { history } = await renderApp(`/${FIRST}`);
+    const { history, store } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     act(() => history.push(`/${SECOND}`));
-    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    await waitFor(() => expect(store.getState().dongleId).toBe(SECOND));
     act(() => history.goBack());
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    await waitFor(() => expect(store.getState().dongleId).toBe(FIRST));
     act(() => history.goForward());
-    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    await waitFor(() => expect(store.getState().dongleId).toBe(SECOND));
+  });
+
+  test('navigating to root keeps the visible device and URL in agreement', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    act(() => history.push('/'));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(store.getState().dongleId).toBe(FIRST);
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
@@ -300,7 +360,23 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    act(() => history.goForward());
+    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    act(() => history.goBack());
+    expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`);
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('closing a cold drive loads the device list instead of reusing one-route metadata', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments') && url.includes('route_str='))).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments') && !url.includes('route_str='))).toHaveLength(1);
   });
 });

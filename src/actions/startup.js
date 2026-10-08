@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, checkLastRoutesData, checkRoutesData, selectDevice, fetchSharedDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -44,7 +44,7 @@ export default function init() {
   return async (dispatch, getState) => {
     let state = getState();
     if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
+      dispatch(state.selectedRouteId ? checkRoutesData() : checkLastRoutesData());
     }
 
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);

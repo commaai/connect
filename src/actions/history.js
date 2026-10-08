@@ -1,61 +1,58 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { parsePath, devicePath, drivePath } from '../url';
+import { checkRoutesData, checkLastRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
+// History is the source of truth for navigable screens. This runs for PUSH as
+// well as POP/REPLACE, so links and browser navigation take the same path.
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
+  if (!action) return;
+  const result = next(action);
+  if (action.type !== LOCATION_CHANGE) return result;
+
+  const path = action.payload.location.pathname;
+  const route = parsePath(path);
+  if (route.page === 'unknown') return result;
+
+  let state = getState();
+  if (route.page === 'home' && state.dongleId) {
+    dispatch(replace(devicePath(state.dongleId)));
+    return result;
+  }
+  const deviceChanged = Boolean(route.dongleId && route.dongleId !== state.dongleId);
+  if (deviceChanged) {
+    dispatch(selectDevice(route.dongleId, false, false));
+    state = getState();
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  if (route.page === 'legacy-range') {
+    // Old links use absolute times. Resolve them once and replace the URL;
+    // do not let a late response override a newer browser navigation.
+    api.routes.getRoutesSegments(route.dongleId, route.range.start, route.range.end)
+      .then((routes) => {
+        if (getState().router.location.pathname !== path || !routes?.length) return;
+        const logId = routes[0].fullname.split('|')[1];
+        if (logId) dispatch(replace(drivePath(route.dongleId, logId)));
+      })
+      .catch((err) => console.error('Error resolving legacy drive URL', err));
+    return result;
   }
+
+  const nextRouteId = route.routeId;
+  const routeChanged = state.selectedRouteId !== nextRouteId;
+  const rangeChanged = route.range
+    ? state.zoom?.start !== route.range.start || state.zoom?.end !== route.range.end
+    : Boolean(state.zoom && (state.zoom.start !== 0 || state.zoom.end !== state.currentRoute?.duration));
+  if (deviceChanged || routeChanged || rangeChanged) {
+    dispatch(pushTimelineRange(nextRouteId, route.range?.start ?? null, route.range?.end ?? null, false));
+  }
+  if ((route.page === 'prime') !== state.primeNav) dispatch(primeNav(route.page === 'prime', false));
+  if ((route.page === 'stream') !== state.streamNav) dispatch(streamNav(route.page === 'stream', false));
+
+  if ((deviceChanged || routeChanged) && !nextRouteId) {
+    dispatch(state.limit ? checkRoutesData() : checkLastRoutesData());
+  } else if (deviceChanged || routeChanged || (nextRouteId && !state.currentRoute)) {
+    dispatch(checkRoutesData());
+  }
+  return result;
 };
