@@ -532,7 +532,7 @@ async function openGalleryModal(page, state, label) {
   for (const action of state.actions ?? []) await clickGalleryAction(page, action, label);
   if (!state.modalText) return;
   await page.waitForFunction((expected) => {
-    return Array.from(document.querySelectorAll('[role="document"]'))
+    return Array.from(document.querySelectorAll('[role="dialog"], [role="document"]'))
       .some((element) => globalThis.galleryVisible(element) && element.textContent.includes(expected));
   }, { timeout: 5000 }, state.modalText).catch((error) => {
     throw new Error(`${label}: modal containing ${JSON.stringify(state.modalText)} did not open`, { cause: error });
