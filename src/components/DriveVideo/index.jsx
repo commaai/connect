@@ -62,7 +62,7 @@ class DriveVideo extends Component {
     const video = this.video.current;
     this.unload();
     onAudioStatusChange?.(false);
-    this.setState({ buffering: Boolean(currentRoute), error: null, picture: false });
+    this.setState({ buffering: Boolean(currentRoute), error: null });
     if (!currentRoute) {
       return;
     }
@@ -240,6 +240,7 @@ class DriveVideo extends Component {
           onClick={this.togglePlay}
           onLoadedMetadata={this.onLoadedMetadata}
           onLoadedData={() => this.setState({ picture: true })}
+          onEmptied={() => this.setState({ picture: false })}
           onLoadStart={() => this.setState({ buffering: true })}
           onWaiting={() => this.setState({ buffering: true })}
           onSeeking={() => this.setState({ buffering: true })}
