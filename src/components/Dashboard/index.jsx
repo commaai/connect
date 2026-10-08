@@ -9,7 +9,15 @@ import FullPageLoading from '../FullPageLoading';
 
 const Prime = lazy(() => import('../Prime'));
 
-const Dashboard = ({ primeNav, device, dongleId }) => {
+const Dashboard = ({ primeNav, device, dongleId, notFound }) => {
+  if (notFound) {
+    return (
+      <div className="p-8">
+        <h1 className="text-white text-xl">Page not found</h1>
+      </div>
+    );
+  }
+
   if (!device || !dongleId) {
     return <FullPageLoading />;
   }
@@ -36,6 +44,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   primeNav: state.primeNav,
   device: state.device,
+  notFound: state.notFound,
 });
 
 export default connect(stateToProps)(Dashboard);

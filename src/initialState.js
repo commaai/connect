@@ -4,6 +4,7 @@ import { getDefaultFilter } from './utils/filter';
 export function createInitialState(pathname = window.location.pathname) {
   return {
     dongleId: getDongleID(pathname),
+    notFound: false,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data

@@ -43,7 +43,7 @@ class DriveView extends Component {
     }
 
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const backButtonDisabled = !zoom?.previous && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;

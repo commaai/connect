@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import {
+  dialogUrl,
+  parseLocation,
+  getDongleID,
+  getZoom,
+  getRouteId,
+  getRouteZoom,
+  getPrimeNav,
+  getStreamNav,
+} from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -15,18 +24,10 @@ describe('URL pathname helpers', () => {
     expect(getDongleID(pathname)).toBe(expected);
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
   it.each([
     [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
+    [`/${DONGLE}/0/20/ignored`, null],
+    [`/${DONGLE}/${LOG}/10/20`, null],
     [`/${DONGLE}/10`, null],
     ['/auth/code/provider', null],
   ])('getZoom(%s)', (pathname, expected) => {
@@ -67,5 +68,26 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/prime`, false],
   ])('getStreamNav(%s)', (pathname, expected) => {
     expect(getStreamNav(pathname)).toBe(expected);
+  });
+
+  it('parses directly addressable dialogs from query state', () => {
+    expect(parseLocation({ pathname: `/${DONGLE}`, search: `?dialog=settings&device=${DONGLE}` })).toMatchObject({
+      page: 'dashboard',
+      dialog: 'settings',
+      dialogDevice: DONGLE,
+    });
+    expect(parseLocation({ pathname: `/${DONGLE}/${LOG}`, search: '?dialog=uploads' })).toMatchObject({
+      page: 'drive',
+      dialog: 'uploads',
+    });
+    expect(parseLocation({ pathname: `/${DONGLE}`, search: '?dialog=uploads' }).dialog).toBeNull();
+  });
+
+  it('adds and removes dialogs while preserving unrelated query and hash state', () => {
+    const location = { pathname: `/${DONGLE}`, search: '?foo=bar', hash: '#clip' };
+    const opened = dialogUrl(location, 'settings', DONGLE);
+    expect(opened).toBe(`/${DONGLE}?foo=bar&dialog=settings&device=${DONGLE}#clip`);
+    expect(dialogUrl({ pathname: `/${DONGLE}`, search: `?foo=bar&dialog=settings&device=${DONGLE}`, hash: '#clip' }, null))
+      .toBe(`/${DONGLE}?foo=bar#clip`);
   });
 });

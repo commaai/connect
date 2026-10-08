@@ -21,9 +21,11 @@ import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
 import { analyticsEvent, updateRoute } from '../../actions';
+import { closeDialog, openDialog } from '../../actions/navigation';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
+import { currentView } from '../../url';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -637,7 +639,8 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, clipMenu, moreInfoMenu, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const uploadModal = this.props.dialog === 'uploads';
 
     if (!device) {
       return null;
@@ -747,7 +750,10 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+              onClick={ files ? () => {
+                this.setState({ downloadMenu: null });
+                this.props.dispatch(openDialog('uploads'));
+              } : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -824,7 +830,7 @@ class Media extends Component {
         </Menu>
         <UploadQueue
           open={ uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          onClose={ () => this.props.dispatch(closeDialog()) }
           update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
           store={ this.props.store }
           device={ device }
@@ -924,6 +930,7 @@ const stateToProps = (state) => ({
   device: state.device,
   routes: state.routes,
   currentRoute: state.currentRoute,
+  dialog: currentView(state).dialog,
   zoom: state.zoom,
   loop: state.loop,
   filter: state.filter,

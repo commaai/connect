@@ -134,7 +134,8 @@ class AddDevice extends Component {
   }
 
   async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+    const { pairLoading, pairError, pairDongleId } = this.state;
+    const modalOpen = this.props.open || this.state.modalOpen;
     let { hasCamera } = this.state;
 
     // Check for camera availability
@@ -297,6 +298,7 @@ class AddDevice extends Component {
     }
 
     this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
+    this.props.onClose?.();
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -370,21 +372,26 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    if (this.props.onOpen) {
+      this.props.onOpen();
+    } else {
+      this.setState({ modalOpen: true });
+    }
   }
 
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes, buttonText, buttonStyle, buttonIcon, modalOnly } = this.props;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const modalOpen = this.props.open || this.state.modalOpen;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
+        {!modalOnly && <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
           { buttonText }
           { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
+        </Button>}
         <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>

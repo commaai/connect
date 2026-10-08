@@ -56,6 +56,7 @@ export default function reducer(_state, action) {
     case Types.ACTION_SELECT_DEVICE:
       state = {
         ...state,
+        notFound: false,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
         primeNav: false,
@@ -82,6 +83,23 @@ export default function reducer(_state, action) {
         state.lastRoutes = null;
         state.currentRoute = null;
       }
+      break;
+    case Types.ACTION_URL_NOT_FOUND:
+      state = {
+        ...state,
+        notFound: true,
+        dongleId: null,
+        device: null,
+        routes: null,
+        lastRoutes: null,
+        files: null,
+        selectedRouteId: null,
+        currentRoute: null,
+        zoom: null,
+        loop: null,
+        primeNav: false,
+        streamNav: false,
+      };
       break;
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {

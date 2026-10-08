@@ -116,10 +116,12 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription') && options.subscription) return json(options.subscription);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: [] });
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -151,6 +153,13 @@ describe('whole-app behavior', () => {
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: vi.fn(async () => []),
+        getUserMedia: vi.fn(),
+      },
+    });
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
     Object.defineProperty(window, 'visualViewport', { value: { height: 800 }, configurable: true });
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, value: vi.fn(() => null) });
@@ -209,28 +218,81 @@ describe('whole-app behavior', () => {
   });
 
   test('dashboard filter and empty route states remain usable', async () => {
-    await renderApp(`/${FIRST}`, { emptyRoutes: true });
+    const { history } = await renderApp(`/${FIRST}`, { emptyRoutes: true });
     expect(await screen.findByText('No routes found in selected time range.')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    await waitFor(() => expect(history.location.search).toContain('dialog=filter'));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).not.toContain('dialog=filter'));
     expect(mocks.requests.some(({ url }) => url.includes('routes_segments'))).toBe(true);
+  });
+
+  test('settings modal open, close, and browser history are URL-driven', async () => {
+    const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push({
+      pathname: `/${FIRST}`,
+      search: `?dialog=settings&device=${FIRST}`,
+      state: { dialogReturnKey: history.location.key },
+    }));
+    await waitFor(() => expect(history.location.search).toBe(`?dialog=settings&device=${FIRST}`));
+    expect(screen.getByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    act(() => history.goForward());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('cold settings modal close replaces to its parent URL', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=settings&device=${FIRST}`, { selected: FIRST });
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => {
+      expect(history.location.pathname).toBe(`/${FIRST}`);
+      expect(history.location.search).toBe('');
+    });
+  });
+
+  test('add-device modal is directly addressable and cold close stays in app', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=add-device`, { selected: FIRST });
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    act(() => history.replace(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Pair device')).not.toBeInTheDocument());
+  });
+
+  test('drive upload queue is directly addressable without losing the selected route', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}?dialog=uploads`, { selected: FIRST });
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    expect(store.getState().selectedRouteId).toBe(LOG);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    act(() => history.replace(`/${FIRST}/${LOG}`));
+    await waitFor(() => expect(history.location.search).toBe(''));
   });
 
   test.each([
     ['authenticated whole drive', `/${FIRST}/${LOG}`, true],
     ['authenticated ranged drive', `/${FIRST}/${LOG}/10/20`, true],
+    ['authenticated fractional ranged drive', `/${FIRST}/${LOG}/0.5/20.25`, true],
     ['public whole drive', `/${FIRST}/${LOG}`, false],
     ['public ranged drive', `/${FIRST}/${LOG}/10/20`, false],
   ])('%s opens from a cold entry', async (_name, pathname, authenticated) => {
     const { history, store } = await renderApp(pathname, { authenticated });
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     expect(history.location.pathname).toBe(pathname);
-    const ranged = pathname.endsWith('/10/20');
+    const fractional = pathname.endsWith('/0.5/20.25');
+    const ranged = pathname.endsWith('/10/20') || fractional;
     expect(store.getState()).toMatchObject({
       selectedRouteId: LOG,
-      zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
-      loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
+      zoom: { start: fractional ? 500 : (ranged ? 10000 : 0), end: fractional ? 20250 : (ranged ? 20000 : 60000) },
+      loop: { startTime: fractional ? 500 : (ranged ? 10000 : 0), duration: fractional ? 19750 : (ranged ? 10000 : 60000) },
     });
+  });
+
+  test('invalid path remains not found after startup data arrives', async () => {
+    const { history } = await renderApp('/not/a/valid/path', { selected: FIRST });
+    expect(await screen.findByText('Page not found')).toBeVisible();
+    expect(history.location.pathname).toBe('/not/a/valid/path');
   });
 
   test.each([

@@ -4,6 +4,7 @@ import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
 import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { parseLocation } from '../url';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -55,7 +56,8 @@ export default function init() {
     }
 
     if (devices.length > 0) {
-      if (!state.dongleId) {
+      const currentView = parseLocation(state.router.location);
+      if (!state.dongleId && currentView.valid) {
         const allowPathChange = state.router.location.pathname === '/';
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
         if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
