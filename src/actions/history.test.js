@@ -103,4 +103,21 @@ describe('history middleware', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(history.location.pathname).toBe(`/${OTHER}`);
   });
+
+  it('sends a page view for a new page but not for a dialog', () => {
+    const gtag = vi.fn();
+    vi.stubGlobal('gtag', gtag);
+    const { history } = open(`/${DONGLE}`);
+    history.push(`/${DONGLE}?dialog=settings`);
+    history.push(`/${DONGLE}/prime`);
+    expect(gtag.mock.calls.filter(([, name]) => name === 'page_view')).toHaveLength(2);
+    vi.unstubAllGlobals();
+  });
+
+  it('clears the drive when a signed-out visitor leaves it', () => {
+    mocks.authenticated = false;
+    const { history, store } = open(`/${DONGLE}/${LOG}`);
+    history.push(`/${DONGLE}`);
+    expect(store.getState().selectedRouteId).toBeNull();
+  });
 });

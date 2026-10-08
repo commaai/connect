@@ -122,6 +122,8 @@ const initialState = {
   windowWidth: window.innerWidth,
 };
 
+const deviceKey = (device) => `${device?.dongle_id}/${device?.shared}`;
+
 class Navigation extends Component {
   constructor(props) {
     super(props);
@@ -184,7 +186,7 @@ class Navigation extends Component {
       });
     }
 
-    if (prevProps.device?.dongle_id !== device?.dongle_id) {
+    if (deviceKey(prevProps.device) !== deviceKey(device)) {
       this.updateDevice();
     }
 

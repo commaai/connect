@@ -218,7 +218,10 @@ const styles = (theme) => ({
   },
 });
 
-function primeDialog(dialog, hasPrimeSub, hasCancelAt) {
+function primeDialog(dialog, hasPrimeSub, hasCancelAt, cancelSuccess) {
+  if (dialog === 'prime-cancel' && cancelSuccess) {
+    return dialog;
+  }
   return hasPrimeSub && !hasCancelAt ? dialog : null;
 }
 
@@ -271,13 +274,13 @@ export class PrimeManage extends Component {
   }
 
   resetPlanSwitch(prevProps) {
-    if (prevProps.dialog === 'prime-switch' && this.props.dialog !== 'prime-switch') {
+    if (prevProps.dialog !== 'prime-switch' && this.props.dialog === 'prime-switch') {
       this.setState({ planSwitchStatus: 'confirm', planSwitchMessage: null, planSwitchTarget: null });
     }
   }
 
   planSwitchTarget() {
-    return this.state.planSwitchTarget || otherPrimePlan(this.props.subscription.plan);
+    return this.state.planSwitchTarget || otherPrimePlan(this.props.subscription?.plan);
   }
 
   componentWillUnmount() {
@@ -431,7 +434,7 @@ export class PrimeManage extends Component {
     }
 
     const hasCancelAt = Boolean(hasPrimeSub && subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
-    const shownDialog = primeDialog(this.props.dialog, hasPrimeSub, hasCancelAt);
+    const shownDialog = primeDialog(this.props.dialog, hasPrimeSub, hasCancelAt, this.state.cancelSuccess);
     const alias = deviceNamePretty(device);
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};

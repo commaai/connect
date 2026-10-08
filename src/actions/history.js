@@ -17,10 +17,10 @@ const openLegacyRange = ({ dongleId, startMs, endMs }) => async (dispatch) => {
 };
 
 const reconcile = (place) => (dispatch, getState) => {
-  if (!api.auth.isAuthenticated() && !PUBLIC_PAGES.has(place.page)) return;
-  if (place.page === 'legacy') dispatch(openLegacyRange(place));
+  const mayLoad = api.auth.isAuthenticated() || PUBLIC_PAGES.has(place.page);
+  if (mayLoad && place.page === 'legacy') dispatch(openLegacyRange(place));
   if (!place.dongleId) return;
-  const newDevice = place.dongleId !== getState().dongleId;
+  const newDevice = mayLoad && place.dongleId !== getState().dongleId;
   if (newDevice) dispatch(enterDevice(place.dongleId));
   if (place.page !== 'legacy') dispatch(enterDrive(place));
   if (newDevice) dispatch(checkLastRoutesData());

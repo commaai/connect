@@ -21,6 +21,15 @@ function getPageViewEventLocation(pathname) {
   return pageLocation;
 }
 
+function sendPageView(prevState, location) {
+  if (prevState.place.page !== null && prevState.router.location.pathname === location.pathname) {
+    return;
+  }
+  gtag('event', 'page_view', {
+    page_location: getPageViewEventLocation(location.pathname),
+  });
+}
+
 const clusterMap = {
   s: 1000,
   m: 60000,
@@ -97,9 +106,7 @@ function logAction(action, prevState, state) {
   // eslint-disable-next-line default-case
   switch (action.type) {
     case LOCATION_CHANGE:
-      gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(action.payload.location.pathname),
-      });
+      sendPageView(prevState, action.payload.location);
       return;
 
     case Types.TIMELINE_PUSH_SELECTION:

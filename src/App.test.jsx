@@ -6,7 +6,9 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), cancelled: false,
+}));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -116,7 +118,18 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/prime/cancel')) {
+    mocks.cancelled = true;
+    return json({ success: true });
+  }
+  if (url.pathname.endsWith('/prime/switch_plan')) {
+    await options.switchGate;
+    return json({ success: true });
+  }
+  if (url.pathname.endsWith('/stripe_session')) return json({ payment_status: 'unpaid' });
+  if (url.pathname.endsWith('/subscription')) {
+    return json((mocks.cancelled && options.cancelledSubscription) || options.subscription || null);
+  }
   if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/unpair')) return json({ success: true });
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
@@ -132,6 +145,7 @@ async function renderApp(pathname, options = {}) {
   mocks.authenticated = options.authenticated !== false;
   mocks.options = options;
   mocks.requests = [];
+  mocks.cancelled = false;
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
@@ -393,5 +407,41 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText('Unpaired')).toBeVisible();
     act(() => history.goBack());
     await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith('/'));
+  });
+
+  test('the Prime page survives the return from Stripe checkout', async () => {
+    await renderApp(`/${FIRST}/prime?stripe_success=cs_test`);
+    expect(await screen.findByText('comma prime')).toBeVisible();
+  });
+
+  test('the map loads the location of a device that is not in the list', async () => {
+    await renderApp(`/${SHARED}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(mocks.requests.filter(({ url }) => url.endsWith(`/${SHARED}/location`))).toHaveLength(1);
+  });
+
+  test('a successful Prime cancel keeps its confirmation open', async () => {
+    const cancelledSubscription = { ...subscription, cancel_at: 1_780_000_000 };
+    await renderApp(`/${FIRST}/prime?dialog=prime-cancel`, { devices: primeDevices, subscription, cancelledSubscription });
+    const dialog = (await screen.findByText('Cancel prime subscription')).closest('[role="document"]');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel subscription' }));
+    expect(await screen.findByText('Subscription end')).toBeVisible();
+    expect(screen.getByText('Cancelled subscription.')).toBeVisible();
+  });
+
+  test('a plan switch that finishes after Back does not leak into the next one', async () => {
+    let answer;
+    const switchGate = new Promise((resolve) => { answer = resolve; });
+    const { history } = await renderApp(`/${FIRST}/prime`, { devices: primeDevices, subscription, switchGate });
+    fireEvent.click(await screen.findByRole('button', { name: 'Switch to Lite plan' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm switch' }));
+    act(() => history.goBack());
+    await act(async () => {
+      answer();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Switch to Lite plan' }));
+    expect(await screen.findByRole('button', { name: 'Confirm switch' })).toBeVisible();
   });
 });
