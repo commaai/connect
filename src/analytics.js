@@ -4,6 +4,8 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
+import { currentOffset } from './timeline';
+import { isPlaying } from './timeline/playback';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
@@ -52,13 +54,12 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
   }
 }
 
-function getVideoPercent(state, offset) {
-  const { zoom } = state;
-  if (!offset) {
-    offset = state.offset;
-  }
-  return (offset - (zoom.start)) / (zoom.end - zoom.start);
-}
+const VIDEO_COMMAND_EVENTS = {
+  [Types.ACTION_SEEK]: 'video_seek',
+  [Types.ACTION_PLAY]: 'video_play',
+  [Types.ACTION_PAUSE]: 'video_pause',
+  [Types.ACTION_SET_RATE]: 'video_play',
+};
 
 function logAction(action, prevState, state) {
   if (MyCommaAuth.isAuthenticated() && !state.profile) { // no startup data yet
@@ -96,6 +97,36 @@ function logAction(action, prevState, state) {
         ...properties,
       });
     }
+  }
+
+  // a direct link has its selection before its drive, so a selection is entered once its drive appears
+  const entered = state.zoom && state.currentRoute
+    && state.currentRoute.fullname !== prevState.currentRoute?.fullname;
+
+  if (state.zoom && state.currentRoute
+    && (entered || state.zoom.start !== prevState.zoom?.start || state.zoom.end !== prevState.zoom?.end)) {
+    const duration = state.zoom.end - state.zoom.start;
+    percent = duration / state.currentRoute.duration;
+    gtag('event', 'video_loop', {
+      ...params,
+      loop_duration: duration,
+      loop_duration_percentage: percent,
+      loop_duration_percentage_round: Math.round(percent * 10) / 10,
+    });
+  }
+
+  // a drive plays once its selection is entered
+  const videoEvent = entered ? 'video_play' : VIDEO_COMMAND_EVENTS[action.type];
+  if (state.zoom && videoEvent) {
+    // the command already ran, so the video has not reported its new status yet
+    const playing = videoEvent === 'video_play' || (action.type === Types.ACTION_SEEK && isPlaying(state.playback.status));
+    percent = (currentOffset() - state.zoom.start) / (state.zoom.end - state.zoom.start);
+    gtag('event', videoEvent, {
+      ...params,
+      play_speed: playing ? state.playback.rate : 0,
+      play_percentage: percent,
+      play_percentage_round: Math.round(percent * 10) / 10,
+    });
   }
 
   // eslint-disable-next-line default-case
@@ -184,54 +215,6 @@ function logAction(action, prevState, state) {
           user_properties: {
             device_online: deviceIsOnline(state.device),
           },
-        });
-      }
-      return;
-
-    case Types.ACTION_SEEK:
-      if (state.zoom) {
-        percent = getVideoPercent(state);
-        gtag('event', 'video_seek', {
-          ...params,
-          play_speed: state.desiredPlaySpeed,
-          play_percentage: percent,
-          play_percentage_round: Math.round(percent * 10) / 10,
-        });
-      }
-      return;
-
-    case Types.ACTION_PAUSE:
-      if (state.zoom) {
-        percent = getVideoPercent(state);
-        gtag('event', 'video_pause', {
-          ...params,
-          play_speed: state.desiredPlaySpeed,
-          play_percentage: percent,
-          play_percentage_round: Math.round(percent * 10) / 10,
-        });
-      }
-      return;
-
-    case Types.ACTION_PLAY:
-      if (state.zoom) {
-        percent = getVideoPercent(state);
-        gtag('event', 'video_play', {
-          ...params,
-          play_speed: state.desiredPlaySpeed,
-          play_percentage: percent,
-          play_percentage_round: Math.round(percent * 10) / 10,
-        });
-      }
-      return;
-
-    case Types.ACTION_LOOP:
-      if (state.currentRoute && state.zoom && state.loop?.duration !== 0) {
-        percent = state.loop && state.currentRoute ? state.loop.duration / state.currentRoute.duration : undefined;
-        gtag('event', 'video_loop', {
-          ...params,
-          loop_duration: state.loop?.duration,
-          loop_duration_percentage: percent,
-          loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
         });
       }
       return;

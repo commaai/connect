@@ -26,9 +26,10 @@ const routes = [{
 }];
 
 describe('segments', () => {
-  it('finds current segment', async () => {
-    const [route] = routes;
-    expect(getSegmentNumber(route)).toBe(0);
+  it('finds the segment of a route offset, within the route', () => {
+    const [route, short] = routes;
+    expect([0, 59999, 60000, 2558000].map((offset) => getSegmentNumber(route, offset))).toEqual([0, 0, 1, 42]);
+    expect([-1000, 240000].map((offset) => getSegmentNumber(short, offset))).toEqual([0, 3]);
   });
 
   it('can check if it has segment metadata', () => {

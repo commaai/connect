@@ -35,6 +35,7 @@ class DriveMap extends Component {
     this.isInteracting = false;
     this.isInteractingTimeout = null;
     this.lastMapPos = [0, 0];
+    this.lastOffset = 0;
   }
 
   componentDidMount() {
@@ -44,7 +45,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -53,10 +54,6 @@ class DriveMap extends Component {
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
-    }
-
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
-      this.shouldFlyTo = true;
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
@@ -94,10 +91,17 @@ class DriveMap extends Component {
       return;
     }
 
+    const offset = currentOffset();
+    if (Math.abs(offset - this.lastOffset) > 1000) {
+      // the playhead jumped (a seek, a loop or a skipped gap), so glide to it
+      this.shouldFlyTo = true;
+    }
+    this.lastOffset = offset;
+
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        const pos = this.posAtOffset(offset);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -306,9 +310,7 @@ class DriveMap extends Component {
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
 });
 
 export default connect(stateToProps)(DriveMap);

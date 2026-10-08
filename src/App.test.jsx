@@ -30,7 +30,10 @@ vi.mock('./utils/webrtc', () => ({
   },
 }));
 vi.mock('react-map-gl', () => ({
-  default: React.forwardRef((_props, ref) => <div ref={ref} data-testid="map" />),
+  default: React.forwardRef((_props, ref) => {
+    React.useImperativeHandle(ref, () => ({ getMap: () => null }));
+    return <div data-testid="map" />;
+  }),
   GeolocateControl: () => null,
   HTMLOverlay: () => null,
   Layer: () => null,
@@ -39,20 +42,7 @@ vi.mock('react-map-gl', () => ({
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
 }));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
-}));
+vi.mock('hls.js', () => ({ default: { isSupported: () => false } }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
 const FIRST = 'aaaaaaaaaaaaaaaa';
@@ -75,7 +65,7 @@ function makeRoute(dongleId, logId = RECENT_LOG) {
     segment_end_times: [start + 60_000], segment_numbers: [0], segment_start_times: [start],
     startLocation: { place: logId === LOG ? 'Mock route start' : 'Mock recent route start', details: 'Start details' },
     endLocation: { place: 'Mock route end', details: 'End details' }, start_time_utc_millis: start,
-    url: 'https://routes.example.com',
+    url: 'https://routes.example.com', share_exp: mocks.options.shareExp,
   };
 }
 
@@ -118,6 +108,10 @@ async function mockFetch(input, init = {}) {
   }
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
+  if (url.pathname.endsWith('/qcamera.m3u8')) {
+    if (options.videoStatus) return json({ error: 1, status_code: options.videoStatus }, options.videoStatus);
+    return Promise.resolve(new Response('#EXTM3U\n#EXTINF:60.0,0\nhttps://commadata2.blob.core.windows.net/0/qcamera.ts\n#EXT-X-ENDLIST\n'));
+  }
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
   if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
@@ -147,6 +141,7 @@ async function renderApp(pathname, options = {}) {
 
 describe('whole-app behavior', () => {
   beforeAll(() => {
+    vi.stubEnv('TZ', 'UTC');
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
@@ -229,8 +224,8 @@ describe('whole-app behavior', () => {
     expect(store.getState()).toMatchObject({
       selectedRouteId: LOG,
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
-      loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
+    expect(await screen.findByText(ranged ? '12:00:10 – 0' : '12:00:00 – 0')).toBeVisible();
   });
 
   test.each([
@@ -299,6 +294,46 @@ describe('whole-app behavior', () => {
     for (let i = 0; i < 6; i += 1) fireEvent.click(slower);
     expect(await screen.findByText('0.1×')).toBeVisible();
     expect(slower).toBeDisabled();
+  });
+
+  test('timeline clicks, jump buttons and new selections move the playback clock', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    const clock = await screen.findByText('12:00:00 – 0');
+    const select = (from, to) => {
+      fireEvent.pointerDown(timeline, { button: 0, clientX: from, pageX: from });
+      fireEvent.pointerMove(document, { clientX: to, pageX: to });
+      fireEvent.pointerUp(document, { button: 0, clientX: to, pageX: to });
+    };
+    fireEvent.pointerDown(timeline, { button: 0, clientX: 500, pageX: 500 });
+    fireEvent.pointerUp(timeline, { button: 0, clientX: 500, pageX: 500 });
+    await waitFor(() => expect(clock).toHaveTextContent('12:00:30 – 0'));
+    fireEvent.click(screen.getByRole('button', { name: 'Jump forward 10 seconds' }));
+    await waitFor(() => expect(clock).toHaveTextContent('12:00:40 – 0'));
+    fireEvent.click(screen.getByRole('button', { name: 'Jump back 10 seconds' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Jump back 10 seconds' }));
+    await waitFor(() => expect(clock).toHaveTextContent('12:00:20 – 0'));
+    select(200, 700);
+    await waitFor(() => expect(store.getState().zoom).toMatchObject({ start: 12000, end: 42000 }));
+    expect(clock).toHaveTextContent('12:00:20 – 0');
+    select(0, 100);
+    await waitFor(() => expect(store.getState().zoom).toMatchObject({ start: 12000, end: 15000 }));
+    await waitFor(() => expect(clock).toHaveTextContent('12:00:12 – 0'));
+  });
+
+  test.each([
+    [404, undefined, 'This drive\'s video hasn\'t been uploaded yet or was deleted.'],
+    [403, '1000000000', 'This video link has expired. Reload the page to watch it.'],
+    [403, '4000000000', 'You don\'t have access to this drive\'s video.'],
+    [403, null, 'You don\'t have access to this drive\'s video.'],
+    [401, undefined, 'You don\'t have access to this drive\'s video.'],
+    [500, undefined, 'Unable to load video.'],
+  ])('a playlist answering %i with share expiry %s says why and keeps the timeline', async (videoStatus, shareExp, message) => {
+    await renderApp(`/${FIRST}/${LOG}`, { videoStatus, shareExp });
+    expect(await screen.findByText(message)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Jump forward 10 seconds' }));
+    expect(await screen.findByText('12:00:10 – 0')).toBeVisible();
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {

@@ -15,7 +15,7 @@ import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
+import { currentOffset } from '../../timeline';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -193,17 +193,11 @@ const styles = () => ({
   },
 });
 
-const MediaType = {
-  VIDEO: 'video',
-  MAP: 'map',
-};
-
 class Media extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
       downloadMenu: null,
       clipMenu: null,
@@ -253,28 +247,15 @@ class Media extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
-    const showMapAlways = windowWidth >= 1536;
+    const { downloadMenu, moreInfoMenu, routePreserved } = this.state;
     if (prevProps.dongleId !== this.props.dongleId) {
       this.setState({ clipsSupported: false, clipMenu: null });
       this.checkClipsSupport();
     } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
       this.checkClipsSupport();
     }
-    if (showMapAlways && inView === MediaType.MAP) {
-      this.setState({ inView: MediaType.VIDEO });
-    }
-
-    if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
-    }
-
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
       this.props.dispatch(fetchEvents(this.props.currentRoute));
-    }
-
-    if (prevState.inView && prevState.inView !== this.state.inView) {
-      this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
     }
 
     if (this.props.currentRoute && ((!prevState.downloadMenu && downloadMenu)
@@ -318,7 +299,7 @@ class Media extends Component {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute, currentOffset())}`);
     this.setState({ moreInfoMenu: null });
   }
 
@@ -364,7 +345,7 @@ class Media extends Component {
     }));
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
-    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
+    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute, currentOffset())}/${type}`;
 
     const uploading = {};
     uploading[fileName] = { requested: true };
@@ -375,7 +356,7 @@ class Media extends Component {
 
     // request all possible file names
     for (const fn of FILE_NAMES[type]) {
-      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${fn}`;
+      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute, currentOffset())}/${fn}`;
       paths.push(path);
       url_promises.push(fetchUploadUrls(dongleId, [path]).then(urls => urls[0]));
     }
@@ -387,7 +368,7 @@ class Media extends Component {
   }
 
   async uploadFilesAll(types) {
-    const { dongleId, currentRoute, loop, files } = this.props;
+    const { dongleId, currentRoute, zoom, files } = this.props;
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras', 'ecameras'];
     }
@@ -401,9 +382,9 @@ class Media extends Component {
     }));
 
     const uploading = {};
-    const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
+    const adjusted_start_time = currentRoute.start_time_utc_millis + zoom.start;
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
+      if (currentRoute.segment_start_times[i] < currentRoute.start_time_utc_millis + zoom.end
         && currentRoute.segment_end_times[i] > adjusted_start_time) {
         types.forEach((type) => {
           const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
@@ -427,11 +408,11 @@ class Media extends Component {
   }
 
   _uploadStats(types, count, uploaded, uploading, paused, requested) {
-    const { currentRoute, loop, files } = this.props;
-    const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
+    const { currentRoute, zoom, files } = this.props;
+    const adjusted_start_time = currentRoute.start_time_utc_millis + zoom.start;
 
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
+      if (currentRoute.segment_start_times[i] < currentRoute.start_time_utc_millis + zoom.end
         && currentRoute.segment_end_times[i] > adjusted_start_time) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
@@ -536,73 +517,43 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted, hasAudio } = this.state;
+    const { isMuted, hasAudio } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
-    const showMapAlways = windowWidth >= 1536;
-
+    // one video element for the whole drive view: the map sits below it, or beside it on wide screens
     return (
       <div className="flex flex-col gap-4">
-        {this.renderMediaOptions(showMapAlways)}
-        <div className="flex flex-row gap-5">
-          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {inView === MediaType.VIDEO && (
-              <DriveVideo
-                isMuted={isMuted}
-                onAudioStatusChange={this.handleAudioStatusChange}
-              />
-            )}
-            {(inView === MediaType.MAP && !showMapAlways) && (
-              <div className="w-full">
-                <DriveMap />
-              </div>
-            )}
-          </div>
-          {(inView === MediaType.VIDEO && showMapAlways) &&
-            <div className="w-[40%]">
-              <DriveMap />
-            </div>
-          }
-        </div>
-        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
-          <TimeDisplay
-            isThin
+        {this.renderMediaOptions()}
+        <div className="grid grid-cols-1 gap-x-5 gap-y-4 2xl:grid-cols-[3fr_2fr]">
+          <DriveVideo
             isMuted={isMuted}
-            hasAudio={hasAudio}
-            onMuteToggle={this.handleMuteToggle}
+            onAudioStatusChange={this.handleAudioStatusChange}
           />
+          <div className="flex justify-center">
+            <TimeDisplay
+              isThin
+              isMuted={isMuted}
+              hasAudio={hasAudio}
+              onMuteToggle={this.handleMuteToggle}
+            />
+          </div>
+          <div className="2xl:col-start-2 2xl:row-start-1">
+            <DriveMap />
+          </div>
         </div>
       </div>
     );
   }
 
-  renderMediaOptions(showMapAlways) {
+  renderMediaOptions() {
     const { classes, device } = this.props;
-    const { inView, clipsSupported } = this.state;
+    const { clipsSupported } = this.state;
     return (
       <>
         <div className="flex flex-wrap">
-          { !showMapAlways && (
-            <div className={classes.mediaOptions}>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-                onClick={() => this.setState({ inView: MediaType.VIDEO })}
-              >
-                <Typography className={classes.mediaOptionText}>Video</Typography>
-              </div>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                onClick={() => this.setState({ inView: MediaType.MAP })}
-              >
-                <Typography className={classes.mediaOptionText}>Map</Typography>
-              </div>
-            </div>
-          )}
           <div className={`${classes.mediaOptions} ml-auto`}>
             {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
               <div
@@ -646,7 +597,7 @@ class Media extends Component {
     let fcam = {}; let ecam = {}; let dcam = {}; let
       rlog = {};
     if (files && currentRoute) {
-      const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`;
+      const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute, currentOffset())}`;
       fcam = files[`${seg}/cameras`] || {};
       ecam = files[`${seg}/ecameras`] || {};
       dcam = files[`${seg}/dcameras`] || {};
@@ -787,7 +738,7 @@ class Media extends Component {
             onClick={ this.copySegmentName }
             style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
           >
-            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}` : '---' }</div>
+            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute, currentOffset())}` : '---' }</div>
             <ContentCopy />
           </MenuItem>
           { typeof navigator.share !== 'undefined'
@@ -925,11 +876,9 @@ const stateToProps = (state) => ({
   routes: state.routes,
   currentRoute: state.currentRoute,
   zoom: state.zoom,
-  loop: state.loop,
   filter: state.filter,
   files: state.files,
   profile: state.profile,
-  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

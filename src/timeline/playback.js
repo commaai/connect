@@ -1,111 +1,50 @@
-// basic helper functions for controlling playback
-// we shouldn't want to edit the raw state most of the time, helper functions are better
+// Playback commands and the status of the drive video. The player middleware in
+// `./index.js` runs the commands; the status comes from the video's own events and
+// from DriveVideo when a load starts or fails.
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
 
-export function reducer(_state, action) {
-  let state = { ..._state };
-  let loopOffset = null;
-  if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime;
+export function statusOf(video) {
+  if (video.ended) {
+    return 'ended';
   }
-  switch (action.type) {
-    case Types.ACTION_SEEK:
-      state = {
-        ...state,
-        offset: action.offset,
-        startTime: Date.now(),
-      };
-
-      if (loopOffset !== null) {
-        if (state.offset < loopOffset) {
-          state.offset = loopOffset;
-        } else if (state.offset > (loopOffset + state.loop.duration)) {
-          state.offset = loopOffset + state.loop.duration;
-        }
-      }
-      break;
-    case Types.ACTION_PAUSE:
-      state = {
-        ...state,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-        desiredPlaySpeed: 0,
-      };
-      break;
-    case Types.ACTION_PLAY:
-      if (action.speed !== state.desiredPlaySpeed) {
-        state = {
-          ...state,
-          offset: currentOffset(state),
-          desiredPlaySpeed: action.speed,
-          startTime: Date.now(),
-        };
-      }
-      break;
-    case Types.ACTION_LOOP:
-      if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
-        state.loop = {
-          startTime: action.start,
-          duration: action.end - action.start,
-        };
-      } else {
-        state.loop = null;
-      }
-      break;
-    case Types.ACTION_BUFFER_VIDEO:
-      state = {
-        ...state,
-        isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-      };
-      break;
-    case Types.ACTION_RESET:
-      state = {
-        ...state,
-        desiredPlaySpeed: 1,
-        isBufferingVideo: true,
-        offset: 0,
-        startTime: Date.now(),
-      };
-      break;
-    default:
-      break;
+  if (video.readyState === HTMLMediaElement.HAVE_NOTHING) {
+    return 'loading';
   }
-
-  if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom
-    && state.loop.startTime === state.zoom.start && state.zoom.start === 0) {
-    const loopRouteOffset = state.loop.startTime - state.zoom.start;
-    if (state.currentRoute.videoStartOffset > loopRouteOffset) {
-      state.loop = {
-        startTime: state.zoom.start + state.currentRoute.videoStartOffset,
-        duration: state.loop.duration - (state.currentRoute.videoStartOffset - loopRouteOffset),
-      };
-    }
+  if (video.paused) {
+    return 'paused';
   }
-
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
-  }
-
-  state.isBufferingVideo = Boolean(state.isBufferingVideo);
-
-  return state;
+  return video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA ? 'buffering' : 'playing';
 }
 
-// seek to a specific offset
+export function reducer(state, action) {
+  const { playback } = state;
+  switch (action.type) {
+    case Types.ACTION_SET_RATE:
+      return { ...state, playback: { ...playback, rate: action.rate } };
+    case Types.ACTION_UPDATE_PLAYBACK: {
+      // events from a failed video, or from its teardown, must not hide the error
+      if (playback.status === 'error' && action.status !== 'loading') return state;
+      const error = action.error ?? null;
+      if (action.status === playback.status && error === playback.error) return state;
+      return { ...state, playback: { ...playback, status: action.status, error } };
+    }
+    default:
+      return state;
+  }
+}
+
+export function mediaEvent(video) {
+  return { type: Types.ACTION_UPDATE_PLAYBACK, status: statusOf(video) };
+}
+
+export function videoLoading() {
+  return { type: Types.ACTION_UPDATE_PLAYBACK, status: 'loading' };
+}
+
+export function videoFailed(error) {
+  return { type: Types.ACTION_UPDATE_PLAYBACK, status: 'error', error };
+}
+
 export function seek(offset) {
   return {
     type: Types.ACTION_SEEK,
@@ -113,39 +52,27 @@ export function seek(offset) {
   };
 }
 
-// pause the playback
 export function pause() {
   return {
     type: Types.ACTION_PAUSE,
   };
 }
 
-// resume / change play speed
-export function play(speed = 1) {
+export function play() {
   return {
     type: Types.ACTION_PLAY,
-    speed,
   };
 }
 
-export function selectLoop(start, end) {
-  return {
-    type: Types.ACTION_LOOP,
-    start,
-    end,
-  };
+// Whether the play button shows pause: the video plays or is about to.
+export function isPlaying(status) {
+  return status === 'loading' || status === 'playing' || status === 'buffering';
 }
 
-// update video buffering state
-export function bufferVideo(buffering) {
-  return {
-    type: Types.ACTION_BUFFER_VIDEO,
-    buffering,
-  };
+export function togglePlay(status) {
+  return isPlaying(status) ? pause() : play();
 }
 
-export function resetPlayback() {
-  return {
-    type: Types.ACTION_RESET,
-  };
+export function setRate(rate) {
+  return { type: Types.ACTION_SET_RATE, rate };
 }
