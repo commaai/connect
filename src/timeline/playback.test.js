@@ -1,6 +1,8 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import {
+  bufferVideo, pause, play, reducer, resetPlayback, seek, selectLoop, syncPlayback,
+} from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -129,5 +131,50 @@ describe('playback', () => {
     expect(state.isBufferingVideo).toEqual(false);
 
     expect(state.desiredPlaySpeed).toEqual(2);
+  });
+
+  it('follows the video where it actually is', () => {
+    newNow();
+    let state = makeDefaultStruct();
+
+    state = reducer(state, play());
+    state = reducer(state, syncPlayback(4321));
+    expect(state.offset).toEqual(4321);
+    expect(state.startTime).toEqual(Date.now());
+    expect(currentOffset(state)).toEqual(4321);
+    // a sync only reports position, playback intent stays untouched
+    expect(state.desiredPlaySpeed).toEqual(1);
+
+    // the timeline keeps running from exactly where the video reported
+    state = reducer(state, syncPlayback(5000));
+    expect(currentOffset(state)).toEqual(5000);
+  });
+
+  it('wraps a video sync around the loop', () => {
+    newNow();
+    let state = makeDefaultStruct();
+
+    state = reducer(state, play());
+    state = reducer(state, selectLoop(1000, 2000));
+    state = reducer(state, syncPlayback(2300));
+    expect(state.offset).toEqual(1300);
+    expect(currentOffset(state)).toEqual(1300);
+  });
+
+  it('counts seeks so views can react to them', () => {
+    newNow();
+    let state = makeDefaultStruct();
+    expect(state.seekCount).toEqual(undefined);
+
+    state = reducer(state, seek(500));
+    expect(state.seekCount).toEqual(1);
+    // playback syncs and play/pause are not seeks
+    state = reducer(state, pause());
+    state = reducer(state, syncPlayback(600));
+    state = reducer(state, play());
+    expect(state.seekCount).toEqual(1);
+
+    state = reducer(state, resetPlayback());
+    expect(state.seekCount).toEqual(2);
   });
 });

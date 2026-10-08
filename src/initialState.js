@@ -9,6 +9,7 @@ export function createInitialState(pathname = window.location.pathname) {
     isBufferingVideo: true, // if we're currently buffering for more data
     offset: null,           // in miliseconds, relative to state.zoom.start
     startTime: Date.now(),  // millisecond timestamp in which play began
+    seekCount: 0,           // bumped on seeks so views can react to them
 
     routes: null,
     routesMeta: {

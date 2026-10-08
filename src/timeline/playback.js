@@ -15,6 +15,7 @@ export function reducer(_state, action) {
         ...state,
         offset: action.offset,
         startTime: Date.now(),
+        seekCount: (state.seekCount || 0) + 1,
       };
 
       if (loopOffset !== null) {
@@ -61,6 +62,16 @@ export function reducer(_state, action) {
         startTime: Date.now(),
       };
       break;
+    case Types.ACTION_SYNC_PLAYBACK:
+      // The video element is the clock: pin the timeline to where the video
+      // actually is. Everything else (map, timeline, time display) reads the
+      // timeline, so the video ends up driving all of it.
+      state = {
+        ...state,
+        offset: action.offset,
+        startTime: Date.now(),
+      };
+      break;
     case Types.ACTION_RESET:
       state = {
         ...state,
@@ -68,6 +79,7 @@ export function reducer(_state, action) {
         isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
+        seekCount: (state.seekCount || 0) + 1,
       };
       break;
     default:
@@ -141,6 +153,14 @@ export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
+  };
+}
+
+// report where the video element actually is, moving the timeline to match
+export function syncPlayback(offset) {
+  return {
+    type: Types.ACTION_SYNC_PLAYBACK,
+    offset,
   };
 }
 

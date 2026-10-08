@@ -10,6 +10,7 @@
     "lint": "oxlint src",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "bun add --no-save --trust puppeteer@24.16.0 && node scripts/e2e-video.mjs",
     "test-coverage": "vitest run --coverage"
   },
   "repository": "https://github.com/commaai/connect.git",
@@ -34,6 +35,7 @@
     "connected-react-router": "^4.5.0",
     "dayjs": "^1.11.9",
     "history": "^4.10.1",
+    "hls.js": "^1.7.3",
     "jwt-decode": "^3.1.2",
     "localforage": "^1.10.0",
     "mapbox-gl": "^1.13.3",
@@ -41,7 +43,6 @@
     "react": "~18.2.0",
     "react-dom": "~18.2.0",
     "react-map-gl": "^5.3.21",
-    "react-player": "^2.12.0",
     "react-redux": "^5.1.2",
     "react-router-dom": "^5.3.4",
     "redux": "^4.2.1",

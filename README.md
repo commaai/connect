@@ -11,6 +11,7 @@ Try it with your openpilot device:
 * Install dependencies: `bun install`
 * Start dev server: `bun start`
 * Demo mode: Navigate to `/demo` to test locally without a comma device.
+* Video player e2e check (with the dev server running): `bun run test:e2e`
 
 API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
