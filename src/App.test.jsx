@@ -225,7 +225,8 @@ describe('whole-app behavior', () => {
       selectedRouteId: LOG,
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
     });
-    expect(await screen.findByText(ranged ? '12:00:10 – 0' : '12:00:00 – 0')).toBeVisible();
+    expect(await screen.findByText(ranged ? '12:00:10' : '12:00:00')).toBeVisible();
+    expect(screen.getByText('segment 0')).toBeVisible();
   });
 
   test.each([
@@ -299,7 +300,7 @@ describe('whole-app behavior', () => {
   test('timeline clicks, jump buttons and new selections move the playback clock', async () => {
     const { store } = await renderApp(`/${FIRST}/${LOG}`);
     const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
-    const clock = await screen.findByText('12:00:00 – 0');
+    const clock = await screen.findByText('12:00:00');
     const select = (from, to) => {
       fireEvent.pointerDown(timeline, { button: 0, clientX: from, pageX: from });
       fireEvent.pointerMove(document, { clientX: to, pageX: to });
@@ -307,18 +308,18 @@ describe('whole-app behavior', () => {
     };
     fireEvent.pointerDown(timeline, { button: 0, clientX: 500, pageX: 500 });
     fireEvent.pointerUp(timeline, { button: 0, clientX: 500, pageX: 500 });
-    await waitFor(() => expect(clock).toHaveTextContent('12:00:30 – 0'));
+    await waitFor(() => expect(clock).toHaveTextContent('12:00:30'));
     fireEvent.click(screen.getByRole('button', { name: 'Jump forward 10 seconds' }));
-    await waitFor(() => expect(clock).toHaveTextContent('12:00:40 – 0'));
+    await waitFor(() => expect(clock).toHaveTextContent('12:00:40'));
     fireEvent.click(screen.getByRole('button', { name: 'Jump back 10 seconds' }));
     fireEvent.click(screen.getByRole('button', { name: 'Jump back 10 seconds' }));
-    await waitFor(() => expect(clock).toHaveTextContent('12:00:20 – 0'));
+    await waitFor(() => expect(clock).toHaveTextContent('12:00:20'));
     select(200, 700);
     await waitFor(() => expect(store.getState().zoom).toMatchObject({ start: 12000, end: 42000 }));
-    expect(clock).toHaveTextContent('12:00:20 – 0');
+    expect(clock).toHaveTextContent('12:00:20');
     select(0, 100);
     await waitFor(() => expect(store.getState().zoom).toMatchObject({ start: 12000, end: 15000 }));
-    await waitFor(() => expect(clock).toHaveTextContent('12:00:12 – 0'));
+    await waitFor(() => expect(clock).toHaveTextContent('12:00:12'));
   });
 
   test.each([
@@ -333,7 +334,7 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText(message)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Jump forward 10 seconds' }));
-    expect(await screen.findByText('12:00:10 – 0')).toBeVisible();
+    expect(await screen.findByText('12:00:10')).toBeVisible();
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {

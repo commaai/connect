@@ -81,11 +81,19 @@ const styles = (theme) => ({
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
   },
   currentTime: {
-    margin: `0 ${theme.spacing.unit * 1}px`,
+    margin: `0 ${theme.spacing.unit / 2}px`,
     fontSize: 15,
     fontWeight: 500,
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1.2,
     display: 'block',
     flexGrow: 1,
+  },
+  segment: {
+    display: 'block',
+    fontSize: 11,
+    fontWeight: 400,
+    color: theme.palette.grey[500],
   },
 });
 
@@ -99,9 +107,7 @@ class TimeDisplay extends Component {
     this.jumpBack = this.jumpBack.bind(this);
     this.jumpForward = this.jumpForward.bind(this);
 
-    this.state = {
-      displayTime: this.getDisplayTime(),
-    };
+    this.state = this.getDisplayTime();
   }
 
   componentDidMount() {
@@ -118,15 +124,9 @@ class TimeDisplay extends Component {
     const { currentRoute } = this.props;
     const now = new Date(offset + currentRoute.start_time_utc_millis);
     if (Number.isNaN(now.getTime())) {
-      return '...';
+      return { time: '...', segment: null };
     }
-    let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute, offset);
-    if (seg !== null) {
-      dateString = `${dateString} \u2013 ${seg}`;
-    }
-
-    return dateString;
+    return { time: dayjs(now).format('HH:mm:ss'), segment: getSegmentNumber(currentRoute, offset) };
   }
 
   jumpBack(amount) {
@@ -141,10 +141,9 @@ class TimeDisplay extends Component {
     if (!this.mounted || !this.textHolder.current) {
       return;
     }
-    const newDisplayTime = this.getDisplayTime();
-    const { displayTime } = this.state;
-    if (newDisplayTime !== displayTime) {
-      this.setState({ displayTime: newDisplayTime });
+    const { time, segment } = this.getDisplayTime();
+    if (time !== this.state.time || segment !== this.state.segment) {
+      this.setState({ time, segment });
     }
 
     requestAnimationFrame(this.updateTime);
@@ -152,7 +151,7 @@ class TimeDisplay extends Component {
 
   render() {
     const { classes, dispatch, zoom, playback, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime } = this.state;
+    const { time, segment } = this.state;
     const isPaused = !isPlaying(playback.status);
     const speedStep = timerSteps.indexOf(playback.rate);
     const isExpandedCls = zoom ? 'isExpanded' : '';
@@ -183,7 +182,8 @@ class TimeDisplay extends Component {
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+          <span ref={this.textHolder}>{ time }</span>
+          { segment !== null && <span className={classes.segment}>segment { segment }</span> }
         </Typography>
         <div className={ classes.playSpeedContainer }>
           <IconButton

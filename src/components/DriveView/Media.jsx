@@ -525,7 +525,7 @@ class Media extends Component {
 
     // one video element for the whole drive view: the map sits below it, or beside it on wide screens
     return (
-      <div className="flex flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-[964px] flex-col gap-4 2xl:max-w-none">
         {this.renderMediaOptions()}
         <div className="grid grid-cols-1 gap-x-5 gap-y-4 2xl:grid-cols-[3fr_2fr]">
           <DriveVideo
@@ -540,7 +540,7 @@ class Media extends Component {
               onMuteToggle={this.handleMuteToggle}
             />
           </div>
-          <div className="2xl:col-start-2 2xl:row-start-1">
+          <div className="overflow-hidden rounded-lg 2xl:col-start-2 2xl:row-start-1">
             <DriveMap />
           </div>
         </div>

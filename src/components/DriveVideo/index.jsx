@@ -45,10 +45,8 @@ const VideoOverlay = ({ status, error, onRetry }) => {
     return null;
   }
   return (
-    <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
-      <div className="relative text-center top-[calc(50%_-_25px)]">
-        {content}
-      </div>
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#16181AAA] px-6 text-center">
+      {content}
     </div>
   );
 };
@@ -133,7 +131,7 @@ const DriveVideo = ({ dispatch, currentRoute, zoom, playback, isMuted, onAudioSt
 
   const missingInView = missing.filter((n) => n * 60000 < zoom.end && (n + 1) * 60000 > zoom.start);
   return (
-    <div className="min-h-[200px] relative w-full max-w-[964px] m-[0_auto] aspect-[1.593]">
+    <div className="min-h-[200px] relative w-full aspect-[1.593] overflow-hidden rounded-lg">
       <VideoOverlay status={playback.status} error={playback.error} onRetry={() => setAttempt(attempt + 1)} />
       {missingInView.length > 0 && playback.status !== 'error' && (
         <div className="absolute top-2 left-2 z-40 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white/80">
