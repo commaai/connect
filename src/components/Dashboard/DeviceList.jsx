@@ -14,7 +14,8 @@ import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
+import { push } from 'connected-react-router';
+import { settingsLocation } from '../../url';
 
 const styles = (theme) => ({
   deviceList: {
@@ -88,24 +89,15 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    this.props.dispatch(push(settingsLocation(this.props.location, dongleId)));
   }
 
   async onVisible() {
@@ -158,7 +150,6 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -202,17 +193,13 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }
 }
 
 const stateToProps = (state) => ({
+  location: state.router.location,
   devices: state.devices,
   device: state.device,
   profile: state.profile,

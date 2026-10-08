@@ -24,6 +24,7 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import UrlSettings from './Dashboard/UrlSettings';
 
 const styles = (theme) => ({
   app: {
@@ -270,6 +271,7 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        <UrlSettings />
       </div>
     );
   }

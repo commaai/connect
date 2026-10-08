@@ -1,6 +1,6 @@
 /* eslint-disable no-import-assign */
 import { vi } from 'vitest';
-import { LOCATION_CHANGE } from 'connected-react-router';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import { drives as Drives } from '../api';
 import { onHistoryMiddleware } from './history';
@@ -30,7 +30,7 @@ const baseState = {
 function create(state = baseState) {
   const store = { getState: vi.fn(() => state), dispatch: vi.fn() };
   const next = vi.fn();
-  const invoke = (action) => onHistoryMiddleware(store)(next)(action);
+  const invoke = onHistoryMiddleware(store)(next);
   return { store, next, invoke };
 }
 
@@ -90,9 +90,9 @@ describe('history middleware', () => {
 
   it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
-    const { invoke } = create();
+    const { invoke, store } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
+    await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith(replace({ pathname: `/${DONGLE}/${LOG}` })));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
@@ -121,11 +121,70 @@ describe('history middleware', () => {
   ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
     const entering = create();
     entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(true, false);
 
     vi.clearAllMocks();
     const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
     leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(false, false);
   });
+});
+
+describe('URL-owned transitions', () => {
+  it.each(['PUSH', 'POP', 'REPLACE'])('applies drive navigation for %s', (action) => {
+    const { invoke } = create();
+    invoke(location(`/${DONGLE}/${LOG}/0/20`, action));
+    expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 20000, false);
+  });
+  it('does not reset the current drive when only a modal query changes', () => {
+    const { store, invoke } = create({ ...baseState, selectedRouteId: LOG, zoom: { start: 0, end: 20000 } });
+    const action = location(`/${DONGLE}/${LOG}/0/20`, 'PUSH');
+    action.payload.location.search = `?settings=${DONGLE}`;
+    invoke(action);
+    expect(store.dispatch).not.toHaveBeenCalled();
+  });
+  it('does not push another URL while applying browser history to Prime', () => {
+    const { invoke } = create();
+    invoke(location(`/${DONGLE}/prime`));
+    expect(actions.primeNav).toHaveBeenCalledWith(true, false);
+  });
+  it('ignores a legacy lookup after navigating away', async () => {
+    let finish;
+    Drives.getRoutesSegments.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    const { store, invoke } = create();
+    invoke(location(`/${DONGLE}/1000/2000`));
+    invoke(location(`/${DONGLE}`));
+    finish([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
+    await Promise.resolve();
+    expect(store.dispatch).not.toHaveBeenCalled();
+  });
+});
+
+it('returns to the dashboard on the home URL without refetching the device', () => {
+  const { invoke } = create({ ...baseState, selectedRouteId: LOG, zoom: { start: 0, end: 20000 } });
+  invoke(location('/', 'PUSH'));
+  expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
+  expect(actions.selectDevice).not.toHaveBeenCalled();
+});
+
+it('preserves a loaded whole drive when only the settings URL changes', () => {
+  const { store, invoke } = create({ ...baseState, selectedRouteId: LOG,
+    zoom: { start: 0, end: 60000 }, currentRoute: { duration: 60000 } });
+  const action = location(`/${DONGLE}/${LOG}`, 'PUSH');
+  action.payload.location.search = `?settings=${DONGLE}`;
+  invoke(action);
+  expect(store.dispatch).not.toHaveBeenCalled();
+});
+
+it('leaves stream/Prime navigation when entering referrals without dropping cached drive state', () => {
+  const { invoke } = create({ ...baseState, streamNav: true, primeNav: true, selectedRouteId: LOG });
+  invoke(location('/referrals', 'PUSH'));
+  expect(actions.streamNav).toHaveBeenCalledWith(false, false);
+  expect(actions.primeNav).toHaveBeenCalledWith(false, false);
+  expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+});
+it('selects the synthetic device when entering the demo URL', () => {
+  const { invoke } = create();
+  invoke(location('/demo', 'PUSH'));
+  expect(actions.selectDevice).toHaveBeenCalledWith('deadbeefdeadbeef', false, false);
 });
