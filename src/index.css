@@ -57,6 +57,7 @@ html {
   margin-right: env(safe-area-inset-right);
 }
 
+/* Shrink the drive view below 416px so its controls fit instead of overflowing. */
 html:has(.DriveView) {
   font-size: min(16px, 3.846vw);
 }
