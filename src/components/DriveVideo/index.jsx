@@ -18,27 +18,27 @@ const RetryButton = ({ onRetry, className = '' }) => (
 );
 
 const VideoOverlay = ({ loading, error, onRetry }) => {
-  let content;
   if (error) {
-    content = (
-      <>
-        <ErrorOutline className="mb-2" aria-hidden="true" />
-        <Typography className="pb-4">{error}</Typography>
-        <RetryButton onRetry={onRetry} />
-      </>
-    );
-  } else if (loading) {
-    content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />;
-  } else {
-    return null;
-  }
-  return (
-    <div role={error ? 'alert' : 'status'} aria-label={error ? undefined : 'Loading video'} className="z-10 absolute inset-0 flex items-center justify-center bg-[#16181AAA] rounded-lg">
-      <div className="p-6 text-center max-w-md">
-        {content}
+    return (
+      <div role="alert" className="z-10 absolute inset-0 flex items-center justify-center bg-[#16181A]/85 animate-fadein">
+        <div className="p-6 text-center max-w-md">
+          <ErrorOutline className="mb-2 text-white/60" aria-hidden="true" />
+          <Typography className="pb-4 text-white/80">{error}</Typography>
+          <RetryButton onRetry={onRetry} />
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+  if (loading) {
+    // A light, delayed scrim keeps the last frame visible and does not flash
+    // for seeks the buffer can satisfy immediately.
+    return (
+      <div role="status" aria-label="Loading video" className="z-10 absolute inset-0 flex items-center justify-center bg-black/30 animate-[fadein_0.2s_ease-out_0.3s_both]">
+        <CircularProgress style={{ color: Colors.white }} thickness={3.6} size={40} />
+      </div>
+    );
+  }
+  return null;
 };
 
 // While the map is shown the player is hidden, so explain why the map is not
@@ -46,7 +46,7 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
 const VideoErrorBanner = ({ error, onRetry }) => (
   <div role="alert" className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-[#16181A] py-3 pl-4 pr-3">
     <ErrorOutline className="text-white/60" fontSize="small" aria-hidden="true" />
-    <Typography className="min-w-48 flex-1">{error}</Typography>
+    <Typography className="min-w-48 flex-1 text-white/80">{error}</Typography>
     <RetryButton onRetry={onRetry} className="ml-auto" />
   </div>
 );
