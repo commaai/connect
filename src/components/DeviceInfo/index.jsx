@@ -7,7 +7,7 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
-import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { analyticsEvent, closeDialog, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
@@ -311,9 +311,10 @@ class DeviceInfo extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, dispatch, navigation } = this.props;
     const { snapshot, windowWidth } = this.state;
     const commacare = device?.commacare;
+    const clipDialogOpen = ['clips', 'clip', 'clip-delete'].includes(navigation?.dialog);
 
     const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
 
@@ -330,10 +331,13 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
+          open={Boolean(this.state.clipMenu) || clipDialogOpen}
           dongleId={this.props.dongleId}
           anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          onClose={() => {
+            if (clipDialogOpen) dispatch(closeDialog());
+            this.setState({ clipMenu: null });
+          }}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -517,6 +521,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,
+  navigation: state.navigation,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));

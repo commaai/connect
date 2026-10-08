@@ -3,7 +3,9 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import {
+  primeFetchSubscription, checkLastRoutesData, checkRoutesData, selectDevice, fetchSharedDevice, resolveLegacyRange,
+} from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -42,26 +44,27 @@ async function initDevices() {
 
 export default function init() {
   return async (dispatch, getState) => {
-    let state = getState();
-    if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
-    }
-
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    state = getState();
+    let state = getState();
 
     if (profile) {
       Sentry.setUser({ id: profile.id });
     }
 
+    dispatch({
+      type: ACTION_STARTUP_DATA,
+      profile,
+      devices,
+    });
+    state = getState();
+
     if (devices.length > 0) {
-      if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
+      if (!state.dongleId && state.navigation.page !== 'referrals') {
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
         if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
+          dispatch(selectDevice(selectedDongleId));
         } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+          dispatch(selectDevice(devices[0].dongle_id));
         }
       }
       const dongleId = getState().dongleId;
@@ -73,10 +76,13 @@ export default function init() {
       }
     }
 
-    dispatch({
-      type: ACTION_STARTUP_DATA,
-      profile,
-      devices,
-    });
+    state = getState();
+    if (state.navigation.page === 'legacy') {
+      dispatch(resolveLegacyRange(state.dongleId, state.navigation.range.start, state.navigation.range.end));
+    } else if (state.navigation.page === 'drive') {
+      dispatch(checkRoutesData());
+    } else if (state.dongleId) {
+      dispatch(checkLastRoutesData());
+    }
   };
 }

@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState(history.location));
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -233,6 +233,11 @@ describe('whole-app behavior', () => {
     });
   });
 
+  test('an unknown authenticated route resolves to the route-not-found state', async () => {
+    await renderApp(`/${FIRST}/2026-08-06--99-99-99`);
+    expect(await screen.findByText('Route does not exist.')).toBeVisible();
+  });
+
   test.each([
     ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`],
   ])('signed-out %s entry retains its path', async (_name, pathname) => {
@@ -242,9 +247,14 @@ describe('whole-app behavior', () => {
   });
 
   test('a missing public route redirects to login with the requested route', async () => {
-    const pathname = `/${FIRST}/2026-08-06--99-99-99`;
+    const pathname = `/${FIRST}/2026-08-06--99-99-99?dialog=clips&source=shared`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledOnce());
+    const redirect = new URL(mocks.hardNavigate.mock.calls[0][0], window.location.origin);
+    const requestedUrl = new URL(redirect.searchParams.get('r'), window.location.origin);
+    expect(requestedUrl.pathname).toBe(`/${FIRST}/2026-08-06--99-99-99`);
+    expect(requestedUrl.searchParams.get('dialog')).toBe('clips');
+    expect(requestedUrl.searchParams.get('source')).toBe('shared');
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {
@@ -266,6 +276,40 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
+
+  test('a deep-linked settings dialog keeps its device dashboard behind it', async () => {
+    const { history, store } = await renderApp(`/${FIRST}?dialog=settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(store.getState().navigation).toMatchObject({ page: 'dashboard', dialog: 'settings' });
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('the nested settings dialog returns to settings and then its background page', async () => {
+    const { history, store } = await renderApp(`/${FIRST}?dialog=settings-unpair`);
+    expect(await screen.findByText('Unpair device')).toBeVisible();
+    expect(store.getState().navigation.dialog).toBe('settings-unpair');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe('?dialog=settings'));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+  });
+
+  test('browser Back and Forward close and restore the filter dialog', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    expect(await screen.findByRole('button', { name: 'Save' })).toBeVisible();
+    await waitFor(() => expect(history.location.search).toBe('?dialog=filter'));
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.search).toBe(''));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument());
+    act(() => history.goForward());
+    expect(await screen.findByRole('button', { name: 'Save' })).toBeVisible();
   });
 
   test('stream close and browser history restore its view', async () => {

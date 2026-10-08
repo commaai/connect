@@ -95,5 +95,21 @@ describe('segments', () => {
       },
       dongleId: 'asdfasdf',
     })).toBe(true);
+
+    expect(hasRoutesData({
+      routes: [],
+      routesMeta: {
+        dongleId: 'asdfasdf',
+        start: 0,
+        end: 30,
+        limit: 5,
+      },
+      filter: {
+        start: 10,
+        end: 20,
+      },
+      dongleId: 'asdfasdf',
+      limit: 10,
+    })).toBe(false);
   });
 });

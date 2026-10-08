@@ -20,7 +20,7 @@ import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
-import { analyticsEvent, updateRoute } from '../../actions';
+import { analyticsEvent, closeDialog, openDialog, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
@@ -208,7 +208,6 @@ class Media extends Component {
       downloadMenu: null,
       clipMenu: null,
       moreInfoMenu: null,
-      uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
@@ -580,7 +579,7 @@ class Media extends Component {
   }
 
   renderMediaOptions(showMapAlways) {
-    const { classes, device } = this.props;
+    const { classes, device, dispatch } = this.props;
     const { inView, clipsSupported } = this.state;
     return (
       <>
@@ -609,7 +608,12 @@ class Media extends Component {
                 className={classes.mediaOption}
                 style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
                 aria-haspopup="true"
-                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
+                onClick={(ev) => {
+                  if (deviceIsOnline(device)) {
+                    this.setState({ clipMenu: ev.currentTarget });
+                    dispatch(openDialog('clips'));
+                  }
+                }}
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
@@ -636,8 +640,10 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { currentRoute, device, classes, files, profile, navigation, dispatch } = this.props;
+    const { downloadMenu, clipMenu, moreInfoMenu, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const clipDialogOpen = ['clips', 'clip', 'clip-delete'].includes(navigation.dialog);
+    const uploadModal = navigation.dialog === 'uploads';
 
     if (!device) {
       return null;
@@ -669,14 +675,16 @@ class Media extends Component {
     return (
       <>
         <ClipMenu
-          open={Boolean(alwaysOpen || clipMenu)}
+          open={Boolean(alwaysOpen || clipDialogOpen)}
           dongleId={this.props.dongleId}
           anchorEl={clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          onClose={() => dispatch(closeDialog())}
           route={currentRoute}
           routes={this.props.routes}
           zoom={this.props.zoom}
           deviceOnline={deviceIsOnline(device)}
+          navigation={navigation}
+          dispatch={dispatch}
         />
         <Menu
           id="menu-download"
@@ -747,7 +755,7 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+              onClick={ files ? () => { this.setState({ downloadMenu: null }); dispatch(openDialog('uploads')); } : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -824,7 +832,7 @@ class Media extends Component {
         </Menu>
         <UploadQueue
           open={ uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          onClose={ () => dispatch(closeDialog()) }
           update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
           store={ this.props.store }
           device={ device }
@@ -930,6 +938,7 @@ const stateToProps = (state) => ({
   files: state.files,
   profile: state.profile,
   isBufferingVideo: state.isBufferingVideo,
+  navigation: state.navigation,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
