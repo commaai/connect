@@ -390,7 +390,7 @@ class AddDevice extends Component {
         <Modal aria-labelledby="add-device-modal" open={ Boolean(dialogOnly && modalOpen) } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
-              <Typography id="add-device-modal" variant="title">Pair your device</Typography>
+              <Typography id="add-device-modal" variant="title">Pair device</Typography>
               <Typography variant="caption">
                 scan QR code
               </Typography>
