@@ -41,7 +41,7 @@ export function parseRoute(input = '/') {
   const clipAllowed = clipModal && (page === 'dashboard' || page === 'drive') && Boolean(dongleId)
     && (!clipTargetModalNames.has(requestedModal) || validClip);
   const modalAllowed = clipAllowed
-    || (requestedModal === 'date-filter' && page === 'dashboard')
+    || (requestedModal === 'date-filter' && (page === 'dashboard' || page === 'demo'))
     || (primeModalNames.has(requestedModal) && page === 'prime')
     || (globalModalNames.has(requestedModal) && page !== 'auth' && page !== 'demo');
   const needsDevice = deviceTargetModalNames.has(requestedModal);
