@@ -119,12 +119,18 @@ test('a nonzero clip starts at its boundary and loops using the real decoder', a
 test('changing the section keeps pause and moves only a playhead outside it', async ({ page }) => {
   await openPlayer(page);
   await playing(page);
+  // The whole drive has nothing to go back to, so it offers Home instead.
+  const home = page.getByRole('button', { name: 'Home' });
+  await expect(home).toHaveAttribute('href', '/0000aaaa0000aaaa');
+  await expect(page.getByRole('button', { name: 'Go Back' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await page.getByRole('button', { name: 'Select 8–12 second clip' }).click();
+  await expect(home).toHaveCount(0);
   await expect.poll(async () => (await video(page)).time).toBeGreaterThanOrEqual(8000);
   await expect(page.locator('.DriveView')).toContainText(/@ \d\d:00:08 - \d\d:00:12/);
   // Back to the whole drive contains the playhead, so nothing should move.
   await page.getByRole('button', { name: 'Go Back' }).click();
+  await expect(home).toBeVisible();
   await page.waitForTimeout(500);
   const media = await video(page);
   expect(media.paused).toBe(true);

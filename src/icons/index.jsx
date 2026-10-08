@@ -19,6 +19,12 @@ export const ArrowBackBold = (props) => (
   </SvgIcon>
 );
 
+export const HomeBold = (props) => (
+  <SvgIcon {...props} viewBox="0 -960 960 960">
+    <path d="M160-120v-480l320-240 320 240v480H560v-280H400v280H160Z" />
+  </SvgIcon>
+);
+
 export const Check = (props) => (
   <SvgIcon {...props} viewBox="0 -960 960 960">
     <path d="M378-246 154-470l43-43 181 181 384-384 43 43-427 427Z" />

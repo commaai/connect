@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import { IconButton, Typography } from '@material-ui/core';
 
 import { popTimelineRange, pushTimelineRange } from '../../actions';
-import { ArrowBackBold, CloseBold } from '../../icons';
+import { ArrowBackBold, CloseBold, HomeBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
 import Media from './Media';
@@ -43,7 +43,6 @@ class DriveView extends Component {
     }
 
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
     // A selected section is often under a minute, so show its seconds.
@@ -60,13 +59,22 @@ class DriveView extends Component {
         <div className="flex flex-col gap-4 rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
-              <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
-                aria-label="Go Back"
-                disabled={ backButtonDisabled }
-              >
-                <ArrowBackBold />
-              </IconButton>
+              {currentRouteBoundsSelected ? (
+                <IconButton
+                  onClick={ filterRegularClick(this.close) }
+                  aria-label="Home"
+                  href={ `/${dongleId}` }
+                >
+                  <HomeBold />
+                </IconButton>
+              ) : (
+                <IconButton
+                  onClick={ () => this.onBack(zoom, currentRoute) }
+                  aria-label="Go Back"
+                >
+                  <ArrowBackBold />
+                </IconButton>
+              )}
               <div className="flex flex-col items-center gap-1 text-white text-lg font-medium">
                 {currentRoute.demo_title ? (
                   <div className="w-fit rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
