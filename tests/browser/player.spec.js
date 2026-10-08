@@ -10,6 +10,7 @@ let server;
 let mediaUrl;
 let manifestFails;
 let segmentFails;
+let segmentDelay;
 let failures;
 test.beforeAll(async () => {
   fixture = mkdtempSync(join(tmpdir(), 'connect-video-'));
@@ -19,9 +20,10 @@ test.beforeAll(async () => {
     '-hls_list_size', '0', '-hls_segment_filename', join(fixture, 'segment%d.ts'), join(fixture, 'video.m3u8')]);
   // Serve actual failures rather than mocking fetch: native HLS can use the
   // operating system's network stack, outside Playwright route interception.
-  server = createServer((request, response) => {
+  server = createServer(async (request, response) => {
     response.setHeader('Access-Control-Allow-Origin', '*');
     const file = new URL(request.url, 'http://localhost').pathname.slice(1);
+    await new Promise((resolve) => setTimeout(resolve, segmentDelay?.(file) || 0));
     if (!/^(video\.m3u8|segment\d+\.ts)$/.test(file)
       || (file === 'video.m3u8' ? manifestFails?.() : segmentFails?.(file))) {
       failures.push(file);
@@ -43,6 +45,7 @@ test.afterAll(async () => {
 async function openPlayer(page, options = {}) {
   manifestFails = options.manifestFails;
   segmentFails = options.segmentFails;
+  segmentDelay = options.segmentDelay;
   failures = [];
   await page.goto(`/tests/browser/player.html?media=${encodeURIComponent(mediaUrl)}`);
 }
@@ -183,4 +186,40 @@ test('a missing media fragment cannot advance the map clock and retry restores p
   await page.getByRole('button', { name: 'Retry video' }).click();
   await playing(page);
   await expect.poll(async () => (await state(page)).buffering).toBe(false);
+});
+
+test('a fragment failing after playback has begun stops in place or is skipped, never desynchronized', async ({ page }) => {
+  let failed = true;
+  // Hold the fragment so playback is under way before its request fails.
+  await openPlayer(page, { segmentFails: (file) => failed && file === 'segment6.ts', segmentDelay: (file) => (failed && file === 'segment6.ts' ? 3000 : 0) });
+  await playing(page);
+  // hls.js plays what it buffered and stops at the gap with Retry; native
+  // HLS (AVFoundation) may skip the fragment and keep playing instead.
+  const retry = page.getByRole('button', { name: 'Retry video' });
+  await expect.poll(async () => await retry.count() > 0 || (await video(page)).time > 14000, { timeout: 30000 }).toBe(true);
+  const media = await video(page);
+  expect(Math.abs((await state(page)).offset - media.time)).toBeLessThan(250);
+  if (await retry.count() === 0) return;
+  expect(media.paused).toBe(true);
+  expect(media.time).toBeGreaterThan(500);
+  expect(media.time).toBeLessThan(12100); // segment6 starts at 12s plus its timestamp offset
+  failed = false;
+  await retry.click();
+  await expect.poll(async () => (await video(page)).time, { timeout: 20000 }).toBeGreaterThan(media.time + 500);
+  await expect(retry).toHaveCount(0);
+});
+
+test('a burst of timeline clicks lands on the last one', async ({ page }) => {
+  await openPlayer(page);
+  await playing(page);
+  const ruler = await page.getByRole('slider', { name: 'Drive timeline' }).boundingBox();
+  for (const fraction of [0.9, 0.2, 0.6, 0.1, 0.8, 0.7]) {
+    await page.mouse.click(ruler.x + ruler.width * fraction, ruler.y + ruler.height / 2);
+  }
+  await expect.poll(async () => (await state(page)).buffering).toBe(false);
+  const media = await video(page);
+  expect(media.time).toBeGreaterThan(13500);
+  expect(media.time).toBeLessThan(15500);
+  expect(Math.abs((await state(page)).offset - media.time)).toBeLessThan(100);
+  await expect(page.getByRole('button', { name: 'Retry video' })).toHaveCount(0);
 });
