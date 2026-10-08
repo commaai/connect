@@ -16,7 +16,8 @@ const options = { output: resolve(root, 'test-results/playback'), case: '' };
 
 const scenarios = new Map();
 function scenario() {
-  return { holdManifest: false, holdFrom: Infinity, failFrom: Infinity, missingManifest: false, requests: [], pending: new Set() };
+  return { holdManifest: false, holdFrom: Infinity, failFrom: Infinity, missingManifest: false,
+    fragmentFault: null, requests: [], measurements: {}, pending: new Set() };
 }
 export function release(control) {
   const pending = [...control.pending];
@@ -33,14 +34,29 @@ function mediaMiddleware(request, response, next) {
   const segment = filename === 'audio.m3u8' ? null : Number(filename.match(/\d+/)[0]);
   const receipt = { url: url.pathname + url.search, segment, at: Date.now(), status: null };
   control.requests.push(receipt);
+  response.once('close', () => {
+    receipt.closedAt = Date.now();
+    receipt.aborted = !response.writableEnded;
+  });
   const send = async () => {
     if (response.destroyed) return;
     const failed = segment === null ? control.missingManifest : segment >= control.failFrom;
     receipt.status = failed ? 404 : 200;
+    const fault = control.fragmentFault;
+    if (segment !== null && segment >= fault?.from && fault.remaining > 0) {
+      fault.remaining -= 1;
+      receipt.faultAt = Date.now();
+      receipt.fault = fault.status === null ? 'timeout' : `http-${fault.status}`;
+      receipt.status = fault.status;
+      // Leave this actual HTTP response open until the production loader's
+      // default first-byte timeout aborts it; only subsequent requests succeed.
+      if (fault.status === null) return;
+    }
+    receipt.respondedAt = Date.now();
     response.statusCode = receipt.status;
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('Content-Type', segment === null ? 'application/vnd.apple.mpegurl' : 'video/mp2t');
-    if (failed) { response.end('Controlled missing media'); return; }
+    if (receipt.status !== 200) { response.end('Controlled media failure'); return; }
     try { response.end(await readFile(resolve(fixtureRoot, filename))); }
     catch (error) { receipt.status = 500; response.statusCode = 500; response.end(error.message); }
   };
@@ -135,6 +151,53 @@ function sourceChangeCase(gated) {
       assert(control.requests.some((request) => request.segment === null && request.url.includes(encodeURIComponent(changed.route))));
       await click(page, 'Unpause');
       await moving(page);
+    },
+  };
+}
+
+function transientFragmentCase(count, status) {
+  const timeout = status === null;
+  return {
+    name: timeout ? 'fragment-timeout-recovers' : `fragment-${status}-${count}-retries-recover`,
+    setup: (control) => {
+      control.holdFrom = 4;
+      control.fragmentFault = { from: 4, remaining: count, status };
+    },
+    async run({ page, control }) {
+      await ready(page);
+      await click(page, 'Unpause');
+      await moving(page);
+      await click(page, 'Increase play speed by 1 step');
+      await click(page, 'Unmute');
+      await wait(page, (s) => s.rate === 2 && !s.muted && !s.paused, 'nondefault transport before transient fault');
+      await command(page, 'seek', 6000);
+      await wait(page, (s) => !s.seeking && s.currentTime >= 6, 'decoded pre-fault playback');
+      const before = await snapshot(page);
+      control.holdFrom = Infinity;
+      release(control);
+      const recovered = await wait(page, (s) => s.currentTime > 8.2 && s.readyState >= 3 && !s.spinner && !s.error,
+        'transient fragment fault recovers without Retry or Play', null, 30000);
+      assert.equal(recovered.mediaId, before.mediaId);
+      assert.equal(recovered.desiredSpeed, 2, 'transient faults retain playback intent');
+      assert.equal(recovered.rate, 2, 'transient recovery retains selected rate');
+      assert.equal(recovered.muted, false, 'transient recovery retains user unmute');
+      await moving(page);
+      const faults = control.requests.filter((request) => request.fault);
+      assert.equal(faults.length, count, 'all configured real HTTP faults must occur');
+      assert.equal(control.fragmentFault.remaining, 0);
+      assert(control.requests.some((request) => request.segment === faults[0].segment && request.status === 200
+        && request.at > faults.at(-1).faultAt), 'the failed fragment must load successfully on a subsequent request');
+      assert.equal(control.requests.filter((request) => request.segment === null).length, 1,
+        'transient recovery must use the existing source session');
+      if (timeout) {
+        assert.equal(faults[0].status, null, 'timeout response sends no HTTP status or body');
+        assert.equal(faults[0].aborted, true, 'the real loader must abort the held HTTP response');
+        // The loader's timer starts with the request, before the test releases its hold.
+        control.measurements.fragmentTimeoutMs = faults[0].closedAt - faults[0].at;
+        assert(control.measurements.fragmentTimeoutMs >= 9500, 'exercise the default 10-second first-byte timeout');
+      } else {
+        assert(faults.every((request) => request.status === status));
+      }
     },
   };
 }
@@ -293,8 +356,13 @@ const cases = [
       const before = await wait(page, (s) => s.mapVisible, 'map selected before fault');
       control.failFrom = 4;
       control.holdFrom = Infinity;
+      const faultStarted = Date.now();
       release(control); // Real HTTP 404s begin only after playback and Map were observed.
-      const failed = await wait(page, (s) => Boolean(s.error) && !s.spinner, 'midstream failure settles', null, 90000);
+      const failed = await wait(page, (s) => Boolean(s.error) && !s.spinner, 'midstream missing fragment settles promptly', null, 5000);
+      control.measurements.missingFragmentErrorMs = Date.now() - faultStarted;
+      assert(control.measurements.missingFragmentErrorMs <= 5000, 'a listed missing fragment must not incur the normal retry backoff');
+      const missingRequests = control.requests.filter((request) => request.segment !== null && request.status === 404);
+      assert(missingRequests.length > 0 && missingRequests.length <= 2, 'missing footage must stop repeated 404 requests');
       assert.equal(failed.mediaId, before.mediaId);
       assert.equal(failed.desiredSpeed, 0, 'terminal media failure must expose paused intent, including in Map');
       assert.equal(failed.playLabel, 'Unpause', 'Map must offer Play after terminal failure');
@@ -316,6 +384,9 @@ const cases = [
       await wait(page, (s) => !s.mapVisible && !s.error && !s.paused, 'Video returns to recovered playback');
     },
   },
+  ...[1, 2, 3].map((count) => transientFragmentCase(count, 503)),
+  transientFragmentCase(1, 404),
+  transientFragmentCase(1, null),
   sourceChangeCase(false),
   sourceChangeCase(true),
   {
@@ -376,7 +447,8 @@ async function runCase(browser, origin, specification, index) {
     await specification.run({ page, control });
     assert.deepEqual(failures, [], 'uncaught page errors or unexpected external requests');
     const result = { name: specification.name, passed: true, milliseconds: Date.now() - started,
-      final: await snapshot(page), events: await page.evaluate(() => window.playbackHarness.events()), requests: control.requests };
+      final: await snapshot(page), events: await page.evaluate(() => window.playbackHarness.events()),
+      requests: control.requests, measurements: control.measurements };
     console.log(`PASS ${specification.name} (${result.milliseconds}ms)`);
     return result;
   } catch (error) {
@@ -385,7 +457,8 @@ async function runCase(browser, origin, specification, index) {
     await page.screenshot({ path: resolve(artifact, 'failure.png'), fullPage: true }).catch(() => {});
     const state = await snapshot(page).catch(() => null);
     const events = await page.evaluate(() => window.playbackHarness?.events()).catch(() => null);
-    const result = { name: specification.name, passed: false, milliseconds: Date.now() - started, error: error.stack, final: state, failures, events, requests: control.requests };
+    const result = { name: specification.name, passed: false, milliseconds: Date.now() - started,
+      error: error.stack, final: state, failures, events, requests: control.requests, measurements: control.measurements };
     await writeFile(resolve(artifact, 'trace.json'), JSON.stringify(result, null, 2));
     console.error(`FAIL ${specification.name}: ${error.message}\nArtifacts: ${artifact}`);
     return result;

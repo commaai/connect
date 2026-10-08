@@ -17,9 +17,11 @@ vi.mock('../../api/backend', () => ({
 }));
 vi.mock('hls.js', () => {
   class FakeHls {
-    static Events = { ERROR: 'hlsError', BUFFER_CODECS: 'hlsBufferCodecs', MEDIA_DETACHING: 'hlsMediaDetaching' };
+    static Events = { ERROR: 'hlsError', BUFFER_CODECS: 'hlsBufferCodecs', MEDIA_DETACHING: 'hlsMediaDetaching', FRAG_LOADED: 'hlsFragLoaded' };
 
     static ErrorTypes = { NETWORK_ERROR: 'networkError', MEDIA_ERROR: 'mediaError' };
+
+    static ErrorDetails = { FRAG_LOAD_ERROR: 'fragLoadError' };
 
     static isSupported() { return hlsMock.supported; }
 
@@ -755,6 +757,86 @@ describe('DriveVideo', () => {
     hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'manifestLoadError', response: { code: 404 } });
     expect(screen.getByText('This video segment has not uploaded yet or has been deleted.')).toBeInTheDocument();
     expect(hlsMock.instances).toHaveLength(1);
+  });
+
+  describe('when a listed fragment is missing', () => {
+    // A non-fatal fragment 404 as hls.js reports it before re-requesting the same fragment.
+    const fragError = (url, extra) => ({
+      fatal: false, type: 'networkError', details: 'fragLoadError', frag: { url }, ...extra,
+    });
+    const missingFrag = (url) => fragError(url, { response: { code: 404, url } });
+
+    it('reports it as missing on its second 404 instead of waiting out hls.js retries, and Retry resumes', async () => {
+      const { store, m, ready, progress, dispatch, hls } = await setup();
+      ready();
+      dispatch(play(2));
+      progress(42);
+      const old = hls();
+      old.emit('hlsError', missingFrag('seg/5.ts'));
+      old.emit('hlsFragLoaded', { frag: { url: 'seg/5.ts' } });
+      // A later fetch of a successfully loaded fragment gets a fresh grace retry.
+      old.emit('hlsError', missingFrag('seg/5.ts'));
+      // A different fragment that misses once is a separate transient miss, not a repeat.
+      old.emit('hlsError', missingFrag('seg/6.ts'));
+      expect(screen.queryByText(/not uploaded/)).toBeNull();
+      expect(old.destroyed).toBe(false);
+      expect(m.paused).toBe(false);
+
+      old.emit('hlsError', missingFrag('seg/6.ts'));
+      expect(screen.getByText('This video segment has not uploaded yet or has been deleted.')).toBeInTheDocument();
+      expect(old.destroyed).toBe(true);
+      expect(spinner()).toBeNull();
+      expect(m.paused).toBe(true);
+      expect(store.getState()).toMatchObject({ offset: 42000, desiredPlaySpeed: 0 });
+
+      act(() => {
+        screen.getByText('Retry').click();
+        expect(m.paused).toBe(false); // inside the click, before React re-renders
+        expect(m.playbackRate).toBe(2);
+      });
+      expect(hlsMock.instances).toHaveLength(2);
+      expect(hls().config.startPosition).toBe(42);
+      expect(store.getState().desiredPlaySpeed).toBe(2);
+      // The reloaded source gets its own grace retry for the same fragment.
+      hls().emit('hlsError', missingFrag('seg/6.ts'));
+      expect(screen.queryByText(/not uploaded/)).toBeNull();
+      expect(hls().destroyed).toBe(false);
+    });
+
+    it('leaves retryable fragment errors and non-fatal media errors to hls.js', async () => {
+      const { store, m, ready, dispatch, hls } = await setup();
+      ready();
+      dispatch(play(2));
+      for (let i = 0; i < 3; i += 1) {
+        hls().emit('hlsError', fragError('seg/5.ts', { response: { code: 503, url: 'seg/5.ts' } }));
+        hls().emit('hlsError', fragError('seg/5.ts', { details: 'fragLoadTimeout' }));
+        hls().emit('hlsError', { fatal: false, type: 'mediaError', details: 'bufferStalledError' });
+        // Only fragments are handled early; a missing playlist stays with hls.js until it is fatal.
+        hls().emit('hlsError', { fatal: false, type: 'networkError', details: 'levelLoadError', response: { code: 404 } });
+      }
+      expect(screen.queryByText('Retry')).toBeNull();
+      expect(hls().destroyed).toBe(false);
+      expect(hls().recoverMediaError).not.toHaveBeenCalled();
+      expect(hlsMock.instances).toHaveLength(1);
+      expect(m.paused).toBe(false);
+      expect(store.getState().desiredPlaySpeed).toBe(2);
+    });
+
+    it('ignores the previous route\'s fragment 404s once another route is loading', async () => {
+      const { store, dispatch, hls } = await setup();
+      const old = hls();
+      old.emit('hlsError', missingFrag('seg/0.ts'));
+      dispatch({ type: 'PATCH', patch: { currentRoute: routeB } });
+      dispatch(resetPlayback());
+      const current = hls();
+      expect(current).not.toBe(old);
+
+      old.emit('hlsError', missingFrag('seg/0.ts'));
+      old.emit('hlsError', missingFrag('seg/0.ts'));
+      expect(screen.queryByText(/not uploaded/)).toBeNull();
+      expect(current.destroyed).toBe(false);
+      expect(store.getState().desiredPlaySpeed).toBe(1);
+    });
   });
 
   it('isolates the next route from the previous source events and promises', async () => {

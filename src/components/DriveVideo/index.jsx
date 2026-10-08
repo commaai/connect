@@ -195,7 +195,7 @@ class DriveVideo extends Component {
       return;
     }
 
-    const session = { fullname: route.fullname, decodeRecoveries: 0, resets: 0, offs: [] };
+    const session = { fullname: route.fullname, decodeRecoveries: 0, resets: 0, missingFragment: null, offs: [] };
     this.session = session;
     const on = (type, fn, eventTarget = video) => {
       eventTarget.addEventListener(type, fn);
@@ -276,11 +276,26 @@ class DriveVideo extends Component {
         });
         session.hls = hls;
         hls.on(HlsClass.Events.ERROR, (_event, data) => {
+          if (this.session !== session) return;
+          const missing = data.response?.code === 404;
           // hls.js retries errors itself and reports them fatal only once its retries are exhausted.
-          if (!data.fatal || this.session !== session) return;
-          if (data.response?.code === 404) this.fail(MISSING_VIDEO);
+          // A listed fragment that 404s is the exception: with no alternate stream to switch to, it
+          // is re-requested with backoff for ~30s. Allow one transient miss, then show the existing
+          // missing-video error if the same fragment still returns 404.
+          if (!data.fatal) {
+            if (missing && data.details === HlsClass.ErrorDetails.FRAG_LOAD_ERROR) {
+              const url = data.frag?.url;
+              if (session.missingFragment === url) this.fail(MISSING_VIDEO);
+              else session.missingFragment = url;
+            }
+            return;
+          }
+          if (missing) this.fail(MISSING_VIDEO);
           else if (data.type === HlsClass.ErrorTypes.MEDIA_ERROR) this.recoverDecode(session);
           else this.fail(data.type === HlsClass.ErrorTypes.NETWORK_ERROR ? NETWORK_FAILED : LOAD_FAILED);
+        });
+        hls.on(HlsClass.Events.FRAG_LOADED, (_event, data) => {
+          if (session.missingFragment === data.frag.url) session.missingFragment = null;
         });
         // hls.js also resets the media source on its own to recover some media errors.
         hls.on(HlsClass.Events.MEDIA_DETACHING, () => { session.resets += 1; });
