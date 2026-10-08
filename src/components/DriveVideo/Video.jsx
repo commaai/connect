@@ -19,14 +19,10 @@ function hlsErrorKind(data) {
 }
 
 function mediaErrorKind(error) {
-  switch (error.code) {
-    case MediaError.MEDIA_ERR_NETWORK:
-      return 'network';
-    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-      return 'unsupported';
-    default:
-      return 'media';
+  if (error.code === MediaError.MEDIA_ERR_NETWORK) {
+    return 'network';
   }
+  return 'media';
 }
 
 function useHls(video, src) {
@@ -73,12 +69,12 @@ function useHlsErrors(hls, onError) {
     }
 
     const handleError = (_, data) => {
-      const isMissingSegment = data.response?.code === 404;
-      const isReportable = data.fatal || isMissingSegment;
+      const kind = hlsErrorKind(data);
+      const isReportable = data.fatal || kind === 'not-found';
       if (!isReportable) {
         return;
       }
-      onError?.({ kind: hlsErrorKind(data), cause: data });
+      onError?.({ kind, cause: data });
     };
 
     hls.on(HLS_ERROR, handleError);

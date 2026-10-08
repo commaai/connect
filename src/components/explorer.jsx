@@ -275,11 +275,11 @@ class ExplorerApp extends Component {
 }
 
 const stateToProps = (state) => ({
+  zoom: state.zoom,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
-  zoom: state.zoom,
   selectedRouteId: state.selectedRouteId,
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,

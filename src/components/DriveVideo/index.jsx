@@ -5,7 +5,7 @@ import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { getVideo, playIgnoringInterruptions } from '../../timeline/video';
 import { seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
-import { useVideoEvent, useVideoFrame, useVideoStatus } from '../../hooks/video';
+import { useVideoBuffering, useVideoEvent, useVideoFrame } from '../../hooks/video';
 import Video from './Video';
 
 const FILL = { width: '100%', height: '100%' };
@@ -14,7 +14,6 @@ const SPINNER_STYLE = { color: Colors.white };
 const ERROR_MESSAGES = {
   'not-found': 'This video segment has not uploaded yet or has been deleted.',
   network: 'Unable to load video. Check network connection.',
-  unsupported: 'Unable to load video',
   media: 'Unable to load video',
 };
 
@@ -107,7 +106,7 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
   const loopStart = loop?.startTime;
   const loopDuration = loop?.duration;
 
-  const { buffering } = useVideoStatus();
+  const buffering = useVideoBuffering();
   const { error, handleError } = usePlaybackError(src);
   useLoopWrap(videoStartOffset, loopStart, loopDuration);
 

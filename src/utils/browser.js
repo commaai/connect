@@ -4,7 +4,7 @@ export function isIos() {
 
 export function playsHlsNatively() {
   const isIpadInDesktopMode = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || isIpadInDesktopMode;
+  return isIos() || isIpadInDesktopMode;
 }
 
 export function isMobileDevice(navigatorLike = navigator) {

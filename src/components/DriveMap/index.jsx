@@ -57,7 +57,6 @@ class DriveMap extends Component {
       }
     }
 
-
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
       && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
       this.shouldFlyTo = false;

@@ -18,7 +18,7 @@ function isBuffering(video) {
 
 export const useVideo = () => useSyncExternalStore(subscribeVideo, getVideo);
 
-export function useVideoValue(events, read, fallback) {
+function useVideoValue(events, read, fallback) {
   const video = useVideo();
 
   const subscribe = useCallback((onChange) => {
@@ -52,10 +52,8 @@ export function useVideoControls() {
   return useMemo(() => ({ paused, playbackRate, muted }), [paused, playbackRate, muted]);
 }
 
-export function useVideoStatus() {
-  const buffering = useVideoValue(STATUS_EVENTS, isBuffering, false);
-  const seeking = useVideoValue(STATUS_EVENTS, (video) => video.seeking, false);
-  return useMemo(() => ({ buffering, seeking }), [buffering, seeking]);
+export function useVideoBuffering() {
+  return useVideoValue(STATUS_EVENTS, isBuffering, false);
 }
 
 export function useVideoEvent(type, handler) {
