@@ -21,8 +21,6 @@ export function createInitialState() {
     profile: null,
     devices: null,
 
-    primeNav: false,
-    streamNav: false,
     subscription: null,
     subscribeInfo: null,
 

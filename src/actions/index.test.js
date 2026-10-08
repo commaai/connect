@@ -1,21 +1,11 @@
 import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { primeNav, streamNav, urlForState } from './index';
+import { urlForState } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
   resetPlayback: vi.fn(),
   selectLoop: vi.fn(),
 }));
-
-vi.mock('connected-react-router', async () => {
-  const originalModule = await vi.importActual('connected-react-router');
-  return {
-    __esModule: true,
-    ...originalModule,
-    push: vi.fn(),
-  };
-});
 
 describe('timeline actions', () => {
   it.each([
@@ -26,14 +16,5 @@ describe('timeline actions', () => {
     ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
   ])('generates a %s URL', (_name, args, expected) => {
     expect(urlForState(...args)).toBe(expected);
-  });
-
-  it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
-    expect(push).toHaveBeenCalledWith(expected);
   });
 });

@@ -294,6 +294,29 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
   });
 
+  test('Prime settings opened while viewing a drive shows Prime', async () => {
+    const { history } = await renderApp(`/${SECOND}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    // the drawer lists Alpha (SECOND) first
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${SECOND}/prime`);
+  });
+
+  test('going back two pages from Prime to a drive keeps the history', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => history.push(`/${FIRST}`));
+    act(() => history.push(`/${FIRST}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    act(() => history.go(-2));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(history.entries.map((entry) => entry.pathname)).toEqual([`/${FIRST}/${LOG}`, `/${FIRST}`, `/${FIRST}/prime`]);
+  });
+
   test('stream close and browser history restore its view', async () => {
     const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
     const { history } = await renderApp(`/${FIRST}/stream`, { devices: online });

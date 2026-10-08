@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 
@@ -10,7 +11,8 @@ import { billing as Billing } from '../../api';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
 import { ErrorOutline, InfoOutline, KeyboardBackspaceIcon, PriorityHighIcon } from '../../icons';
-import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
+import { primeGetSubscription, analyticsEvent } from '../../actions';
+import { urlFor } from '../../url';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 import { otherPrimePlan, primePlanName } from './primePlans';
 
@@ -424,7 +426,7 @@ export class PrimeManage extends Component {
       <>
         <div className={classes.primeBox}>
           <div className={classes.primeContainer} style={{ padding: `8px ${containerPadding}px` }}>
-            <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false))}>
+            <IconButton aria-label="Go Back" onClick={() => dispatch(push(urlFor({ page: 'dashboard', dongleId })))}>
               <KeyboardBackspaceIcon />
             </IconButton>
           </div>

@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 
+import { parseLocation } from '../../url';
+
 import DriveList from './DriveList';
 import Navigation from '../Navigation';
 import Promotions from '../Promotions';
@@ -9,7 +11,7 @@ import FullPageLoading from '../FullPageLoading';
 
 const Prime = lazy(() => import('../Prime'));
 
-const Dashboard = ({ primeNav, device, dongleId }) => {
+const Dashboard = ({ primeOpen, device, dongleId }) => {
   if (!device || !dongleId) {
     return <FullPageLoading />;
   }
@@ -17,7 +19,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
   return (
     <div className="relative flex flex-col">
       <Suspense fallback={<FullPageLoading />}>
-        { primeNav
+        { primeOpen
           ? <Prime />
           : (
             <>
@@ -34,7 +36,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  primeNav: state.primeNav,
+  primeOpen: parseLocation(state.router.location).page === 'prime',
   device: state.device,
 });
 

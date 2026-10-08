@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { parseLocation, urlFor } from '../url';
-import { primeNav, streamNav, selectDevice, selectRoute } from './index';
+import { selectDevice, selectRoute } from './index';
 import { api } from '../api/backend';
 
 // Redirects a legacy timestamp link to the drive it points at, unless the user
@@ -51,13 +51,6 @@ export function applyLocation(location) {
       dispatch(openLegacyLink(url, location.key));
     } else {
       dispatch(selectRoute(url.page === 'drive' ? url.logId : null, url.range));
-    }
-
-    if ((url.page === 'prime') !== getState().primeNav) {
-      dispatch(primeNav(url.page === 'prime', false));
-    }
-    if ((url.page === 'stream') !== getState().streamNav) {
-      dispatch(streamNav(url.page === 'stream', false));
     }
   };
 }
