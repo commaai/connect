@@ -9,11 +9,11 @@ import { api } from '../../api/backend';
 import { deviceSupportsClips } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
-import { openModal } from '../../actions/navigation';
 import DriveVideo from '../DriveVideo';
 import TimeDisplay from '../TimeDisplay';
 import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
+import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
@@ -206,7 +206,9 @@ class Media extends Component {
       inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
       downloadMenu: null,
+      clipMenu: null,
       moreInfoMenu: null,
+      uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
@@ -254,7 +256,7 @@ class Media extends Component {
     const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (prevProps.dongleId !== this.props.dongleId) {
-      this.setState({ clipsSupported: false });
+      this.setState({ clipsSupported: false, clipMenu: null });
       this.checkClipsSupport();
     } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
       this.checkClipsSupport();
@@ -607,7 +609,7 @@ class Media extends Component {
                 className={classes.mediaOption}
                 style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
                 aria-haspopup="true"
-                onClick={() => deviceIsOnline(device) && this.props.dispatch(openModal('clips', device.dongle_id))}
+                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
@@ -635,7 +637,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, moreInfoMenu, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -666,6 +668,16 @@ class Media extends Component {
 
     return (
       <>
+        <ClipMenu
+          open={Boolean(alwaysOpen || clipMenu)}
+          dongleId={this.props.dongleId}
+          anchorEl={clipMenu}
+          onClose={() => this.setState({ clipMenu: null })}
+          route={currentRoute}
+          routes={this.props.routes}
+          zoom={this.props.zoom}
+          deviceOnline={deviceIsOnline(device)}
+        />
         <Menu
           id="menu-download"
           open={ Boolean(alwaysOpen || downloadMenu) }
@@ -735,10 +747,7 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => {
-                this.setState({ downloadMenu: null });
-                this.props.dispatch(openModal('uploads', device.dongle_id));
-              } : null }
+              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -813,14 +822,13 @@ class Media extends Component {
             </ListItem>,
           ] }
         </Menu>
-        {!this.props.uploadsOpen && (
-          <UploadQueue
-            open={false}
-            update={ Boolean(moreInfoMenu || downloadMenu) }
-            store={ this.props.store }
-            device={ device }
-          />
-        )}
+        <UploadQueue
+          open={ uploadModal }
+          onClose={ () => this.setState({ uploadModal: false }) }
+          update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
+          store={ this.props.store }
+          device={ device }
+        />
         <Popper
           open={ Boolean(dcamUploadInfo) }
           placement="bottom"
@@ -920,7 +928,6 @@ const stateToProps = (state) => ({
   loop: state.loop,
   filter: state.filter,
   files: state.files,
-  uploadsOpen: state.navigation.modal?.name === 'uploads',
   profile: state.profile,
   isBufferingVideo: state.isBufferingVideo,
 });

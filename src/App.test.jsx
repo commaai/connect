@@ -5,9 +5,6 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
-import { openModal } from './actions/navigation';
-import { pause, seek } from './timeline/playback';
-import { clipDevice } from './api/clips';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], videoMounts: 0, hardNavigate: vi.fn() }));
 
@@ -41,14 +38,6 @@ vi.mock('react-map-gl', () => ({
   Marker: ({ children }) => children,
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
-}));
-vi.mock('./api/clips', () => ({
-  deviceSupportsClips: vi.fn(async () => true),
-  clipDevice: {
-    getClipState: vi.fn(async () => ({ clips: [{ filename: 'drive.mp4', status: 'ready', camera: 'fcamera.hevc', source_start_time: 0, source_end_time: 10, requested_at: 1 }], cameras: {} })),
-    hasClipBlob: vi.fn(async () => true),
-    getClipUrl: vi.fn(async () => 'blob:drive-preview'),
-  },
 }));
 vi.mock('react-player/file', () => ({
   default: React.forwardRef((_props, ref) => {
@@ -168,7 +157,6 @@ describe('whole-app behavior', () => {
   beforeAll(() => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
-    URL.revokeObjectURL = vi.fn();
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
@@ -324,58 +312,6 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
 
-  test.each([
-    ['settings', 'Device settings'], ['uploads', 'Upload queue'], ['pair', 'Pair device'],
-    ['filter', 'Start date:'], ['clips', 'CLIPS ON THIS DEVICE'],
-  ])('%s modal opens on a cold link and after a fresh mount', async (modal, text) => {
-    const pathname = `/${FIRST}?modal=${modal}`;
-    const first = await renderApp(pathname, { width: 375 });
-    expect(await screen.findByText(text)).toBeVisible();
-    first.unmount();
-    const refreshed = await renderApp(pathname, { width: 375 });
-    expect(await screen.findByText(text)).toBeVisible();
-    expect(refreshed.history.location.search).toBe(`?modal=${modal}`);
-  });
-
-  test('settings close from a cold link preserves the underlying drive and independent arguments', async () => {
-    const path = `/${FIRST}/${LOG}/0/20?keep=value&modal=settings&device=${SECOND}#anchor`;
-    const { store, history } = await renderApp(path);
-    expect(await screen.findByLabelText('Device name')).toHaveValue('Alpha');
-    const player = await screen.findByTestId('video-player');
-    const route = store.getState().currentRoute;
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(history.location.search).toBe('?keep=value'));
-    expect(history.location.hash).toBe('#anchor');
-    expect(store.getState().zoom).toEqual({ start: 0, end: 20000 });
-    expect(store.getState().currentRoute).toBe(route);
-    expect(screen.getByTestId('video-player')).toBe(player);
-  });
-
-  test('settings, nested uploads, back, and forward preserve drive data and local form state', async () => {
-    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20`, { width: 1440 });
-    const player = await screen.findByTestId('video-player');
-    act(() => { store.dispatch(seek(15000)); store.dispatch(pause()); });
-    const before = store.getState();
-    const routeRequests = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
-    fireEvent.click(screen.getAllByRole('button', { name: 'device settings' })[0]);
-    expect(await screen.findByLabelText('Device name')).toHaveValue('Alpha');
-    fireEvent.change(screen.getByLabelText('Device name'), { target: { value: 'Unsaved name' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Uploads' }));
-    expect(await screen.findByText('Upload queue')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(await screen.findByLabelText('Device name')).toHaveValue('Unsaved name');
-    await act(async () => history.goBack());
-    await waitFor(() => expect(history.location.search).toBe(''));
-    await act(async () => history.goForward());
-    expect(await screen.findByText('Device settings')).toBeVisible();
-    expect(screen.getByTestId('video-player')).toBe(player);
-    expect(mocks.videoMounts).toBe(1);
-    expect(store.getState().currentRoute).toBe(before.currentRoute);
-    expect(store.getState().offset).toBe(before.offset);
-    expect(store.getState().desiredPlaySpeed).toBe(0);
-    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(routeRequests);
-  });
-
   test('settings opens another device\'s Prime page in one navigation', async () => {
     const { history, store } = await renderApp(`/${FIRST}`, { width: 1440 });
     fireEvent.click(screen.getAllByRole('button', { name: 'device settings' })[0]);
@@ -411,110 +347,20 @@ describe('whole-app behavior', () => {
     expect(store.getState().routes).toEqual([]);
   });
 
-  test('query-only navigation updates modal target and Prime return arguments', async () => {
+  test('query-only navigation updates Prime return arguments without reloading routes', async () => {
     const { history, store } = await renderApp(`/${FIRST}/prime`);
     const routeList = store.getState().routes;
-    await act(async () => history.push(`/${FIRST}/prime?stripe_cancelled=1&modal=settings&device=${FIRST}`));
-    expect(await screen.findByLabelText('Device name')).toHaveValue('Zulu');
-    await act(async () => history.replace(`/${FIRST}/prime?stripe_cancelled=1&modal=settings&device=${SECOND}`));
-    expect(await screen.findByLabelText('Device name')).toHaveValue('Alpha');
+    await act(async () => history.push(`/${FIRST}/prime?stripe_cancelled=1`));
     expect(store.getState().navigation.stripeCancelled).toBe('1');
     expect(store.getState().routes).toBe(routeList);
   });
 
-  test('signed-out modal links retain their complete login return URL', async () => {
-    const pathname = `/${FIRST}/${LOG}?modal=settings&device=${FIRST}#anchor`;
+  test('signed-out page links retain their complete login return URL', async () => {
+    const pathname = `/${FIRST}/prime?stripe_cancelled=1#anchor`;
     const { history } = await renderApp(pathname, { authenticated: false });
     expect(await screen.findByText('Sign in with Google')).toBeVisible();
     expect(sessionStorage.getItem('redirectURL')).toBe(pathname);
-    await act(async () => history.push(`/${FIRST}/prime?stripe_cancelled=1`));
-    await waitFor(() => expect(sessionStorage.getItem('redirectURL')).toBe(`/${FIRST}/prime?stripe_cancelled=1`));
+    await act(async () => history.push(`/${FIRST}/stream?keep=value`));
+    await waitFor(() => expect(sessionStorage.getItem('redirectURL')).toBe(`/${FIRST}/stream?keep=value`));
   });
-
-  test('pairing opens from the no-device page and closes through browser history', async () => {
-    const { history } = await renderApp('/', { devices: [] });
-    fireEvent.click(screen.getAllByRole('button', { name: 'add new device' })[0]);
-    expect(await screen.findByText('Pair device')).toBeVisible();
-    expect(history.location.search).toBe('?modal=pair');
-    await act(async () => history.goBack());
-    await waitFor(() => expect(screen.queryByText('Pair device')).not.toBeInTheDocument());
-    await act(async () => history.goForward());
-    expect(await screen.findByText('Pair device')).toBeVisible();
-  });
-
-  test('a clip preview opens from its URL and Back restores the inventory', async () => {
-    const online = devices.map((device) => ({ ...device, last_athena_ping: Math.floor(Date.now() / 1000) }));
-    const { store, history } = await renderApp(`/${FIRST}/${LOG}?modal=clips`, { devices: online });
-    expect(await screen.findByText('CLIPS ON THIS DEVICE')).toBeVisible();
-    await act(async () => store.dispatch(openModal('clips', FIRST, 'drive.mp4')));
-    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
-    const previewUrl = history.location.pathname + history.location.search;
-    fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
-    await waitFor(() => expect(history.location.search).toBe('?modal=clips'));
-    await act(async () => history.goForward());
-    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
-    expect(history.location.pathname + history.location.search).toBe(previewUrl);
-  });
-
-  test('a clip preview can refresh on another device without using the underlying drive', async () => {
-    const online = devices.map((device) => ({ ...device, last_athena_ping: Math.floor(Date.now() / 1000) }));
-    const path = `/${FIRST}/${LOG}?modal=clips&device=${SECOND}&clip=drive.mp4`;
-    clipDevice.getClipState.mockClear();
-    const first = await renderApp(path, { devices: online });
-    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
-    expect(clipDevice.getClipState).toHaveBeenCalledWith(SECOND, {});
-    first.unmount();
-    const refreshed = await renderApp(path, { devices: online });
-    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
-    await waitFor(() => expect(refreshed.history.location.search).toBe(''));
-    expect(refreshed.store.getState().dongleId).toBe(FIRST);
-  });
-
-  test('an upload modal reloads when only its device argument changes', async () => {
-    const { history, store } = await renderApp(`/${FIRST}?modal=uploads`);
-    await waitFor(() => expect(store.getState().filesUploadingMeta.dongleId).toBe(FIRST));
-    await act(async () => history.replace(`/${FIRST}?modal=uploads&device=${SECOND}`));
-    await waitFor(() => expect(store.getState().filesUploadingMeta.dongleId).toBe(SECOND));
-    expect(store.getState().dongleId).toBe(FIRST);
-  });
-
-  test('a pending clip download cannot reopen a preview after its URL changes', async () => {
-    let resolvePreview;
-    clipDevice.getClipUrl.mockReturnValueOnce(new Promise((resolve) => { resolvePreview = resolve; }));
-    const online = devices.map((device) => ({ ...device, last_athena_ping: Math.floor(Date.now() / 1000) }));
-    const { history } = await renderApp(`/${FIRST}?modal=clips&clip=drive.mp4`, { devices: online });
-    await act(async () => history.replace(`/${FIRST}?modal=clips`));
-    await act(async () => resolvePreview('blob:outdated-preview'));
-    expect(screen.queryByRole('button', { name: 'Close video' })).not.toBeInTheDocument();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:outdated-preview');
-  });
-
-
-  test('closing pairing while camera permission is pending releases a late camera stream', async () => {
-    let resolveCamera;
-    const getUserMedia = vi.fn(() => new Promise((resolve) => { resolveCamera = resolve; }));
-    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
-      enumerateDevices: vi.fn(async () => [{ kind: 'videoinput' }]), getUserMedia,
-    } });
-    try {
-      const { history } = await renderApp(`/${FIRST}?modal=pair`);
-      await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
-      await act(async () => history.push(`/${FIRST}`));
-      const stop = vi.fn();
-      await act(async () => resolveCamera({ getTracks: () => [{ stop }] }));
-      expect(stop).toHaveBeenCalledTimes(1);
-      expect(screen.queryByText('Pair device')).not.toBeInTheDocument();
-    } finally {
-      delete navigator.mediaDevices;
-    }
-  });
-
-  test('unknown device modal links show a closable fallback', async () => {
-    const { history } = await renderApp(`/${FIRST}?modal=settings&device=dddddddddddddddd`);
-    expect(await screen.findByText('Device unavailable')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(history.location.search).toBe(''));
-  });
-
 });

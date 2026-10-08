@@ -21,7 +21,6 @@ const MAX_RETRIES = 5;
 const HIGH_PRIORITY = 0;
 
 let uploadQueueTimeout = null;
-let uploadQueueRequest = 0;
 let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
@@ -132,7 +131,6 @@ export function fetchFiles(routeName, nocache = false) {
 }
 
 export function cancelFetchUploadQueue() {
-  uploadQueueRequest += 1;
   if (uploadQueueTimeout) {
     if (uploadQueueTimeout !== true) {
       clearTimeout(uploadQueueTimeout);
@@ -147,8 +145,6 @@ export function fetchUploadQueue(dongleId) {
       return;
     }
     uploadQueueTimeout = true;
-    uploadQueueRequest += 1;
-    const request = uploadQueueRequest;
 
     dispatch(fetchDeviceNetworkStatus(dongleId));
 
@@ -158,7 +154,6 @@ export function fetchUploadQueue(dongleId) {
       id: 0,
     };
     const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
-    if (request !== uploadQueueRequest) return;
     if (!uploadQueue || !uploadQueue.result) {
       if (uploadQueue && uploadQueue.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
@@ -168,8 +163,7 @@ export function fetchUploadQueue(dongleId) {
     }
     dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
 
-    const state = getState();
-    const prevFilesUploading = state.filesUploadingMeta.dongleId === dongleId ? { ...state.filesUploading } : {};
+    const prevFilesUploading = getState().filesUploading || {};
     const device = getDeviceFromState(getState(), dongleId);
     const uploadingFiles = {};
     const newCurrentUploading = {};

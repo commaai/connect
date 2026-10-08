@@ -1,5 +1,5 @@
-import { goBack, push, replace } from 'connected-react-router';
-import { deviceUrl, driveUrl, modalLocation } from '../url';
+import { goBack, push } from 'connected-react-router';
+import { deviceUrl, driveUrl } from '../url';
 
 export function navigate(to, historyState) {
   return (dispatch, getState) => {
@@ -40,23 +40,5 @@ export function streamNav(open) {
   return (dispatch, getState) => {
     const { dongleId } = getState();
     if (dongleId) dispatch(navigate(`${deviceUrl(dongleId)}${open ? '/stream' : ''}`));
-  };
-}
-
-export function openModal(name, dongleId = null, clip = null) {
-  return (dispatch, getState) => {
-    const { location } = getState().router;
-    const target = modalLocation(location, name, dongleId, clip);
-    if (target.search !== location.search) {
-      dispatch(push({ ...target, state: { modalParent: location.key } }));
-    }
-  };
-}
-
-export function closeModal() {
-  return (dispatch, getState) => {
-    const { location } = getState().router;
-    // An in-app modal has a parent history entry. Cold links close in place.
-    dispatch(location.state?.modalParent ? goBack() : replace(modalLocation(location, null)));
   };
 }
