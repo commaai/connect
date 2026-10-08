@@ -218,9 +218,9 @@ class RouteVideo extends Component {
     this.syncState();
   };
 
-  // a tap plays or pauses. On touch, a double tap on either side jumps 10 s
-  // and each further tap another 10 s, so a single tap waits to see if a
-  // second one follows
+  // a tap plays or pauses. On touch, a double tap on either side jumps 10 s,
+  // so a single tap waits to see if a second one follows. For a second after
+  // a jump, taps only jump, so one tap too many doesn't pause
   onVideoPointerDown = (ev) => {
     this.tapPointer = ev.pointerType;
   };
@@ -231,14 +231,17 @@ class RouteVideo extends Component {
     const side = (x < 0.4 && -1) || (x > 0.6 && 1) || 0;
     const now = performance.now();
     const last = this.lastTap;
+    const jumping = last?.jumps > 0 && now - last.time < 1000;
     clearTimeout(this.tapTimer);
     if (this.tapPointer !== 'touch') {
       this.togglePlay();
-    } else if (side && last?.side === side && now - last.time < 300) {
-      const jumps = last.jumps + 1;
+    } else if (side && (jumping || (last?.side === side && now - last.time < 300))) {
+      const jumps = last.side === side ? last.jumps + 1 : 1;
       this.lastTap = { side, time: now, jumps };
       this.props.dispatch(seek(currentOffset() + (side * 10000)));
       this.setState({ feedback: { id: now, side, seconds: jumps * 10 } });
+      return;
+    } else if (jumping) {
       return;
     } else {
       this.tapTimer = setTimeout(this.togglePlay, 300);
@@ -292,7 +295,11 @@ class RouteVideo extends Component {
     return (
       <>
         {feedback && (
-          <div key={feedback.id} className="absolute inset-0 z-40 flex items-center pointer-events-none animate-flash text-white">
+          <div
+            key={feedback.id}
+            className="absolute inset-0 z-40 flex items-center pointer-events-none animate-flash text-white"
+            onAnimationEnd={() => this.setState({ feedback: null })}
+          >
             {feedback.side ? (
               <div className={`h-full w-2/5 grid place-items-center bg-white/15 text-lg font-semibold ${feedback.side < 0 ? 'rounded-r-[50%]' : 'ml-auto rounded-l-[50%]'}`}>
                 {`${feedback.side < 0 ? '−' : '+'}${feedback.seconds} s`}
