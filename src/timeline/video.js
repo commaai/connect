@@ -21,7 +21,10 @@ export function setPlaybackRate(element, rate) {
 }
 
 export function playIgnoringInterruptions(element) {
-  element.play().catch(() => {});
+  element.play().catch((error) => {
+    if (error.name === 'AbortError') return;
+    console.error(error);
+  });
 }
 
 export function subscribeVideo(listener) {
