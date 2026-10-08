@@ -293,7 +293,7 @@ export class DriveVideo extends Component {
           playing={Boolean(currentRoute && desiredPlaySpeed && !videoError)}
           onReady={(player) => this.onPlayerReady(player, key)}
           onProgress={() => this.onVideoProgress(key)}
-          progressInterval={100}
+          progressInterval={33}
           onSeek={(seconds) => this.onPlayerSeek(seconds, key)}
           onEnded={() => this.onVideoProgress(key)}
           config={{
