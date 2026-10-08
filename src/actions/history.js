@@ -1,61 +1,82 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
-import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
+import { api } from '../api/backend';
+import { resetPlayback, selectLoop } from '../timeline/playback';
+import { webrtcConnectionManager } from '../utils/webrtc';
+import { checkRoutesData, fetchDeviceOnline, primeFetchSubscription } from './index';
+import { navigate } from './navigation';
+
+const ROUTE_PAGES = ['dashboard', 'drive'];
+
+function zoomChanged(a, b) {
+  return a?.start !== b?.start || a?.end !== b?.end;
+}
+
+function loopMatchesZoom(loop, zoom) {
+  return loop?.startTime === zoom.start && loop.duration === zoom.end - zoom.start;
+}
+
+function switchDevice(state, dispatch) {
+  const { dongleId, device, profile } = state;
+  // tear down existing webrtc connection
+  webrtcConnectionManager.disconnect();
+  if ((device && !device.shared) || profile?.superuser) {
+    dispatch(primeFetchSubscription(dongleId, device));
+    dispatch(fetchDeviceOnline(dongleId));
+  }
+}
+
+function resolveLegacyRange(nav, dispatch, getState) {
+  const { start, end } = nav.legacyRange;
+  api.routes.getRoutesSegments(nav.dongleId, start, end).then((routes) => {
+    if (routes?.length && getState().nav === nav) {
+      const logId = routes[0].fullname.split('|')[1];
+      dispatch(navigate({ page: 'drive', dongleId: nav.dongleId, logId }, { replace: true }));
+    }
+  }).catch((err) => {
+    console.error('Error fetching routes data for log ID conversion', err);
+  });
+}
+
+function syncNavigation(prev, dispatch, getState) {
+  const state = getState();
+  const { nav, dongleId, zoom } = state;
+
+  if (nav.dongleId) {
+    window.localStorage.setItem('selectedDongleId', nav.dongleId);
+  }
+
+  if (prev.dongleId && dongleId !== prev.dongleId) {
+    switchDevice(state, dispatch);
+  }
+
+  if (nav.page === 'home' && dongleId) {
+    dispatch(navigate({ page: 'dashboard', dongleId, modal: nav.modal }, { replace: true }));
     return;
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  if (nav.legacyRange) {
+    resolveLegacyRange(nav, dispatch, getState);
+    return;
   }
+
+  if (ROUTE_PAGES.includes(nav.page) && (api.auth.isAuthenticated() || nav.page === 'drive')) {
+    dispatch(checkRoutesData());
+  }
+
+  const driveChanged = nav.page === 'drive' && (nav.logId !== prev.nav.logId || dongleId !== prev.dongleId);
+  if (driveChanged || (zoom && zoomChanged(prev.zoom, zoom) && !loopMatchesZoom(state.loop, zoom))) {
+    dispatch(resetPlayback());
+    if (zoom) dispatch(selectLoop(zoom.start, zoom.end));
+  }
+}
+
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
+  if (action.type !== LOCATION_CHANGE) {
+    return next(action);
+  }
+  const prev = getState();
+  const result = next(action); // must be first, otherwise breaks history
+  syncNavigation(prev, dispatch, getState);
+  return result;
 };

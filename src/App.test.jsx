@@ -165,6 +165,38 @@ describe('whole-app behavior', () => {
     mocks.hardNavigate.mockClear();
   });
 
+  test('a pairing link opens over the stream page', async () => {
+    const { history } = await renderApp(`/${FIRST}/stream?modal=pair`);
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/stream`);
+  });
+
+  test('a root pairing link survives default-device selection', async () => {
+    const { history } = await renderApp('/?modal=pair');
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    expect(history.location.search).toBe('?modal=pair');
+  });
+
+  test('closing pairing stops a camera request that finishes later', async () => {
+    let resolveCamera;
+    const stop = vi.fn();
+    const old = navigator.mediaDevices;
+    const mediaDevices = {
+      enumerateDevices: vi.fn(async () => [{ kind: 'videoinput' }]),
+      getUserMedia: vi.fn(() => new Promise((resolve) => { resolveCamera = resolve; })),
+    };
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: mediaDevices });
+    try {
+      const { history } = await renderApp(`/${FIRST}?modal=pair`);
+      await waitFor(() => expect(mediaDevices.getUserMedia).toHaveBeenCalledOnce());
+      await act(async () => history.push(`/${FIRST}`));
+      await act(async () => resolveCamera({ getTracks: () => [{ stop }] }));
+      expect(stop).toHaveBeenCalledOnce();
+    } finally {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: old });
+    }
+  });
+
   test('root uses a valid stored device and keeps the selection', async () => {
     const app = await renderApp('/', { selected: FIRST });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
@@ -227,7 +259,7 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
     const ranged = pathname.endsWith('/10/20');
     expect(store.getState()).toMatchObject({
-      selectedRouteId: LOG,
+      nav: { logId: LOG },
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
@@ -287,6 +319,66 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goForward());
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+  });
+
+  test('device settings open from the URL and close back to the page', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}?modal=settings`);
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+    expect(screen.getByLabelText('Device name')).toHaveValue('Zulu');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+
+  test('the settings button opens settings in the URL and browser back closes it', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click(within(await screen.findByRole('link', { name: /Zulu/ })).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(`${history.location.pathname}${history.location.search}`).toBe(`/${FIRST}?modal=settings`));
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+    expect(screen.getByLabelText('Device name')).toHaveValue('Zulu');
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument());
+  });
+
+  test('closing settings clears its draft before reopening', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=settings`);
+    fireEvent.change(screen.getByLabelText('Device name'), { target: { value: 'Unsaved name' } });
+    await act(async () => history.push(`/${FIRST}`));
+    await act(async () => history.goBack());
+    expect(screen.getByLabelText('Device name')).toHaveValue('Zulu');
+  });
+
+  test('settings stay closed for a device you do not own', async () => {
+    await renderApp(`/${SHARED}?modal=settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument();
+  });
+
+  test('pairing opens from the URL', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=pair`);
+    expect(await screen.findByRole('heading', { name: 'Pair device' })).toBeVisible();
+    act(() => history.push(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Pair device' })).not.toBeInTheDocument());
+  });
+
+  test('a pushed device URL switches the dashboard', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${SECOND}`));
+    await waitFor(() => expect(store.getState().routes?.[0]?.dongle_id).toBe(SECOND));
+    expect(store.getState().dongleId).toBe(SECOND);
+  });
+
+  test('closing a drive opened from a link shows the full drive list', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(store.getState().routesMeta.logId).toBeNull();
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {

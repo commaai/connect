@@ -1,3 +1,5 @@
+export const ROUTES_PAGE_SIZE = 5;
+
 export function hasRoutesData(state) {
   if (!state) {
     return false;
@@ -26,6 +28,13 @@ export function hasRoutesData(state) {
   }
   if (fetchRange.end > state.routesMeta.end) {
     console.debug('Bad end offset');
+    return false;
+  }
+  if (state.nav.logId) {
+    return state.routes.some((route) => route.log_id === state.nav.logId);
+  }
+  if (state.routesMeta.logId) {
+    console.debug('Only a single drive is loaded');
     return false;
   }
 

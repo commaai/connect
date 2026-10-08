@@ -94,6 +94,20 @@ describe('segments', () => {
         end: 20,
       },
       dongleId: 'asdfasdf',
+      nav: {},
     })).toBe(true);
+  });
+
+  it('needs the list on device pages and the drive on drive pages', () => {
+    const state = {
+      dongleId: 'asdfasdf',
+      filter: { start: 10, end: 20 },
+      routes: [{ log_id: 'log' }],
+      routesMeta: { dongleId: 'asdfasdf', start: 0, end: 30, logId: 'log' },
+    };
+    expect(hasRoutesData({ ...state, nav: { logId: 'log' } })).toBe(true);
+    expect(hasRoutesData({ ...state, nav: { logId: 'other' } })).toBe(false);
+    expect(hasRoutesData({ ...state, nav: {} })).toBe(false);
+    expect(hasRoutesData({ ...state, nav: {}, routesMeta: { ...state.routesMeta, logId: null } })).toBe(true);
   });
 });

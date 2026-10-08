@@ -6,7 +6,7 @@ import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
-import { selectDevice } from '../../actions';
+import { selectDevice } from '../../actions/navigation';
 
 const listener = (ev) => ev.stopPropagation();
 
