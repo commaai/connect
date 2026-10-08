@@ -9,13 +9,16 @@ import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, bufferVideo } from '../../timeline/playback';
-import { attachVideo, detachVideo, seekVideo } from '../../timeline/video';
+import { seek, bufferVideo, pause, play } from '../../timeline/playback';
+import { attachVideo, detachVideo, isActiveVideo, isStalled, seekVideo } from '../../timeline/video';
 import { isIos, isFirefox } from '../../utils/browser.js';
 
-// native media events that mean the video is stalled waiting for data, or has data to show
-const BUFFERING_EVENTS = ['loadstart', 'waiting', 'seeking'];
-const READY_EVENTS = ['canplay', 'playing', 'seeked'];
+// native media events after which the video may have started or stopped waiting for data.
+// timeupdate fires several times a second while playing, so a wrong state never lasts.
+const BUFFERING_EVENTS = [
+  'loadstart', 'emptied', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough',
+  'waiting', 'playing', 'seeking', 'seeked', 'timeupdate', 'play', 'pause',
+];
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -46,12 +49,16 @@ class DriveVideo extends Component {
 
     this.onPlayerReady = this.onPlayerReady.bind(this);
     this.onLoadedMetadata = this.onLoadedMetadata.bind(this);
-    this.onBuffering = this.onBuffering.bind(this);
-    this.onReadyToPlay = this.onReadyToPlay.bind(this);
+    this.updateBuffering = this.updateBuffering.bind(this);
+    this.onPlay = this.onPlay.bind(this);
+    this.onPause = this.onPause.bind(this);
+    this.onPlaying = this.onPlaying.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
 
     this.video = null;
+    this.buffering = null; // last buffering state sent to redux
+    this.playSpeed = 1; // last speed the user played at
     this.playbackRate = 1;
 
     this.state = {
@@ -108,12 +115,23 @@ class DriveVideo extends Component {
     seekVideo(currentRoute, offset);
   }
 
-  onBuffering() {
-    this.setBuffering(true);
+  // play and pause can also come from outside the page controls,
+  // like the picture-in-picture window or media keys, so mirror them into redux
+  onPlay() {
+    const { currentRoute, desiredPlaySpeed, dispatch } = this.props;
+    if (desiredPlaySpeed === 0 && isActiveVideo(this.video, currentRoute)) {
+      dispatch(play(this.playSpeed));
+    }
   }
 
-  onReadyToPlay() {
-    this.setBuffering(false);
+  onPause() {
+    const { currentRoute, desiredPlaySpeed, dispatch } = this.props;
+    if (desiredPlaySpeed > 0 && isActiveVideo(this.video, currentRoute)) {
+      dispatch(pause());
+    }
+  }
+
+  onPlaying() {
     if (this.state.videoError) {
       this.setState({ videoError: null });
     }
@@ -123,9 +141,6 @@ class DriveVideo extends Component {
    * @param {Error} e
    */
   onHlsError(e) {
-    const { dispatch } = this.props;
-    dispatch(bufferVideo(true));
-
     if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
       // buffer but no error
       return;
@@ -166,9 +181,6 @@ class DriveVideo extends Component {
       return;
     }
 
-    const { dispatch } = this.props;
-    dispatch(bufferVideo(true));
-
     if (e.type === 'networkError') {
       console.error('Network error', { e, data });
       this.setState({ videoError: 'Unable to load video. Check network connection.' });
@@ -181,10 +193,12 @@ class DriveVideo extends Component {
     this.setState({ videoError });
   }
 
-  setBuffering(buffering) {
-    const { dispatch, isBufferingVideo } = this.props;
-    if (isBufferingVideo !== buffering) {
-      dispatch(bufferVideo(buffering));
+  // compare against what we last sent, props can lag behind redux between media events
+  updateBuffering() {
+    const buffering = isStalled(this.video);
+    if (buffering !== this.buffering) {
+      this.buffering = buffering;
+      this.props.dispatch(bufferVideo(buffering));
     }
   }
 
@@ -195,24 +209,30 @@ class DriveVideo extends Component {
     if (this.video) {
       detachVideo(this.video);
       this.video.removeEventListener('loadedmetadata', this.onLoadedMetadata);
-      BUFFERING_EVENTS.forEach((ev) => this.video.removeEventListener(ev, this.onBuffering));
-      READY_EVENTS.forEach((ev) => this.video.removeEventListener(ev, this.onReadyToPlay));
+      this.video.removeEventListener('play', this.onPlay);
+      this.video.removeEventListener('pause', this.onPause);
+      this.video.removeEventListener('playing', this.onPlaying);
+      BUFFERING_EVENTS.forEach((ev) => this.video.removeEventListener(ev, this.updateBuffering));
     }
     this.video = el || null;
     if (this.video) {
       this.video.addEventListener('loadedmetadata', this.onLoadedMetadata);
-      BUFFERING_EVENTS.forEach((ev) => this.video.addEventListener(ev, this.onBuffering));
-      READY_EVENTS.forEach((ev) => this.video.addEventListener(ev, this.onReadyToPlay));
+      this.video.addEventListener('play', this.onPlay);
+      this.video.addEventListener('pause', this.onPause);
+      this.video.addEventListener('playing', this.onPlaying);
+      BUFFERING_EVENTS.forEach((ev) => this.video.addEventListener(ev, this.updateBuffering));
       if (this.video.readyState > 0) {
         // metadata loaded before we started listening
         this.onLoadedMetadata();
       }
+      this.updateBuffering();
     }
   }
 
   getPlaybackRate() {
     const { desiredPlaySpeed, isMuted } = this.props;
     if (desiredPlaySpeed > 0) {
+      this.playSpeed = desiredPlaySpeed;
       // most browsers don't support more than 16x playback rate, firefox mutes audio above 8x
       this.playbackRate = Math.min((isFirefox() && !isMuted) ? 8 : 16, desiredPlaySpeed);
     }

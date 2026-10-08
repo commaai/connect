@@ -8,6 +8,22 @@
 import * as Types from '../actions/types';
 
 const HAVE_METADATA = 1;
+const HAVE_CURRENT_DATA = 2;
+const HAVE_FUTURE_DATA = 3;
+
+/**
+ * Whether a video is stalled waiting for data. A paused video only needs the
+ * current frame, a playing one needs data ahead of the playhead.
+ *
+ * @param {HTMLVideoElement} el
+ * @returns {boolean}
+ */
+export function isStalled(el) {
+  if (!el) {
+    return true;
+  }
+  return el.seeking || el.readyState < (el.paused ? HAVE_CURRENT_DATA : HAVE_FUTURE_DATA);
+}
 
 let video = null;
 let videoRoute = null;
@@ -29,6 +45,15 @@ export function detachVideo(el) {
     video = null;
     videoRoute = null;
   }
+}
+
+/**
+ * @param {HTMLVideoElement} el
+ * @param {object} route current route
+ * @returns {boolean} whether el is the video keeping time for this route
+ */
+export function isActiveVideo(el, route) {
+  return Boolean(el) && el === activeVideo(route);
 }
 
 function activeVideo(route) {

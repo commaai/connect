@@ -1,5 +1,5 @@
 import * as Types from '../actions/types';
-import { attachVideo, detachVideo, seekVideo, videoMiddleware, videoOffset } from './video';
+import { attachVideo, detachVideo, isActiveVideo, isStalled, seekVideo, videoMiddleware, videoOffset } from './video';
 
 const route = { fullname: 'abc|route', videoStartOffset: 2000 };
 const otherRoute = { fullname: 'abc|other' };
@@ -96,5 +96,36 @@ describe('videoMiddleware', () => {
     attachVideo(video, route.fullname);
     run({ type: Types.ACTION_LOOP }, { currentRoute: route, loop: { startTime: 10000, duration: 5000 } });
     expect(video.currentTime).toEqual(10);
+  });
+});
+
+describe('isStalled', () => {
+  it('is stalled without a video', () => {
+    expect(isStalled(null)).toBe(true);
+  });
+
+  it('is stalled while seeking', () => {
+    expect(isStalled(fakeVideo({ seeking: true }))).toBe(true);
+  });
+
+  it('needs data ahead of the playhead while playing', () => {
+    expect(isStalled(fakeVideo({ paused: false, readyState: 2 }))).toBe(true);
+    expect(isStalled(fakeVideo({ paused: false, readyState: 3 }))).toBe(false);
+  });
+
+  it('only needs the current frame while paused', () => {
+    expect(isStalled(fakeVideo({ paused: true, readyState: 1 }))).toBe(true);
+    expect(isStalled(fakeVideo({ paused: true, readyState: 2 }))).toBe(false);
+  });
+});
+
+describe('isActiveVideo', () => {
+  it('is true only for the attached video of the current route', () => {
+    const video = fakeVideo();
+    attachVideo(video, route.fullname);
+    expect(isActiveVideo(video, route)).toBe(true);
+    expect(isActiveVideo(fakeVideo(), route)).toBe(false);
+    expect(isActiveVideo(video, otherRoute)).toBe(false);
+    expect(isActiveVideo(null, route)).toBe(false);
   });
 });
