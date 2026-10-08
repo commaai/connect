@@ -540,16 +540,14 @@ class Media extends Component {
         <div className="flex flex-row gap-5">
           <div className={`relative ${showMapAlways ? 'w-[60%]' : 'w-full'}`}>
             {/* Keep video mounted so it drives playback even under the map. */}
-            <DriveVideo
-              isMuted={isMuted}
-            />
-            {(inView === MediaType.MAP && !showMapAlways) && (
+            <DriveVideo isMuted={isMuted} />
+            {inView === MediaType.MAP && !showMapAlways && (
               <div className="absolute inset-0 h-full z-[60] overflow-hidden">
                 <DriveMap />
               </div>
             )}
           </div>
-          {(inView === MediaType.VIDEO && showMapAlways) && (
+          {inView === MediaType.VIDEO && showMapAlways && (
             <div className="w-[40%]">
               <DriveMap />
             </div>

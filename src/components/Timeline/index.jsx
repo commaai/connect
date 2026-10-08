@@ -239,7 +239,7 @@ class Timeline extends Component {
   }
 
   handlePointerUp(ev) {
-    const { offset, route } = this.props;
+    const { offset, route, dispatch } = this.props;
 
     // prevent preventDefault for back(3) and forward(4) mouse buttons
     if (ev.button !== 3 && ev.button !== 4) {
@@ -262,9 +262,8 @@ class Timeline extends Component {
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
+        dispatch(seek(startOffset));
       }
-      const { dispatch } = this.props;
       const startTime = startOffset;
       const endTime = endOffset;
 

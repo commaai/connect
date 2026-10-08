@@ -171,10 +171,7 @@ export function getDeviceFromState(state, dongleId) {
 }
 
 export function getSegmentNumber(route, offset) {
-  if (!route) {
-    return null;
-  }
-  if (offset === undefined || offset === null) {
+  if (!route || offset == null) {
     return null;
   }
 
