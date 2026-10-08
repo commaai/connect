@@ -17,7 +17,7 @@ import BodyTeleop from './BodyTeleop';
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
-import { play, pause } from '../timeline/playback';
+import { pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 
@@ -160,9 +160,6 @@ class ExplorerApp extends Component {
       this.setState({ drawerIsOpen: false });
     }
 
-    if (!prevProps.zoom && zoom) {
-      this.props.dispatch(play());
-    }
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
     }

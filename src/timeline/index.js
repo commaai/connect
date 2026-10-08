@@ -1,13 +1,18 @@
 import store from '../store';
+import { playerOffset } from './player';
 
 /**
- * Get current playback offset
+ * Get current playback offset: the video's, or else extrapolated from state.
  *
- * @param {object} state
+ * @param {object} [state] extrapolate from this state, ignoring the video
  * @returns {number}
  */
 export function currentOffset(state = null) {
   if (!state) {
+    const offset = playerOffset();
+    if (offset !== null) {
+      return offset;
+    }
     state = store.getState();
   }
 

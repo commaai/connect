@@ -2,8 +2,10 @@ export function isIos() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
-export function isFirefox() {
-  return navigator.userAgent.toLowerCase().includes('firefox');
+// Safari, and every iOS browser, plays HLS natively instead of through hls.js.
+// Native HLS stalls above 2x.
+export function hasNativeHls() {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 }
 
 export function isMobileDevice(navigatorLike = navigator) {
