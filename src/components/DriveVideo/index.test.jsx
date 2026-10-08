@@ -18,6 +18,7 @@ vi.mock('hls.js', () => {
     loadSource = vi.fn();
     attachMedia = vi.fn();
     destroy = vi.fn();
+    detachMedia = vi.fn();
     stopLoad = vi.fn();
     recoverMediaError = vi.fn();
   }
@@ -344,4 +345,31 @@ it('stops native playback and releases its source on unmount', () => {
   expect(video.pause).toHaveBeenCalled();
   expect(video).not.toHaveAttribute('src');
   expect(video.load).toHaveBeenCalledTimes(2);
+});
+
+
+it('releases a failed HLS source and hides native loading controls until retry', () => {
+  Hls.isSupported.mockReturnValue(true);
+  const { video } = setup();
+  const hls = Hls.instances[0];
+  act(() => hls.handlers.error(null, { fatal: true, type: 'network' }));
+  expect(hls.detachMedia).toHaveBeenCalledTimes(1);
+  expect(video.pause).toHaveBeenCalled();
+  expect(video).not.toHaveAttribute('src');
+  expect(video).not.toHaveAttribute('controls');
+  expect(screen.queryByLabelText('Loading video')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+  expect(video).toHaveAttribute('controls');
+  expect(Hls.instances).toHaveLength(2);
+});
+
+it('retains the source when autoplay only needs a user gesture', async () => {
+  const { video } = setup();
+  video.play.mockRejectedValueOnce(new DOMException('Blocked', 'NotAllowedError'));
+  media(video, { readyState: 4, duration: 60 });
+  await act(async () => fireEvent.loadedMetadata(video));
+  expect(video).toHaveAttribute('src', props.src);
+  fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+  fireEvent.playing(video);
+  expect(video).toHaveAttribute('controls');
 });

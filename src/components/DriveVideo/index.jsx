@@ -51,6 +51,10 @@ export class Playback extends Component {
     cancelAnimationFrame(this.frame);
     this.hls?.destroy();
     this.hls = null;
+    this.releaseMedia();
+  };
+
+  releaseMedia = () => {
     const video = this.video.current;
     if (video) {
       video.pause();
@@ -90,6 +94,12 @@ export class Playback extends Component {
     this.timeout = this.spinner = null;
     cancelAnimationFrame(this.frame);
     this.hls?.stopLoad();
+    if (!needsGesture && !unavailable) {
+      // A failed MSE source can keep the native controls' loading indicator
+      // animating even after HLS stops. Retry attaches a fresh media source.
+      this.hls?.detachMedia();
+      this.releaseMedia();
+    }
     this.setState({ error, needsGesture, loading: false, unavailable });
     this.props.dispatch(pause());
   };
@@ -265,7 +275,7 @@ export class Playback extends Component {
     const { error, needsGesture, loading, unavailable } = this.state;
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] bg-black">
-        <video ref={this.video} aria-label="Route video" playsInline controls preload="auto"
+        <video ref={this.video} aria-label="Route video" playsInline controls={!error} preload="auto"
           muted={isMuted || hidden} className="w-full h-full"
           onLoadedMetadata={this.metadata} onCanPlay={this.ready} onPlaying={this.playing}
           onWaiting={this.loading} onSeeking={this.loading} onSeeked={() => { this.applySeek(); this.ready(); }} onTimeUpdate={() => {

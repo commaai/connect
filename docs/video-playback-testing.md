@@ -51,7 +51,19 @@ reconstruct route time from playlists with omitted segments.
 
 ## Latest automated results
 
-- 129 tests passed across 14 files.
+- 131 tests passed across 14 files.
 - Lint: 0 warnings, 0 errors.
 - Production build: passed; the existing large-chunk warning remains.
 - Diff whitespace check: passed.
+
+## Gallery regression verification
+
+The empty-playlist mobile drive capture failure was reproduced locally. Failed
+media sources are now detached and native controls are hidden while an error
+is displayed. Autoplay prompts retain their source so the Play gesture works.
+
+`node scripts/build-gallery.mjs --output node_modules/.cache/gallery-after-fix`
+passed all 30 desktop/mobile viewport captures with Puppeteer's headless browser,
+including drive/mobile and drive/desktop. The screenshot stability assertion
+was unchanged. Mobile viewport screenshots do not verify real iOS/Android
+media playback or installed PWAs.
