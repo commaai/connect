@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -16,12 +16,11 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, closeModal, updateDevices } from '../actions';
+import { analyticsEvent, closeModal, navigate, updateDevices } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
-import { urlFor } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -95,7 +94,7 @@ class ExplorerApp extends Component {
   }
 
   closeBodyTeleop() {
-    this.props.dispatch(push(urlFor({ dongleId: this.props.dongleId })));
+    this.props.dispatch(navigate({ page: 'dashboard' }));
   }
 
   closeModal() {
@@ -177,7 +176,7 @@ class ExplorerApp extends Component {
     const { pairDongleId } = this.state;
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
-      this.props.dispatch(push(urlFor({ dongleId: pairDongleId })));
+      this.props.dispatch(navigate({ dongleId: pairDongleId }));
     }
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }

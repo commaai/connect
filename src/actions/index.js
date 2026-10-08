@@ -243,9 +243,9 @@ export function openDefaultDevice(listed) {
   };
 }
 
-/** Opens a modal over the dashboard of a device, the current one by default. */
-export function openModal(modal, dongleId) {
-  return (dispatch, getState) => dispatch(push(urlFor({ dongleId: dongleId || getState().dongleId, modal })));
+/** Goes to a view, as described in url.js, on the current device unless it names another. */
+export function navigate(view) {
+  return (dispatch, getState) => dispatch(push(urlFor({ dongleId: getState().dongleId, ...view })));
 }
 
 /** Closes the modal by going back to where it was opened from, or to its page if it was linked to directly. */

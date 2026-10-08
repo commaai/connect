@@ -1,6 +1,6 @@
 import { goBack, push, replace } from 'connected-react-router';
 
-import { closeModal, openModal } from './index';
+import { closeModal, navigate } from './index';
 
 const DONGLE = '0000aaaa0000aaaa';
 
@@ -10,13 +10,14 @@ function run(thunk, state) {
   return dispatched;
 }
 
-describe('modal actions', () => {
-  it('opens a modal over the current device', () => {
-    expect(run(openModal('filter'), { dongleId: DONGLE })).toEqual([push(`/${DONGLE}?modal=filter`)]);
+describe('navigation actions', () => {
+  it('goes to a view of the current device', () => {
+    expect(run(navigate({ page: 'prime' }), { dongleId: DONGLE })).toEqual([push(`/${DONGLE}/prime`)]);
+    expect(run(navigate({ modal: 'filter' }), { dongleId: DONGLE })).toEqual([push(`/${DONGLE}?modal=filter`)]);
   });
 
-  it('opens a modal over another device', () => {
-    expect(run(openModal('settings', 'ffff0000ffff0000'), { dongleId: DONGLE })).toEqual([push('/ffff0000ffff0000?modal=settings')]);
+  it('goes to a view of another device', () => {
+    expect(run(navigate({ dongleId: 'ffff0000ffff0000', modal: 'settings' }), { dongleId: DONGLE })).toEqual([push('/ffff0000ffff0000?modal=settings')]);
   });
 
   it('goes back to close a modal it opened', () => {

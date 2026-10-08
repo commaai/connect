@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { checkRoutesData, checkLastRoutesData, openModal } from '../../actions';
+import { checkRoutesData, checkLastRoutesData, navigate } from '../../actions';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import { FilterList } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
@@ -141,7 +141,7 @@ const DriveList = (props) => {
         <button
           className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98] cursor-pointer"
           style={{ background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 150%)' }}
-          onClick={() => dispatch(openModal('filter'))}
+          onClick={() => dispatch(navigate({ modal: 'filter' }))}
         >
           <FilterList className="mr-2 text-xl" />
           <Typography>Filter</Typography>

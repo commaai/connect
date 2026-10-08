@@ -6,7 +6,7 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { analyticsEvent, openModal, updateDevices } from '../../actions';
+import { analyticsEvent, navigate, updateDevices } from '../../actions';
 import { urlFor } from '../../url';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
@@ -431,7 +431,7 @@ const stateToProps = (state) => ({
 export default connect(stateToProps)(withStyles(styles)(AddDevice));
 
 export const AddDeviceButton = connect()(withStyles(styles)(({ classes, dispatch, buttonText, buttonStyle, buttonIcon }) => (
-  <Button onClick={ () => dispatch(openModal('pair')) } className={ classes.addButton } style={ buttonStyle }>
+  <Button onClick={ () => dispatch(navigate({ modal: 'pair' })) } className={ classes.addButton } style={ buttonStyle }>
     { buttonText }
     { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
   </Button>

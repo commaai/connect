@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
 
-import { urlFor } from '../../url';
+import { navigate } from '../../actions';
 import Notification from '../Notification';
 
 // Change the campaign ID to make a new referral promotion appear again.
@@ -29,7 +28,7 @@ const Promotions = ({ device, dispatch }) => {
           heading="Refer a friend. Get $50."
           subtitle="Earn $50 for each comma four purchased with your referral link."
           buttonText="refer"
-          onButtonClick={() => { dispatch(push('/referrals')); dismissReferral(); }}
+          onButtonClick={() => { dispatch(navigate({ page: 'referrals' })); dismissReferral(); }}
           dismissLabel="Dismiss referral promotion"
           onDismiss={dismissReferral}
         />
@@ -41,7 +40,7 @@ const Promotions = ({ device, dispatch }) => {
             : 'Put your car on the internet with comma prime'}
           buttonText="sign up"
           buttonClassName="primeSignUp"
-          onButtonClick={() => dispatch(push(urlFor({ dongleId: device.dongle_id, page: 'prime' })))}
+          onButtonClick={() => dispatch(navigate({ page: 'prime' }))}
           dismissLabel="Dismiss prime promotion"
           onDismiss={() => setPrimeDismissed(true)}
         />

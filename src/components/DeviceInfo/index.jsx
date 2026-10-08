@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
@@ -8,11 +7,10 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
-import { analyticsEvent, fetchDeviceNotCar } from '../../actions';
+import { analyticsEvent, fetchDeviceNotCar, navigate } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
-import { urlFor } from '../../url';
 import VisibilityHandler from '../VisibilityHandler';
 import { subscribeWindowSize } from '../../hooks/window';
 import CommacareBadge from '../CommacareBadge';
@@ -172,7 +170,7 @@ class DeviceInfo extends Component {
   }
 
   openBodyTeleop() {
-    this.props.dispatch(push(urlFor({ dongleId: this.props.dongleId, page: 'stream' })));
+    this.props.dispatch(navigate({ page: 'stream' }));
   }
 
   componentDidMount() {
@@ -325,7 +323,7 @@ class DeviceInfo extends Component {
         <div className={`${classes.container} px-4`}>
           <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1 flex-wrap`}>
             <div className={`flex flex-row gap-4 items-center shrink-0`}>
-              {commacare && <CommacareBadge onClick={() => this.props.dispatch(push(urlFor({ dongleId: this.props.dongleId, page: 'prime' })))} />}
+              {commacare && <CommacareBadge onClick={() => this.props.dispatch(navigate({ page: 'prime' }))} />}
               <Typography variant="title">{truncateName(deviceNamePretty(device))}</Typography>
             </div>
             { this.renderButtons() }
