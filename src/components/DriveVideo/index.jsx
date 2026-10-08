@@ -67,6 +67,7 @@ export class DriveVideo extends Component {
     this.appliedSeekRevision = null;
     this.pendingSeek = null;
     this.reseekedRevision = null;
+    this.bufferingAtSeconds = null;
     this.ready = false;
     this.unmounted = false;
     this.retryVideo = this.retryVideo.bind(this);
@@ -116,6 +117,7 @@ export class DriveVideo extends Component {
     this.pendingSeek = null;
     this.appliedSeekRevision = null;
     this.reseekedRevision = null;
+    this.bufferingAtSeconds = null;
     if (this.audioHls && this.audioHandler) this.audioHls.off('hlsBufferCodecs', this.audioHandler);
     this.audioHls = null;
     this.audioHandler = null;
@@ -141,7 +143,18 @@ export class DriveVideo extends Component {
   }
 
   onVideoBuffering(key) {
-    if (this.isCurrentPlayer(key) && !this.state.videoError) this.props.dispatch(bufferVideo(true));
+    if (!this.isCurrentPlayer(key) || this.state.videoError) return;
+
+    const seconds = this.videoPlayer.current?.getCurrentTime();
+    this.bufferingAtSeconds = Number.isFinite(seconds) ? seconds : null;
+    this.props.dispatch(bufferVideo(true));
+  }
+
+  onVideoBufferEnd(key) {
+    if (!this.isCurrentPlayer(key) || this.state.videoError) return;
+
+    this.bufferingAtSeconds = null;
+    this.onVideoProgress(key);
   }
 
   completeSeek() {
@@ -259,6 +272,12 @@ export class DriveVideo extends Component {
     if (!player || !this.ready || !this.props.currentRoute) return;
     const mediaSeconds = player.getCurrentTime();
     if (!Number.isFinite(mediaSeconds) || !this.acknowledgeSeek(mediaSeconds)) return;
+
+    if (this.bufferingAtSeconds !== null) {
+      if (Math.abs(mediaSeconds - this.bufferingAtSeconds) < 0.01) return;
+      this.bufferingAtSeconds = null;
+    }
+
     const routeOffset = Math.max(0, mediaSeconds * 1000 + (this.props.currentRoute.videoStartOffset || 0));
     const { loop, desiredPlaySpeed, seekRevision, dispatch } = this.props;
     if (loop && loop.duration > 0 && routeOffset >= loop.startTime + loop.duration && desiredPlaySpeed > 0) {
@@ -376,7 +395,7 @@ export class DriveVideo extends Component {
           }}
           playbackRate={desiredPlaySpeed > 0 ? desiredPlaySpeed : this.lastPlaybackRate}
           onBuffer={() => this.onVideoBuffering(key)}
-          onBufferEnd={() => this.onVideoProgress(key)}
+          onBufferEnd={() => this.onVideoBufferEnd(key)}
           onError={(error, data) => this.onVideoError(error, data, key)}
         />
       </div>

@@ -176,6 +176,139 @@ describe('DriveVideo player lifecycle', () => {
     ).toBe(false);
   });
 
+  it('does not clear buffering while the media clock is stalled', () => {
+    const { media, callbacks, changeProps, dispatch } = playerFixture();
+
+    // Establish a successfully reached playback position.
+    changeProps({ offset: 10000, seekRevision: 1 });
+    media.time = 10;
+    callbacks().onSeek(10);
+    dispatch.mockClear();
+
+    // The player enters buffering.
+    callbacks().onBuffer();
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ACTION_BUFFER_VIDEO,
+        buffering: true,
+      }),
+    );
+
+    dispatch.mockClear();
+
+    // Progress callbacks arrive, but video time has not advanced.
+    callbacks().onProgress();
+    callbacks().onProgress();
+
+    // Stale progress must not clear the buffering state.
+    expect(
+      dispatch.mock.calls.some(
+        ([action]) => action.type === ACTION_VIDEO_PROGRESS,
+      ),
+    ).toBe(false);
+  });
+
+  it('clears buffering when the media clock advances', () => {
+    const { media, callbacks, changeProps, dispatch } = playerFixture();
+
+    changeProps({ offset: 10000, seekRevision: 1 });
+    media.time = 10;
+    callbacks().onSeek(10);
+    dispatch.mockClear();
+
+    callbacks().onBuffer();
+    dispatch.mockClear();
+
+    // Still stalled: no progress acknowledgement.
+    callbacks().onProgress();
+    expect(
+      dispatch.mock.calls.some(
+        ([action]) => action.type === ACTION_VIDEO_PROGRESS,
+      ),
+    ).toBe(false);
+
+    // Playback resumes and the media clock advances.
+    media.time = 10.05;
+    callbacks().onProgress();
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ACTION_VIDEO_PROGRESS,
+        offset: 10050,
+        seekRevision: 1,
+      }),
+    );
+  });
+
+  it('clears buffering on buffer end while remaining paused', () => {
+    const { media, callbacks, changeProps, dispatch } = playerFixture();
+
+    changeProps({ offset: 10000, seekRevision: 1 });
+    media.time = 10;
+    callbacks().onSeek(10);
+
+    changeProps({ desiredPlaySpeed: 0 });
+    expect(callbacks().playing).toBe(false);
+    dispatch.mockClear();
+
+    callbacks().onBuffer();
+    dispatch.mockClear();
+
+    // The clock is stationary while paused.
+    callbacks().onProgress();
+    expect(
+      dispatch.mock.calls.some(
+        ([action]) => action.type === ACTION_VIDEO_PROGRESS,
+      ),
+    ).toBe(false);
+
+    // The browser confirms buffering has ended.
+    callbacks().onBufferEnd();
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ACTION_VIDEO_PROGRESS,
+        offset: 10000,
+        seekRevision: 1,
+      }),
+    );
+
+    expect(callbacks().playing).toBe(false);
+  });
+
+  it('ignores stale buffer end events after a route change', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    media.time = 8;
+    const oldCallbacks = callbacks();
+    oldCallbacks.onBuffer();
+
+    expect(video.bufferingAtSeconds).toBe(8);
+
+    // Switching routes invalidates the old player's callbacks.
+    changeProps({ currentRoute: route('route-B') });
+
+    expect(video.bufferingAtSeconds).toBeNull();
+    dispatch.mockClear();
+
+    oldCallbacks.onBufferEnd();
+
+    expect(dispatch).not.toHaveBeenCalled();
+
+    // The new player should report progress independently.
+    media.time = 0;
+    callbacks().onReady(media);
+    callbacks().onProgress();
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ACTION_VIDEO_PROGRESS,
+        offset: 0,
+        seekRevision: 0,
+      }),
+    );
+  });
+
   it('ignores late errors, buffer events and progress from a prior route even when the URL is shared', () => {
     const { video, media, callbacks, playerElement, changeProps, dispatch } = playerFixture();
     const fromOldPlayer = callbacks();
