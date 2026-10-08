@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'history';
 import DriveVideo from '.';
 import { createAppStore } from '../../store';
 import * as Types from '../../actions/types';
-import { play, seek } from '../../timeline/playback';
+import { play, resetPlayback, seek, selectLoop } from '../../timeline/playback';
 
 const hls = vi.hoisted(() => ({ instances: [], load: null }));
 
@@ -126,4 +126,23 @@ describe('DriveVideo', () => {
     vi.restoreAllMocks();
   });
 
+  it('leaves the picture alone when the drive closes', async () => {
+    const store = renderPlayer();
+    await act(async () => {});
+    const video = document.querySelector('video');
+    const seeks = [];
+    Object.defineProperty(video, 'currentTime', { get: () => 42, set: (t) => seeks.push(t) });
+    // hls.js has attached its stream and the video has started
+    video.setAttribute('src', 'blob:stream');
+    fireEvent.loadedMetadata(video);
+    seeks.length = 0;
+    HTMLMediaElement.prototype.load.mockClear();
+    await act(async () => {
+      store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: null, start: null, end: null });
+      store.dispatch(resetPlayback());
+      store.dispatch(selectLoop(null, null));
+    });
+    expect(seeks).toEqual([]);
+    expect(HTMLMediaElement.prototype.load).not.toHaveBeenCalled();
+  });
 });

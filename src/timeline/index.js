@@ -3,6 +3,8 @@ import * as Types from '../actions/types';
 // The route's <video> element owns playback time while one is attached.
 // Without one (map view, no video, load error) a wall clock in Redux takes over.
 let video = null;
+// Route the attached video plays: a closed or changed drive must not move it.
+let videoRoute = null;
 // Route offset (ms) the attached video starts at, until it has metadata.
 let startOffset = null;
 // The store this middleware runs in.
@@ -60,6 +62,7 @@ export function setVideo(el) {
   video = null;
   startOffset = el ? currentOffset() : null;
   video = el;
+  videoRoute = el ? store.getState().currentRoute?.fullname : null;
   return el ? videoTime(store.getState(), startOffset) : offset;
 }
 
@@ -89,10 +92,10 @@ export function videoMiddleware(api) {
   store = api;
   return (next) => (action) => {
     const result = next(action);
-    if (!video) {
+    const state = api.getState();
+    if (!video || state.currentRoute?.fullname !== videoRoute) {
       return result;
     }
-    const state = api.getState();
     // resetPlayback() always comes right before selectLoop(), which moves offset into the new loop
     if (action.type === Types.ACTION_SEEK || action.type === Types.ACTION_LOOP) {
       if (startOffset !== null) {

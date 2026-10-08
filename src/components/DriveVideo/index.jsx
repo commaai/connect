@@ -45,7 +45,8 @@ class DriveVideo extends Component {
     // a missing segment: seeking to another segment tries again from there
     const movedAfterError = this.state.error === NOT_UPLOADED
       && getSegmentNumber(currentRoute, offset) !== getSegmentNumber(currentRoute, this.failedAt);
-    if (prevProps.currentRoute?.fullname !== currentRoute?.fullname || movedAfterError) {
+    // a closed drive keeps its last picture until the player unmounts
+    if ((currentRoute && prevProps.currentRoute?.fullname !== currentRoute.fullname) || movedAfterError) {
       this.load();
     }
   }
