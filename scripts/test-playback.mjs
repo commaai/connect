@@ -222,6 +222,12 @@ async function waitForTime(page, seconds, tolerance = 0.25) {
   }, { seconds, tolerance }, { timeout: 5000 });
 }
 
+async function waitForPlaybackState(page, predicate) {
+  await page.evaluate(async () => { window.__playbackStore = (await import('/src/store.js')).default; });
+  // Playwright treats a returned Promise as truthy, so polling must stay synchronous.
+  await page.waitForFunction(predicate);
+}
+
 async function setPaused(page, paused) {
   const button = page.getByRole('button', { name: paused ? 'Pause' : 'Play', exact: true });
   if (await button.count()) await button.click();
@@ -493,8 +499,8 @@ async function normalPlayback(browser, origin, fixture, forceMse = false) {
     await setPaused(page, true);
 
     await page.goto(`${origin}/${DEMO_DONGLE}/${BASELINE_LOG}/2/4?playback=audio&ci=1`);
-    await page.waitForFunction(async () => {
-      const state = (await import('/src/store.js')).default.getState();
+    await waitForPlaybackState(page, () => {
+      const state = window.__playbackStore.getState();
       const video = document.querySelector('video');
       return state.zoom?.start === 2000 && state.zoom.end === 4000 && video?.readyState >= 2 && !video.seeking;
     });
@@ -620,9 +626,9 @@ async function coldEntryRoutesAndRates(browser, server, fixture, forceMse = fals
   const { page, context } = await openFixture(browser, origin, 'audio', forceMse,
     { path: `/${DEMO_DONGLE}/${BASELINE_LOG}/5/9` });
   try {
-    await page.waitForFunction(async () => {
+    await waitForPlaybackState(page, () => {
       const video = document.querySelector('video');
-      const state = (await import('/src/store.js')).default.getState();
+      const state = window.__playbackStore.getState();
       return video?.readyState >= 2 && !video.seeking && video.currentTime >= 3.4 && video.currentTime < 4.2
         && Number.isFinite(state.offset) && !state.isBufferingVideo;
     });
@@ -788,12 +794,12 @@ async function stallOfflineAndReconnect(browser, server, fixture, forceMse = fal
     // Seeking beyond the available first two fragments removes transient
     // decoder warmup from this assertion and exercises a pending user target.
     await clickTimeline(page, 9.5);
-    await page.waitForFunction(async () => {
+    await waitForPlaybackState(page, () => {
       const video = document.querySelector('video');
       const buffered = Array.from({ length: video.buffered.length }, (_, index) => [video.buffered.start(index), video.buffered.end(index)])
         .some(([start, end]) => start <= 8 && end > 8);
       return (video.seeking || video.readyState < 2 || !buffered) && Math.abs(video.currentTime - 8) < 0.1
-        && (await import('/src/store.js')).default.getState().isBufferingVideo;
+        && window.__playbackStore.getState().isBufferingVideo;
     });
     const stalled = await snapshot(page);
     await page.waitForTimeout(400);
