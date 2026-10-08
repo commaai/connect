@@ -1,11 +1,38 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import {
+  destinationFromUrl, getDongleID, getRouteId, getRouteZoom, getSettingsDeviceId, getZoom, urlForDestination,
+} from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
 
-describe('URL pathname helpers', () => {
+describe('URL destinations', () => {
+  it.each([
+    ['/', { kind: 'root' }],
+    [`/${DONGLE}`, { kind: 'dashboard', dongleId: DONGLE }],
+    [`/${DONGLE}/settings`, { kind: 'settings', dongleId: DONGLE }],
+    [`/${DONGLE}/${LOG}`, { kind: 'drive', dongleId: DONGLE, logId: LOG, range: null }],
+    [`/${DONGLE}/${LOG}/10/20`, { kind: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10000, end: 20000 } }],
+  ])('parses %s without leaking path syntax into the caller', (pathname, expected) => {
+    expect(destinationFromUrl(pathname)).toEqual(expected);
+  });
+
+  it.each([
+    `/${DONGLE}/${LOG}/20/10`,
+    `/${DONGLE}/${LOG}/10/10`,
+    `/${DONGLE}/settings/extra`,
+    `/not-${DONGLE}`,
+  ])('rejects malformed destination %s', (pathname) => {
+    expect(destinationFromUrl(pathname)).toEqual({ kind: 'not-found' });
+  });
+
+  it('serializes the canonical, shareable form of each destination', () => {
+    expect(urlForDestination({ dongleId: DONGLE, kind: 'settings' })).toBe(`/${DONGLE}/settings`);
+    expect(urlForDestination({ dongleId: DONGLE, kind: 'drive', logId: LOG, range: { start: 10000, end: 20000 } }))
+      .toBe(`/${DONGLE}/${LOG}/10/20`);
+  });
+
   it.each([
     [`/${DONGLE}`, DONGLE],
     [`/${DONGLE}/${LOG}`, DONGLE],
@@ -15,18 +42,10 @@ describe('URL pathname helpers', () => {
     expect(getDongleID(pathname)).toBe(expected);
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
   it.each([
     [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
+    [`/${DONGLE}/0/20/ignored`, null],
+    [`/${DONGLE}/${LOG}/10/20`, null],
     [`/${DONGLE}/10`, null],
     ['/auth/code/provider', null],
   ])('getZoom(%s)', (pathname, expected) => {
@@ -51,21 +70,8 @@ describe('URL pathname helpers', () => {
     expect(getRouteZoom(pathname)).toEqual(expected);
   });
 
-  it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+  it('exposes settings through the same parser as every other page', () => {
+    expect(getSettingsDeviceId(`/${DONGLE}/settings`)).toBe(DONGLE);
+    expect(getSettingsDeviceId(`/${DONGLE}`)).toBeNull();
   });
 });

@@ -60,6 +60,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         primeNav: false,
         streamNav: false,
+        settingsDeviceId: null,
         subscription: null,
         subscribeInfo: null,
         files: null,
@@ -308,6 +309,12 @@ export default function reducer(_state, action) {
       if (action.primeNav) {
         state.zoom = null;
       }
+      break;
+    case Types.ACTION_SETTINGS_NAV:
+      state = {
+        ...state,
+        settingsDeviceId: action.dongleId,
+      };
       break;
     case Types.ACTION_STREAM_NAV:
       state = {

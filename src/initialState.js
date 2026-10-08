@@ -1,4 +1,4 @@
-import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getSettingsDeviceId, getStreamNav } from './url';
 import { getDefaultFilter } from './utils/filter';
 
 export function createInitialState(pathname = window.location.pathname) {
@@ -24,6 +24,7 @@ export function createInitialState(pathname = window.location.pathname) {
 
     primeNav: getPrimeNav(pathname),
     streamNav: getStreamNav(pathname),
+    settingsDeviceId: getSettingsDeviceId(pathname),
     subscription: null,
     subscribeInfo: null,
 
