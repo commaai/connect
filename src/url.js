@@ -3,7 +3,7 @@ const LOG_ID = /^[0-9a-f-]{20}$/;
 const NUMBER = /^\d+(\.\d+)?$/;
 
 export const DEVICE_PAGES = ['prime', 'stream'];
-export const MODALS = ['settings', 'pair'];
+export const MODALS = ['settings', 'pair', 'filter'];
 
 const emptyNav = {
   page: 'home',

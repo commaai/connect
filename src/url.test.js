@@ -42,6 +42,7 @@ describe('parseLocation', () => {
   it.each([
     ['?modal=settings', 'settings'],
     ['?modal=pair', 'pair'],
+    ['?modal=filter', 'filter'],
     ['?modal=unknown', null],
     ['?r=/somewhere', null],
   ])('reads the modal from %s', (search, modal) => {

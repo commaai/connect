@@ -351,6 +351,31 @@ describe('whole-app behavior', () => {
     expect(screen.getByLabelText('Device name')).toHaveValue('Zulu');
   });
 
+  test('the date filter opens from a link and closes without changing the range', async () => {
+    const { history, store } = await renderApp(`/${FIRST}?modal=filter`);
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    const filter = store.getState().filter;
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(store.getState().filter).toBe(filter);
+  });
+
+  test('filter navigation supports Back and Forward without refetching routes', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    const routes = store.getState().routes;
+    const count = () => mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    const requests = count();
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=filter'));
+    expect(screen.getByText('Start date:')).toBeVisible();
+    await act(async () => history.goBack());
+    expect(screen.queryByText('Start date:')).not.toBeInTheDocument();
+    await act(async () => history.goForward());
+    expect(screen.getByText('Start date:')).toBeVisible();
+    expect(store.getState().routes).toBe(routes);
+    expect(count()).toBe(requests);
+  });
+
   test('settings stay closed for a device you do not own', async () => {
     await renderApp(`/${SHARED}?modal=settings`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
