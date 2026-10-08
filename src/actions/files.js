@@ -21,6 +21,8 @@ const MAX_RETRIES = 5;
 const HIGH_PRIORITY = 0;
 
 let uploadQueueTimeout = null;
+let uploadQueueRevision = 0;
+let uploadQueueContext = null;
 let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
@@ -131,6 +133,8 @@ export function fetchFiles(routeName, nocache = false) {
 }
 
 export function cancelFetchUploadQueue() {
+  uploadQueueRevision += 1;
+  uploadQueueContext = null;
   if (uploadQueueTimeout) {
     if (uploadQueueTimeout !== true) {
       clearTimeout(uploadQueueTimeout);
@@ -141,10 +145,17 @@ export function cancelFetchUploadQueue() {
 
 export function fetchUploadQueue(dongleId) {
   return async (dispatch, getState) => {
-    if (uploadQueueTimeout) {
+    if (uploadQueueTimeout && uploadQueueContext?.dongleId === dongleId
+      && uploadQueueContext.getState === getState) {
       return;
     }
+    // A request or scheduled poll belongs to the queue currently displayed.
+    // Cancellation invalidates in-flight responses as well as the timer.
+    cancelFetchUploadQueue();
+    uploadQueueContext = { dongleId, getState };
     uploadQueueTimeout = true;
+    const revision = uploadQueueRevision;
+    const isCurrent = () => revision === uploadQueueRevision;
 
     dispatch(fetchDeviceNetworkStatus(dongleId));
 
@@ -154,16 +165,20 @@ export function fetchUploadQueue(dongleId) {
       id: 0,
     };
     const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
+    if (!isCurrent()) return;
     if (!uploadQueue || !uploadQueue.result) {
       if (uploadQueue && uploadQueue.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
       }
-      cancelFetchUploadQueue();
+      if (isCurrent()) cancelFetchUploadQueue();
       return;
     }
     dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
+    if (!isCurrent()) return;
 
-    const prevFilesUploading = getState().filesUploading || {};
+    const state = getState();
+    const prevFilesUploading = state.filesUploadingMeta.dongleId === dongleId
+      ? { ...state.filesUploading } : {};
     const device = getDeviceFromState(getState(), dongleId);
     const uploadingFiles = {};
     const newCurrentUploading = {};
@@ -201,9 +216,9 @@ export function fetchUploadQueue(dongleId) {
       uploading: newCurrentUploading,
       files: uploadingFiles,
     });
-    if (uploadQueueTimeout === true && uploadQueue.result.length) {
-      cancelFetchUploadQueue();
+    if (isCurrent() && uploadQueueTimeout === true && uploadQueue.result.length) {
       uploadQueueTimeout = setTimeout(() => {
+        if (!isCurrent()) return;
         uploadQueueTimeout = null;
         dispatch(fetchUploadQueue(dongleId));
       }, 2000);
