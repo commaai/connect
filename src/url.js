@@ -1,66 +1,77 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+// Every URL connect understands:
+//
+//   /                               home, opens the last selected device
+//   /referrals                      referral program
+//   /:dongleId                      device dashboard
+//   /:dongleId/prime                comma prime
+//   /:dongleId/settings             device settings
+//   /:dongleId/stream               live stream
+//   /:dongleId/:logId               drive
+//   /:dongleId/:logId/:start/:end   part of a drive, in seconds
+//   /:dongleId/:start/:end          legacy range in unix milliseconds, replaced by its drive's URL
+//
+// parseUrl() reads a pathname into a location and urlFor() writes one back.
+// actions/history.js applies locations to the app state.
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const DONGLE_ID = /^[a-f0-9]{16}$/;
+const LOG_ID = /^[a-f0-9-]{20}$/;
+const NUMBER = /^\d+$/;
+const DEVICE_PAGES = ['prime', 'settings', 'stream'];
 
-  if (!dongleIdRegex.test(parts[0])) {
+function range(start, end, scale) {
+  if (!NUMBER.test(start) || !NUMBER.test(end) || Number(start) >= Number(end)) {
     return null;
   }
-
-  return parts[0] || null;
+  return { start: Number(start) * scale, end: Number(end) * scale };
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
+/**
+ * @typedef {object} Location
+ * @property {string} page home, referrals, dashboard, prime, settings, stream, drive or legacy
+ * @property {string|null} dongleId
+ * @property {string|null} logId the open drive
+ * @property {{ start: number, end: number }|null} zoom selected part of the drive, or the legacy range, in ms
+ */
+
+/** @returns {Location} */
+export function parseUrl(pathname) {
+  const [first, ...rest] = pathname.split('/').filter(Boolean);
+  const location = { page: 'home', dongleId: null, logId: null, zoom: null };
+
+  if (first === 'referrals' && rest.length === 0) {
+    return { ...location, page: 'referrals' };
   }
-  return null;
+  if (!DONGLE_ID.test(first)) {
+    return location;
+  }
+
+  location.dongleId = first;
+  if (rest.length === 1 && DEVICE_PAGES.includes(rest[0])) {
+    return { ...location, page: rest[0] };
+  }
+  if (LOG_ID.test(rest[0])) {
+    return { ...location, page: 'drive', logId: rest[0], zoom: range(rest[1], rest[2], 1000) };
+  }
+  const legacyRange = range(rest[0], rest[1], 1);
+  if (legacyRange) {
+    return { ...location, page: 'legacy', zoom: legacyRange };
+  }
+  return { ...location, page: 'dashboard' };
 }
 
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
+/** @param {Partial<Location>} location */
+export function urlFor({ page, dongleId, logId, zoom }) {
+  if (page === 'referrals') {
+    return '/referrals';
   }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
-  const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  if (!dongleId) {
+    return '/';
   }
-  return null;
-}
-
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+  if (logId) {
+    // round outwards so a short selection keeps a non-empty range
+    return zoom
+      ? `/${dongleId}/${logId}/${Math.floor(zoom.start / 1000)}/${Math.ceil(zoom.end / 1000)}`
+      : `/${dongleId}/${logId}`;
   }
-  return false;
-}
-
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
+  return DEVICE_PAGES.includes(page) ? `/${dongleId}/${page}` : `/${dongleId}`;
 }
