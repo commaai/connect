@@ -7,6 +7,7 @@
 //     response
 //   - video URLs: demo routes stream the underlying public route, except the
 //     clone mutated to be missing qcamera (it has no share credentials)
+//   - video fragments: a missing qcamera segment fails to load with a 404
 // Everything else (billing, athena, ...) passes through.
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
 
@@ -84,6 +85,7 @@ const MISSING_DATA_CASES = [
   {
     title: 'Missing qcamera',
     // No share credentials, so this route's stream cannot resolve.
+    missingVideo: true,
     route(route, affectedSegment) {
       if (affectedSegment === undefined) {
         delete route.share_exp;
@@ -104,14 +106,21 @@ const MISSING_DATA_CASES = [
 
 // Keep two full-length routes for every case: one where the whole route is
 // affected and one where only a single segment is affected.
-const TEST_CASES = MISSING_DATA_CASES.flatMap((testCase) => [
-  testCase,
+const TEST_CASES = [
+  ...MISSING_DATA_CASES.flatMap((testCase) => [
+    testCase,
+    {
+      ...testCase,
+      title: `${testCase.title} (1 segment)`,
+      affectedSegment: AFFECTED_SEGMENT,
+    },
+  ]),
   {
-    ...testCase,
-    title: `${testCase.title} (1 segment)`,
-    affectedSegment: AFFECTED_SEGMENT,
+    ...MISSING_DATA_CASES.find((testCase) => testCase.missingVideo),
+    title: 'Missing qcamera (first segment)',
+    affectedSegment: 0,
   },
-]);
+];
 
 function fileSegmentNumber(file) {
   const pathParts = new URL(file).pathname.split('/');
@@ -124,6 +133,22 @@ function removeFileSegments(files, type, affectedSegment) {
   } else if (Array.isArray(files[type])) {
     files[type] = files[type].filter((url) => fileSegmentNumber(url) !== affectedSegment);
   }
+}
+
+// hls.js fragment loader that fails one segment's video like the real server
+function missingVideoLoader(segment) {
+  return function DemoFragmentLoader(config) {
+    const loader = new config.loader(config);
+    const load = loader.load.bind(loader);
+    loader.load = (context, loadConfig, callbacks) => {
+      if (fileSegmentNumber(context.url) === segment) {
+        callbacks.onError({ code: 404, text: 'Not Found' }, context, null, loader.stats);
+      } else {
+        load(context, loadConfig, callbacks);
+      }
+    };
+    return loader;
+  };
 }
 
 function demoRouteLogId(index) {
@@ -260,6 +285,13 @@ export function createDemoBackend(realBackend) {
     },
     video: {
       ...realBackend.video,
+      getHlsOptions(route) {
+        const testCase = TEST_CASES[demoRouteIndex(route.fullname)];
+        if (!testCase?.missingVideo || testCase.affectedSegment === undefined) {
+          return {};
+        }
+        return { fLoader: missingVideoLoader(testCase.affectedSegment) };
+      },
       getQcameraStreamUrl(routeStr, exp, sig) {
         // demo routes keep the public route's share credentials, so stream the
         // underlying public route; the clone missing qcamera has no credentials
