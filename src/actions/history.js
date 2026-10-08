@@ -6,30 +6,22 @@ import { resetPlayback, selectLoop } from '../timeline/playback';
 import { api } from '../api/backend';
 import { hardNavigate } from '../utils/navigation';
 
-let legacyLookup = null; // the legacy link being looked up
-
 // A legacy link names a time range; replace it with the drive that contains it,
-// unless the user has moved on by the time the lookup returns.
-function openLegacyZoom(pathname, dongleId, { start, end }) {
+// unless the user has left the link by the time the lookup returns.
+function openLegacyZoom(pathname, dongleId, { start, end }, isCurrent) {
   return (dispatch, getState) => {
-    if (legacyLookup === pathname) {
-      return;
-    }
-    legacyLookup = pathname;
     api.routes.getRoutesSegments(dongleId, start, end).then((routesData) => {
-      const { location } = getState().router;
-      if (location.pathname !== pathname) {
+      if (!isCurrent()) {
         return;
       }
       if (routesData?.length > 0) {
-        dispatch(replace(`/${dongleId}/${routesData[0].fullname.split('|')[1]}${location.search}`));
+        const { search } = getState().router.location;
+        dispatch(replace(`/${dongleId}/${routesData[0].fullname.split('|')[1]}${search}`));
       } else if (!api.auth.isAuthenticated()) {
         hardNavigate(`/?r=${encodeURI(pathname)}`); // redirect to login
       }
     }).catch((err) => {
       console.error('Error fetching routes data for log ID conversion', err);
-    }).finally(() => {
-      legacyLookup = null;
     });
   };
 }
@@ -37,9 +29,8 @@ function openLegacyZoom(pathname, dongleId, { start, end }) {
 // Every location change reaches state here. Pages and dialogs are read from the
 // URL where they render; the device and drive live in state because selecting
 // them loads data. Applying the URL the state already shows changes nothing.
-function applyUrl(pathname) {
+function applyUrl(url) {
   return (dispatch, getState) => {
-    const url = parseUrl(pathname);
     const deviceChanged = Boolean(url.dongleId) && url.dongleId !== getState().dongleId;
     if (deviceChanged) {
       dispatch(setDevice(url.dongleId));
@@ -65,21 +56,33 @@ function applyUrl(pathname) {
     } else if (selectedRouteId !== url.logId) {
       dispatch(checkRoutesData());
     }
-
-    if (url.legacyZoom) {
-      dispatch(openLegacyZoom(pathname, url.dongleId, url.legacyZoom));
-    }
   };
 }
 
-export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
-  if (!action) {
-    return undefined;
-  }
+export const onHistoryMiddleware = ({ dispatch }) => {
+  // this store's visit to a legacy link; a new path, even the same link again,
+  // is a new visit, so a lookup from an earlier one is ignored
+  let legacyVisit = null;
 
-  const result = next(action);
-  if (action.type === LOCATION_CHANGE) {
-    dispatch(applyUrl(action.payload.location.pathname));
-  }
-  return result;
+  return (next) => (action) => {
+    if (!action) {
+      return undefined;
+    }
+
+    const result = next(action);
+    if (action.type === LOCATION_CHANGE) {
+      const { pathname } = action.payload.location;
+      const url = parseUrl(pathname);
+      const newVisit = pathname !== legacyVisit?.pathname;
+      if (newVisit) {
+        legacyVisit = url.legacyZoom && { pathname };
+      }
+      const visit = legacyVisit;
+      dispatch(applyUrl(url));
+      if (newVisit && visit) {
+        dispatch(openLegacyZoom(pathname, url.dongleId, url.legacyZoom, () => legacyVisit === visit));
+      }
+    }
+    return result;
+  };
 };

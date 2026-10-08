@@ -87,4 +87,63 @@ describe('url -> state', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(history.location.pathname).toBe(`/${DONGLE}`);
   });
+
+  it('never looks up a legacy range too large to be a number', () => {
+    const { history, select } = create(`/${DONGLE}`);
+    history.push(`/${DONGLE}/1/${'9'.repeat(400)}`);
+    expect(api.routes.getRoutesSegments).not.toHaveBeenCalled();
+    expect(select()).toEqual({ dongleId: DONGLE, selectedRouteId: null, zoom: null });
+  });
+
+  describe('legacy lookups', () => {
+    const LINK = `/${DONGLE}/${DRIVE_START}/${DRIVE_START + 60_000}`;
+    const OTHER_LINK = `/${DONGLE}/${DRIVE_START + 120_000}/${DRIVE_START + 180_000}`;
+    const OTHER_LOG = '2026-08-06--12-02-00';
+    const drive = (log) => [{ fullname: `${DONGLE}|${log}` }];
+    const settle = () => new Promise((r) => setTimeout(r, 0));
+    let lookups;
+
+    beforeEach(() => {
+      lookups = [];
+      api.routes.getRoutesSegments.mockImplementation(() => new Promise((resolve, reject) => lookups.push({ resolve, reject })));
+    });
+
+    it.each([
+      ['opened again', (history) => history.push(LINK)],
+      ['returned to with Back', (history) => history.goBack()],
+    ])('a lookup from an earlier visit does not redirect the link %s', async (_name, returnToLink) => {
+      const { history } = create(LINK);
+      history.push(`/${DONGLE}`);
+      returnToLink(history);
+      expect(lookups).toHaveLength(2);
+      lookups[0].resolve(drive(OTHER_LOG));
+      await settle();
+      expect(history.location.pathname).toBe(LINK);
+      lookups[1].resolve(drive(LOG));
+      await vi.waitFor(() => expect(history.location.pathname).toBe(`/${DONGLE}/${LOG}`));
+    });
+
+    it('a stale lookup failing does not restart or cancel the lookup for the link on screen', async () => {
+      const { history } = create(LINK);
+      history.push(OTHER_LINK);
+      lookups[0].reject(new Error('stale'));
+      await settle();
+      history.push(`${OTHER_LINK}?settings`);
+      expect(lookups).toHaveLength(2);
+      lookups[1].resolve(drive(OTHER_LOG));
+      await vi.waitFor(() => expect(history.location.pathname).toBe(`/${DONGLE}/${OTHER_LOG}`));
+      expect(history.location.search).toBe('?settings');
+    });
+
+    it('two stores look up the same link independently', async () => {
+      const first = create(LINK);
+      const second = create(LINK);
+      expect(lookups).toHaveLength(2);
+      lookups[1].resolve(drive(LOG));
+      await vi.waitFor(() => expect(second.history.location.pathname).toBe(`/${DONGLE}/${LOG}`));
+      expect(first.history.location.pathname).toBe(LINK);
+      lookups[0].resolve(drive(OTHER_LOG));
+      await vi.waitFor(() => expect(first.history.location.pathname).toBe(`/${DONGLE}/${OTHER_LOG}`));
+    });
+  });
 });

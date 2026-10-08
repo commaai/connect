@@ -38,8 +38,14 @@ describe('parseUrl', () => {
     [`/${DONGLE}/${LOG}/1e3/2000`, 'an exponent'],
     [`/${DONGLE}/${LOG}/NaN/20`, 'NaN'],
     [`/${DONGLE}/${LOG}/10`, 'a missing end'],
+    [`/${DONGLE}/${LOG}/1/${'9'.repeat(400)}`, 'an end too long to be a number'],
+    [`/${DONGLE}/${LOG}/1/9007199254740992`, 'an end past the safe integers in milliseconds'],
   ])('opens the whole drive for %s', (pathname) => {
     expect(parseUrl(pathname)).toEqual({ ...NONE, dongleId: DONGLE, logId: LOG });
+  });
+
+  it('keeps the largest safe legacy range', () => {
+    expect(parseUrl(`/${DONGLE}/1/9007199254740991`).legacyZoom).toEqual({ start: 1, end: 9007199254740991 });
   });
 
   it.each([
@@ -50,6 +56,7 @@ describe('parseUrl', () => {
 
   it.each([
     [`/${DONGLE}/prime/extra`], [`/${DONGLE}/settings`], [`/${DONGLE}/garbage`], [`/${DONGLE}/10/20/30`],
+    [`/${DONGLE}/1/${'9'.repeat(400)}`], [`/${DONGLE}/1/9007199254740992`],
   ])('selects only the device for %s', (pathname) => {
     expect(parseUrl(pathname)).toEqual({ ...NONE, dongleId: DONGLE });
   });

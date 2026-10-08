@@ -14,10 +14,12 @@ const LOG_ID = /^[a-f0-9-]{20}$/;
 const PAGES = ['prime', 'stream'];
 
 function parseRange(start, end, scale) {
-  if (!/^\d+$/.test(start) || !/^\d+$/.test(end) || Number(start) >= Number(end)) {
+  if (!/^\d+$/.test(start) || !/^\d+$/.test(end)) {
     return null;
   }
-  return { start: Number(start) * scale, end: Number(end) * scale };
+  const range = { start: Number(start) * scale, end: Number(end) * scale };
+  // a safe end bounds the start too; digits too long for a number are not safe
+  return Number.isSafeInteger(range.end) && range.start < range.end ? range : null;
 }
 
 export function parseUrl(pathname, search = '') {
