@@ -61,6 +61,8 @@ test('decoded media advances, pauses, seeks and keeps its element under Map', as
   expect(await video.evaluate(element => element.currentTime)).toBeCloseTo(paused, 1);
   await video.evaluate(element => { element.currentTime = 3; });
   await expect.poll(() => video.evaluate(element => element.currentTime)).toBeCloseTo(3, 1);
+  await expect.poll(() => video.evaluate(element => element.seeking)).toBe(false);
+  await expect.poll(() => page.evaluate(() => window.mediaEvents.some(event => event.name === 'seeked' && Math.abs(event.time - 3) < 0.1))).toBe(true);
   await page.getByText('Map', { exact: true }).click();
   expect(await video.evaluate(element => element === window.playbackElement)).toBe(true);
   await page.getByText('Video', { exact: true }).click();
