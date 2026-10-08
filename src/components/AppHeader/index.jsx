@@ -78,7 +78,7 @@ const styles = () => ({
 });
 
 const AppHeader = ({
-  profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
+  profile, classes, dispatch, drawerIsOpen, showDrawerButton,
   forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
