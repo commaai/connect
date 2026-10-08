@@ -12,6 +12,8 @@ import {
   setPlaybackSpeed, resetPlayback, play, pause, videoProgress, setHasAudio, setVideoStatus, VideoStatus,
 } from '../../timeline/playback';
 
+const getVideoStartOffset = (route) => route.videoStartOffset || 0;
+
 const VideoOverlay = ({ loading, error }) => {
   let content;
   if (error) {
@@ -50,7 +52,7 @@ class RouteVideo extends Component {
     if (seekRequest && seekRequest !== prevProps.seekRequest) {
       this.seekTo(seekRequest.offset);
     } else if (loop !== prevProps.loop
-      || (currentRoute.videoStartOffset || 0) !== (prevProps.currentRoute.videoStartOffset || 0)) {
+      || getVideoStartOffset(currentRoute) !== getVideoStartOffset(prevProps.currentRoute)) {
       this.seekTo(offset);
     }
   }
@@ -65,7 +67,7 @@ class RouteVideo extends Component {
     const start = loop?.startTime ?? 0;
     const end = loop ? start + loop.duration : currentRoute.duration;
     const clamped = Math.max(start, Math.min(offset, end));
-    const seconds = Math.max(0, (clamped - (currentRoute.videoStartOffset || 0)) / 1000);
+    const seconds = Math.max(0, (clamped - getVideoStartOffset(currentRoute)) / 1000);
     this.player.current.seekTo(seconds, 'seconds');
   };
 
@@ -92,9 +94,9 @@ class RouteVideo extends Component {
   updateOffset = (video) => {
     const { currentRoute, dispatch, loop, isPlaying, offset, videoStatus } = this.props;
     if (!this.ready || video.seeking || videoStatus === VideoStatus.FAILED) return;
-    const nextOffset = Math.round(video.currentTime * 1000) + (currentRoute.videoStartOffset || 0);
+    const nextOffset = Math.round(video.currentTime * 1000) + getVideoStartOffset(currentRoute);
     if (isPlaying && loop?.duration > 0 && nextOffset >= loop.startTime + loop.duration
-      && loop.startTime + loop.duration > (currentRoute.videoStartOffset || 0)) {
+      && loop.startTime + loop.duration > getVideoStartOffset(currentRoute)) {
       this.seekTo(loop.startTime);
     } else if (nextOffset !== offset) {
       dispatch(videoProgress(nextOffset));

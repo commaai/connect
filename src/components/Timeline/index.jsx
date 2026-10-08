@@ -151,7 +151,6 @@ class Timeline extends Component {
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
-    this.seekToOffset = this.seekToOffset.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.segmentNum = this.segmentNum.bind(this);
     this.onRulerRef = this.onRulerRef.bind(this);
@@ -204,16 +203,11 @@ class Timeline extends Component {
     }
   }
 
-  seekToOffset(offset) {
-    this.props.dispatch(seek(offset));
-  }
-
   handleClick(ev) {
     const { dragging } = this.state;
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(ev);
-      const offset = this.percentToOffset(percent);
-      this.seekToOffset(offset);
+      this.props.dispatch(seek(this.percentToOffset(percent)));
     }
   }
 
@@ -268,7 +262,7 @@ class Timeline extends Component {
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       if (offset < startOffset || offset > endOffset) {
-        this.seekToOffset(startOffset);
+        this.props.dispatch(seek(startOffset));
       }
       const { dispatch } = this.props;
       const startTime = startOffset;

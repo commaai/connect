@@ -6,8 +6,6 @@ export const VideoStatus = {
   FAILED: 'failed',
 };
 
-// User seeks are commands; progress only reports the media clock. Keeping them
-// separate prevents feedback seeks and records analytics only for user actions.
 export function reducer(state, action) {
   switch (action.type) {
     case Types.ACTION_SEEK:
@@ -58,7 +56,6 @@ export function seek(offset) {
   };
 }
 
-// change playback speed without changing play/pause state
 export function setPlaybackSpeed(speed) {
   return {
     type: Types.ACTION_PLAYBACK_SPEED,
