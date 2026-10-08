@@ -336,12 +336,7 @@ export default function reducer(_state, action) {
       };
       break;
     case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
+      state.zoom = state.zoom.previous || null;
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
@@ -363,11 +358,9 @@ export default function reducer(_state, action) {
             end: state.currentRoute.duration,
             previous: state.zoom,
           } : null;
-          state.loop = null;
         }
       } else {
         state.zoom = null;
-        state.loop = null;
       }
       break;
     }
@@ -434,13 +427,6 @@ export default function reducer(_state, action) {
             state.zoom = {
               start: 0,
               end: state.currentRoute.duration,
-            };
-          }
-
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
-            state.loop = {
-              startTime: state.zoom.start,
-              duration: state.zoom.end - state.zoom.start,
             };
           }
         }

@@ -15,7 +15,6 @@ import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -265,10 +264,6 @@ class Media extends Component {
       this.setState({ inView: MediaType.VIDEO });
     }
 
-    if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
-    }
-
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
       this.props.dispatch(fetchEvents(this.props.currentRoute));
     }
@@ -387,7 +382,7 @@ class Media extends Component {
   }
 
   async uploadFilesAll(types) {
-    const { dongleId, currentRoute, loop, files } = this.props;
+    const { dongleId, currentRoute, zoom, files } = this.props;
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras', 'ecameras'];
     }
@@ -401,10 +396,9 @@ class Media extends Component {
     }));
 
     const uploading = {};
-    const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
-        && currentRoute.segment_end_times[i] > adjusted_start_time) {
+      if (currentRoute.segment_start_times[i] < currentRoute.start_time_utc_millis + zoom.end
+        && currentRoute.segment_end_times[i] > currentRoute.start_time_utc_millis + zoom.start) {
         types.forEach((type) => {
           const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
           if (!files[fileName]) {
@@ -427,12 +421,11 @@ class Media extends Component {
   }
 
   _uploadStats(types, count, uploaded, uploading, paused, requested) {
-    const { currentRoute, loop, files } = this.props;
-    const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
+    const { currentRoute, zoom, files } = this.props;
 
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
-        && currentRoute.segment_end_times[i] > adjusted_start_time) {
+      if (currentRoute.segment_start_times[i] < currentRoute.start_time_utc_millis + zoom.end
+        && currentRoute.segment_end_times[i] > currentRoute.start_time_utc_millis + zoom.start) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
           const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
@@ -549,12 +542,14 @@ class Media extends Component {
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {inView === MediaType.VIDEO && (
+            {/* stays mounted behind the map: the video is the playback clock */}
+            <div className={inView === MediaType.VIDEO ? '' : 'hidden'}>
               <DriveVideo
+                key={this.props.currentRoute.fullname}
                 isMuted={isMuted}
                 onAudioStatusChange={this.handleAudioStatusChange}
               />
-            )}
+            </div>
             {(inView === MediaType.MAP && !showMapAlways) && (
               <div className="w-full">
                 <DriveMap />
@@ -925,11 +920,9 @@ const stateToProps = (state) => ({
   routes: state.routes,
   currentRoute: state.currentRoute,
   zoom: state.zoom,
-  loop: state.loop,
   filter: state.filter,
   files: state.files,
   profile: state.profile,
-  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
