@@ -1,12 +1,14 @@
 import { DriveVideo } from '.';
 import * as Types from '../../actions/types';
 
+const ranges = (...pairs) => ({ length: pairs.length, start: (i) => pairs[i][0], end: (i) => pairs[i][1] });
+
 function fixture(overrides = {}, mediaOverrides = {}) {
   const props = { currentRoute: { fullname: 'route', videoStartOffset: 1000 }, offset: 4000, desiredPlaySpeed: 1, seekRevision: 0, dispatch: vi.fn(), onAudioStatusChange: vi.fn(), ...overrides };
   const player = new DriveVideo(props);
   player.setState = (update) => { player.state = { ...player.state, ...(typeof update === 'function' ? update(player.state) : update) }; };
   const media = new EventTarget();
-  Object.assign(media, { currentTime: 0, duration: 30, readyState: 2, seeking: false, paused: false, playbackRate: 1 }, mediaOverrides);
+  Object.assign(media, { currentTime: 0, duration: 30, readyState: 2, seeking: false, paused: false, playbackRate: 1, buffered: ranges() }, mediaOverrides);
   const wrapper = { getInternalPlayer: (kind) => kind ? null : media };
   player.videoPlayer.current = wrapper;
   player.onReady(wrapper, 'route', 0);
@@ -298,6 +300,54 @@ describe('DriveVideo media events', () => {
     expect(props.dispatch).toHaveBeenLastCalledWith({ type: Types.ACTION_SEEK, offset: 0, loop: true });
     player.componentWillUnmount();
     expect(media.cancelVideoFrameCallback).toHaveBeenCalledWith(7);
+  });
+
+  describe('stall watchdog', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+    const startLoading = (player, props) => {
+      player.props = { ...props, isBufferingVideo: true };
+      player.componentDidUpdate({ ...props, isBufferingVideo: false }, player.state);
+    };
+
+    it('offers retry when loading makes no progress for 15 seconds', () => {
+      const { player, props } = fixture();
+      startLoading(player, props);
+      vi.advanceTimersByTime(14000);
+      expect(player.state.videoError).toBeNull();
+      vi.advanceTimersByTime(1000);
+      expect(player.state.videoError).toContain('try again');
+    });
+
+    it('keeps waiting while data still arrives and stops once loading ends', () => {
+      const { player, props, media } = fixture();
+      startLoading(player, props);
+      media.buffered = ranges([0, 4]);
+      vi.advanceTimersByTime(15000);
+      media.buffered = ranges([0, 6]);
+      vi.advanceTimersByTime(15000);
+      expect(player.state.videoError).toBeNull();
+      player.props = { ...player.props, isBufferingVideo: false };
+      vi.advanceTimersByTime(30000);
+      expect(player.state.videoError).toBeNull();
+    });
+
+    it('keeps watching while the player attaches its element', () => {
+      const { player, props, wrapper } = fixture();
+      startLoading(player, props);
+      player.detachMedia(); // as onReady does before attaching
+      player.onReady(wrapper, 'route', 0);
+      vi.advanceTimersByTime(15000);
+      expect(player.state.videoError).toContain('try again');
+    });
+
+    it('stops watching when the player unmounts', () => {
+      const { player, props } = fixture();
+      startLoading(player, props);
+      player.componentWillUnmount();
+      vi.advanceTimersByTime(15000);
+      expect(player.state.videoError).toBeNull();
+    });
   });
 
   it('accepts a seek that hls.js completes just past a gap between fragments', () => {

@@ -11,6 +11,13 @@ import { isFirefox } from '../../utils/browser.js';
 
 const sourceIdentity = (route) => JSON.stringify([route?.fullname, route?.share_exp, route?.share_sig]);
 
+// Without an error event a network stall would spin forever (native HLS can
+// wait indefinitely; hls.js retries for minutes), so give up after a while
+// without any newly buffered media.
+const STALL_TIMEOUT = 15000;
+const bufferedSeconds = ({ buffered }) => Array.from({ length: buffered.length },
+  (_, i) => buffered.end(i) - buffered.start(i)).reduce((sum, seconds) => sum + seconds, 0);
+
 // Signed stream URLs expire; only a fresh route fetch (a reload) renews them.
 const EXPIRED_ERROR = 'This video link has expired. Reload the page to continue.';
 const HTTP_ERRORS = {
@@ -75,8 +82,13 @@ export class DriveVideo extends Component {
   hasAudio = false;
   seekAttempts = 0;
   resumeSpeed = 0;
+  stallTimer = null;
 
-  componentDidUpdate(prevProps) {
+  componentDidMount() {
+    if (this.props.isBufferingVideo) this.watchForStall();
+  }
+
+  componentDidUpdate(prevProps, prevState) {
     if (sourceIdentity(prevProps.currentRoute) !== sourceIdentity(this.props.currentRoute)) {
       this.detachMedia();
       this.props.onAudioStatusChange?.(false);
@@ -87,9 +99,11 @@ export class DriveVideo extends Component {
     }
     // Play on a failed video means try again.
     if (this.state.videoError && this.props.desiredPlaySpeed && !prevProps.desiredPlaySpeed) this.retry();
+    if (this.props.isBufferingVideo && (!prevProps.isBufferingVideo || prevState.retry !== this.state.retry)) this.watchForStall();
   }
 
   componentWillUnmount() {
+    clearTimeout(this.stallTimer);
     this.detachMedia();
   }
 
@@ -128,6 +142,24 @@ export class DriveVideo extends Component {
         if (this.media === media) this.onError(error, null, route, retry);
       });
     }
+  };
+
+  // The loading state may not outlast STALL_TIMEOUT without new media data.
+  // Native HLS can stall before the first frame, so read the element from the
+  // player rather than waiting for it to report ready.
+  watchForStall = () => {
+    clearTimeout(this.stallTimer);
+    const buffered = () => {
+      const media = this.videoPlayer.current?.getInternalPlayer();
+      return media ? bufferedSeconds(media) : 0;
+    };
+    const { retry } = this.state;
+    const before = buffered();
+    this.stallTimer = setTimeout(() => {
+      if (!this.props.isBufferingVideo || !this.props.currentRoute || this.state.videoError || retry !== this.state.retry) return;
+      if (document.hidden || buffered() !== before) this.watchForStall();
+      else this.onError(new Error('Video stalled'), null, this.props.currentRoute.fullname, retry);
+    }, STALL_TIMEOUT);
   };
 
   publishPosition = () => {

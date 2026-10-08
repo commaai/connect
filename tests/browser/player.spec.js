@@ -49,7 +49,8 @@ async function openPlayer(page, options = {}) {
   segmentFails = options.segmentFails;
   segmentDelay = options.segmentDelay;
   failures = [];
-  await page.goto(`/tests/browser/player.html?media=${encodeURIComponent(mediaUrl)}`);
+  // A media element may delay the load event while its first frame is missing.
+  await page.goto(`/tests/browser/player.html?media=${encodeURIComponent(mediaUrl)}`, { waitUntil: 'domcontentloaded' });
 }
 
 async function state(page) {
@@ -248,6 +249,22 @@ test('a fragment failing after playback has begun stops in place or is skipped, 
   await retry.click();
   await expect.poll(async () => (await video(page)).time, { timeout: 20000 }).toBeGreaterThan(media.time + 500);
   await expect(retry).toHaveCount(0);
+});
+
+test('a fragment that never arrives ends in Retry rather than an endless spinner', async ({ page }) => {
+  let hung = true;
+  await openPlayer(page, { segmentDelay: (file) => (hung && file === 'segment2.ts' ? 120000 : 0) });
+  // hls.js plays up to the missing data at 4s; native HLS may need it before
+  // the first frame. Either way the spinner must give way to Retry.
+  const retry = page.getByRole('button', { name: 'Retry video' });
+  const ready = async () => await retry.count() > 0 || await page.locator('video').evaluate((media) => media.readyState) === 4;
+  await expect.poll(ready, { timeout: 30000 }).toBe(true);
+  if (await retry.count() === 0) await playing(page);
+  await expect(retry).toBeVisible({ timeout: 30000 });
+  expect((await video(page)).time).toBeLessThan(4100);
+  hung = false;
+  await retry.click();
+  await expect.poll(async () => (await video(page)).time, { timeout: 20000 }).toBeGreaterThan(4500);
 });
 
 test('a burst of timeline clicks lands on the last one', async ({ page }) => {
