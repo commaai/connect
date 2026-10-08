@@ -37,7 +37,6 @@ const VideoOverlay = ({ loading, error }) => {
   );
 };
 
-
 class RouteVideo extends Component {
   player = React.createRef();
   ready = false;
@@ -48,11 +47,10 @@ class RouteVideo extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { seekRequest, loop, offset, currentRoute } = this.props;
+    const { seekRequest, loop, offset } = this.props;
     if (seekRequest && seekRequest !== prevProps.seekRequest) {
       this.seekTo(seekRequest.offset);
-    } else if (loop !== prevProps.loop
-      || getVideoStartOffset(currentRoute) !== getVideoStartOffset(prevProps.currentRoute)) {
+    } else if (loop !== prevProps.loop) {
       this.seekTo(offset);
     }
   }
