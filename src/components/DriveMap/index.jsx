@@ -8,6 +8,7 @@ import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
+const SEEK_THRESHOLD = 1000; // ms of route time between two frames
 
 class DriveMap extends Component {
   constructor(props) {
@@ -35,6 +36,7 @@ class DriveMap extends Component {
     this.isInteracting = false;
     this.isInteractingTimeout = null;
     this.lastMapPos = [0, 0];
+    this.lastOffset = null;
   }
 
   componentDidMount() {
@@ -44,7 +46,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -53,10 +55,6 @@ class DriveMap extends Component {
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
-    }
-
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
-      this.shouldFlyTo = true;
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
@@ -97,7 +95,13 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        const offset = currentOffset();
+        // fly to a seek instead of jumping
+        if (this.lastOffset !== null && Math.abs(offset - this.lastOffset) > SEEK_THRESHOLD) {
+          this.shouldFlyTo = true;
+        }
+        this.lastOffset = offset;
+        const pos = this.posAtOffset(offset);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -306,9 +310,7 @@ class DriveMap extends Component {
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
 });
 
 export default connect(stateToProps)(DriveMap);
