@@ -1,4 +1,4 @@
-import AddDevice from '../Dashboard/AddDevice';
+import { AddDeviceButton } from '../Dashboard/AddDevice';
 
 const NoDeviceUpsell = () => (
   <div className="flex flex-col items-center mx-4 md:mx-6 lg:mx-8 mt-4 sm:mt-8 md:mt-16">
@@ -19,7 +19,7 @@ const NoDeviceUpsell = () => (
         may have used previously.
       </p>
       <div className="mt-2 w-full">
-        <AddDevice buttonText="add new device" />
+        <AddDeviceButton />
       </div>
     </div>
     <picture className="max-w-3xl mt-4 p-4">

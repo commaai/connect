@@ -5,7 +5,8 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
+import { updateDevices, analyticsEvent } from '../../actions';
+import { closeDialog, navigateTo, openDialog } from '../../actions/history';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
@@ -96,12 +97,26 @@ const styles = (theme) => ({
   },
 });
 
+const AddDeviceButtonComponent = ({
+  buttonIcon, buttonStyle, buttonText = 'add new device', classes, dispatch,
+}) => (
+  <Button
+    className={ classes.addButton }
+    style={ buttonStyle }
+    onClick={() => dispatch(openDialog('add-device'))}
+  >
+    { buttonText }
+    { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
+  </Button>
+);
+
+export const AddDeviceButton = connect()(withStyles(styles)(AddDeviceButtonComponent));
+
 class AddDevice extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -123,18 +138,19 @@ class AddDevice extends Component {
     this.modalClose = this.modalClose.bind(this);
     this.onQrRead = this.onQrRead.bind(this);
     this.restart = this.restart.bind(this);
-    this.onOpenModal = this.onOpenModal.bind(this);
     this.scanFrame = this.scanFrame.bind(this);
     this.startScanning = this.startScanning.bind(this);
     this.stopScanning = this.stopScanning.bind(this);
   }
 
-  async componentDidMount() {
-    this.componentDidUpdate({}, {});
+  componentDidMount() {
+    this.mounted = true;
+    this.componentDidUpdate();
   }
 
   async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+    if (!this.mounted) return;
+    const { pairLoading, pairError, pairDongleId } = this.state;
     let { hasCamera } = this.state;
 
     // Check for camera availability
@@ -142,25 +158,31 @@ class AddDevice extends Component {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         hasCamera = devices.some((d) => d.kind === 'videoinput');
-        this.setState({ hasCamera });
       } catch {
         hasCamera = false;
-        this.setState({ hasCamera });
       }
+      if (!this.mounted) return;
+      this.setState({ hasCamera });
     }
 
     // Initialize detector and camera stream
-    if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
+    if (this.videoRef && !this.detector && hasCamera && !pairDongleId) {
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
+        if (!this.mounted) {
+          this.stopCamera();
+          return;
+        }
         this.videoRef.srcObject = this.stream;
-        this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
+        if (!this.mounted) return;
         this.startScanning();
       } catch (err) {
+        if (!this.mounted) return;
+        this.stopCamera();
         let cameraError = 'Unable to access camera.';
         if (err.name === 'NotAllowedError') {
           cameraError = 'Camera access denied. Please allow camera access in your browser settings and try again.';
@@ -219,7 +241,7 @@ class AddDevice extends Component {
     }
 
     // Start scanning if conditions are met
-    if (!pairLoading && !pairError && !pairDongleId && this.detector && modalOpen && hasCamera && !this.scanning) {
+    if (!pairLoading && !pairError && !pairDongleId && this.detector && hasCamera && !this.scanning) {
       this.startScanning();
     }
   }
@@ -229,6 +251,7 @@ class AddDevice extends Component {
 
     try {
       const results = await this.detector.detect(this.videoRef);
+      if (!this.scanning) return;
       if (results.length > 0) {
         this.onQrRead({ data: results[0].rawValue });
         return; // Stop scanning after detection
@@ -237,7 +260,9 @@ class AddDevice extends Component {
       // Ignore detection errors, just keep scanning
     }
 
-    this.scanFrameId = requestAnimationFrame(this.scanFrame);
+    if (this.scanning) {
+      this.scanFrameId = requestAnimationFrame(this.scanFrame);
+    }
   }
 
   startScanning() {
@@ -254,20 +279,26 @@ class AddDevice extends Component {
     }
   }
 
-  async componentWillUnmount() {
+  stopCamera() {
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
-      this.stream = null;
     }
+    this.stream = null;
+    this.detector = null;
   }
 
-  async onVideoRef(ref) {
+  componentWillUnmount() {
+    this.mounted = false;
+    this.stopCamera();
+  }
+
+  onVideoRef(ref) {
     this.videoRef = ref;
     this.componentDidUpdate();
   }
 
-  async onCanvasRef(ref) {
+  onCanvasRef(ref) {
     this.canvasRef = ref;
     this.componentDidUpdate();
   }
@@ -283,22 +314,18 @@ class AddDevice extends Component {
   modalClose() {
     const { pairDongleId } = this.state;
 
-    this.stopScanning();
-    if (this.stream) {
-      this.stream.getTracks().forEach((track) => track.stop());
-      this.stream = null;
-    }
-    this.detector = null;
+    this.stopCamera();
 
-    if (pairDongleId && this.props.devices.length === 0) {
+    if (pairDongleId && !this.props.devices?.length) {
       this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
       window.location = `${window.location.origin}/${pairDongleId}`;
       return;
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      this.props.dispatch(navigateTo({ page: 'dashboard', dongleId: pairDongleId }));
+    } else {
+      this.props.dispatch(closeDialog());
     }
   }
 
@@ -354,7 +381,7 @@ class AddDevice extends Component {
       const resp = await api.devices.pilotPair(pairToken);
       if (resp.dongle_id) {
         const deviceList = await api.devices.listDevices();
-        if (devices.length > 0) { // state change from no device to a device requires reload.
+        if (devices?.length) { // state change from no device to a device requires reload.
           dispatch(updateDevices(deviceList));
           dispatch(analyticsEvent('pair_device', { method: 'add_device_sidebar' }));
         }
@@ -369,81 +396,70 @@ class AddDevice extends Component {
     }
   }
 
-  onOpenModal() {
-    this.setState({ modalOpen: true });
-  }
-
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes } = this.props;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
-      <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
-          { buttonText }
-          { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
-        <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
-          <Paper className={ classes.modal }>
-            <div className={ classes.titleContainer }>
-              <Typography variant="title">Pair device</Typography>
-              <Typography variant="caption">
-                scan QR code
-              </Typography>
-            </div>
-            <hr className={ classes.divider } />
-            { hasCamera === false
-              ? (
-                <>
-                  <Typography style={{ marginBottom: 5 }}>
-                    { cameraError || 'Camera not found, please enable camera access.' }
-                  </Typography>
-                  <br />
-                  <Typography>
-                    You can also scan the QR code using any other QR code
-                    reader application.
-                  </Typography>
-                </>
-              )
-              : (
-                <div className={ `${classes.videoContainer} ${videoContainerOverlay}` }>
-                  <canvas className={ classes.canvas } ref={ this.onCanvasRef } />
-                  <div className={ classes.videoOverlay }>
-                    { pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} /> }
-                    { pairError && (
-                    <>
-                      <Typography>{ pairError }</Typography>
-                      <Button className={ classes.retryButton } onClick={ this.restart }>
-                        try again
-                      </Button>
-                    </>
-                    ) }
-                    { pairDongleId && (
-                    <>
-                      <Typography>
-                        {'Successfully paired device '}
-                        <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
-                      </Typography>
-                      <Button className={ classes.retryButton } onClick={ this.modalClose }>
-                        close
-                      </Button>
-                    </>
-                    ) }
-                  </div>
-                  <video className={ classes.video } ref={ this.onVideoRef } />
+      <Modal aria-labelledby="add-device-modal" open onClose={ this.modalClose }>
+        <Paper className={ classes.modal }>
+          <div className={ classes.titleContainer }>
+            <Typography variant="title">Pair device</Typography>
+            <Typography variant="caption">
+              scan QR code
+            </Typography>
+          </div>
+          <hr className={ classes.divider } />
+          { hasCamera === false
+            ? (
+              <>
+                <Typography style={{ marginBottom: 5 }}>
+                  { cameraError || 'Camera not found, please enable camera access.' }
+                </Typography>
+                <br />
+                <Typography>
+                  You can also scan the QR code using any other QR code
+                  reader application.
+                </Typography>
+              </>
+            )
+            : (
+              <div className={ `${classes.videoContainer} ${videoContainerOverlay}` }>
+                <canvas className={ classes.canvas } ref={ this.onCanvasRef } />
+                <div className={ classes.videoOverlay }>
+                  { pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} /> }
+                  { pairError && (
+                  <>
+                    <Typography>{ pairError }</Typography>
+                    <Button className={ classes.retryButton } onClick={ this.restart }>
+                      try again
+                    </Button>
+                  </>
+                  ) }
+                  { pairDongleId && (
+                  <>
+                    <Typography>
+                      {'Successfully paired device '}
+                      <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+                    </Typography>
+                    <Button className={ classes.retryButton } onClick={ this.modalClose }>
+                      close
+                    </Button>
+                  </>
+                  ) }
                 </div>
-              )}
-          </Paper>
-        </Modal>
-      </>
+                <video className={ classes.video } ref={ this.onVideoRef } muted playsInline />
+              </div>
+            )}
+        </Paper>
+      </Modal>
     );
   }
 }
 
 const stateToProps = (state) => ({
-  profile: state.profile,
   devices: state.devices,
 });
 

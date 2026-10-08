@@ -1,6 +1,5 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
-import { getDefaultFilter } from '../utils/filter';
 
 const eventsMap = {};
 const locationMap = {};
@@ -56,14 +55,16 @@ export default function reducer(_state, action) {
     case Types.ACTION_SELECT_DEVICE:
       state = {
         ...state,
-        filter: getDefaultFilter(),
         dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
         limit: 0,
+        selectedRouteId: null,
+        currentRoute: null,
+        currentRouteMissing: false,
+        zoom: null,
+        loop: null,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
@@ -300,21 +301,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -335,40 +321,32 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
+      if (action.log_id !== state.selectedRouteId
+        || !state.zoom
+        || action.start == null
+        || action.end == null
+        || action.start < state.zoom.start
+        || action.end > state.zoom.end) {
         state.files = null;
       }
 
+      const currentRoute = state.routes?.find((route) => route.log_id === action.log_id)
+        || (state.currentRoute?.log_id === action.log_id ? state.currentRoute : null);
       state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
-        }
-      } else {
+      state.currentRoute = currentRoute;
+      state.currentRouteMissing = false;
+      if (!action.log_id) {
         state.zoom = null;
-        state.loop = null;
+      } else if (action.start != null && action.end != null) {
+        state.zoom = { start: action.start, end: action.end };
+      } else {
+        state.zoom = currentRoute ? { start: 0, end: currentRoute.duration } : null;
       }
+      state.loop = state.zoom && {
+        startTime: state.zoom.start,
+        duration: state.zoom.end - state.zoom.start,
+      };
       break;
     }
     case Types.ACTION_FILES_URLS:
@@ -409,41 +387,31 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
-      // merge existing routes' event and location info with new routes
+    case Types.ACTION_ROUTES_METADATA: {
+      const cachedRoutes = [...(state.routes || []), ...(state.lastRoutes || [])];
       state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+        const existingRoute = cachedRoutes.find((r) => r.fullname === route.fullname) || {};
         return {
           ...existingRoute,
           ...route,
-        }
+        };
       });
       state.routesMeta = {
         dongleId: action.dongleId,
         start: action.start,
         end: action.end,
       };
-      if (!state.currentRoute && state.selectedRouteId) {
-        const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
-        if (curr) {
-          state.currentRoute = {
-            ...curr,
-          };
-          if (!state.zoom) {
-            state.zoom = {
-              start: 0,
-              end: state.currentRoute.duration,
-            };
-          }
-
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
-            state.loop = {
-              startTime: state.zoom.start,
-              duration: state.zoom.end - state.zoom.start,
-            };
-          }
-        }
+      break;
+    }
+    case Types.ACTION_CURRENT_ROUTE:
+      if (state.selectedRouteId !== action.logId) {
+        break;
+      }
+      state.currentRoute = action.route;
+      state.currentRouteMissing = !action.route;
+      if (action.route && !state.zoom) {
+        state.zoom = { start: 0, end: action.route.duration };
+        state.loop = { startTime: 0, duration: action.route.duration };
       }
       break;
     default:

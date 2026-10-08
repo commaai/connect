@@ -1,4 +1,21 @@
-import { deviceVersionAtLeast, formatDriveDuration } from '.';
+import { deviceVersionAtLeast, formatDriveDuration, getDeviceFromState } from '.';
+
+test('looks up devices before the selected device or collection has loaded', () => {
+  const device = { dongle_id: '1234567890abcdef' };
+  expect(getDeviceFromState({}, device.dongle_id)).toBeNull();
+  expect(getDeviceFromState({ device: null, devices: null }, device.dongle_id)).toBeNull();
+  expect(getDeviceFromState({ device }, device.dongle_id)).toBe(device);
+  expect(getDeviceFromState({ devices: [device] }, device.dongle_id)).toBe(device);
+});
+
+test('prefers the selected device and can still find another known device', () => {
+  const device = { dongle_id: '1234567890abcdef', alias: 'Current' };
+  const other = { dongle_id: 'abcdef1234567890' };
+  const state = { device, devices: [{ ...device, alias: 'Cached' }, other] };
+  expect(getDeviceFromState(state, device.dongle_id)).toBe(device);
+  expect(getDeviceFromState(state, other.dongle_id)).toBe(other);
+  expect(getDeviceFromState(state, '0000000000000000')).toBeNull();
+});
 
 test('formats durations correctly', () => {
   // 1 hour, 59 minutes, 59 seconds

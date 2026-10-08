@@ -4,26 +4,8 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { anonymizeUrl } from './url';
 import { deviceIsOnline } from './utils';
-
-function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
-}
 
 const clusterMap = {
   s: 1000,
@@ -102,7 +84,7 @@ function logAction(action, prevState, state) {
   switch (action.type) {
     case LOCATION_CHANGE:
       gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(action.payload.location.pathname),
+        page_location: anonymizeUrl(action.payload.location.pathname),
       });
       return;
 
@@ -138,7 +120,7 @@ function logAction(action, prevState, state) {
 
       gtag('event', 'page_view', {
         ...params,
-        page_location: getPageViewEventLocation(window.location.pathname),
+        page_location: anonymizeUrl(window.location.pathname),
       });
       return;
 

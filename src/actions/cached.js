@@ -19,6 +19,13 @@ const driveCoordsRequests = {};
 let hasExpired = false;
 let cacheDB = null;
 
+function getRouteFromState(state, fullname) {
+  if (state.currentRoute?.fullname === fullname) {
+    return state.currentRoute;
+  }
+  return state.routes?.find((route) => route.fullname === fullname) || null;
+}
+
 async function getCacheDB() {
   if (cacheDB !== null) {
     return Promise.resolve(cacheDB);
@@ -262,18 +269,9 @@ function parseEvents(route, driveEvents) {
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.routes) {
+    const loadedRoute = getRouteFromState(state, route.fullname);
+    if (!loadedRoute || loadedRoute.events) {
       return;
-    }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.events) {
-          return;
-        }
-        break;
-      }
     }
 
     // already requesting
@@ -345,18 +343,9 @@ export function fetchEvents(route) {
 export function fetchCoord(route, coord, locationKey) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.routes || (!coord[0] && !coord[1])) {
+    const loadedRoute = getRouteFromState(state, route.fullname);
+    if (!loadedRoute || loadedRoute[locationKey] || (!coord[0] && !coord[1])) {
       return;
-    }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r[locationKey]) {
-          return;
-        }
-        break;
-      }
     }
 
     // round for better caching
@@ -418,18 +407,9 @@ export function fetchLocations(route) {
 export function fetchDriveCoords(route) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.routes) {
+    const loadedRoute = getRouteFromState(state, route.fullname);
+    if (!loadedRoute || loadedRoute.driveCoords) {
       return;
-    }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.driveCoords) {
-          return;
-        }
-        break;
-      }
     }
 
     // already requesting
