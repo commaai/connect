@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { buildPath, Pages } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -142,22 +143,6 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
-}
-
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
@@ -168,10 +153,15 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (allowPathChange) {
     const route = state.routes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+    // a zoom that begins in the first second is kept out of the URL, same as before
+    const zoomed = !wholeDrive && start >= 1000 && end >= 1000;
 
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
+    const desiredPath = buildPath({
+      page: log_id ? Pages.ROUTE : Pages.DEVICE,
+      dongleId: state.dongleId,
+      routeId: log_id,
+      zoom: zoomed ? { start, end } : null,
+    });
 
     if (currentPathname(state) !== desiredPath) {
       dispatch(push(desiredPath));
@@ -300,7 +290,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     }
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
+      const desiredPath = buildPath({ page: Pages.DEVICE, dongleId });
       if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -324,7 +314,7 @@ export function primeNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
+      const desiredPath = buildPath({ page: nav ? Pages.PRIME : Pages.DEVICE, dongleId: state.dongleId });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -348,7 +338,7 @@ export function streamNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      const desiredPath = buildPath({ page: nav ? Pages.STREAM : Pages.DEVICE, dongleId: state.dongleId });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }
