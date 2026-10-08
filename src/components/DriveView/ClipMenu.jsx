@@ -260,16 +260,8 @@ class ClipMenu extends Component {
     const loadingRouteTarget = (opened || routeChanged || deviceChanged || reconnected) && this.props.open;
     if (loadingRouteTarget) this.loadClips();
     if (routeTargetChanged) {
-      if (prevProps.routeModal === 'clip-viewer'
-        && (this.props.routeModal !== 'clip-viewer'
-          || prevProps.routeModalClip !== this.props.routeModalClip
-          || prevProps.dongleId !== this.props.dongleId
-          || routeChanged)) this.closeViewer(false);
-      if (prevProps.routeModal === 'clip-delete'
-        && (this.props.routeModal !== 'clip-delete'
-          || prevProps.routeModalClip !== this.props.routeModalClip
-          || prevProps.dongleId !== this.props.dongleId
-          || routeChanged)) {
+      if (prevProps.routeModal === 'clip-viewer') this.closeViewer(false);
+      if (prevProps.routeModal === 'clip-delete') {
         this.setState({ deletingClip: null, deleteDialogOpen: false, deleting: false });
       }
       this.routeTargetKey = null;
@@ -414,6 +406,7 @@ class ClipMenu extends Component {
       return;
     }
     if (!this.props.deviceOnline) return;
+    this.routeTargetKey = `clip-viewer:${this.props.dongleId}:${clip.filename}`;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
     const request = this.previewRequest;
@@ -440,6 +433,7 @@ class ClipMenu extends Component {
       }
     } catch (err) {
       if (this.mounted && request === this.previewRequest) {
+        this.routeTargetKey = null;
         this.setState({ previewingClip: null, previewProgress: 0, error: err.message || 'Could not preview clip' });
       }
     }
@@ -456,10 +450,8 @@ class ClipMenu extends Component {
     } else if (!clip) {
       this.setState({ error: 'Clip not found on this device' });
     } else if (routeModal === 'clip-viewer') {
-      if (clip.status === 'ready') {
-        this.routeTargetKey = key;
-        this.openViewer(clip);
-      } else this.setState({ error: 'Clip is not ready to view' });
+      if (clip.status === 'ready') this.openViewer(clip);
+      else this.setState({ error: 'Clip is not ready to view' });
     } else {
       this.routeTargetKey = key;
       this.setState({ deletingClip: clip, deleteDialogOpen: true, error: null });
@@ -572,7 +564,7 @@ class ClipMenu extends Component {
                 className={classes.clipAction}
                 disabled={!this.props.deviceOnline || previewing}
                 title={this.props.deviceOnline ? (previewing ? 'Downloading' : (downloaded ? 'Play clip' : 'Download clip')) : 'Device offline'}
-                onClick={() => this.updateRoute('clip-viewer', clip.filename)}
+                onClick={() => this.openViewer(clip)}
               >
                 {downloaded
                   ? <PlayArrow className={classes.playIcon} />
