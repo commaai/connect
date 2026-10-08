@@ -142,6 +142,26 @@ test('changing the section keeps pause and moves only a playhead outside it', as
   expect((await state(page)).speed).toBe(0);
 });
 
+test('a tiny drag selects at least one whole second and loops without a seek storm', async ({ page }) => {
+  await openPlayer(page);
+  await playing(page);
+  const ruler = await page.getByRole('slider', { name: 'Drive timeline' }).boundingBox();
+  const y = ruler.y + ruler.height / 2;
+  await page.mouse.move(ruler.x + ruler.width * 0.3, y);
+  await page.mouse.down();
+  await page.mouse.move(ruler.x + ruler.width * 0.3 + 6, y, { steps: 3 });
+  await page.mouse.up();
+  // Sections use the URL's whole-second precision, so reloading restores them.
+  await expect(page).toHaveURL(/\/6\/7$/);
+  const before = (await state(page)).revision;
+  await page.waitForTimeout(2000);
+  // A one-second loop restarts about twice in two seconds, not every frame.
+  expect((await state(page)).revision - before).toBeLessThanOrEqual(3);
+  const media = await video(page);
+  expect(media.time).toBeGreaterThanOrEqual(6000);
+  expect(media.time).toBeLessThanOrEqual(7100);
+});
+
 test('a missing manifest shows a retry action and recovers at the selected position', async ({ page }) => {
   let failed = true;
   await openPlayer(page, { manifestFails: () => failed });

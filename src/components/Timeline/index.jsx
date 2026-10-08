@@ -263,8 +263,10 @@ class Timeline extends Component {
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const startPercent = (Math.min(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
     const endPercent = (Math.max(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
-    const startOffset = Math.round(this.percentToOffset(startPercent));
-    const endOffset = Math.round(this.percentToOffset(endPercent));
+    // Whole seconds match the URL, so a reload restores the same section, and
+    // keep a section at least a second long: shorter loops restart every frame.
+    const startOffset = Math.round(this.percentToOffset(startPercent) / 1000) * 1000;
+    const endOffset = Math.max(startOffset + 1000, Math.round(this.percentToOffset(endPercent) / 1000) * 1000);
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       // The new loop moves the playhead to its start only if it is outside.
