@@ -55,8 +55,7 @@ export function parseUrl({ pathname, search = '' }) {
 
 export function formatUrl(place) {
   const found = ROUTES.find(({ page, names }) => page === place.page && names.every((name) => place[name] != null));
-  if (!found) return '/';
-  const path = found.path.replace(PARAM, (_, name) => PARAMS[name].write(place[name]));
+  const path = found ? found.path.replace(PARAM, (_, name) => PARAMS[name].write(place[name])) : '';
   const query = new URLSearchParams();
   if (place.dialog) query.set('dialog', place.dialog);
   if (place.device) query.set('device', place.device);

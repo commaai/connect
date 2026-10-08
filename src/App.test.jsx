@@ -334,6 +334,13 @@ describe('whole-app behavior', () => {
     expect(screen.getAllByText(text)).toHaveLength(1);
   });
 
+  test('add device opens from an unknown URL on the first click', async () => {
+    const { history } = await renderApp('/nope', { devices: [] });
+    fireEvent.click((await screen.findAllByRole('button', { name: 'add new device' }))[0]);
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    expect(history.location.search).toBe('?dialog=add-device');
+  });
+
   test('Back closes an open dialog', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
