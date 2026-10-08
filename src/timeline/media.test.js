@@ -251,3 +251,19 @@ describe('initial MSE seek readiness', () => {
     expect(video.currentTime).toBe(10);
   });
 });
+
+it('clamps only the initial command to the real first appended timestamp', () => {
+  const { video, controller, callbacks } = setup();
+  video.readyState = 1;
+  video.buffered = { length: 0, start: () => 0.023 };
+  controller.update({ waitForBuffer: true, ...command(0) });
+  expect(callbacks.onProgress).not.toHaveBeenCalled();
+  video.readyState = 4;
+  video.buffered.length = 1;
+  controller.update({ bufferStart: 0.023 });
+  expect(video.currentTime).toBe(0.023);
+  video.fire('seeked');
+  expect(callbacks.onProgress).toHaveBeenLastCalledWith(23, 1);
+  controller.update(command(0, 2));
+  expect(video.currentTime).toBe(0);
+});

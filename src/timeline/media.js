@@ -57,12 +57,15 @@ export function createController(video, callbacks = {}) {
     if (!Number.isFinite(first) || Number.isNaN(last) || last < first) return;
     const mapped = toMedia(pending);
     if (!Number.isFinite(mapped)) return;
-    const target = Math.min(last, Math.max(first, mapped));
+    let target = Math.min(last, Math.max(first, mapped));
     if (!Number.isFinite(target)) return;
     // MSE metadata can arrive before an append supplies a seekable frame.
     // WebKit may never finish a seek issued in that empty-buffer interval.
-    if (!initialized && intent.waitForBuffer && video.currentTime !== target
-      && (video.readyState < 2 || !video.buffered?.length)) return;
+    if (!initialized && intent.waitForBuffer) {
+      if (video.readyState < 2 || !video.buffered?.length) return;
+      const bufferStart = intent.bufferStart ?? video.buffered.start?.(0);
+      if (Number.isFinite(bufferStart) && target < bufferStart) target = bufferStart;
+    }
     try {
       // No dead band: a 1ms command is just as explicit as a one-minute seek.
       if (!issued && video.currentTime !== target) video.currentTime = target;
