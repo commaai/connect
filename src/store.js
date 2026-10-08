@@ -3,6 +3,7 @@ import { connectRouter, routerMiddleware } from 'connected-react-router';
 import thunk from 'redux-thunk';
 import { createBrowserHistory } from 'history';
 
+import { mediaMiddleware } from './timeline/media';
 import rootReducer from './reducers';
 import composeEnhancers from './devtools';
 import { onHistoryMiddleware } from './actions/history';
@@ -16,6 +17,7 @@ export function createAppStore(appHistory, preloadedState) {
     preloadedState,
     composeEnhancers(Redux.applyMiddleware(
       thunk,
+      mediaMiddleware,
       onHistoryMiddleware,
       routerMiddleware(appHistory),
       analyticsMiddleware,

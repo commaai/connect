@@ -30,7 +30,10 @@ vi.mock('./utils/webrtc', () => ({
   },
 }));
 vi.mock('react-map-gl', () => ({
-  default: React.forwardRef((_props, ref) => <div ref={ref} data-testid="map" />),
+  default: React.forwardRef((_props, ref) => {
+    React.useImperativeHandle(ref, () => ({ getMap: () => null }));
+    return <div data-testid="map" />;
+  }),
   GeolocateControl: () => null,
   HTMLOverlay: () => null,
   Layer: () => null,
@@ -303,4 +306,14 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+  test('switching between map and video keeps the same media element and clock', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    const player = screen.getByTestId('video-player');
+    fireEvent.click(screen.getByText('Map', { exact: true }));
+    expect(screen.getByTestId('video-player')).toBe(player);
+    expect(store.getState().mediaRoute).toBe(`${FIRST}|${LOG}`);
+    fireEvent.click(screen.getByText('Video', { exact: true }));
+    expect(screen.getByTestId('video-player')).toBe(player);
+  });
+
 });

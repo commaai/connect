@@ -1,7 +1,7 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
+import { currentOffset } from './clock';
 
 export function reducer(_state, action) {
   let state = { ..._state };
@@ -10,6 +10,18 @@ export function reducer(_state, action) {
     loopOffset = state.loop.startTime;
   }
   switch (action.type) {
+    case Types.ACTION_MEDIA_SOURCE:
+      state.mediaRoute = action.route;
+      state.isBufferingVideo = Boolean(action.route);
+      state.startTime = Date.now();
+      break;
+    case Types.ACTION_MEDIA_TIME:
+      if (action.route === state.mediaRoute && action.route === state.currentRoute?.fullname
+        && Number.isFinite(action.offset)) {
+        state.offset = action.offset;
+        state.startTime = Date.now();
+      }
+      break;
     case Types.ACTION_SEEK:
       state = {
         ...state,
@@ -86,7 +98,7 @@ export function reducer(_state, action) {
   }
 
   // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
+  if (!state.mediaRoute && state.offset !== null && state.loop?.startTime != null && state.loop.duration > 0) {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
     const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
     loopOffset = state.loop.startTime;
