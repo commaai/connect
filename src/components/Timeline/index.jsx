@@ -297,12 +297,7 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
+    const percent = this.offsetToPercent(Math.floor(currentOffset()));
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
       this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;

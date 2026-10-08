@@ -11,7 +11,7 @@ import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, Vo
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
-import { isIos } from '../../utils/browser.js';
+import { hasMediaSource } from '../../utils/browser.js';
 
 const timerSteps = [
   0.1,
@@ -255,7 +255,7 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           <span ref={this.textHolder}>{ displayTime }</span>
         </Typography>
-        {!isIos() && (
+        {hasMediaSource() && (
           <div className={ classes.desiredPlaySpeedContainer }>
             <IconButton
               className={classes.tinyArrowIcon}

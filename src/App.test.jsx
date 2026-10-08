@@ -30,7 +30,10 @@ vi.mock('./utils/webrtc', () => ({
   },
 }));
 vi.mock('react-map-gl', () => ({
-  default: React.forwardRef((_props, ref) => <div ref={ref} data-testid="map" />),
+  default: React.forwardRef((_props, ref) => {
+    React.useImperativeHandle(ref, () => ({ getMap: () => null }));
+    return <div data-testid="map" />;
+  }),
   GeolocateControl: () => null,
   HTMLOverlay: () => null,
   Layer: () => null,
@@ -38,20 +41,6 @@ vi.mock('react-map-gl', () => ({
   Marker: ({ children }) => children,
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
-}));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
@@ -108,7 +97,7 @@ async function mockFetch(input, init = {}) {
     const routeStr = url.searchParams.get('route_str');
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
-    return json([makeRoute(dongleId)]);
+    return json([makeRoute(dongleId), makeRoute(dongleId, LOG)]);
   }
   if (url.pathname.endsWith('/location')) return json({ error: 'no_segments_uploaded' });
   if (url.pathname.endsWith('/stats')) return json(null);
@@ -231,6 +220,22 @@ describe('whole-app behavior', () => {
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
+  });
+
+  test('native hls drive view hides the speed control, keeps the video under the map and resets audio per route', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByText('Mock route start'));
+    expect(await screen.findByRole('button', { name: 'Jump back 10 seconds' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Increase play speed by 1 step' })).not.toBeInTheDocument();
+    const video = document.querySelector('video');
+    fireEvent.click(screen.getByText('Map'));
+    expect(await screen.findByTestId('map')).toBeVisible();
+    expect(document.querySelector('video')).toBe(video);
+    Object.defineProperty(video, 'audioTracks', { value: { length: 1 } });
+    fireEvent.loadedData(video);
+    expect(screen.getByRole('button', { name: 'Unmute' })).toBeEnabled();
+    act(() => history.replace(`/${FIRST}/${RECENT_LOG}`));
+    expect(screen.getByRole('button', { name: 'Unmute' })).toBeDisabled();
   });
 
   test.each([

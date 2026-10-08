@@ -21,12 +21,14 @@ const LOCALE = 'en-US';
 const TIMEZONE = 'America/Los_Angeles';
 const CHANGE_THRESHOLD = 0.0001;
 const CAPTURE_CONCURRENCY = 4;
+// one black 64x40 H.264 frame, so the drive video loads and ends like a partially uploaded route
+const BLACK_FRAME_TS = Buffer.from('R0AAEAAAsA0AAcEAAAAB8AAqsQSy//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////9HUAAQAAKwEgABwQAA4QDwABvhAPAAFb1NVv///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////0dBADBoUAAAewx+AP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AAAHgAACAgAUhAAfYYQAAAAEJ8AAAAAFnQsAK2QR/lwEQAAADABAAAAMCgPEiZIAAAAABaMuDyyAAAAFliIQK8mKAAKe8nJydddddddde', 'base64');
 
 const GALLERY_STATES = [
   { name: 'signin', label: 'Sign in', path: '/', readyText: 'Sign in with Google', anonymous: true },
   { name: 'pair', label: 'Pair a device', path: '/', readyText: 'add new device' },
   { name: 'dashboard', label: 'Dashboard', path: `/${DONGLE_ID}`, readyText: 'Bronco Sport' },
-  { name: 'drive', label: 'Drive', path: `/${DONGLE_ID}/${LOG_ID}`, readySelector: '.DriveView' },
+  { name: 'drive', label: 'Drive', path: `/${DONGLE_ID}/${LOG_ID}`, readySelector: '.DriveView video', videoEnded: true },
   { name: 'checkout', label: 'Prime checkout', path: `/${DONGLE_ID}/prime`, readyText: '24/7 connectivity' },
   { name: 'management', label: 'Prime management', path: `/${DONGLE_ID}/prime`, readyText: 'Next payment' },
   { name: 'teleop', label: 'Teleop', path: `/${DONGLE_ID}/stream`, readyText: 'comma body' },
@@ -317,26 +319,10 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
     if (/^\/__gallery-route\/\d+\/coords\.json$/.test(url.pathname)) {
       return jsonResponse(request, []);
     }
+    if (url.pathname === '/__gallery-route/0/qcamera.ts') {
+      return request.respond({ status: 200, contentType: 'video/mp2t', body: BLACK_FRAME_TS });
+    }
     return request.continue();
-  }
-
-  if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/hls.js@')) {
-    return request.respond({
-      status: 200,
-      contentType: 'text/javascript',
-      body: `
-        class GalleryHls {
-          static Events = { ERROR: 'error', MANIFEST_PARSED: 'manifestParsed' };
-          static isSupported() { return true; }
-          constructor() { this.handlers = {}; }
-          on(name, handler) { this.handlers[name] = handler; }
-          loadSource() { queueMicrotask(() => this.handlers.manifestParsed?.()); }
-          attachMedia() {}
-          destroy() {}
-        }
-        window.Hls = GalleryHls;
-      `,
-    });
   }
 
   const apiHosts = new Set(['api.comma.ai', 'athena.comma.ai', 'billing.comma.ai']);
@@ -377,7 +363,7 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
         status: 200,
         contentType: 'application/vnd.apple.mpegurl',
         headers: { 'Access-Control-Allow-Origin': '*' },
-        body: '#EXTM3U\n#EXT-X-ENDLIST\n',
+        body: `#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXTINF:0.05,\n${data.route.url}/0/qcamera.ts\n#EXT-X-ENDLIST\n`,
       });
     }
     // Keep the pairing request pending long enough to capture its loading modal.
@@ -664,12 +650,12 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
       timeout: 15000,
     });
     await page.waitForFunction(
-      ({ selector, expectedText }) => {
-        if (selector && document.querySelector(selector)) return true;
+      ({ selector, expectedText, videoEnded }) => {
+        if (selector && document.querySelector(selector)) return !videoEnded || document.querySelector(selector).ended;
         return expectedText && document.body.innerText.includes(expectedText);
       },
       { timeout: 15000 },
-      { selector: pageState.readySelector, expectedText: pageState.readyText },
+      { selector: pageState.readySelector, expectedText: pageState.readyText, videoEnded: pageState.videoEnded },
     );
     await page.evaluate(async () => {
       if (document.fonts) await document.fonts.ready;

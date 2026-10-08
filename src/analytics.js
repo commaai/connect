@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
+import { currentOffset } from './timeline';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
@@ -52,12 +53,8 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
   }
 }
 
-function getVideoPercent(state, offset) {
-  const { zoom } = state;
-  if (!offset) {
-    offset = state.offset;
-  }
-  return (offset - (zoom.start)) / (zoom.end - zoom.start);
+function getVideoPercent({ zoom }) {
+  return (currentOffset() - zoom.start) / (zoom.end - zoom.start);
 }
 
 function logAction(action, prevState, state) {

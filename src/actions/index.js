@@ -4,6 +4,7 @@ import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
 
 import * as Types from './types';
+import { seekTo } from '../timeline';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
@@ -161,8 +162,11 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
-    dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
+    // a bare seekTo, the seek thunk would also fly the map and log a video_seek event
+    seekTo(start ?? 0);
+    // after seekTo: play() is skipped while the video sits at its end
+    dispatch(resetPlayback());
   }
 
   if (allowPathChange) {

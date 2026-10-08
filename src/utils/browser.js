@@ -2,8 +2,9 @@ export function isIos() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
-export function isFirefox() {
-  return navigator.userAgent.toLowerCase().includes('firefox');
+// iphone has no classic MediaSource and plays hls natively
+export function hasMediaSource() {
+  return Boolean(window.MediaSource);
 }
 
 export function isMobileDevice(navigatorLike = navigator) {
