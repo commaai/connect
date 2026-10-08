@@ -5,8 +5,8 @@
 //   - route listing: synthetic routes cloned from one cached public route
 //   - route files: synthetic file listings cloned from one cached public files
 //     response
-//   - video URLs: demo routes stream the underlying public route, except the
-//     clone mutated to be missing qcamera (it has no share credentials)
+//   - video URLs: demo routes stream the underlying public route, the clones
+//     missing qcamera stream nothing or a playlist without the affected segment
 // Everything else (billing, athena, ...) passes through.
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
 
@@ -83,7 +83,9 @@ const MISSING_DATA_CASES = [
   },
   {
     title: 'Missing qcamera',
-    // No share credentials, so this route's stream cannot resolve.
+    // No share credentials, so this route's stream cannot resolve. With one
+    // affected segment, the playlist is streamed without that segment.
+    missingVideo: true,
     route(route, affectedSegment) {
       if (affectedSegment === undefined) {
         delete route.share_exp;
@@ -126,6 +128,15 @@ function removeFileSegments(files, type, affectedSegment) {
   }
 }
 
+function removePlaylistSegment(playlist, segment) {
+  const lines = playlist.split('\n');
+  const index = lines.findIndex((line) => line.startsWith('#EXTINF:') && line.endsWith(`,${segment}`));
+  if (index !== -1) {
+    lines.splice(index, 2);
+  }
+  return lines.join('\n');
+}
+
 function demoRouteLogId(index) {
   return `00000000--${String(index + 1).padStart(10, '0')}`;
 }
@@ -138,6 +149,7 @@ function demoRouteIndex(routeName) {
 export function createDemoBackend(realBackend) {
   let publicRoutePromise = null;
   let publicFilesPromise = null;
+  let publicPlaylistPromise = null;
 
   // Fetch the existing public shared route once and cache it.
   function fetchPublicRoute() {
@@ -165,6 +177,17 @@ export function createDemoBackend(realBackend) {
         .getRouteFiles(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`);
     }
     return publicFilesPromise;
+  }
+
+  // Fetch the public route's video playlist once and cache it.
+  function fetchPublicPlaylist() {
+    if (!publicPlaylistPromise) {
+      publicPlaylistPromise = fetchPublicRoute()
+        .then((route) => fetch(realBackend.video.getQcameraStreamUrl(route.fullname, route.share_exp, route.share_sig)))
+        .then((resp) => (resp.ok ? resp.text() : null))
+        .catch(() => null);
+    }
+    return publicPlaylistPromise;
   }
 
   // Clone the cached public route into fresh demo routes on every call, each
@@ -260,10 +283,15 @@ export function createDemoBackend(realBackend) {
     },
     video: {
       ...realBackend.video,
-      getQcameraStreamUrl(routeStr, exp, sig) {
+      async getQcameraStreamUrl(routeStr, exp, sig) {
         // demo routes keep the public route's share credentials, so stream the
         // underlying public route; the clone missing qcamera has no credentials
         // and passes through to a URL that cannot resolve
+        const testCase = typeof routeStr === 'string' ? TEST_CASES[demoRouteIndex(routeStr)] : null;
+        const playlist = testCase?.missingVideo && testCase.affectedSegment !== undefined && await fetchPublicPlaylist();
+        if (playlist) {
+          return `data:application/vnd.apple.mpegurl;base64,${btoa(removePlaylistSegment(playlist, testCase.affectedSegment))}`;
+        }
         if (exp && sig && typeof routeStr === 'string' && routeStr.startsWith(`${DEMO_DONGLE_ID}|`)) {
           return realBackend.video.getQcameraStreamUrl(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`, exp, sig);
         }

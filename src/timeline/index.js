@@ -1,5 +1,20 @@
 import store from '../store';
 
+let player = null;
+
+export function registerPlayer(newPlayer) {
+  player = newPlayer;
+  return () => {
+    if (player === newPlayer) {
+      player = null;
+    }
+  };
+}
+
+export function getPlayer() {
+  return player;
+}
+
 /**
  * Get current playback offset
  *
@@ -8,6 +23,9 @@ import store from '../store';
  */
 export function currentOffset(state = null) {
   if (!state) {
+    if (player) {
+      return player.getOffset();
+    }
     state = store.getState();
   }
 
@@ -16,8 +34,7 @@ export function currentOffset(state = null) {
   if (state.offset === null && state.loop?.startTime) {
     offset = state.loop.startTime;
   } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+    offset = state.offset + ((Date.now() - state.startTime) * state.desiredPlaySpeed);
   }
 
   if (offset !== null && state.loop?.startTime) {

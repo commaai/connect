@@ -1,16 +1,20 @@
 import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { currentOffset, registerPlayer } from '.';
+import { pause, play, reducer, seek as seekThunk, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
     desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
     offset: 0, // in miliseconds from the start
     startTime: Date.now(), // millisecond timestamp in which play began
-
-    isBuffering: true,
   };
 };
+
+function seek(offset) {
+  let action;
+  seekThunk(offset)((a) => { action = a; }, () => ({}));
+  return action;
+}
 
 // make Date.now super stable for tests
 let mostRecentNow = Date.now();
@@ -105,29 +109,17 @@ describe('playback', () => {
     expect(state.offset).toEqual(1000);
   });
 
-  it('should buffer video and data', async () => {
+  it('seeks the registered player to the clamped offset', () => {
     newNow();
-    let state = makeDefaultStruct();
+    let state = reducer(makeDefaultStruct(), selectLoop(1000, 2000));
+    const player = { getOffset: () => 1500, seekTo: vi.fn() };
+    const unregister = registerPlayer(player);
 
-    state = reducer(state, play());
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    // claim the video is buffering
-    state = reducer(state, bufferVideo(true));
-    expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    state = reducer(state, play(0.5));
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
-    state = reducer(state, play(2));
-    state = reducer(state, bufferVideo(false));
-    expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBufferingVideo).toEqual(false);
-
-    expect(state.desiredPlaySpeed).toEqual(2);
+    const dispatch = (action) => { state = reducer(state, action); };
+    seekThunk(5000)(dispatch, () => state);
+    expect(state.offset).toEqual(2000);
+    expect(player.seekTo).toHaveBeenCalledWith(2000);
+    expect(currentOffset()).toEqual(1500);
+    unregister();
   });
 });
