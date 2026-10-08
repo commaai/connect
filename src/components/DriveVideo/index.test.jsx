@@ -1,0 +1,183 @@
+import { vi } from 'vitest';
+import { DriveVideo } from './index';
+import { seek } from '../../timeline/playback';
+import { ACTION_BUFFER_VIDEO, ACTION_SEEK, ACTION_VIDEO_PROGRESS } from '../../actions/types';
+
+vi.mock('../../api/backend', () => ({
+  api: { video: { getQcameraStreamUrl: (_route, _exp, sig) => `https://example.test/shared.m3u8${sig ? `?sig=${sig}` : ''}` } },
+}));
+
+const route = (fullname, share_sig) => ({ fullname, videoStartOffset: 0, share_sig });
+
+function playerFixture() {
+  const dispatch = vi.fn();
+  const audio = vi.fn();
+  const props = {
+    currentRoute: route('route-A'),
+    offset: 0,
+    seekRevision: 0,
+    loop: null,
+    desiredPlaySpeed: 1,
+    isBufferingVideo: false,
+    isMuted: false,
+    dispatch,
+    onAudioStatusChange: audio,
+  };
+  const video = new DriveVideo(props);
+  // Exercise the actual player callbacks without mounting a browser decoder.
+  video.setState = (update) => {
+    video.state = {
+      ...video.state,
+      ...(typeof update === 'function' ? update(video.state, video.props) : update),
+    };
+  };
+  const media = {
+    time: 0,
+    getCurrentTime: vi.fn(() => media.time),
+    seekTo: vi.fn(),
+    getInternalPlayer: vi.fn(() => null),
+  };
+  video.videoPlayer.current = media;
+  const playerElement = () => video.render().props.children[1];
+  const callbacks = () => playerElement().props;
+  const changeProps = (changes) => {
+    const previous = video.props;
+    video.props = { ...video.props, ...changes };
+    video.componentDidUpdate(previous);
+  };
+  callbacks().onReady(media);
+  dispatch.mockClear();
+  return { video, media, callbacks, playerElement, changeProps, dispatch, audio };
+}
+
+describe('DriveVideo player lifecycle', () => {
+  it('ignores old seek completions and observations until the newest seek reaches its target', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+    changeProps({ offset: 4000, seekRevision: 1 });
+    expect(media.seekTo).toHaveBeenCalledWith(4, 'seconds');
+    changeProps({ offset: 12000, seekRevision: 2 });
+    expect(media.seekTo).toHaveBeenLastCalledWith(12, 'seconds');
+
+    const event = callbacks();
+    media.time = 4;
+    event.onSeek(4);
+    event.onProgress();
+    expect(video.pendingSeek).toEqual({ revision: 2, target: 12 });
+    expect(media.seekTo).toHaveBeenCalledTimes(3); // one bounded reassertion
+    expect(dispatch.mock.calls.some(([a]) => a.type === ACTION_VIDEO_PROGRESS)).toBe(false);
+
+    media.time = 12;
+    event.onSeek(12);
+    expect(video.pendingSeek).toBeNull();
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: ACTION_VIDEO_PROGRESS, offset: 12000, seekRevision: 2 }));
+  });
+
+  it('does not acknowledge a seek merely because its event reports the target while the media clock is old', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+    changeProps({ offset: 15000, seekRevision: 1 });
+    media.time = 2;
+    callbacks().onSeek(15);
+    expect(video.pendingSeek).not.toBeNull();
+    expect(dispatch.mock.calls.some(([a]) => a.type === ACTION_VIDEO_PROGRESS)).toBe(false);
+    media.time = 15;
+    callbacks().onProgress();
+    expect(video.pendingSeek).toBeNull();
+  });
+
+  it('ignores late errors, buffer events and progress from a prior route even when the URL is shared', () => {
+    const { video, media, callbacks, playerElement, changeProps, dispatch } = playerFixture();
+    const fromOldPlayer = callbacks();
+    const oldKey = playerElement().key;
+    changeProps({ currentRoute: route('route-B') });
+    expect(callbacks().url).toBe(fromOldPlayer.url);
+    expect(playerElement().key).not.toBe(oldKey);
+    dispatch.mockClear();
+
+    fromOldPlayer.onBuffer();
+    fromOldPlayer.onError(new Error('old route failed'));
+    fromOldPlayer.onReady(media);
+    fromOldPlayer.onProgress();
+    expect(video.state.videoError).toBeNull();
+    expect(video.ready).toBe(false);
+    expect(dispatch).not.toHaveBeenCalled();
+
+    callbacks().onReady(media);
+    expect(video.ready).toBe(true);
+  });
+
+
+  it('invalidates old callbacks when a signed URL rotates for the same route', () => {
+    const { video, callbacks, playerElement, changeProps, media } = playerFixture();
+    const original = callbacks();
+    const oldKey = playerElement().key;
+    changeProps({ currentRoute: route('route-A', 'new-credential') });
+    expect(playerElement().key).not.toBe(oldKey);
+    expect(callbacks().url).toContain('new-credential');
+    original.onError(new Error('expired URL'));
+    original.onReady(media);
+    expect(video.state.videoError).toBeNull();
+    expect(video.ready).toBe(false);
+  });
+
+  it('ignores callbacks after the video component unmounts', () => {
+    const { video, callbacks, dispatch } = playerFixture();
+    const handlers = callbacks();
+    video.componentWillUnmount();
+    handlers.onError(new Error('late network response'));
+    handlers.onBuffer();
+    handlers.onProgress();
+    expect(video.state.videoError).toBeNull();
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('preserves pause and position on Retry and ignores callbacks from the failed player', () => {
+    const { video, media, callbacks, playerElement, changeProps, dispatch } = playerFixture();
+    changeProps({ desiredPlaySpeed: 0, offset: 8000, seekRevision: 1 });
+    media.time = 8;
+    const failedPlayer = callbacks();
+    const failedKey = playerElement().key;
+    failedPlayer.onError(new Error('network failed'));
+    expect(video.state.videoError).toBeTruthy();
+    expect(callbacks().playing).toBe(false);
+
+    video.retryVideo();
+    expect(video.state.videoError).toBeNull();
+    expect(playerElement().key).not.toBe(failedKey);
+    expect(callbacks().playing).toBe(false);
+    failedPlayer.onError(new Error('late failed source'));
+    expect(video.state.videoError).toBeNull();
+
+    media.time = 0;
+    callbacks().onReady(media);
+    expect(media.seekTo).toHaveBeenLastCalledWith(8, 'seconds');
+    expect(dispatch.mock.calls.some(([a]) => a.type === ACTION_BUFFER_VIDEO)).toBe(true);
+  });
+
+  it('keeps fatal errors visible after later ready/play events until Retry', () => {
+    const { video, callbacks } = playerFixture();
+    const events = callbacks();
+    events.onError('hlsError', { fatal: true, type: 'networkError', response: { code: 404 } });
+    expect(video.state.videoError).toMatch(/not uploaded/i);
+    events.onBufferEnd();
+    events.onProgress();
+    expect(video.state.videoError).toMatch(/not uploaded/i);
+    expect(callbacks().playing).toBe(false);
+    video.retryVideo();
+    expect(video.state.videoError).toBeNull();
+  });
+
+  it('does not treat recoverable HLS warnings as fatal errors', () => {
+    const { video, callbacks } = playerFixture();
+    callbacks().onError('hlsError', { fatal: false, type: 'mediaError', details: 'fragParsingError' });
+    expect(video.state.videoError).toBeNull();
+  });
+
+  it('still generates explicit loop seeks rather than advancing an independent clock', () => {
+    const { media, callbacks, changeProps, dispatch } = playerFixture();
+    changeProps({ loop: { startTime: 0, duration: 1000 } });
+    media.time = 1.2;
+    callbacks().onProgress();
+    expect(dispatch).toHaveBeenCalledWith(seek(0));
+    expect(dispatch.mock.calls.some(([a]) => a.type === ACTION_SEEK)).toBe(true);
+  });
+});

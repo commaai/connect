@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { CircularProgress, Typography } from '@material-ui/core';
+import { Button, CircularProgress, Typography } from '@material-ui/core';
 import ReactPlayer from 'react-player/file';
 
 import { api } from '../../api/backend';
@@ -12,13 +12,22 @@ import { currentOffset } from '../../timeline';
 import { seek, bufferVideo, videoProgress } from '../../timeline/playback';
 import { isIos } from '../../utils/browser.js';
 
-const VideoOverlay = ({ loading, error }) => {
+const SEEK_TOLERANCE_SECONDS = 1;
+
+const sourceForRoute = (route) => route
+  ? api.video.getQcameraStreamUrl(route.fullname, route.share_exp, route.share_sig)
+  : '';
+
+const routeSourceKey = (route) => JSON.stringify([route?.fullname || null, sourceForRoute(route)]);
+
+const VideoOverlay = ({ loading, error, onRetry }) => {
   let content;
   if (error) {
     content = (
       <>
         <ErrorOutline className="mb-2" />
         <Typography>{error}</Typography>
+        <Button onClick={onRetry} variant="contained" className="mt-3">Retry video</Button>
       </>
     );
   } else if (loading) {
@@ -35,35 +44,37 @@ const VideoOverlay = ({ loading, error }) => {
   );
 };
 
-class DriveVideo extends Component {
+export class DriveVideo extends Component {
   constructor(props) {
     super(props);
 
     this.onVideoBuffering = this.onVideoBuffering.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
-    this.onVideoResume = this.onVideoResume.bind(this);
     this.onVideoProgress = this.onVideoProgress.bind(this);
     this.onPlayerReady = this.onPlayerReady.bind(this);
     this.onPlayerSeek = this.onPlayerSeek.bind(this);
     this.appliedSeekRevision = null;
-    this.seekPending = false;
+    this.pendingSeek = null;
+    this.reseekedRevision = null;
     this.ready = false;
+    this.unmounted = false;
+    this.retryVideo = this.retryVideo.bind(this);
 
     this.videoPlayer = React.createRef();
 
     this.state = {
-      src: null,
       videoError: null,
+      retryGeneration: 0,
     };
   }
 
-  componentDidMount() {
-    this.updateVideoSource();
-  }
-
   componentDidUpdate(prevProps) {
-    this.updateVideoSource();
+    if (routeSourceKey(prevProps.currentRoute) !== routeSourceKey(this.props.currentRoute)) {
+      this.resetPlayer();
+      this.setState({ videoError: null, retryGeneration: 0 });
+      this.props.dispatch(bufferVideo(true));
+    }
     if (prevProps.loop !== this.props.loop && this.props.loop?.duration > 0
       && (this.props.offset < this.props.loop.startTime
         || this.props.offset > this.props.loop.startTime + this.props.loop.duration)) {
@@ -72,25 +83,52 @@ class DriveVideo extends Component {
     if (prevProps.seekRevision !== this.props.seekRevision) this.applyPendingSeek();
   }
 
-  onVideoBuffering() {
+  playerKey() {
+    return JSON.stringify([routeSourceKey(this.props.currentRoute), this.state.retryGeneration]);
+  }
+
+  isCurrentPlayer(key) {
+    return !this.unmounted && key === this.playerKey();
+  }
+
+  resetPlayer() {
+    this.ready = false;
+    this.pendingSeek = null;
+    this.appliedSeekRevision = null;
+    this.reseekedRevision = null;
+    if (this.audioHls && this.audioHandler) this.audioHls.off('hlsBufferCodecs', this.audioHandler);
+    this.audioHls = null;
+    this.audioHandler = null;
+  }
+
+  retryVideo() {
+    this.resetPlayer();
+    this.setState((state) => ({ videoError: null, retryGeneration: state.retryGeneration + 1 }));
     this.props.dispatch(bufferVideo(true));
+  }
+
+  onVideoBuffering(key) {
+    if (this.isCurrentPlayer(key) && !this.state.videoError) this.props.dispatch(bufferVideo(true));
   }
 
   applyPendingSeek() {
     const player = this.videoPlayer.current;
-    if (!this.ready || !player) return;
-    if (this.appliedSeekRevision === this.props.seekRevision) return;
-    this.appliedSeekRevision = this.props.seekRevision;
-    this.seekPending = true;
+    if (!this.ready || !player || this.appliedSeekRevision === this.props.seekRevision) return;
+
+    const revision = this.props.seekRevision;
     const target = this.currentVideoTime(this.props.offset ?? 0);
-    if (Math.abs(player.getCurrentTime() - target) < 0.03) {
-      this.seekPending = false;
+    this.appliedSeekRevision = revision;
+    this.pendingSeek = { revision, target };
+    this.reseekedRevision = null;
+    if (Math.abs(player.getCurrentTime() - target) <= 0.03) {
+      this.pendingSeek = null;
     } else {
       player.seekTo(target, 'seconds');
     }
   }
 
-  onPlayerReady(player) {
+  onPlayerReady(player, key) {
+    if (!this.isCurrentPlayer(key)) return;
     this.ready = true;
     this.applyPendingSeek();
     const { onAudioStatusChange } = this.props;
@@ -103,7 +141,9 @@ class DriveVideo extends Component {
         if (this.audioHls && this.audioHls !== hls && this.audioHandler) this.audioHls.off('hlsBufferCodecs', this.audioHandler);
         if (this.audioHls !== hls) {
           this.audioHls = hls;
-          this.audioHandler = (_event, data) => onAudioStatusChange(!!data.audio);
+          this.audioHandler = (_event, data) => {
+            if (this.isCurrentPlayer(key)) onAudioStatusChange(!!data.audio);
+          };
           hls.on('hlsBufferCodecs', this.audioHandler);
         }
       }
@@ -111,19 +151,45 @@ class DriveVideo extends Component {
   }
 
   componentWillUnmount() {
-    if (this.audioHls && this.audioHandler) this.audioHls.off('hlsBufferCodecs', this.audioHandler);
+    this.unmounted = true;
+    this.resetPlayer();
   }
 
-  onPlayerSeek() {
-    this.seekPending = false;
-    this.onVideoProgress();
+  acknowledgeSeek(seconds) {
+    if (!this.pendingSeek) return true;
+    if (!Number.isFinite(seconds)) return false;
+    if (this.pendingSeek.revision !== this.props.seekRevision) return false;
+    if (Math.abs(seconds - this.pendingSeek.target) > SEEK_TOLERANCE_SECONDS) return false;
+    this.pendingSeek = null;
+    return true;
   }
 
-  onVideoProgress() {
+  onPlayerSeek(seconds, key) {
+    if (!this.isCurrentPlayer(key) || !this.ready) return;
     const player = this.videoPlayer.current;
-    if (!player || !this.ready || this.seekPending || !this.props.currentRoute) return;
+    const observedSeconds = Number.isFinite(seconds) ? seconds : player?.getCurrentTime();
+    if (this.pendingSeek) {
+      const target = this.pendingSeek.target;
+      const matches = (time) => Number.isFinite(time) && Math.abs(time - target) <= SEEK_TOLERANCE_SECONDS;
+      // The event may belong to an older command, or currentTime may still be the old frame.
+      if (!matches(observedSeconds) || !matches(player?.getCurrentTime())) {
+        if (this.reseekedRevision !== this.pendingSeek.revision) {
+          this.reseekedRevision = this.pendingSeek.revision;
+          player?.seekTo(target, 'seconds');
+        }
+        return;
+      }
+      this.pendingSeek = null;
+    }
+    this.onVideoProgress(key);
+  }
+
+  onVideoProgress(key) {
+    if (!this.isCurrentPlayer(key) || this.state.videoError) return;
+    const player = this.videoPlayer.current;
+    if (!player || !this.ready || !this.props.currentRoute) return;
     const mediaSeconds = player.getCurrentTime();
-    if (!Number.isFinite(mediaSeconds)) return;
+    if (!Number.isFinite(mediaSeconds) || !this.acknowledgeSeek(mediaSeconds)) return;
     const routeOffset = Math.max(0, mediaSeconds * 1000 + (this.props.currentRoute.videoStartOffset || 0));
     const { loop, desiredPlaySpeed, seekRevision, dispatch } = this.props;
     if (loop && loop.duration > 0 && routeOffset >= loop.startTime + loop.duration && desiredPlaySpeed > 0) {
@@ -137,13 +203,9 @@ class DriveVideo extends Component {
    * @param {Error} e
    */
   onHlsError(e) {
+    if (!e || e.fatal === false) return;
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
-
-    if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
-      // buffer but no error
-      return;
-    }
 
     if (e.type === 'networkError' && (e.response?.code === 404)) {
       this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
@@ -156,7 +218,8 @@ class DriveVideo extends Component {
    * @param {Error} e
    * @param {any} [data]
    */
-  onVideoError(e, data) {
+  onVideoError(e, data, key) {
+    if (!this.isCurrentPlayer(key)) return;
     if (!e) {
       console.warn('Unknown video error', { e, data });
       return;
@@ -195,28 +258,6 @@ class DriveVideo extends Component {
     this.setState({ videoError });
   }
 
-  onVideoResume() {
-    const { videoError } = this.state;
-    if (videoError) this.setState({ videoError: null });
-  }
-
-  updateVideoSource() {
-    const { currentRoute } = this.props;
-    const nextSrc = currentRoute
-      ? api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig)
-      : '';
-    // Refresh the source even if the route identifier remains unchanged but its signed URL rotates.
-    if (nextSrc !== this.state.src) {
-      this.ready = false;
-      this.seekPending = false;
-      this.appliedSeekRevision = null;
-      if (this.audioHls && this.audioHandler) this.audioHls.off('hlsBufferCodecs', this.audioHandler);
-      this.audioHls = null;
-      this.audioHandler = null;
-      this.setState({ src: nextSrc, videoError: null });
-    }
-  }
-
   currentVideoTime(offset = currentOffset()) {
     const { currentRoute } = this.props;
     if (!currentRoute) {
@@ -234,25 +275,27 @@ class DriveVideo extends Component {
 
   render() {
     const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted } = this.props;
-    const { src, videoError } = this.state;
+    const { videoError } = this.state;
+    const src = sourceForRoute(currentRoute);
+    const key = this.playerKey();
 
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-        <VideoOverlay loading={isBufferingVideo} error={videoError} />
+        <VideoOverlay loading={isBufferingVideo} error={videoError} onRetry={this.retryVideo} />
         <ReactPlayer
           ref={this.videoPlayer}
-          key={src}
+          key={key}
           url={src}
           playsinline
           muted={isMuted}
           width="100%"
           height="100%"
-          playing={Boolean(currentRoute && desiredPlaySpeed)}
-          onReady={this.onPlayerReady}
-          onProgress={this.onVideoProgress}
+          playing={Boolean(currentRoute && desiredPlaySpeed && !videoError)}
+          onReady={(player) => this.onPlayerReady(player, key)}
+          onProgress={() => this.onVideoProgress(key)}
           progressInterval={100}
-          onSeek={this.onPlayerSeek}
-          onEnded={this.onVideoProgress}
+          onSeek={(seconds) => this.onPlayerSeek(seconds, key)}
+          onEnded={() => this.onVideoProgress(key)}
           config={{
             hlsVersion: '1.4.8',
             hlsOptions: {
@@ -260,10 +303,9 @@ class DriveVideo extends Component {
             },
           }}
           playbackRate={desiredPlaySpeed}
-          onBuffer={this.onVideoBuffering}
-          onBufferEnd={this.onVideoResume}
-          onPlay={this.onVideoResume}
-          onError={this.onVideoError}
+          onBuffer={() => this.onVideoBuffering(key)}
+          onBufferEnd={() => this.onVideoProgress(key)}
+          onError={(error, data) => this.onVideoError(error, data, key)}
         />
       </div>
     );
