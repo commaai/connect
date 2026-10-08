@@ -2,9 +2,11 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
-import { IconButton, Typography } from '@material-ui/core';
+import { Button, IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { VIEWS, buildUrl, deviceBase, locationFor } from '../../routing/codec';
+import { driveBack, toDashboard, toDrive } from '../../routing/navigate';
+import { selectSelectedRouteMissing, selectSelectionOutOfRange } from '../../routing/selectors';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -17,33 +19,37 @@ class DriveView extends Component {
     this.close = this.close.bind(this);
   }
 
-  onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
-  }
-
   close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(toDashboard(this.props.dongleId));
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dongleId, zoom, currentRoute, routeMissing, selectionOutOfRange } = this.props;
 
     if (!currentRoute) {
       return (
         <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+          <Typography>{routeMissing ? 'Route does not exist.' : 'Loading...'}</Typography>
         </div>
       );
     }
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    if (selectionOutOfRange || !zoom) {
+      return (
+        <div className="DriveView flex flex-col items-start gap-4 p-8">
+          <Typography>This link selects a time after the end of the drive.</Typography>
+          <Button
+            variant="outlined"
+            onClick={ () => this.props.dispatch(toDrive(dongleId, currentRoute.log_id)) }
+          >
+            View whole drive
+          </Button>
+        </div>
+      );
+    }
+
+    // back zooms out of a selection; the whole drive has nothing to zoom out of
+    const backButtonDisabled = zoom.start === 0 && zoom.end === currentRoute.duration;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -58,7 +64,7 @@ class DriveView extends Component {
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
+                onClick={ () => this.props.dispatch(driveBack()) }
                 aria-label="Go Back"
                 disabled={ backButtonDisabled }
               >
@@ -78,7 +84,7 @@ class DriveView extends Component {
               <IconButton
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={ buildUrl(locationFor(deviceBase(VIEWS.DASHBOARD, dongleId))) }
               >
                 <CloseBold />
               </IconButton>
@@ -86,9 +92,7 @@ class DriveView extends Component {
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
           <div className='px-3 pb-3 md:px-8 md:pb-8'>
-            {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
-              : <Media />}
+            <Media />
           </div>
         </div>
       </div>
@@ -98,9 +102,10 @@ class DriveView extends Component {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  routes: state.routes,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
+  selectionOutOfRange: selectSelectionOutOfRange(state),
+  routeMissing: selectSelectedRouteMissing(state),
 });
 
 export default connect(stateToProps)(DriveView);

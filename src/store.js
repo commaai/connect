@@ -5,18 +5,21 @@ import { createBrowserHistory } from 'history';
 
 import rootReducer from './reducers';
 import composeEnhancers from './devtools';
-import { onHistoryMiddleware } from './actions/history';
+import { createRoutingMiddleware } from './routing/middleware';
+import { createRoutingServices } from './routing/services';
 import { analyticsMiddleware } from './analytics';
 
 export const history = createBrowserHistory();
 
 export function createAppStore(appHistory, preloadedState) {
+  // per-store navigation services, shared by the routing middleware and thunks
+  const services = createRoutingServices();
   return Redux.createStore(
     connectRouter(appHistory)(rootReducer),
     preloadedState,
     composeEnhancers(Redux.applyMiddleware(
-      thunk,
-      onHistoryMiddleware,
+      thunk.withExtraArgument(services),
+      createRoutingMiddleware(services),
       routerMiddleware(appHistory),
       analyticsMiddleware,
     )),

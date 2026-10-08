@@ -1,15 +1,15 @@
 import React, { Component, lazy, Suspense } from 'react';
-import { Provider } from 'react-redux';
+import { Provider, connect } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router-dom';
 import { ConnectedRouter } from 'connected-react-router';
-import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
+import { VIEWS, isSafeReturnUrl, parseLocation } from './routing/codec';
+import { bootstrapSession } from './actions/session';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -20,6 +20,24 @@ import FullPageLoading from './components/FullPageLoading';
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
 
+// re-rendered on every navigation: an anonymous visitor may move between a
+// public drive and pages that need a login
+const NavigationContent = connect((state) => ({
+  view: state.nav?.location?.base.view,
+}))(({ view, redirectLink }) => {
+  const showLogin = !api.auth.isAuthenticated() && view !== VIEWS.DRIVE && view !== VIEWS.LEGACY_RANGE;
+  return (
+    <Switch>
+      {view === VIEWS.AUTH && (
+        <Route exact path={[AuthConfig.AUTH_PATH, AuthConfig.APPLE_REDIRECT_PATH].filter(Boolean)}>
+          <Redirect to={showLogin ? '/' : redirectLink()} />
+        </Route>
+      )}
+      <Route path="/" component={showLogin ? AnonymousLanding : Explorer} />
+    </Switch>
+  );
+});
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -27,19 +45,14 @@ class App extends Component {
     this.state = {
       initialized: false,
     };
+  }
 
-    let pairToken;
-    if (window.location) {
-      pairToken = new URLSearchParams(window.location.search).get('pair');
-    }
+  store() {
+    return this.props.store || defaultStore;
+  }
 
-    if (pairToken) {
-      try {
-        localforage.setItem('pairToken', pairToken);
-      } catch (err) {
-        console.error(err);
-      }
-    }
+  history() {
+    return this.props.history || defaultHistory;
   }
 
   apiErrorResponseCallback(resp) {
@@ -53,12 +66,12 @@ class App extends Component {
     // everything else the real backend.
     initBackend();
 
-    if (window.location) {
-      if (window.location.pathname === AuthConfig.AUTH_PATH) {
+    const { base, commands } = parseLocation(this.history().location);
+    if (base.view === VIEWS.AUTH) {
+      if (this.history().location.pathname.replace(/\/$/, '') === AuthConfig.AUTH_PATH.replace(/\/$/, '')) {
         try {
-          const authParams = new URLSearchParams(window.location.search);
-          const provider = authParams.get('provider');
-          const token = await api.auth.refreshAccessToken(authParams.get('code'), provider);
+          const { provider } = commands;
+          const token = await api.auth.refreshAccessToken(commands.code, provider);
           if (token) {
             AuthStorage.setCommaAccessToken(token);
             localStorage.setItem('lastLoginProvider', provider);
@@ -78,10 +91,9 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { pathname } = window.location;
-      const teleopDongleId = getDongleID(pathname);
-      if (teleopDongleId && getStreamNav(pathname)) {
-        webrtcConnectionManager.reconnect(teleopDongleId);
+      const currentBase = parseLocation(this.history().location).base;
+      if (currentBase.view === VIEWS.STREAM) {
+        webrtcConnectionManager.reconnect(currentBase.dongleId);
       }
 
       fetchTurnCredentials().catch((err) => {
@@ -89,6 +101,9 @@ class App extends Component {
         Sentry.captureException(err, { fingerprint: 'app_fetch_turn_credentials' });
       });
     }
+
+    // profile and device list, independent of which page is open
+    this.store().dispatch(bootstrapSession());
 
     this.setState({ initialized: true });
   }
@@ -99,29 +114,7 @@ class App extends Component {
       url = sessionStorage.getItem('redirectURL');
       sessionStorage.removeItem('redirectURL');
     }
-    return url;
-  }
-
-  authRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to={this.redirectLink()} />
-        </Route>
-        <Route path="/" component={Explorer} />
-      </Switch>
-    );
-  }
-
-  anonymousRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to="/" />
-        </Route>
-        <Route path="/" component={AnonymousLanding} />
-      </Switch>
-    );
+    return isSafeReturnUrl(url) ? url : '/';
   }
 
   render() {
@@ -129,12 +122,11 @@ class App extends Component {
       return <FullPageLoading />;
     }
 
-    const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
+    const store = this.store();
+    const history = this.history();
     let content = (
       <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+        <NavigationContent redirectLink={() => this.redirectLink()} />
       </Suspense>
     );
 

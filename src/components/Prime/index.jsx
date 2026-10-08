@@ -5,15 +5,11 @@ import PrimeManage from './PrimeManage';
 import PrimeCheckout from './PrimeCheckout';
 
 const Prime = (props) => {
-  let stripeCancelled;
-  let stripeSuccess;
-  if (window.location) {
-    const params = new URLSearchParams(window.location.search);
-    stripeCancelled = params.get('stripe_cancelled');
-    stripeSuccess = params.get('stripe_success');
-  }
+  // the Stripe redirect's result, consumed from the URL by the navigation effects
+  const { device, profile, stripeResult } = props;
+  const stripeCancelled = stripeResult?.cancelled ?? null;
+  const stripeSuccess = stripeResult?.success ?? null;
 
-  const { device, profile } = props;
   if (!profile) {
     return null;
   }
@@ -31,6 +27,7 @@ const stateToProps = (state) => ({
   subscription: state.subscription,
   device: state.device,
   profile: state.profile,
+  stripeResult: state.primeStripeResult,
 });
 
 export default connect(stateToProps)(Prime);

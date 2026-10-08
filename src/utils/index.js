@@ -7,16 +7,7 @@ import { currentOffset } from '../timeline';
 
 dayjs.extend(relativeTime);
 
-export const emptyDevice = {
-  alias: 'Shared device',
-  create_time: 1513041169,
-  device_type: 'unknown',
-  dongle_id: undefined,
-  imei: '000000000000000',
-  is_owner: false,
-  shared: true,
-  serial: '00000000',
-};
+export { emptyDevice } from './emptyDevice';
 
 export function asyncSleep(ms) {
   return new Promise((resolve) => {
@@ -166,10 +157,10 @@ export function deviceVersionAtLeast(device, version) {
 }
 
 export function getDeviceFromState(state, dongleId) {
-  if (state.device.dongle_id === dongleId) {
+  if (state.device?.dongle_id === dongleId) {
     return state.device;
   }
-  return state.devices.find((d) => d.dongle_id === dongleId) || null;
+  return state.devices?.find((d) => d.dongle_id === dongleId) || null;
 }
 
 export function getSegmentNumber(route, offset) {

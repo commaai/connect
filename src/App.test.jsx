@@ -4,6 +4,7 @@ import { createMemoryHistory } from 'history';
 
 import App from './App';
 import { createInitialState } from './initialState';
+import { selectSelectedRouteId } from './routing/selectors';
 import { createAppStore } from './store';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
@@ -15,7 +16,7 @@ vi.mock('@commaai/my-comma-auth', () => ({
     logOut: vi.fn(),
   },
   config: { AUTH_PATH: '/auth/' },
-  storage: { setCommaAccessToken: vi.fn() },
+  storage: { setCommaAccessToken: vi.fn(), logOut: vi.fn() },
 }));
 vi.mock('./utils/navigation', () => ({ hardNavigate: mocks.hardNavigate }));
 vi.mock('./utils/turn', () => ({ fetchTurnCredentials: vi.fn(async () => null) }));
@@ -130,7 +131,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -182,8 +183,8 @@ describe('whole-app behavior', () => {
   test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects first device with %s', async (_name, selected) => {
     const { history } = await renderApp('/', { selected });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    expect(history.location.pathname).toBe(`/${FIRST}`);
-    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+    expect(history.location.pathname).toBe(`/${SECOND}`);
+    expect(localStorage.getItem('selectedDongleId')).toBe(SECOND);
   });
 
   test('root with no devices shows pairing', async () => {
@@ -226,8 +227,8 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     expect(history.location.pathname).toBe(pathname);
     const ranged = pathname.endsWith('/10/20');
+    expect(selectSelectedRouteId(store.getState())).toBe(LOG);
     expect(store.getState()).toMatchObject({
-      selectedRouteId: LOG,
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
@@ -244,7 +245,7 @@ describe('whole-app behavior', () => {
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${encodeURIComponent(pathname)}`));
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {
@@ -302,5 +303,26 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+  test('anonymous landing -> public drive selects public view without remounting App', async () => {
+    const app=await renderApp('/', {authenticated:false});
+    expect(screen.getByText('Sign in with Google')).toBeVisible();
+    await act(async()=>{app.history.push(`/${FIRST}/${LOG}/0/20`);await new Promise(r=>setTimeout(r,10));});
+    expect(screen.queryByText('Sign in with Google')).not.toBeInTheDocument();
+    expect(await screen.findByRole('slider',{name:'Drive timeline'})).toBeVisible();
+  });
+  test('public drive -> dashboard selects login view without remounting App', async () => {
+    const app=await renderApp(`/${FIRST}/${LOG}/0/20`, {authenticated:false});
+    expect(await screen.findByRole('slider',{name:'Drive timeline'})).toBeVisible();
+    await act(async()=>{app.history.push(`/${FIRST}`);await new Promise(r=>setTimeout(r,10));});
+    expect(screen.getByText('Sign in with Google')).toBeVisible();
+  });
+  test('query-only login return change updates stored full return location', async () => {
+    const first=`/${FIRST}/${LOG}/0/20?x=one#first`;
+    const second=`/${SECOND}/${LOG}/1/10?x=two#second`;
+    const app=await renderApp(`/?r=${encodeURIComponent(first)}`,{authenticated:false});
+    expect(sessionStorage.getItem('redirectURL')).toBe(first);
+    await act(async()=>{app.history.push(`/?r=${encodeURIComponent(second)}`);await new Promise(r=>setTimeout(r,10));});
+    expect(sessionStorage.getItem('redirectURL')).toBe(second);
   });
 });

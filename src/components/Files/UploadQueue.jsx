@@ -152,7 +152,7 @@ class UploadQueue extends Component {
     if (enable) {
       this.props.dispatch(fetchUploadQueue(this.props.device.dongle_id));
     } else {
-      cancelFetchUploadQueue();
+      this.props.dispatch(cancelFetchUploadQueue());
     }
   }
 

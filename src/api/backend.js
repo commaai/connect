@@ -40,12 +40,21 @@ export function selectBackendType(pathname) {
 
 // Select the backend once during startup. /demo and URLs belonging to its
 // synthetic device use the demo backend; all other paths use the real backend.
+let backendType = null;
+
 export function initBackend(pathname = window.location.pathname) {
   if (!backend) {
     const realBackend = createRealBackend();
-    backend = selectBackendType(pathname) === 'demo' ? createDemoBackend(realBackend) : realBackend;
+    backendType = selectBackendType(pathname);
+    backend = backendType === 'demo' ? createDemoBackend(realBackend) : realBackend;
   }
   return backend;
+}
+
+// The backend this page load runs on ('demo' | 'real'), or null before
+// startup. Navigation that needs the other one reloads the page.
+export function activeBackendType() {
+  return backendType;
 }
 
 // Call-site facade for the selected backend: api.devices.listDevices(), etc.
