@@ -61,6 +61,13 @@ export function reducer(_state, action) {
         startTime: Date.now(),
       };
       break;
+    case Types.ACTION_PLAYBACK_TIME:
+      state = {
+        ...state,
+        offset: action.offset,
+        startTime: Date.now(),
+      };
+      break;
     case Types.ACTION_RESET:
       state = {
         ...state,
@@ -141,6 +148,13 @@ export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
+  };
+}
+
+export function updatePlaybackTime(offset) {
+  return {
+    type: Types.ACTION_PLAYBACK_TIME,
+    offset,
   };
 }
 
