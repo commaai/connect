@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { parseLocation } from '../../url';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
@@ -7,7 +8,7 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
-import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { analyticsEvent, primeNav, streamNav, modalNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
@@ -153,7 +154,6 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
-      clipMenu: null,
       clipsSupported: false,
     };
 
@@ -190,7 +190,6 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
-        clipMenu: null,
         clipsSupported: false,
       });
       this.checkClipsSupport();
@@ -330,10 +329,10 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
+          open={this.props.modal === 'clips'}
           dongleId={this.props.dongleId}
-          anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          anchorEl={this.clipAnchor}
+          onClose={() => this.props.dispatch(modalNav(null))}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -413,7 +412,8 @@ class DeviceInfo extends Component {
             <button
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              ref={(el) => { this.clipAnchor = el; }}
+              onClick={() => this.props.dispatch(modalNav('clips'))}
               disabled={offline}
             >
               <ContentCut />
@@ -514,6 +514,7 @@ class DeviceInfo extends Component {
 }
 
 const stateToProps = (state) => ({
+  modal: parseLocation(state.router.location).modal,
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,

@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
+import { parseLocation } from '../../url';
 import { push } from 'connected-react-router';
 
 import { withStyles } from '@material-ui/core/styles';
@@ -187,7 +188,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   filter: state.filter,
   profile: state.profile,
-  primeNav: state.primeNav,
+  primeNav: parseLocation(state.router.location).page === 'prime',
   pathname: state.router.location.pathname,
 });
 

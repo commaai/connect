@@ -61,10 +61,3 @@ export function modalLocation(location, modal, device) {
   const search = query.toString();
   return { pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash };
 }
-
-export const getDongleID = (pathname) => parseLocation({ pathname }).dongleId;
-export const getZoom = (pathname) => parseLocation({ pathname }).legacy;
-export const getRouteId = (pathname) => parseLocation({ pathname }).logId;
-export const getRouteZoom = (pathname) => parseLocation({ pathname }).zoom;
-export const getPrimeNav = (pathname) => parseLocation({ pathname }).page === 'prime';
-export const getStreamNav = (pathname) => parseLocation({ pathname }).page === 'stream';

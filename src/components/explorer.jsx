@@ -14,8 +14,9 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
 import init from '../actions/startup';
+import { parseLocation } from '../url';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
@@ -24,6 +25,7 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import UrlModals from './UrlModals';
 
 const styles = (theme) => ({
   app: {
@@ -97,7 +99,7 @@ class ExplorerApp extends Component {
 
     window.scrollTo({ top: 0 }); // for ios header
 
-    const q = new URLSearchParams(window.location.search);
+    const q = new URLSearchParams(this.props.search);
     if (q.has('r')) {
       this.props.dispatch(replace(q.get('r')));
     }
@@ -154,9 +156,9 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, search, zoom } = this.props;
 
-    if (prevProps.pathname !== pathname) {
+    if (prevProps.pathname !== pathname || prevProps.search !== search) {
       this.setState({ drawerIsOpen: false });
     }
 
@@ -165,13 +167,6 @@ class ExplorerApp extends Component {
     }
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
-    }
-
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
     }
   }
 
@@ -224,6 +219,7 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
+        <UrlModals />
         { bodyTeleopOpen ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
@@ -278,12 +274,13 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  search: state.router.location.search,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
   limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
+  bodyTeleopOpen: parseLocation(state.router.location).page === 'stream',
   profile: state.profile,
 });
 
