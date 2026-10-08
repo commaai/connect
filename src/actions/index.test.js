@@ -1,12 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
-
-vi.mock('../timeline/playback', () => ({
-  reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
-}));
+import { popTimelineRange, primeNav, pushTimelineRange, selectDevice, settingsNav, streamNav } from './index';
 
 vi.mock('connected-react-router', async () => {
   const originalModule = await vi.importActual('connected-react-router');
@@ -17,37 +11,46 @@ vi.mock('connected-react-router', async () => {
   };
 });
 
-describe('timeline actions', () => {
+const state = {
+  dongleId: 'dongle',
+  router: { location: { pathname: '/dongle/log/10/20', search: '' } },
+  routes: [{ log_id: 'log', duration: 60000 }],
+  zoom: { start: 10000, end: 20000, previous: { start: 0, end: 60000 } },
+};
+
+function run(thunk) {
+  const dispatch = vi.fn((action) => (typeof action === 'function' ? action(dispatch, () => state) : action));
+  dispatch(thunk);
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('navigation actions', () => {
   it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
-  });
-
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
-  });
-
-  it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    ['a device', selectDevice('other'), '/other'],
+    ['the root when there is no device', selectDevice(null), '/'],
+    ['a whole drive', pushTimelineRange('log', null, null), '/dongle/log'],
+    ['a whole drive by its bounds', pushTimelineRange('log', 0, 60000), '/dongle/log'],
+    ['a drive range, rounded out to whole seconds', pushTimelineRange('log', 10400, 20600), '/dongle/log/10/21'],
+    ['a drive range from the start', pushTimelineRange('log', 0, 20000), '/dongle/log/0/20'],
+    ['the zoom level zoomed in from', popTimelineRange('log'), '/dongle/log'],
+    ['a drive by its id', pushTimelineRange('log'), '/dongle/log'],
+    ['Prime', primeNav(true), '/dongle/prime'],
+    ['stream', streamNav(true), '/dongle/stream'],
+    ['settings over the shown page', settingsNav('dongle', true), '/dongle/log/10/20?settings'],
+    ['settings over another device dashboard', settingsNav('other', true), '/other?settings'],
+  ])('pushes the URL of %s', (_name, thunk, expected) => {
+    run(thunk);
     expect(push).toHaveBeenCalledWith(expected);
+  });
+
+  it.each([
+    ['zooming to the shown range', pushTimelineRange('log', 10000, 20000)],
+    ['zooming to a range that rounds to the shown one', pushTimelineRange('log', 10200, 19800)],
+  ])('does not push the URL already shown when %s', (_name, thunk) => {
+    run(thunk);
+    expect(push).not.toHaveBeenCalled();
   });
 });

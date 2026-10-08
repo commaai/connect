@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 
+import { parseUrl } from '../../url';
+
 import DriveList from './DriveList';
 import Navigation from '../Navigation';
 import Promotions from '../Promotions';
@@ -34,7 +36,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  primeNav: state.primeNav,
+  primeNav: parseUrl(state.router.location.pathname).page === 'prime',
   device: state.device,
 });
 

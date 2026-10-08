@@ -25,6 +25,16 @@ function deviceCompareFn(a, b) {
   return Boolean(b.alias) - Boolean(a.alias);
 }
 
+// The part of a route to show: the requested range kept within the route, or all of it.
+// Until the route has loaded its duration is unknown, so a requested range is kept as is.
+function routeZoom(route, start, end) {
+  if (!route) {
+    return start != null && end != null ? { start, end } : null;
+  }
+  const zoom = { start: Math.max(start ?? 0, 0), end: Math.min(end ?? route.duration, route.duration) };
+  return zoom.start < zoom.end ? zoom : { start: 0, end: route.duration };
+}
+
 export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
@@ -58,8 +68,6 @@ export default function reducer(_state, action) {
         ...state,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
@@ -300,21 +308,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -335,38 +328,31 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
     case Types.TIMELINE_PUSH_SELECTION: {
+      const currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
+      const zoom = action.log_id ? routeZoom(currentRoute, action.start, action.end) : null;
+      if (action.log_id === state.selectedRouteId && zoom?.start === state.zoom?.start && zoom?.end === state.zoom?.end) {
+        break;
+      }
+
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
 
+      // going back to a range this drive was zoomed in from returns to it, otherwise zoom in from here
+      let previous = action.log_id === state.selectedRouteId ? state.zoom : null;
+      const zoomedFrom = previous;
+      while (previous && zoom && (previous.start !== zoom.start || previous.end !== zoom.end)) {
+        previous = previous.previous;
+      }
+
       state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
-        }
-      } else {
-        state.zoom = null;
+      state.currentRoute = currentRoute;
+      if (action.log_id && !currentRoute) {
+        state.routes = null; // the loaded drives do not include it, so it is fetched on its own
+      }
+      state.zoom = zoom && (previous || { ...zoom, previous: zoomedFrom });
+      if (!zoom) {
         state.loop = null;
       }
       break;
@@ -430,14 +416,10 @@ export default function reducer(_state, action) {
           state.currentRoute = {
             ...curr,
           };
-          if (!state.zoom) {
-            state.zoom = {
-              start: 0,
-              end: state.currentRoute.duration,
-            };
-          }
+          state.zoom = { ...state.zoom, ...routeZoom(state.currentRoute, state.zoom?.start, state.zoom?.end) };
 
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
+          if (!state.loop || state.loop.startTime < state.zoom.start
+            || state.loop.startTime + state.loop.duration > state.zoom.end) {
             state.loop = {
               startTime: state.zoom.start,
               duration: state.zoom.end - state.zoom.start,

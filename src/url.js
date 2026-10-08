@@ -1,66 +1,45 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+// Every URL connect understands, and the one place it is parsed:
+//
+//   /referrals
+//   /:dongleId                      device dashboard
+//   /:dongleId/prime                (also stream)
+//   /:dongleId/:logId               whole drive
+//   /:dongleId/:logId/:start/:end   part of a drive, in seconds from its start
+//   /:dongleId/:start/:end          legacy link to a time range, in milliseconds
+//   ?settings                       settings of the selected device, over any page
+//
+// Anything else names no page; a valid dongle id still selects that device.
+const DONGLE_ID = /^[a-f0-9]{16}$/;
+const LOG_ID = /^[a-f0-9-]{20}$/;
+const PAGES = ['prime', 'stream'];
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (!dongleIdRegex.test(parts[0])) {
+function parseRange(start, end, scale) {
+  if (!/^\d+$/.test(start) || !/^\d+$/.test(end) || Number(start) >= Number(end)) {
     return null;
   }
-
-  return parts[0] || null;
+  return { start: Number(start) * scale, end: Number(end) * scale };
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+export function parseUrl(pathname, search = '') {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const settings = new URLSearchParams(search).has('settings');
+  const url = { dongleId: null, page: null, logId: null, zoom: null, legacyZoom: null, settings };
+
+  if (parts.length === 1 && parts[0] === 'referrals') {
+    return { ...url, page: 'referrals' };
   }
-  return null;
-}
-
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+  if (!DONGLE_ID.test(parts[0])) {
+    return url;
   }
-  return false;
-}
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
+  url.dongleId = parts[0];
+  if (parts.length === 2 && PAGES.includes(parts[1])) {
+    url.page = parts[1];
+  } else if (LOG_ID.test(parts[1])) {
+    url.logId = parts[1];
+    url.zoom = parseRange(parts[2], parts[3], 1000);
+  } else if (parts.length === 3) {
+    url.legacyZoom = parseRange(parts[1], parts[2], 1);
   }
-  return false;
+  return url;
 }
