@@ -302,12 +302,12 @@ class Media extends Component {
   }
 
   async copySegmentName() {
-    const { currentRoute, offset } = this.props;
+    const { currentRoute, segment } = this.props;
     if (!currentRoute || !navigator.clipboard) {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute, offset)}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${segment}`);
     this.setState({ moreInfoMenu: null });
   }
 
@@ -343,7 +343,7 @@ class Media extends Component {
   }
 
   async uploadFile(type) {
-    const { dongleId, currentRoute, offset } = this.props;
+    const { dongleId, currentRoute, segment } = this.props;
     if (!currentRoute) {
       return;
     }
@@ -353,7 +353,7 @@ class Media extends Component {
     }));
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
-    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute, offset)}/${type}`;
+    const fileName = `${dongleId}|${routeNoDongleId}--${segment}/${type}`;
 
     const uploading = {};
     uploading[fileName] = { requested: true };
@@ -364,7 +364,7 @@ class Media extends Component {
 
     // request all possible file names
     for (const fn of FILE_NAMES[type]) {
-      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute, offset)}/${fn}`;
+      const path = `${routeNoDongleId}--${segment}/${fn}`;
       paths.push(path);
       url_promises.push(fetchUploadUrls(dongleId, [path]).then(urls => urls[0]));
     }
@@ -624,7 +624,7 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentRoute, device, classes, files, offset, profile } = this.props;
+    const { currentRoute, device, classes, files, segment, profile } = this.props;
     const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
@@ -634,7 +634,7 @@ class Media extends Component {
     let fcam = {}; let ecam = {}; let dcam = {}; let
       rlog = {};
     if (files && currentRoute) {
-      const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute, offset)}`;
+      const seg = `${currentRoute.fullname}--${segment}`;
       fcam = files[`${seg}/cameras`] || {};
       ecam = files[`${seg}/ecameras`] || {};
       dcam = files[`${seg}/dcameras`] || {};
@@ -775,7 +775,7 @@ class Media extends Component {
             onClick={ this.copySegmentName }
             style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
           >
-            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute, offset)}` : '---' }</div>
+            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${segment}` : '---' }</div>
             <ContentCopy />
           </MenuItem>
           { typeof navigator.share !== 'undefined'
@@ -912,7 +912,7 @@ const stateToProps = (state) => ({
   device: state.device,
   routes: state.routes,
   currentRoute: state.currentRoute,
-  offset: state.offset,
+  segment: getSegmentNumber(state.currentRoute, state.offset),
   zoom: state.zoom,
   loop: state.loop,
   filter: state.filter,
