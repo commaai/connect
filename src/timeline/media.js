@@ -126,8 +126,7 @@ export function createController(video, callbacks = {}) {
   listen('error', () => emit('onError', video.error));
 
   // Sample the media clock for smooth readers, without inventing elapsed time.
-  const scheduleFrame = () => video.requestVideoFrameCallback
-    ? video.requestVideoFrameCallback(checkFrame) : globalThis.requestAnimationFrame?.(checkFrame) ?? null;
+  let scheduleFrame;
   function checkFrame(timestamp) {
     if (!active) return;
     const loopEdge = intent.speed && intent.range && video.currentTime >= bounds().end;
@@ -137,6 +136,8 @@ export function createController(video, callbacks = {}) {
     }
     frame = scheduleFrame();
   }
+  scheduleFrame = () => video.requestVideoFrameCallback
+    ? video.requestVideoFrameCallback(checkFrame) : globalThis.requestAnimationFrame?.(checkFrame) ?? null;
   frame = scheduleFrame();
 
   return {
