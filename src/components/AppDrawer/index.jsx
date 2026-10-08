@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import { Link } from 'react-router-dom';
 
 import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
-import { selectDevice } from '../../actions';
+import { deviceUrl } from '../../url';
 
 const listener = (ev) => ev.stopPropagation();
 
@@ -28,7 +29,7 @@ const AppDrawer = ({
   }, [handleDrawerStateChanged]);
 
   const handleDeviceSelected = useCallback((dongleId) => {
-    dispatch(selectDevice(dongleId));
+    dispatch(push(deviceUrl(dongleId)));
     toggleDrawerOff();
   }, [dispatch, toggleDrawerOff]);
 

@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, fetchSharedDevice } from '.';
+import { applyUrl } from './history';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -42,35 +43,10 @@ async function initDevices() {
 
 export default function init() {
   return async (dispatch, getState) => {
-    let state = getState();
-    if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
-    }
-
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    state = getState();
 
     if (profile) {
       Sentry.setUser({ id: profile.id });
-    }
-
-    if (devices.length > 0) {
-      if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
-        }
-      }
-      const dongleId = getState().dongleId;
-      const device = devices.find((dev) => dev.dongle_id === dongleId);
-      if (device) {
-        dispatch(primeFetchSubscription(dongleId, device, profile));
-      } else if (dongleId) {
-        dispatch(fetchSharedDevice(dongleId));
-      }
     }
 
     dispatch({
@@ -78,5 +54,18 @@ export default function init() {
       profile,
       devices,
     });
+
+    const { dongleId, router } = getState();
+    if (!dongleId) {
+      // `/` waits for the device list to pick a device
+      dispatch(applyUrl(router.location.pathname));
+    } else if (devices.length > 0) {
+      const device = devices.find((dev) => dev.dongle_id === dongleId);
+      if (device) {
+        dispatch(primeFetchSubscription(dongleId, device, profile));
+      } else {
+        dispatch(fetchSharedDevice(dongleId));
+      }
+    }
   };
 }

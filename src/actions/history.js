@@ -1,61 +1,64 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { Page, parseUrl, deviceUrl, driveUrl } from '../url';
+import { checkLastRoutesData, checkRoutesData, selectDevice, selectDrive } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
+// The URL is the source of truth for what is on screen. Components navigate by
+// changing the URL, and every location change (including the first page load) is applied here.
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
   if (!action) {
+    return undefined;
+  }
+
+  const result = next(action);
+  if (action.type === LOCATION_CHANGE) {
+    dispatch(applyUrl(action.payload.location.pathname));
+  }
+  return result;
+};
+
+// url -> state, top to bottom. Each step only changes what differs from the
+// current state, so applying the same URL twice changes nothing the second time.
+export const applyUrl = (pathname) => (dispatch, getState) => {
+  const { page, dongleId, logId, zoom, legacyRange } = parseUrl(pathname);
+
+  // `/` opens the last selected device, once the device list has loaded
+  if (page === Page.HOME) {
+    const { devices } = getState();
+    if (devices?.length) {
+      const lastDongleId = window.localStorage.getItem('selectedDongleId');
+      const device = devices.find((d) => d.dongle_id === lastDongleId) || devices[0];
+      dispatch(replace(deviceUrl(device.dongle_id)));
+    }
+    return;
+  }
+  if (!dongleId) {
     return;
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
+  if (dongleId !== getState().dongleId) {
+    dispatch(selectDevice(dongleId));
+  }
+  if (legacyRange) {
+    dispatch(openLegacyRange(pathname, dongleId, legacyRange));
+  }
+  dispatch(selectDrive(logId, zoom));
 
-    next(action); // must be first, otherwise breaks history
+  // the first visit to a device loads its drive list, later visits reuse it
+  const firstVisit = getState().limit === 0;
+  dispatch(firstVisit ? checkLastRoutesData() : checkRoutesData());
+};
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+// legacy links point at a time range, replace them with the drive at that time.
+// The lookup is async, so its answer is dropped if the user navigated away meanwhile.
+const openLegacyRange = (pathname, dongleId, { start, end }) => async (dispatch, getState) => {
+  try {
+    const routes = await api.routes.getRoutesSegments(dongleId, start, end);
+    const logId = routes?.[0]?.fullname.split('|')[1];
+    if (logId && getState().router.location.pathname === pathname) {
+      dispatch(replace(driveUrl(dongleId, logId)));
     }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  } catch (err) {
+    console.error('Error fetching routes data for log ID conversion', err);
   }
 };

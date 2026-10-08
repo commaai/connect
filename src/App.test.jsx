@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { createMemoryHistory } from 'history';
 
 import App from './App';
+import { applyUrl } from './actions/history';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
@@ -130,7 +131,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -179,11 +180,12 @@ describe('whole-app behavior', () => {
     expect(new URL(request.url).searchParams.get('limit')).toBe('5');
   });
 
-  test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects first device with %s', async (_name, selected) => {
+  test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects the first listed device with %s', async (_name, selected) => {
     const { history } = await renderApp('/', { selected });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    expect(history.location.pathname).toBe(`/${FIRST}`);
-    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+    // the device list is sorted by alias, so Alpha comes first
+    expect(history.location.pathname).toBe(`/${SECOND}`);
+    expect(localStorage.getItem('selectedDongleId')).toBe(SECOND);
   });
 
   test('root with no devices shows pairing', async () => {
@@ -276,6 +278,42 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+  });
+
+  test('settings close and browser history restore its view', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('settings gear opens the settings URL', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'device settings' })[1]);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+    // the drawer closes on navigation, the settings stay open
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('settings URL stays closed for a shared device', async () => {
+    await renderApp(`/${SHARED}/settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test.each([
+    `/${FIRST}`, `/${FIRST}/prime`, `/${FIRST}/settings`, `/${FIRST}/${LOG}`, `/${FIRST}/${LOG}/10/20`,
+  ])('applying %s a second time changes nothing', async (pathname) => {
+    const { store } = await renderApp(pathname);
+    await waitFor(() => expect(store.getState().routes).not.toBeNull());
+    const changes = vi.fn();
+    store.subscribe(changes);
+    act(() => store.dispatch(applyUrl(pathname)));
+    expect(changes).not.toHaveBeenCalled();
   });
 
   test('device browser history restores exact dashboards', async () => {

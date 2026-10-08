@@ -6,10 +6,11 @@ import Navigation from '../Navigation';
 import Promotions from '../Promotions';
 import DeviceInfo from '../DeviceInfo';
 import FullPageLoading from '../FullPageLoading';
+import { Page, parseUrl } from '../../url';
 
 const Prime = lazy(() => import('../Prime'));
 
-const Dashboard = ({ primeNav, device, dongleId }) => {
+const Dashboard = ({ primeOpen, device, dongleId }) => {
   if (!device || !dongleId) {
     return <FullPageLoading />;
   }
@@ -17,7 +18,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
   return (
     <div className="relative flex flex-col">
       <Suspense fallback={<FullPageLoading />}>
-        { primeNav
+        { primeOpen
           ? <Prime />
           : (
             <>
@@ -34,7 +35,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  primeNav: state.primeNav,
+  primeOpen: parseUrl(state.router.location.pathname).page === Page.PRIME,
   device: state.device,
 });
 
