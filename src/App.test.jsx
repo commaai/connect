@@ -356,13 +356,20 @@ describe('whole-app behavior', () => {
     expect(history.location.search).toBe('?modal=add-device');
   });
 
-  test('filter URL opens on reload and history closes/restores it', async () => {
-    const { history } = await renderApp(`/${FIRST}?modal=filter`);
+  test.each([`/${FIRST}`, '/demo'])('filter URL %s opens on reload and history closes/restores it', async (pathname) => {
+    const { history } = await renderApp(`${pathname}?modal=filter`);
+    expect(history.location.pathname).toBe(pathname);
     expect(await screen.findByText('Start date:')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(history.location.search).toBe(''));
     act(() => history.goBack());
     expect(await screen.findByText('Start date:')).toBeVisible();
+    act(() => history.goForward());
+    await waitFor(() => expect(screen.queryByText('Start date:')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Filter', exact: true }));
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    expect(history.location.pathname).toBe(pathname);
+    expect(history.location.search).toBe('?modal=filter');
   });
 
   test.each(['cancel-prime', 'switch-prime'])('Prime modal %s loads and closes from a deep link', async (modal) => {

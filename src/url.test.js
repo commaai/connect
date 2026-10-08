@@ -99,4 +99,9 @@ describe('navigation boundary', () => {
     expect(parseLocation(pathForNavigation(navigation)).routeZoom).toEqual(navigation.routeZoom);
     expect(parseLocation(`/${DONGLE}/${LOG}/1.0001/2`).page).toBe('not-found');
   });
+
+  it.each(['/', '/demo', '/demo/'])('allows the dashboard filter overlay on home alias %s', (pathname) => {
+    expect(parseLocation({ pathname, search: '?modal=filter' })).toMatchObject({ page: 'home', modal: 'filter' });
+  });
+
 });

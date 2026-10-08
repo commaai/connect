@@ -7,7 +7,8 @@ const modalPages = {
   unpair: ['dashboard', 'drive', 'prime', 'referrals'],
   'settings-uploads': ['dashboard', 'drive', 'prime', 'referrals'],
   'add-device': ['home', 'dashboard', 'drive', 'prime', 'referrals'],
-  filter: ['dashboard'],
+  // /demo retains its home alias while rendering the selected-device dashboard.
+  filter: ['home', 'dashboard'],
   uploads: ['drive'],
   'cancel-prime': ['prime'],
   'switch-prime': ['prime'],
