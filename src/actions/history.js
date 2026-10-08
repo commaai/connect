@@ -31,6 +31,11 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
   }
 
   if (route.page === 'legacy-range') {
+    // Its absolute timestamps are lookup arguments, not a drive's relative
+    // playback range. Clear the previous screen while the lookup is pending.
+    if (state.selectedRouteId || state.zoom) dispatch(syncTimelineRange(null, null, null));
+    if (state.primeNav) dispatch(syncPrimeNav(false));
+    if (state.streamNav) dispatch(syncStreamNav(false));
     // Old links use absolute times. Resolve them once and replace the URL;
     // do not let a late response override a newer browser navigation.
     api.routes.getRoutesSegments(route.dongleId, route.range.start, route.range.end)

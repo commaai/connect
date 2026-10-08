@@ -209,7 +209,7 @@ class ExplorerApp extends Component {
       && Boolean(routeDevice && (routeDevice.is_owner || profile?.superuser));
     const settingsDenied = route.page === 'settings' && routeDevice && !settingsAllowed;
     const uploadsOpen = route.page === 'uploads' && Boolean(routeDevice);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = route.page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);

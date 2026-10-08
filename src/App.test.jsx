@@ -223,6 +223,12 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(`/${dongleId}`);
   });
 
+  test('a trailing slash keeps the referrals URL and view in agreement', async () => {
+    const { history } = await renderApp('/referrals/');
+    expect(history.location.pathname).toBe('/referrals/');
+    expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
+  });
+
   test('browser Back from a demo drive restores the demo route list', async () => {
     const { history } = await renderApp('/demo');
     fireEvent.click((await screen.findAllByText('Mock recent route start'))[0]);
@@ -392,6 +398,27 @@ describe('whole-app behavior', () => {
     expect(screen.queryByRole('button', { name: 'Close teleop' })).not.toBeInTheDocument();
     act(() => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+  });
+
+  test('an unresolved legacy URL cannot leave a stale stream open', async () => {
+    const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
+    const { history } = await renderApp(`/${FIRST}/stream`, { devices: online, emptyRoutes: true });
+    expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+    const legacyPath = `/${FIRST}/${START}/${START + 60_000}`;
+    act(() => history.push(legacyPath));
+    expect(history.location.pathname).toBe(legacyPath);
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Close teleop' })).not.toBeInTheDocument());
+  });
+
+  test('an unresolved legacy URL clears the previous drive without using absolute times as zoom', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    mocks.options.emptyRoutes = true;
+    const legacyPath = `/${FIRST}/${START}/${START + 60_000}`;
+    act(() => history.push(legacyPath));
+    expect(history.location.pathname).toBe(legacyPath);
+    expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument();
+    expect(store.getState()).toMatchObject({ selectedRouteId: null, zoom: null });
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {

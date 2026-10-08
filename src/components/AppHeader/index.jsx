@@ -11,7 +11,7 @@ import { selectDevice } from '../../actions';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
-import { devicePath, urlForRoute } from '../../url';
+import { devicePath, parsePath, urlForRoute } from '../../url';
 
 import AccountMenu from './AccountMenu';
 
@@ -88,7 +88,7 @@ const AppHeader = ({
   ));
   const homePath = dongleId ? devicePath(dongleId) : urlForRoute({ page: 'home' });
   const referralsPath = urlForRoute({ page: 'referrals' });
-  const referralsOpen = pathname === referralsPath;
+  const referralsOpen = parsePath(pathname).page === 'referrals';
 
   const handleClickedAccount = useCallback(() => {
     if (MyCommaAuth.isAuthenticated()) {

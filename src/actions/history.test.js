@@ -113,4 +113,17 @@ describe('history reconciliation', () => {
     await vi.waitFor(() => expect(second.store.dispatch).toHaveBeenCalled());
     expect(second.store.dispatch.mock.calls[0][0].payload).toMatchObject({ method: 'replace', args: [`/${DEVICE}/${ROUTE}`] });
   });
+
+  it('does not treat a legacy absolute-time lookup as a playback range', () => {
+    api.routes.getRoutesSegments.mockReturnValue(new Promise(() => {}));
+    const { store, invoke } = create({
+      selectedRouteId: ROUTE, zoom: { start: 0, end: 20000 }, streamNav: true,
+    });
+    invoke(location(`/${DEVICE}/1000/2000`));
+    expect(actions.syncTimelineRange).toHaveBeenCalledWith(null, null, null);
+    expect(actions.syncStreamNav).toHaveBeenCalledWith(false);
+    expect(actions.checkRoutesData).not.toHaveBeenCalled();
+    expect(actions.checkLastRoutesData).not.toHaveBeenCalled();
+    expect(store.dispatch).toHaveBeenCalledTimes(2);
+  });
 });
