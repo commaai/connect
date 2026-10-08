@@ -84,7 +84,7 @@ function json(body, status = 200) {
 }
 
 async function mockFetch(input, init = {}) {
-  const url = new URL(typeof input === 'string' ? input : input.url);
+  const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
   mocks.requests.push({ method: init.method || 'GET', url: url.href });
   const options = mocks.options;
   const deviceList = options.devices ?? devices;
@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState(history.location));
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -302,5 +302,111 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('a cold settings link populates the arriving device alias and closes back to the drive', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}?utm_source=test&modal=settings`);
+    const dialog = await screen.findByRole('dialog', { name: 'Device settings' });
+    expect(await within(dialog).findByDisplayValue('Zulu')).toBeVisible();
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    const { zoom, loop, seekVersion } = store.getState();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe('?utm_source=test'));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(store.getState().zoom).toBe(zoom);
+    expect(store.getState().loop).toBe(loop);
+    expect(store.getState().seekVersion).toBe(seekVersion);
+  });
+
+  test.each(['push', 'replace'])('%s opens settings without resetting playback or metadata', async (method) => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/0/20?utm_source=test`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const { zoom, loop, seekVersion, routes } = store.getState();
+    const metadataRequests = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    act(() => history[method](`/${FIRST}/${LOG}/0/20?utm_source=test&modal=settings&device=${SECOND}`));
+    expect(await screen.findByRole('dialog', { name: 'Device settings' })).toBeVisible();
+    expect(screen.getByDisplayValue('Alpha')).toBeVisible();
+    expect(store.getState()).toMatchObject({ dongleId: FIRST, selectedRouteId: LOG, seekVersion });
+    expect(store.getState().zoom).toBe(zoom);
+    expect(store.getState().loop).toBe(loop);
+    expect(store.getState().routes).toBe(routes);
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(metadataRequests);
+  });
+
+  test('browser history reopens the drive overlay without seeking', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const { seekVersion } = store.getState();
+    act(() => history.push(`/${FIRST}/${LOG}?modal=settings`));
+    await screen.findByRole('dialog', { name: 'Device settings' });
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Device settings' })).not.toBeInTheDocument());
+    expect(store.getState().seekVersion).toBe(seekVersion);
+    act(() => history.goForward());
+    expect(await screen.findByRole('dialog', { name: 'Device settings' })).toBeVisible();
+    expect(store.getState().seekVersion).toBe(seekVersion);
+  });
+
+  test('a direct drive lookup does not replace dashboard list coverage', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    expect(store.getState().routesMeta.start).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(mocks.requests.some(({ url }) => url.includes('routes_segments') && !new URL(url).searchParams.has('route_str'))).toBe(true);
+  });
+
+  test('an unlisted drive enriches existing data and can be reopened from cache', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    await screen.findByText('Mock recent route start');
+    const listMeta = store.getState().routesMeta;
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    expect(store.getState().routes.map((route) => route.log_id)).toEqual([RECENT_LOG]);
+    expect(store.getState().routeCache[`${FIRST}|${LOG}`]).toMatchObject({ log_id: LOG });
+    expect(store.getState().routesMeta).toEqual(listMeta);
+    act(() => history.goBack());
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Mock route start')).not.toBeInTheDocument();
+    const requestCount = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    act(() => history.goForward());
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requestCount);
+    expect(store.getState().loop).toMatchObject({ startTime: 0, duration: 60000 });
+  });
+
+  test('desktop navigation anchor destinations preserve demo context and exclude overlay parameters', async () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+    try {
+      const { history } = await renderApp(`/demo/${FIRST}/${LOG}/0/5?utm_source=test#keep`);
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+      const dashboardHref = `/demo/${FIRST}?utm_source=test#keep`;
+      expect(screen.getByRole('link', { name: 'comma' })).toHaveAttribute('href', dashboardHref);
+      expect(screen.getByRole('link', { name: 'connect' })).toHaveAttribute('href', dashboardHref);
+      expect(screen.getByRole('link', { name: /Zulu/ })).toHaveAttribute('href', dashboardHref);
+      expect(screen.getByRole('button', { name: 'Close' })).toHaveAttribute('href', dashboardHref);
+      expect(screen.getByRole('button', { name: 'referrals' })).toHaveAttribute('href', '/demo/referrals?utm_source=test#keep');
+      act(() => history.push(`/demo/${FIRST}/${LOG}/0/5?utm_source=test&modal=settings&device=${SECOND}&clip=unused#keep`));
+      expect(screen.getByRole('link', { name: 'connect', hidden: true })).toHaveAttribute('href', dashboardHref);
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+    }
+  });
+
+  test('the mobile drawer logo and device anchor keep demo navigation context', async () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 });
+    try {
+      await renderApp(`/demo/${FIRST}/${LOG}?utm_source=test#keep`);
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+      fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+      const dashboardHref = `/demo/${FIRST}?utm_source=test#keep`;
+      expect(await screen.findByRole('link', { name: 'comma connect' })).toHaveAttribute('href', dashboardHref);
+      expect(screen.getByRole('link', { name: /Zulu/ })).toHaveAttribute('href', dashboardHref);
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+    }
   });
 });

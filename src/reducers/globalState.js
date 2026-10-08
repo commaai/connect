@@ -29,6 +29,11 @@ export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
+    case Types.ACTION_NAVIGATION:
+      state.navigation = action.navigation;
+      state.primeNav = action.navigation.view === 'prime';
+      state.streamNav = action.navigation.view === 'stream';
+      break;
     case Types.ACTION_STARTUP_DATA: {
       const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
 
@@ -54,6 +59,7 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_SELECT_DEVICE:
+      if (state.dongleId === action.dongleId) break;
       state = {
         ...state,
         filter: getDefaultFilter(),
@@ -151,6 +157,10 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_UPDATE_ROUTE:
+      if (state.routeCache?.[action.fullname]) {
+        state.routeCache = { ...state.routeCache,
+          [action.fullname]: { ...state.routeCache[action.fullname], ...action.route } };
+      }
       if (state.routes) {
         state.routes = state.routes.map((route) => {
           if (route.fullname === action.fullname) {
@@ -175,6 +185,10 @@ export default function reducer(_state, action) {
       eventsMap[action.fullname] = {
         events: action.events,
         videoStartOffset,
+      }
+      if (state.routeCache?.[action.fullname]) {
+        state.routeCache = { ...state.routeCache,
+          [action.fullname]: { ...state.routeCache[action.fullname], ...eventsMap[action.fullname] } };
       }
       if (state.routes) {
         state.routes = state.routes.map((route) => {
@@ -202,6 +216,10 @@ export default function reducer(_state, action) {
       locationMap[action.fullname] = {
         location: action.location,
         locationKey: action.locationKey,
+      }
+      if (state.routeCache?.[action.fullname]) {
+        state.routeCache = { ...state.routeCache,
+          [action.fullname]: { ...state.routeCache[action.fullname], [action.locationKey]: action.location } };
       }
       if (state.routes) {
         state.routes = state.routes.map((route) => {
@@ -305,9 +323,6 @@ export default function reducer(_state, action) {
         ...state,
         primeNav: action.primeNav,
       };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
       break;
     case Types.ACTION_STREAM_NAV:
       state = {
@@ -336,7 +351,7 @@ export default function reducer(_state, action) {
       };
       break;
     case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
+      if (state.zoom?.previous) {
         state.zoom = state.zoom.previous;
       } else {
         state.zoom = null;
@@ -344,12 +359,13 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
+      if (state.selectedRouteId !== action.log_id) {
         state.files = null;
       }
 
       state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
+      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id)
+        || state.routeCache?.[`${state.dongleId}|${action.log_id}`] || null;
       if (action.log_id) {
         if (action.start != null && action.end != null) {
           state.zoom = {
@@ -409,23 +425,36 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
+    case Types.ACTION_ROUTES_METADATA: {
+      if (action.dongleId !== state.dongleId) break;
       // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
-        return {
+      state.routeCache = { ...state.routeCache };
+      const fetchedRoutes = action.routes.map((route) => {
+        const existingRoute = state.routeCache[route.fullname]
+          || (state.routes || state.lastRoutes || []).find((r) => r.fullname === route.fullname);
+        const updated = {
           ...existingRoute,
           ...route,
-        }
+        };
+        state.routeCache[route.fullname] = updated;
+        return updated;
       });
-      state.routesMeta = {
-        dongleId: action.dongleId,
-        start: action.start,
-        end: action.end,
-      };
+      if (action.routeId) {
+        // A direct drive lookup enriches cached drives. Unlisted drives must
+        // not become part of the dashboard's already-fetched filter range.
+        state.routes = state.routes
+          ? state.routes.map((route) => state.routeCache[route.fullname] || route) : fetchedRoutes;
+        state.routesMeta = {
+          dongleId: action.dongleId,
+          start: state.routesMeta?.dongleId === action.dongleId ? state.routesMeta.start : null,
+          end: state.routesMeta?.dongleId === action.dongleId ? state.routesMeta.end : null,
+        };
+      } else {
+        state.routes = fetchedRoutes;
+        state.routesMeta = { dongleId: action.dongleId, start: action.start, end: action.end };
+      }
       if (!state.currentRoute && state.selectedRouteId) {
-        const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
+        const curr = state.routeCache[`${state.dongleId}|${state.selectedRouteId}`];
         if (curr) {
           state.currentRoute = {
             ...curr,
@@ -437,7 +466,7 @@ export default function reducer(_state, action) {
             };
           }
 
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
+          if (!state.loop || state.loop.startTime == null || !state.loop.duration) {
             state.loop = {
               startTime: state.zoom.start,
               duration: state.zoom.end - state.zoom.start,
@@ -446,6 +475,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav, navigateModal, navigatePage } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -24,6 +24,10 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import UploadQueue from './Files/UploadQueue';
+import TimeSelect from './TimeSelect';
 
 const styles = (theme) => ({
   app: {
@@ -198,12 +202,14 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, profile, navigation,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = navigation.view === 'referrals';
+    const modalDevice = devices?.find((device) => device.dongle_id === navigation.modalDeviceId)
+      || (this.props.device?.dongle_id === navigation.modalDeviceId ? this.props.device : null);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -230,7 +236,7 @@ class ExplorerApp extends Component {
           <>
             <AppHeader
               drawerIsOpen={ drawerIsOpen }
-              viewingRoute={ Boolean(currentRoute) }
+              viewingRoute={ navigation.view === 'drive' && Boolean(currentRoute) }
               showDrawerButton={ !isLarge }
               handleDrawerStateChanged={this.handleDrawerStateChanged}
               forwardRef={ this.updateHeaderRef }
@@ -244,10 +250,10 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(navigatePage('dashboard'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
+                : (navigation.view === 'drive' ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -270,6 +276,20 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        <DeviceSettingsModal
+          isOpen={navigation.modal === 'settings'}
+          dongleId={navigation.modalDeviceId}
+          onClose={() => dispatch(navigateModal(null))}
+        />
+        <AddDevice showButton={false} />
+        {navigation.modal === 'uploads' && modalDevice && <UploadQueue
+          open
+          update
+          device={modalDevice}
+          onClose={() => dispatch(navigateModal(navigation.parentModal,
+            navigation.parentModal ? { device: navigation.modalDeviceId } : {}))}
+        />}
+        {navigation.modal === 'filter' && <TimeSelect onClose={() => dispatch(navigateModal(null))} />}
       </div>
     );
   }
@@ -285,6 +305,8 @@ const stateToProps = (state) => ({
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
+  device: state.device,
+  navigation: state.navigation,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

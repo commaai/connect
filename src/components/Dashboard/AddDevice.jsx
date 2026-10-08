@@ -5,7 +5,7 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
+import { selectDevice, updateDevices, analyticsEvent, navigateModal } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
@@ -101,7 +101,6 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -116,6 +115,7 @@ class AddDevice extends Component {
     this.stream = null;
     this.scanning = false;
     this.scanFrameId = null;
+    this.cameraRequestVersion = 0;
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
     this.onVideoRef = this.onVideoRef.bind(this);
@@ -130,12 +130,21 @@ class AddDevice extends Component {
   }
 
   async componentDidMount() {
+    this.mounted = true;
     this.componentDidUpdate({}, {});
   }
 
-  async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+  async componentDidUpdate(prevProps = {}) {
+    if (this.props.showModal === false) return;
+    const { modalOpen } = this.props;
+    const { pairLoading, pairError, pairDongleId } = this.state;
     let { hasCamera } = this.state;
+
+    if (prevProps.modalOpen && !modalOpen) {
+      this.releaseCamera();
+      this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
+    }
+    if (!modalOpen) return;
 
     // Check for camera availability
     if (hasCamera === null) {
@@ -151,16 +160,24 @@ class AddDevice extends Component {
 
     // Initialize detector and camera stream
     if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
+      this.cameraRequestVersion += 1;
+      const requestVersion = this.cameraRequestVersion;
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
-        this.stream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
-        this.videoRef.srcObject = this.stream;
+        if (!this.mounted || !this.props.modalOpen || requestVersion !== this.cameraRequestVersion || !this.videoRef) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        this.stream = stream;
+        this.videoRef.srcObject = stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
         this.startScanning();
       } catch (err) {
+        if (!this.mounted || !this.props.modalOpen || requestVersion !== this.cameraRequestVersion) return;
         let cameraError = 'Unable to access camera.';
         if (err.name === 'NotAllowedError') {
           cameraError = 'Camera access denied. Please allow camera access in your browser settings and try again.';
@@ -255,11 +272,18 @@ class AddDevice extends Component {
   }
 
   async componentWillUnmount() {
+    this.mounted = false;
+    this.releaseCamera();
+  }
+
+  releaseCamera() {
+    this.cameraRequestVersion += 1;
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
       this.stream = null;
     }
+    this.detector = null;
   }
 
   async onVideoRef(ref) {
@@ -283,12 +307,7 @@ class AddDevice extends Component {
   modalClose() {
     const { pairDongleId } = this.state;
 
-    this.stopScanning();
-    if (this.stream) {
-      this.stream.getTracks().forEach((track) => track.stop());
-      this.stream = null;
-    }
-    this.detector = null;
+    this.releaseCamera();
 
     if (pairDongleId && this.props.devices.length === 0) {
       this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
@@ -296,7 +315,8 @@ class AddDevice extends Component {
       return;
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
+    this.props.dispatch(navigateModal(null));
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -370,22 +390,22 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    this.props.dispatch(navigateModal('pair'));
   }
 
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes, buttonText, buttonStyle, buttonIcon, modalOpen, showModal = true, showButton = true } = this.props;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
+        {showButton && <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
           { buttonText }
           { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
-        <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
+        </Button>}
+        <Modal aria-labelledby="add-device-modal" open={ showModal && modalOpen } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
               <Typography variant="title">Pair device</Typography>
@@ -445,6 +465,7 @@ class AddDevice extends Component {
 const stateToProps = (state) => ({
   profile: state.profile,
   devices: state.devices,
+  modalOpen: state.navigation?.modal === 'pair',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));

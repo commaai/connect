@@ -34,7 +34,7 @@ const Version = () => {
   return <span className="text-xs text-[#ffffff66]">{content}</span>
 };
 
-const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
+const AccountMenu = ({ profile, open, onClose, onReferrals, referralsHref = '/referrals' }) => {
   const version = useMemo(() => <Version />, []);
 
   const onLogOut = useCallback(() => {
@@ -58,7 +58,7 @@ const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
         <div className="h-px bg-white/10" />
         <a
           className="block px-4 py-3 text-white hover:bg-white/10"
-          href="/referrals"
+          href={referralsHref}
           onClick={filterRegularClick(() => {
             onClose();
             onReferrals();

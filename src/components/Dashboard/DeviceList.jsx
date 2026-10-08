@@ -7,14 +7,14 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
-import { updateDevices } from '../../actions';
+import { updateDevices, navigateModal } from '../../actions';
+import { pathForNavigation, locationWithPath } from '../../url';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
 
 const styles = (theme) => ({
   deviceList: {
@@ -88,24 +88,15 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    this.props.dispatch(navigateModal('settings', { device: dongleId }));
   }
 
   async onVisible() {
@@ -122,7 +113,7 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
+    const { classes, handleDeviceSelected, profile, selectedDevice, navigation, location } = this.props;
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
@@ -130,7 +121,7 @@ class DeviceList extends Component {
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
         onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
+        href={locationWithPath(location, pathForNavigation({ dongleId: device.dongle_id, demo: navigation.demo }))}
       >
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
@@ -158,7 +149,6 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -198,15 +188,10 @@ class DeviceList extends Component {
           {devices.map(this.renderDevice)}
           {MyCommaAuth.isAuthenticated() && (
             <div className={classes.addDeviceContainer}>
-              <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
+              <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon showModal={false} />
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }
@@ -216,6 +201,8 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  navigation: state.navigation,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));
