@@ -177,8 +177,7 @@ class Timeline extends Component {
   }
 
   componentDidMount() {
-    this.mounted = true;
-    requestAnimationFrame(this.getOffset);
+    this.getOffset();
     this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
@@ -195,6 +194,7 @@ class Timeline extends Component {
   }
 
   componentDidUpdate(prevProps) {
+    this.getOffset();
     const { zoomOverride, zoom } = this.props;
     if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
       this.setState({ zoom: zoomOverride || zoom });
@@ -202,7 +202,6 @@ class Timeline extends Component {
   }
 
   componentWillUnmount() {
-    this.mounted = false;
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
@@ -267,7 +266,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
+      const offset = this.props.offset;
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
@@ -293,11 +292,7 @@ class Timeline extends Component {
   }
 
   getOffset() {
-    if (!this.mounted) {
-      return;
-    }
-    requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
+    let offset = this.props.offset;
     if (this.seekIndex) {
       offset = this.seekIndex;
     }
@@ -459,6 +454,7 @@ class Timeline extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
+  offset: currentOffset(state),
   loop: state.loop,
 });
 

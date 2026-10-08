@@ -9,7 +9,7 @@ import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocod
 
 const INTERACTION_TIMEOUT = 5000;
 
-class DriveMap extends Component {
+export class DriveMap extends Component {
   constructor(props) {
     super(props);
 
@@ -44,18 +44,19 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute, seekRequest } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
     if (prevRoute !== route) {
+      this.lastMapPos = [];
       this.setPath([]);
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
     }
 
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
+    if (prevProps.seekRequest?.id !== seekRequest?.id) {
       this.shouldFlyTo = true;
     }
 
@@ -66,13 +67,14 @@ class DriveMap extends Component {
       this.setState({
         driveCoordsMin: Math.min(...keys),
         driveCoordsMax: Math.max(...keys),
-      });
-      this.populateMap();
+      }, this.populateMap);
     }
+    if (prevProps.offset !== this.props.offset || prevProps.currentRoute !== currentRoute) this.updateMarkerPos();
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    clearTimeout(this.isInteractingTimeout);
   }
 
   onInteraction(ev) {
@@ -97,7 +99,7 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        const pos = this.posAtOffset(this.props.offset);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -115,8 +117,6 @@ class DriveMap extends Component {
         });
       }
     }
-
-    requestAnimationFrame(this.updateMarkerPos);
   }
 
   moveViewportTo(pos) {
@@ -146,6 +146,7 @@ class DriveMap extends Component {
     }
 
     this.setPath(Object.values(currentRoute.driveCoords));
+    this.updateMarkerPos();
   }
 
   onRef(el) {
@@ -274,8 +275,7 @@ class DriveMap extends Component {
         this.setState({
           driveCoordsMin: Math.min(...keys),
           driveCoordsMax: Math.max(...keys),
-        });
-        this.populateMap();
+        }, this.populateMap);
       }
     });
   }
@@ -306,9 +306,9 @@ class DriveMap extends Component {
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
+  offset: currentOffset(state),
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
+  seekRequest: state.seekRequest,
 });
 
 export default connect(stateToProps)(DriveMap);

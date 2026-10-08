@@ -110,9 +110,6 @@ class TimeDisplay extends Component {
   constructor(props) {
     super(props);
 
-    this.textHolder = React.createRef();
-
-    this.updateTime = this.updateTime.bind(this);
     this.togglePause = this.togglePause.bind(this);
     this.increaseSpeed = this.increaseSpeed.bind(this);
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
@@ -121,28 +118,17 @@ class TimeDisplay extends Component {
 
     this.state = {
       desiredPlaySpeed: 1,
-      displayTime: this.getDisplayTime(),
     };
   }
 
-  componentDidMount() {
-    this.mounted = true;
-    requestAnimationFrame(this.updateTime);
-  }
-
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
   getDisplayTime() {
-    const offset = currentOffset();
-    const { currentRoute } = this.props;
+    const { currentRoute, offset } = this.props;
     const now = new Date(offset + currentRoute.start_time_utc_millis);
     if (Number.isNaN(now.getTime())) {
       return '...';
     }
     let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute);
+    const seg = getSegmentNumber(currentRoute, offset);
     if (seg !== null) {
       dateString = `${dateString} \u2013 ${seg}`;
     }
@@ -151,24 +137,11 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
+    this.props.dispatch(seek((this.props.seekRequest?.offset ?? this.props.offset) - amount));
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
-  }
-
-  updateTime() {
-    if (!this.mounted || !this.textHolder.current) {
-      return;
-    }
-    const newDisplayTime = this.getDisplayTime();
-    const { displayTime } = this.state;
-    if (newDisplayTime !== displayTime) {
-      this.setState({ displayTime: newDisplayTime });
-    }
-
-    requestAnimationFrame(this.updateTime);
+    this.props.dispatch(seek((this.props.seekRequest?.offset ?? this.props.offset) + amount));
   }
 
   decreaseSpeed() {
@@ -212,8 +185,8 @@ class TimeDisplay extends Component {
   }
 
   togglePause() {
-    const { desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed === 0) {
+    const { isPlaying, dispatch } = this.props;
+    if (!isPlaying) {
       // eslint-disable-next-line react/destructuring-assignment
       dispatch(play(this.state.desiredPlaySpeed));
     } else {
@@ -222,9 +195,10 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime, desiredPlaySpeed } = this.state;
-    const isPaused = videoPlaySpeed === 0;
+    const { classes, zoom, isPlaying, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
+    const { desiredPlaySpeed } = this.state;
+    const displayTime = this.getDisplayTime();
+    const isPaused = !isPlaying;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (
@@ -253,7 +227,7 @@ class TimeDisplay extends Component {
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+          <span>{ displayTime }</span>
         </Typography>
         {!isIos() && (
           <div className={ classes.desiredPlaySpeedContainer }>
@@ -313,6 +287,9 @@ class TimeDisplay extends Component {
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
+  offset: currentOffset(state),
+  isPlaying: state.isPlaying,
+  seekRequest: state.seekRequest,
   desiredPlaySpeed: state.desiredPlaySpeed,
 });
 

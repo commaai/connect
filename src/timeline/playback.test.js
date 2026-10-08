@@ -1,133 +1,71 @@
-import { asyncSleep } from '../utils';
+import { publicRoute } from '../../config/vitest/publicRoute';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { mediaState, pause, play, reducer, resetPlayback, seek, selectLoop } from './playback';
 
-const makeDefaultStruct = function makeDefaultStruct() {
-  return {
-    desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
-    offset: 0, // in miliseconds from the start
-    startTime: Date.now(), // millisecond timestamp in which play began
+const initial = () => ({
+  currentRoute: publicRoute,
+  desiredPlaySpeed: 1,
+  playRequest: 0,
+  offset: null,
+  isPlaying: false,
+  isBufferingVideo: true,
+  seekRequest: { offset: null, id: 0 },
+});
 
-    isBuffering: true,
-  };
-};
-
-// make Date.now super stable for tests
-let mostRecentNow = Date.now();
-const oldNow = Date.now;
-Date.now = function now() {
-  return mostRecentNow;
-};
-function newNow() {
-  mostRecentNow = oldNow();
-  return mostRecentNow;
-}
-
-describe('playback', () => {
-  it('has playback controls', async () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // should do nothing
+describe('media-led playback', () => {
+  it('commands do not advance observed position or status', () => {
+    let state = reducer(initial(), mediaState(publicRoute.fullname, { offset: 60000, isPlaying: true }));
     state = reducer(state, pause());
-    expect(state.desiredPlaySpeed).toEqual(0);
-
-    // start playing, should set start time and such
-    let playTime = newNow();
-    state = reducer(state, play());
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset
-    let ellapsed = newNow() - playTime;
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // start playing, should set start time and such
-    playTime = newNow();
-    state = reducer(state, play(0.5));
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset, playback speed 1/2
-    ellapsed += (newNow() - playTime) / 2;
-    expect(currentOffset(state)).toEqual(ellapsed);
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // seek!
-    newNow();
-    state = reducer(state, seek(123));
-    expect(state.offset).toEqual(123);
-    expect(state.startTime).toEqual(Date.now());
-    expect(currentOffset(state)).toEqual(123);
-  });
-
-  it('should clamp loop when seeked after loop end time', () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
-
-    // seek past loop end boundary a
-    state = reducer(state, seek(3000));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(2000);
-  });
-
-  it('should clamp loop when seeked before loop start time', () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
-
-    // seek past loop end boundary a
-    state = reducer(state, seek(0));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(1000);
-  });
-
-  it('should buffer video and data', async () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    state = reducer(state, play());
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    // claim the video is buffering
-    state = reducer(state, bufferVideo(true));
-    expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    state = reducer(state, play(0.5));
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
+    expect(state.offset).toBe(60000);
+    expect(state.isPlaying).toBe(true);
     state = reducer(state, play(2));
-    state = reducer(state, bufferVideo(false));
-    expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBufferingVideo).toEqual(false);
+    state = reducer(state, seek(120000));
+    expect(state.seekRequest).toEqual({ offset: 120000, id: 1, route: publicRoute.fullname });
+    expect(currentOffset(state)).toBe(60000);
+    expect(state.isPlaying).toBe(true);
+  });
 
-    expect(state.desiredPlaySpeed).toEqual(2);
+  it('observes pauses, buffering, and actual position without a wall clock', () => {
+    const state = reducer(initial(), mediaState(publicRoute.fullname, {
+      offset: 120000, isPlaying: false, isBufferingVideo: true,
+    }));
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(publicRoute.duration);
+    expect(currentOffset(state)).toBe(120000);
+    vi.useRealTimers();
+  });
+
+  it('clamps requested seeks to the selected range, including its zero start', () => {
+    let state = reducer(initial(), selectLoop(0, 60000));
+    state = reducer(state, seek(-10000));
+    expect(state.seekRequest.offset).toBe(0);
+    state = reducer(state, seek(120000));
+    expect(state.seekRequest.offset).toBe(60000);
+    state = reducer(state, selectLoop(60000, 120000));
+    expect(state.seekRequest.offset).toBe(60000);
+    expect(state.offset).toBeNull();
+  });
+
+  it('rejects non-finite seek inputs and clamps whole-route seeks to real duration', () => {
+    const state = initial();
+    expect(reducer(state, seek(NaN))).toBe(state);
+    expect(reducer(state, seek(Infinity))).toBe(state);
+    expect(reducer(state, seek(publicRoute.duration + 10000)).seekRequest.offset).toBe(publicRoute.duration);
+  });
+
+  it('ignores an old route publication after closing the drive', () => {
+    const state = { ...initial(), currentRoute: null };
+    expect(reducer(state, mediaState(publicRoute.fullname, { offset: 120000, isPlaying: true }))).toBe(state);
+  });
+
+  it('reissues same-speed commands and resets without inventing an actual position', () => {
+    let state = reducer(initial(), play());
+    const request = state.playRequest;
+    state = reducer(state, play());
+    expect(state.playRequest).toBe(request + 1);
+    state = reducer(state, resetPlayback());
+    expect(state.offset).toBeNull();
+    expect(state.isPlaying).toBe(false);
+    expect(state.seekRequest.offset).toBeNull();
   });
 });
