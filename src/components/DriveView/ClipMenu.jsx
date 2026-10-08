@@ -1,4 +1,6 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import {
   Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, LinearProgress, Menu, Typography, withStyles,
 } from '@material-ui/core';
@@ -6,6 +8,7 @@ import {
 import Colors from '../../colors';
 import { clipDevice } from '../../api/clips';
 import { CloseBold, Download as DownloadIcon, PlayArrow, Trash } from '../../icons';
+import { routeModalUrl } from '../../url';
 import { shareOrDownload } from '../../utils/file';
 import InfoTooltip from '../utils/InfoTooltip';
 
@@ -246,10 +249,25 @@ class ClipMenu extends Component {
 
   componentDidUpdate(prevProps) {
     const opened = this.props.open && !prevProps.open;
+    const routeTargetChanged = this.props.routeModal !== prevProps.routeModal
+      || this.props.routeModalClip !== prevProps.routeModalClip
+      || this.props.dongleId !== prevProps.dongleId;
     const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
     const deviceChanged = this.props.dongleId !== prevProps.dongleId;
     const reconnected = this.props.deviceOnline && !prevProps.deviceOnline;
-    if ((opened || routeChanged || deviceChanged || reconnected) && this.props.open) this.loadClips();
+    const loadingRouteTarget = (opened || routeChanged || deviceChanged || reconnected) && this.props.open;
+    if (loadingRouteTarget) this.loadClips();
+    if (routeTargetChanged) {
+      if (prevProps.routeModal === 'clip-viewer'
+        && (this.props.routeModal !== 'clip-viewer'
+          || prevProps.routeModalClip !== this.props.routeModalClip
+          || prevProps.dongleId !== this.props.dongleId)) this.closeViewer(false);
+      if (prevProps.routeModal === 'clip-delete' && this.props.routeModal !== 'clip-delete') {
+        this.setState({ deletingClip: null, deleteDialogOpen: false });
+      }
+      this.routeTargetKey = null;
+      if (!loadingRouteTarget) this.applyRouteTarget();
+    }
     if (!this.props.deviceOnline && prevProps.deviceOnline) {
       this.stopPolling();
       this.setState({ loading: false });
@@ -294,6 +312,7 @@ class ClipMenu extends Component {
       this.setState({ clips, downloadedClips, cameraRanges, loading: false }, () => {
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
         if (this.props.open && autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
+        this.applyRouteTarget();
       });
       this.stopPolling();
       if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
@@ -362,10 +381,15 @@ class ClipMenu extends Component {
     if (!deletingClip || this.state.deleting) return;
     this.setState({ deleting: true });
     const deleted = await this.removeClip(deletingClip);
+    if (deleted) this.updateRoute('clips');
     if (this.mounted) this.setState({ deleteDialogOpen: !deleted, deleting: false });
   }
 
   async openViewer(clip) {
+    if (this.props.routeModal !== 'clip-viewer' || this.props.routeModalClip !== clip.filename) {
+      this.updateRoute('clip-viewer', clip.filename);
+      return;
+    }
     if (!this.props.deviceOnline) return;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
@@ -398,10 +422,41 @@ class ClipMenu extends Component {
     }
   }
 
-  closeViewer() {
+  applyRouteTarget() {
+    const { routeModal, routeModalClip, dongleId, deviceOnline } = this.props;
+    if (!['clip-viewer', 'clip-delete'].includes(routeModal) || !routeModalClip || !this.props.open) return;
+    const key = `${routeModal}:${dongleId}:${routeModalClip}`;
+    if (this.routeTargetKey === key || this.state.loading) return;
+    const clip = this.state.clips.find(item => item.filename === routeModalClip);
+    if (!deviceOnline) {
+      this.setState({ error: 'Device offline' });
+    } else if (!clip) {
+      this.setState({ error: 'Clip not found on this device' });
+    } else if (routeModal === 'clip-viewer') {
+      if (clip.status === 'ready') {
+        this.routeTargetKey = key;
+        this.openViewer(clip);
+      } else this.setState({ error: 'Clip is not ready to view' });
+    } else {
+      this.routeTargetKey = key;
+      this.setState({ deletingClip: clip, deleteDialogOpen: true, error: null });
+    }
+  }
+
+  updateRoute(modal, clip) {
+    this.props.dispatch(push(routeModalUrl(this.props.routeLocation, modal, null, clip)));
+  }
+
+  closeViewer(updateRoute = true) {
+    if (updateRoute && this.props.routeModal === 'clip-viewer') this.updateRoute('clips');
     this.previewRequest += 1;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.setState({ viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0 });
+  }
+
+  closeDeleteConfirmation() {
+    if (this.props.routeModal === 'clip-delete') this.updateRoute('clips');
+    this.setState({ deletingClip: null, deleteDialogOpen: false });
   }
 
   renderViewer() {
@@ -444,7 +499,7 @@ class ClipMenu extends Component {
     return (
       <Dialog
         open={deleteDialogOpen}
-        onClose={() => !deleting && this.setState({ deleteDialogOpen: false })}
+        onClose={() => !deleting && this.closeDeleteConfirmation()}
         classes={{ paper: classes.deletePaper }}
         TransitionProps={{ onExited: () => this.setState({ deletingClip: null }) }}
       >
@@ -455,7 +510,7 @@ class ClipMenu extends Component {
           </Typography>
         </DialogContent>
         <DialogActions className={classes.deleteActions}>
-          <Button disabled={deleting} onClick={() => this.setState({ deleteDialogOpen: false })}>Cancel</Button>
+          <Button disabled={deleting} onClick={() => this.closeDeleteConfirmation()}>Cancel</Button>
           <Button className={classes.deleteButton} disabled={deleting} onClick={() => this.confirmDelete()}>
             {deleting ? <CircularProgress size={18} /> : 'Delete'}
           </Button>
@@ -494,7 +549,7 @@ class ClipMenu extends Component {
                 className={classes.clipAction}
                 disabled={!this.props.deviceOnline || previewing}
                 title={this.props.deviceOnline ? (previewing ? 'Downloading' : (downloaded ? 'Play clip' : 'Download clip')) : 'Device offline'}
-                onClick={() => this.openViewer(clip)}
+                onClick={() => this.updateRoute('clip-viewer', clip.filename)}
               >
                 {downloaded
                   ? <PlayArrow className={classes.playIcon} />
@@ -510,7 +565,7 @@ class ClipMenu extends Component {
               title={this.props.deviceOnline ? (ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip') : 'Device offline'}
               onClick={() => (ACTIVE_STATUSES.has(clip.status)
                 ? this.removeClip(clip)
-                : this.setState({ deletingClip: clip, deleteDialogOpen: true }))}
+                : this.updateRoute('clip-delete', clip.filename))}
             >
               {ACTIVE_STATUSES.has(clip.status)
                 ? <CloseBold className={classes.actionIcon} />
@@ -642,4 +697,10 @@ class ClipMenu extends Component {
   }
 }
 
-export default withStyles(styles)(ClipMenu);
+const stateToProps = state => ({
+  routeLocation: state.router.location,
+  routeModal: state.routeModal,
+  routeModalClip: state.routeModalClip,
+});
+
+export default connect(stateToProps)(withStyles(styles)(ClipMenu));
