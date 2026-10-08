@@ -2,7 +2,7 @@ import * as Types from '../actions/types';
 import store from '../store';
 import { asyncSleep } from '../utils';
 import { currentOffset, setVideo, videoReady } from '.';
-import { pause, play, reducer, seek, selectLoop } from './playback';
+import { pause, play, reducer, resetPlayback, seek, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -123,6 +123,7 @@ describe('video clock', () => {
       routes: [{ log_id: 'r', fullname: 'x|r', duration: 60000, videoStartOffset: 2000 }],
     });
     store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 'r', start: 0, end: 60000 });
+    store.dispatch(resetPlayback());
     store.dispatch(seek(5000));
   });
 
@@ -175,6 +176,19 @@ describe('video clock', () => {
     video.currentTime = 50;
     expect(store.getState().offset).toEqual(22000);
     expect(currentOffset()).toEqual(22000);
+  });
+
+  it('starts a new timeline selection at its start with one seek', () => {
+    const video = fakeVideo();
+    setVideo(video);
+    videoReady();
+    const seeks = [];
+    Object.defineProperty(video, 'currentTime', { get: () => seeks.at(-1) ?? 40, set: (t) => seeks.push(t) });
+
+    // what updateTimeline dispatches when a drag selects 30 s to 40 s
+    store.dispatch(resetPlayback());
+    store.dispatch(selectLoop(30000, 40000));
+    expect(seeks).toEqual([28]);
   });
 
   it('shows a paused state when the browser blocks play()', async () => {

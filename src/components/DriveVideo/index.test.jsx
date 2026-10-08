@@ -1,0 +1,99 @@
+import React from 'react';
+import { Provider } from 'react-redux';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { createMemoryHistory } from 'history';
+
+import DriveVideo from '.';
+import { createAppStore } from '../../store';
+import * as Types from '../../actions/types';
+import { seek } from '../../timeline/playback';
+
+const hls = vi.hoisted(() => ({ instances: [], load: null }));
+
+vi.mock('../../api/backend', () => ({ api: { video: { getQcameraStreamUrl: () => 'https://example.test/qcamera.m3u8' } } }));
+// a getter, so each test can make the download fail
+vi.mock('hls.js/light', () => ({ get default() { return hls.load(); } }));
+
+class FakeHls {
+  static Events = { ERROR: 'hlsError', BUFFER_CODECS: 'hlsBufferCodecs' };
+
+  constructor(config) {
+    this.config = config;
+    this.handlers = {};
+    hls.instances.push(this);
+  }
+
+  on(event, handler) { this.handlers[event] = handler; }
+
+  loadSource() {}
+
+  attachMedia() {}
+
+  destroy() {}
+
+  recoverMediaError() {}
+}
+
+function renderPlayer() {
+  const store = createAppStore(createMemoryHistory());
+  store.dispatch({
+    type: Types.ACTION_ROUTES_METADATA,
+    routes: [{ log_id: 'r', fullname: 'x|r', duration: 180000 }],
+  });
+  store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 'r', start: 0, end: 180000 });
+  render(<Provider store={store}><DriveVideo /></Provider>);
+  return store;
+}
+
+describe('DriveVideo', () => {
+  beforeEach(() => {
+    hls.instances = [];
+    hls.load = () => FakeHls;
+    window.MediaSource = class {};
+    HTMLMediaElement.prototype.play = vi.fn(async () => undefined);
+    HTMLMediaElement.prototype.pause = vi.fn();
+    HTMLMediaElement.prototype.load = vi.fn();
+  });
+
+  it('says the drive has no video when the playlist is missing, and retries on request', async () => {
+    renderPlayer();
+    await screen.findByRole('status');
+    await act(async () => {});
+    const [player] = hls.instances;
+    act(() => player.handlers.hlsError('hlsError', { fatal: true, type: 'networkError', details: 'manifestLoadError', response: { code: 404 } }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Video for this drive has not uploaded yet or has been deleted.');
+
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Try again' })));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(hls.instances).toHaveLength(2);
+  });
+
+  it('names a missing segment, ignores errors hls.js recovers from, and retries in another segment', async () => {
+    const store = renderPlayer();
+    await act(async () => {});
+    const [player] = hls.instances;
+    act(() => player.handlers.hlsError('hlsError', { fatal: false, type: 'mediaError', details: 'bufferStalledError' }));
+    expect(screen.queryByRole('alert')).toBeNull();
+    act(() => player.handlers.hlsError('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError', response: { code: 404 } }));
+    expect(screen.getByRole('alert')).toHaveTextContent('This video segment has not uploaded yet or has been deleted.');
+
+    await act(async () => store.dispatch(seek(30000)));
+    expect(hls.instances).toHaveLength(1);
+    await act(async () => store.dispatch(seek(130000)));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(hls.instances).toHaveLength(2);
+  });
+
+  it('shows a network error when the player code cannot download', async () => {
+    hls.load = () => { throw new TypeError('Failed to fetch dynamically imported module'); };
+    renderPlayer();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Check your network connection');
+  });
+
+  it('starts no player for a drive the user already left', async () => {
+    renderPlayer();
+    cleanup();
+    await act(async () => {});
+    expect(hls.instances).toHaveLength(0);
+  });
+});

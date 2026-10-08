@@ -48,16 +48,19 @@ export function currentOffset(state = null) {
 }
 
 // Attach the element that plays the current route (again after a new source), or null to hand
-// time back to the wall clock at the video's position.
+// time back to the wall clock at the video's position. Returns the video time to start at, or
+// the route offset handed back (null if no video was attached).
 export function setVideo(el) {
+  let offset = null;
   if (video && !el) {
-    const offset = currentOffset();
+    offset = currentOffset();
     video = null;
     store.dispatch({ type: Types.ACTION_SEEK, offset });
   }
   video = null;
   startOffset = el ? currentOffset() : null;
   video = el;
+  return el ? videoTime(store.getState(), startOffset) : offset;
 }
 
 // Call on loadedmetadata: move the new video to where playback should start.
@@ -66,6 +69,11 @@ export function videoReady() {
     video.currentTime = videoTime(store.getState(), startOffset);
     startOffset = null;
   }
+}
+
+// Keep reporting the current position while the video reloads its media (error recovery).
+export function holdVideo() {
+  startOffset = currentOffset();
 }
 
 // Unmute or mute inside the user's tap: iOS pauses a video that gains sound outside a gesture.
@@ -85,7 +93,8 @@ export function videoMiddleware(api) {
       return result;
     }
     const state = api.getState();
-    if (action.type === Types.ACTION_SEEK || action.type === Types.ACTION_RESET) {
+    // resetPlayback() always comes right before selectLoop(), which moves offset into the new loop
+    if (action.type === Types.ACTION_SEEK || action.type === Types.ACTION_LOOP) {
       if (startOffset !== null) {
         startOffset = state.offset;
       } else {

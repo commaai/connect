@@ -3,8 +3,9 @@ import { connect } from 'react-redux';
 
 import { api } from '../../api/backend';
 import { ErrorOutline } from '../../icons';
-import { setVideo, videoReady } from '../../timeline';
+import { holdVideo, setVideo, videoReady } from '../../timeline';
 import { pause, play, seek } from '../../timeline/playback';
+import { getSegmentNumber } from '../../utils';
 
 const NOT_UPLOADED = 'This video segment has not uploaded yet or has been deleted.';
 const ROUTE_NOT_UPLOADED = 'Video for this drive has not uploaded yet or has been deleted.';
@@ -40,51 +41,64 @@ class DriveVideo extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname) {
+    const { currentRoute, offset } = this.props;
+    // a missing segment: seeking to another segment tries again from there
+    const movedAfterError = this.state.error === NOT_UPLOADED
+      && getSegmentNumber(currentRoute, offset) !== getSegmentNumber(currentRoute, this.failedAt);
+    if (prevProps.currentRoute?.fullname !== currentRoute?.fullname || movedAfterError) {
       this.load();
     }
   }
 
   componentWillUnmount() {
-    setVideo(null);
     this.unload();
   }
 
   // Play the current route from the current playback offset.
   async load() {
-    const { currentRoute, desiredPlaySpeed, dispatch } = this.props;
+    const { currentRoute, onAudioStatusChange } = this.props;
     const video = this.video.current;
     this.unload();
-    this.setState({ buffering: true, error: null });
+    onAudioStatusChange?.(false);
+    this.setState({ buffering: Boolean(currentRoute), error: null });
     if (!currentRoute) {
-      setVideo(null);
       return;
     }
 
-    setVideo(video);
-    const src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
+    this.src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
     // Safari 17+ (macOS, iPadOS, iOS) plays HLS natively, keeping AirPlay and the system audio
     // session; iPhones before iOS 17.1 have no MediaSource at all. Everything else gets hls.js.
     if (!window.MediaSource || (window.ManagedMediaSource && video.canPlayType('application/vnd.apple.mpegurl'))) {
-      video.src = src;
+      setVideo(video);
+      video.src = this.src;
     } else {
       const loading = this.loading = {};
-      const { default: Hls } = await import('hls.js/light');
+      let Hls;
+      try {
+        ({ default: Hls } = await import('hls.js/light'));
+      } catch {
+        if (this.loading === loading) this.fail(NETWORK);
+        return;
+      }
       if (this.loading !== loading) {
         return;
       }
-      this.hls = new Hls({ maxBufferLength: 40 });
+      // start loading at the requested time, not at segment 0 (deep links, route changes)
+      this.hls = new Hls({ maxBufferLength: 40, startPosition: setVideo(video) });
       this.hls.on(Hls.Events.ERROR, this.onHlsError);
       this.hls.on(Hls.Events.BUFFER_CODECS, (_, data) => this.props.onAudioStatusChange?.(Boolean(data.audio)));
-      this.hls.loadSource(src);
+      this.hls.loadSource(this.src);
       this.hls.attachMedia(video);
     }
-    if (desiredPlaySpeed) {
-      dispatch(play(desiredPlaySpeed));
+    if (this.props.desiredPlaySpeed) {
+      this.props.dispatch(play(this.props.desiredPlaySpeed));
     }
   }
 
+  // Stop the video and hand the clock back to Redux first, since the teardown resets currentTime.
+  // Returns the offset handed back, if a video was attached.
   unload() {
+    const offset = setVideo(null);
     this.loading = null;
     if (this.hls) {
       this.hls.destroy();
@@ -95,13 +109,13 @@ class DriveVideo extends Component {
       video.removeAttribute('src');
       video.load();
     }
+    return offset;
   }
 
+  // The wall clock keeps the map and timeline moving without video.
   fail(error) {
-    // hand the clock back before the teardown resets currentTime; the wall clock keeps the map and
-    // timeline moving without video
-    setVideo(null);
-    this.unload();
+    // the hand-back moves offset; only a later seek should retry
+    this.failedAt = this.unload();
     this.setState({ buffering: false, error });
   }
 
@@ -119,7 +133,15 @@ class DriveVideo extends Component {
     if (this.hls || !error || error.code === 1) {
       return;
     }
-    this.fail(error.code === 2 ? NETWORK : UNPLAYABLE);
+    if (error.code !== 4) {
+      this.fail(error.code === 2 ? NETWORK : UNPLAYABLE);
+      return;
+    }
+    // native HLS reports a missing playlist as "unsupported": ask the server which it was
+    fetch(this.src).then(
+      (resp) => this.fail(resp.status === 404 ? ROUTE_NOT_UPLOADED : UNPLAYABLE),
+      () => this.fail(NETWORK),
+    );
   }
 
   onHlsError(_, data) {
@@ -128,7 +150,12 @@ class DriveVideo extends Component {
     }
     if (data.type === 'mediaError' && Date.now() - this.lastMediaRecovery > 5000) {
       this.lastMediaRecovery = Date.now();
+      // recovery reattaches the media, which pauses it and resets currentTime without events
+      holdVideo();
       this.hls.recoverMediaError();
+      if (this.props.desiredPlaySpeed) {
+        this.props.dispatch(play(this.props.desiredPlaySpeed));
+      }
     } else if (data.response?.code === 404) {
       this.fail(data.details === 'manifestLoadError' ? ROUTE_NOT_UPLOADED : NOT_UPLOADED);
     } else if (data.type === 'networkError' && !(data.response?.code >= 400)) {
@@ -151,21 +178,32 @@ class DriveVideo extends Component {
     }
   }
 
+  videoTime(offset) {
+    return (offset - (this.props.currentRoute?.videoStartOffset || 0)) / 1000;
+  }
+
+  // A selection that starts after the video ends has no video to loop: stay paused at the end.
   onEnded() {
     const { desiredPlaySpeed, dispatch, loop } = this.props;
-    dispatch(seek(loop?.startTime || 0));
+    const start = loop?.startTime || 0;
+    if (this.videoTime(start) >= this.video.current.duration - 0.1) {
+      dispatch(pause());
+      return;
+    }
+    dispatch(seek(start));
     dispatch(play(desiredPlaySpeed || 1));
   }
 
-  // Wrap at the end of the selected range.
+  // Wrap at the end of the selected range, or stop if the range ends before the video starts.
   onTimeUpdate() {
-    const { currentRoute, dispatch, loop } = this.props;
-    if (!loop?.duration) {
+    const { dispatch, loop } = this.props;
+    const video = this.video.current;
+    if (!loop?.duration || video.seeking) {
       return;
     }
-    const offset = (currentRoute?.videoStartOffset || 0) + (this.video.current.currentTime * 1000);
-    if (offset >= loop.startTime + loop.duration || offset < loop.startTime - 1000) {
-      dispatch(seek(loop.startTime));
+    const end = this.videoTime(loop.startTime + loop.duration);
+    if (video.currentTime > end || video.currentTime < this.videoTime(loop.startTime) - 1) {
+      dispatch(end <= 0 ? pause() : seek(loop.startTime));
     }
   }
 
@@ -175,15 +213,15 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { isMuted } = this.props;
+    const { desiredPlaySpeed, isMuted } = this.props;
     const { buffering, error } = this.state;
-    const showSpinner = buffering && !error;
+    const showSpinner = buffering && !error && desiredPlaySpeed > 0;
 
     return (
-      <div className="relative max-w-[964px] m-[0_auto] aspect-[1.593] min-h-[200px] overflow-hidden rounded-lg bg-black">
+      <div className="relative max-w-[964px] m-[0_auto] aspect-[1.593] overflow-hidden rounded-lg bg-black">
         <video
           ref={this.video}
-          className="w-full h-full object-contain"
+          className="w-full h-full object-contain cursor-pointer"
           playsInline
           preload="auto"
           muted={isMuted}
@@ -201,18 +239,20 @@ class DriveVideo extends Component {
           onTimeUpdate={this.onTimeUpdate}
           onError={this.onError}
         />
-        <div
-          className={`pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity duration-200 ${showSpinner ? 'opacity-100 delay-300' : 'opacity-0'}`}
-        >
-          <div role="status" aria-label="Loading video" className="size-12 rounded-full border-4 border-white/25 border-t-white animate-spin" />
-        </div>
+        {showSpinner && (
+          // fades in after 300 ms, so quick seeks and loads do not flash it
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 animate-[fadein_200ms_300ms_both]">
+            <div aria-hidden="true" className="size-12 rounded-full border-4 border-white/20 border-t-white animate-spin" />
+          </div>
+        )}
+        <div role="status" className="sr-only">{showSpinner ? 'Loading video' : ''}</div>
         {error && (
-          <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#16181AE6] p-6 text-center text-white">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto p-4 text-center text-white">
             <ErrorOutline />
-            <p className="text-sm max-w-xs">{error}</p>
+            <p role="alert" className="text-sm max-w-xs">{error}</p>
             <button
               type="button"
-              className="rounded-full border border-white/30 px-4 py-1.5 text-sm hover:bg-white/10"
+              className="min-h-11 rounded-full border border-white/30 px-5 text-sm hover:bg-white/10"
               onClick={this.load}
             >
               Try again
@@ -228,6 +268,7 @@ const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   desiredPlaySpeed: state.desiredPlaySpeed,
   loop: state.loop,
+  offset: state.offset,
 });
 
 export default connect(stateToProps)(DriveVideo);
