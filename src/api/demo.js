@@ -132,9 +132,11 @@ const TEST_CASES = [
 // not exist. hls.js and native HLS on iOS both load a data: playlist, so both
 // players hit the same 404 and keep the segment's duration in the timeline.
 function missingVideoPlaylist(playlist, missingUrl, missingSegments) {
-  const lines = playlist.split('\n').map((line) => (line.startsWith('http') && missingSegments.includes(fileSegmentNumber(line))
-    ? `${missingUrl}/${fileSegmentNumber(line)}/qcamera.ts`
-    : line));
+  const lines = playlist.split('\n').map((line) => {
+    if (!line.startsWith('http')) return line;
+    const segment = fileSegmentNumber(line);
+    return missingSegments.includes(segment) ? `${missingUrl}/${segment}/qcamera.ts` : line;
+  });
   return `data:application/vnd.apple.mpegurl;base64,${btoa(lines.join('\n'))}#.m3u8`;
 }
 
@@ -194,12 +196,15 @@ export function createDemoBackend(realBackend) {
     return publicFilesPromise;
   }
 
-  // Fetch the public route's qcamera playlist once and cache it.
+  // A failed playlist fetch leaves the gap routes playing the full video
+  // instead of emptying the whole route list.
   function fetchPublicPlaylist(publicRoute) {
     if (!publicPlaylistPromise) {
       publicPlaylistPromise = fetch(realBackend.video.getQcameraStreamUrl(
         publicRoute.fullname, publicRoute.share_exp, publicRoute.share_sig,
-      )).then((res) => res.text());
+      ))
+        .then((res) => (res.ok ? res.text() : null))
+        .catch(() => null);
     }
     return publicPlaylistPromise;
   }
@@ -208,9 +213,7 @@ export function createDemoBackend(realBackend) {
   // with a unique demo route ID and its test case's mutation, if any.
   async function listDemoRoutes(routeStr) {
     const publicRoute = await fetchPublicRoute();
-    const playlist = TEST_CASES.some((testCase) => testCase.missingVideoSegments)
-      ? await fetchPublicPlaylist(publicRoute)
-      : null;
+    const playlist = await fetchPublicPlaylist(publicRoute);
     const routes = TEST_CASES.map((testCase, index) => {
       const logId = demoRouteLogId(index);
       const route = structuredClone(publicRoute);
@@ -218,7 +221,7 @@ export function createDemoBackend(realBackend) {
       route.fullname = `${DEMO_DONGLE_ID}|${logId}`;
       route.demo_title = testCase.title;
       testCase.route(route, testCase.affectedSegment);
-      if (testCase.missingVideoSegments) {
+      if (testCase.missingVideoSegments && playlist) {
         const missingUrl = route.url.replace(PUBLIC_ROUTE_LOG_ID, logId);
         videoUrls.set(route.fullname, missingVideoPlaylist(playlist, missingUrl, testCase.missingVideoSegments(route)));
       }
