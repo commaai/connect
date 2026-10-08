@@ -1,35 +1,39 @@
-// basic helper functions for controlling playback
-// we shouldn't want to edit the raw state most of the time, helper functions are better
+// Playback intent reducer.
+//
+// Under the "video drives state" architecture this reducer stores *intent*
+// (desired speed, desired seek target) and *status* (buffering), never a
+// virtual clock. The <video> element reports its live position back via
+// ACTION_VIDEO_TIME, and currentOffset() reads the element directly for
+// smoothness. `startTime` is kept only as a monotonically-updated seek token
+// so consumers can detect a user-initiated jump (e.g. the map re-centering).
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
+import { currentOffset, wrapLoop } from '.';
 
 export function reducer(_state, action) {
   let state = { ..._state };
-  let loopOffset = null;
-  if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime;
-  }
+
   switch (action.type) {
     case Types.ACTION_SEEK:
+      // user (or code) requested a jump. Store the target and bump the seek
+      // token so the video seeks there and map/consumers re-center.
       state = {
         ...state,
-        offset: action.offset,
+        offset: wrapLoop(action.offset, state.loop),
         startTime: Date.now(),
       };
-
-      if (loopOffset !== null) {
-        if (state.offset < loopOffset) {
-          state.offset = loopOffset;
-        } else if (state.offset > (loopOffset + state.loop.duration)) {
-          state.offset = loopOffset + state.loop.duration;
-        }
-      }
+      break;
+    case Types.ACTION_VIDEO_TIME:
+      // the video reporting its authoritative position. No token bump: this is
+      // not a user seek, just the clock advancing.
+      state = {
+        ...state,
+        offset: wrapLoop(action.offset, state.loop),
+      };
       break;
     case Types.ACTION_PAUSE:
       state = {
         ...state,
         offset: currentOffset(state),
-        startTime: Date.now(),
         desiredPlaySpeed: 0,
       };
       break;
@@ -39,7 +43,6 @@ export function reducer(_state, action) {
           ...state,
           offset: currentOffset(state),
           desiredPlaySpeed: action.speed,
-          startTime: Date.now(),
         };
       }
       break;
@@ -58,7 +61,6 @@ export function reducer(_state, action) {
         ...state,
         isBufferingVideo: action.buffering,
         offset: currentOffset(state),
-        startTime: Date.now(),
       };
       break;
     case Types.ACTION_RESET:
@@ -74,6 +76,9 @@ export function reducer(_state, action) {
       break;
   }
 
+  // keep a loop that starts at the very beginning aligned with the first
+  // available video frame (videoStartOffset), so playback can't sit on a
+  // segment that has no video.
   if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom
     && state.loop.startTime === state.zoom.start && state.zoom.start === 0) {
     const loopRouteOffset = state.loop.startTime - state.zoom.start;
@@ -85,19 +90,9 @@ export function reducer(_state, action) {
     }
   }
 
-  // normalize over loop
+  // keep the stored offset inside the loop bounds
   if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
+    state.offset = wrapLoop(state.offset, state.loop);
   }
 
   state.isBufferingVideo = Boolean(state.isBufferingVideo);
@@ -105,10 +100,18 @@ export function reducer(_state, action) {
   return state;
 }
 
-// seek to a specific offset
+// seek to a specific offset (user-initiated jump; bumps the seek token)
 export function seek(offset) {
   return {
     type: Types.ACTION_SEEK,
+    offset,
+  };
+}
+
+// report the authoritative position from the <video> element (no token bump)
+export function videoTime(offset) {
+  return {
+    type: Types.ACTION_VIDEO_TIME,
     offset,
   };
 }

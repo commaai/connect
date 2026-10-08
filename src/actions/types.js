@@ -29,6 +29,10 @@ export const ACTION_PLAY = 'ACTION_PLAY';
 export const ACTION_LOOP = 'ACTION_LOOP';
 export const ACTION_BUFFER_VIDEO = 'ACTION_BUFFER_VIDEO';
 export const ACTION_RESET = 'ACTION_RESET';
+// reports the authoritative playback position from the <video> element.
+// Unlike ACTION_SEEK it does NOT bump the seek token, so consumers that key
+// off a user-initiated seek (e.g. the map "fly to") are not retriggered.
+export const ACTION_VIDEO_TIME = 'ACTION_VIDEO_TIME';
 
 // segments
 export const ACTION_ROUTES_METADATA = 'ACTION_ROUTES_METADATA';

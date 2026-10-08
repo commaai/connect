@@ -1,14 +1,13 @@
-import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek, selectLoop, videoTime } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
     desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
     offset: 0, // in miliseconds from the start
-    startTime: Date.now(), // millisecond timestamp in which play began
+    startTime: Date.now(), // seek token: bumped on user-initiated jumps
 
-    isBuffering: true,
+    isBufferingVideo: false,
   };
 };
 
@@ -24,44 +23,35 @@ function newNow() {
 }
 
 describe('playback', () => {
-  it('has playback controls', async () => {
+  it('has playback controls', () => {
     newNow();
     let state = makeDefaultStruct();
 
-    // should do nothing
+    // pause sets desiredPlaySpeed to 0
     state = reducer(state, pause());
     expect(state.desiredPlaySpeed).toEqual(0);
 
-    // start playing, should set start time and such
-    let playTime = newNow();
+    // play re-anchors from the current position and sets the speed
     state = reducer(state, play());
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
     expect(state.desiredPlaySpeed).toEqual(1);
 
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset
-    let ellapsed = newNow() - playTime;
-    state = reducer(state, pause());
+    // the clock does NOT advance on its own from wall-clock time
+    // (the video drives state, not a virtual timer)
+    expect(currentOffset(state)).toEqual(0);
 
-    expect(state.offset).toEqual(ellapsed);
-
-    // start playing, should set start time and such
-    playTime = newNow();
+    // changing speed does not change position
     state = reducer(state, play(0.5));
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
     expect(state.desiredPlaySpeed).toEqual(0.5);
+    expect(currentOffset(state)).toEqual(0);
 
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset, playback speed 1/2
-    ellapsed += (newNow() - playTime) / 2;
-    expect(currentOffset(state)).toEqual(ellapsed);
-    state = reducer(state, pause());
+    // video reports progress -> offset follows the element, no token bump
+    const tokenBefore = state.startTime;
+    state = reducer(state, videoTime(1234));
+    expect(state.offset).toEqual(1234);
+    expect(state.startTime).toEqual(tokenBefore);
+    expect(currentOffset(state)).toEqual(1234);
 
-    expect(state.offset).toEqual(ellapsed);
-
-    // seek!
+    // seek! sets the target and bumps the seek token
     newNow();
     state = reducer(state, seek(123));
     expect(state.offset).toEqual(123);
@@ -129,5 +119,23 @@ describe('playback', () => {
     expect(state.isBufferingVideo).toEqual(false);
 
     expect(state.desiredPlaySpeed).toEqual(2);
+  });
+
+  it('clamps the video-reported position into the loop without bumping the seek token', () => {
+    newNow();
+    let state = makeDefaultStruct();
+
+    state = reducer(state, selectLoop(1000, 2000));
+    const token = state.startTime;
+
+    // inside the loop: passes through untouched
+    state = reducer(state, videoTime(1500));
+    expect(state.offset).toEqual(1500);
+    expect(state.startTime).toEqual(token);
+
+    // past the loop end: clamped to the end, token still unchanged
+    state = reducer(state, videoTime(5000));
+    expect(state.offset).toEqual(2000);
+    expect(state.startTime).toEqual(token);
   });
 });
