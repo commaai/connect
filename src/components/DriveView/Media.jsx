@@ -543,8 +543,8 @@ class Media extends Component {
             <DriveVideo
               isMuted={isMuted}
             />
-            {!showMapAlways && (
-              <div className={`absolute inset-0 h-full z-[60] overflow-hidden ${inView === MediaType.MAP ? '' : 'invisible'}`}>
+            {(inView === MediaType.MAP && !showMapAlways) && (
+              <div className="absolute inset-0 h-full z-[60] overflow-hidden">
                 <DriveMap />
               </div>
             )}
