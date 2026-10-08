@@ -4,25 +4,25 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseLocation, PAGES } from './url';
 import { deviceIsOnline } from './utils';
 
+// Report page views with device and range identifiers swapped for placeholders
+// so analytics gets one page per kind of view instead of one per car/selection.
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+  const location = parseLocation(pathname);
+  const parts = pathname.split('/').filter(Boolean);
+  if (location.dongleId) {
+    parts[0] = '<dongleId>';
   }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  if (location.page === PAGES.DRIVE && location.zoom) {
+    parts[2] = '<zoomStart>';
+    parts[3] = '<zoomEnd>';
+  } else if (location.legacyRange) {
+    parts[1] = '<zoomStart>';
+    parts[2] = '<zoomEnd>';
   }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
+  return parts.length ? `/${parts.join('/')}` : '';
 }
 
 const clusterMap = {

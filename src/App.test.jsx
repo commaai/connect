@@ -235,6 +235,7 @@ describe('whole-app behavior', () => {
 
   test.each([
     ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`],
+    ['settings', `/${FIRST}/settings`],
   ])('signed-out %s entry retains its path', async (_name, pathname) => {
     const { history } = await renderApp(pathname, { authenticated: false });
     expect(await screen.findByText('Sign in with Google')).toBeVisible();
@@ -276,6 +277,32 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+  });
+
+  test('settings URL opens the settings modal and closing returns to the dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/settings`);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument();
+  });
+
+  test('device settings gear navigates to the settings URL of that device', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+
+    // the sidebar drawer is collapsed at this width; open it first
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    const gear = (await screen.findAllByRole('button', { name: 'device settings' }))[0];
+    fireEvent.click(gear);
+
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
   });
 
   test('device browser history restores exact dashboards', async () => {

@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
 import { pushTimelineRange } from '../../actions';
+import { buildPath, PAGES } from '../../url';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
@@ -119,7 +120,7 @@ const DriveListItem = (props) => {
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
+      href={buildPath({ page: PAGES.DRIVE, dongleId: drive.dongle_id, logId: drive.log_id })}
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>

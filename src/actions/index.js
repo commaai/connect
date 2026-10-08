@@ -4,6 +4,7 @@ import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
 
 import * as Types from './types';
+import { buildPath, PAGES } from '../url';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
@@ -142,20 +143,16 @@ export function checkLastRoutesData() {
   };
 }
 
+// Path for a timeline selection: the timeline's state -> URL mapping.
+// start/end are seconds, as stored in the URL; null means "no range" (a
+// whole-route selection is expressed as the bare drive path).
 export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
+  return buildPath({
+    page: log_id ? PAGES.DRIVE : (prime ? PAGES.PRIME : PAGES.DASHBOARD),
+    dongleId,
+    logId: log_id,
+    zoom: start != null && end != null ? { start: start * 1000, end: end * 1000 } : null,
+  });
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
@@ -300,7 +297,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     }
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
+      const desiredPath = buildPath({ page: PAGES.DASHBOARD, dongleId });
       if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -323,9 +320,8 @@ export function primeNav(nav, allowPathChange = true) {
     }
 
     if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
+      const desiredPath = buildPath({ page: nav ? PAGES.PRIME : PAGES.DASHBOARD, dongleId: state.dongleId });
+      if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
     }
@@ -347,9 +343,54 @@ export function streamNav(nav, allowPathChange = true) {
     }
 
     if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
+      const desiredPath = buildPath({ page: nav ? PAGES.STREAM : PAGES.DASHBOARD, dongleId: state.dongleId });
+      if (currentPathname(state) !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
+    }
+  };
+}
+
+export function settingsNav(nav, allowPathChange = true) {
+  return (dispatch, getState) => {
+    const state = getState();
+    if (!state.dongleId) {
+      return;
+    }
+
+    if (state.settingsNav !== nav) {
+      dispatch({
+        type: Types.ACTION_SETTINGS_NAV,
+        settingsNav: nav,
+      });
+    }
+
+    if (allowPathChange) {
+      const desiredPath = buildPath({ page: nav ? PAGES.SETTINGS : PAGES.DASHBOARD, dongleId: state.dongleId });
+      if (currentPathname(state) !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
+    }
+  };
+}
+
+// Unlike the pages above, referrals has no device context and works signed out.
+export function referralsNav(nav, allowPathChange = true) {
+  return (dispatch, getState) => {
+    const state = getState();
+
+    if (state.referralsNav !== nav) {
+      dispatch({
+        type: Types.ACTION_REFERRALS_NAV,
+        referralsNav: nav,
+      });
+    }
+
+    if (allowPathChange) {
+      const desiredPath = nav
+        ? buildPath({ page: PAGES.REFERRALS })
+        : buildPath({ page: PAGES.DASHBOARD, dongleId: state.dongleId });
+      if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
     }

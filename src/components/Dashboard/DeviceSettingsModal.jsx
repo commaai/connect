@@ -14,7 +14,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { primeNav, settingsNav, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -132,6 +132,7 @@ class DeviceSettingsModal extends Component {
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
+    this.closeSettings = this.closeSettings.bind(this);
     this.handleAliasChange = this.handleAliasChange.bind(this);
     this.handleEmailChange = this.handleEmailChange.bind(this);
     this.callOnEnter = this.callOnEnter.bind(this);
@@ -225,11 +226,13 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
+    // navigating to the prime page swaps this modal out; history middleware
+    // closes it because the new path no longer says /settings
     this.props.dispatch(primeNav(true));
-    this.props.onClose();
+  }
+
+  closeSettings() {
+    this.props.dispatch(settingsNav(false));
   }
 
   async unpairDevice() {
@@ -271,7 +274,7 @@ class DeviceSettingsModal extends Component {
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
           open={this.props.isOpen}
-          onClose={this.props.onClose}
+          onClose={this.closeSettings}
         >
           <Paper className={classes.modal}>
             <div className={ classes.titleContainer }>
@@ -353,7 +356,7 @@ class DeviceSettingsModal extends Component {
               </div>
             </div>
             <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+              <Button variant="contained" className={ classes.cancelButton } onClick={this.closeSettings}>
                 Close
               </Button>
             </div>
@@ -435,13 +438,17 @@ class DeviceSettingsModal extends Component {
   }
 }
 
-const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
-    || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
+const stateToProps = (state) => {
+  const dongleId = state.dongleId;
+  // the settings URL always names the selected device, so the modal follows
+  // state.dongleId and needs no props of its own
+  const device = (state.devices || []).find((d) => d.dongle_id === dongleId)
+    || (state.device && state.device.dongle_id === dongleId ? state.device : null);
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
+    dongleId,
+    isOpen: state.settingsNav,
   };
 };
 

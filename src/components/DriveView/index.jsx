@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { IconButton, Typography } from '@material-ui/core';
 
 import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { buildPath, PAGES } from '../../url';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -78,7 +79,7 @@ class DriveView extends Component {
               <IconButton
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={ buildPath({ page: PAGES.DASHBOARD, dongleId }) }
               >
                 <CloseBold />
               </IconButton>

@@ -1,9 +1,12 @@
-import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { parseLocation, PAGES } from './url';
 import { getDefaultFilter } from './utils/filter';
 
+// The URL -> state mapping starts here: the very first state is whatever the
+// entry URL describes. From then on onHistoryMiddleware keeps it in sync.
 export function createInitialState(pathname = window.location.pathname) {
+  const location = parseLocation(pathname);
   return {
-    dongleId: getDongleID(pathname),
+    dongleId: location.dongleId,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
@@ -22,8 +25,10 @@ export function createInitialState(pathname = window.location.pathname) {
     profile: null,
     devices: null,
 
-    primeNav: getPrimeNav(pathname),
-    streamNav: getStreamNav(pathname),
+    primeNav: location.page === PAGES.PRIME,
+    streamNav: location.page === PAGES.STREAM,
+    settingsNav: location.page === PAGES.SETTINGS,
+    referralsNav: location.page === PAGES.REFERRALS,
     subscription: null,
     subscribeInfo: null,
 
@@ -35,9 +40,9 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: getRouteZoom(pathname),
+    zoom: location.zoom,
     loop: null,
-    selectedRouteId: getRouteId(pathname),
+    selectedRouteId: location.logId,
     limit: 0,
   };
 }

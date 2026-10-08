@@ -58,8 +58,11 @@ export default function reducer(_state, action) {
         ...state,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
+        // device-scoped pages close when the device changes; referrals is
+        // global and stays wherever the URL says it is
         primeNav: false,
         streamNav: false,
+        settingsNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
@@ -313,6 +316,18 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         streamNav: action.streamNav,
+      };
+      break;
+    case Types.ACTION_SETTINGS_NAV:
+      state = {
+        ...state,
+        settingsNav: action.settingsNav,
+      };
+      break;
+    case Types.ACTION_REFERRALS_NAV:
+      state = {
+        ...state,
+        referralsNav: action.referralsNav,
       };
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:

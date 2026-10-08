@@ -18,6 +18,7 @@ vi.mock('../api', () => ({
 vi.mock('./index', () => ({
   selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
   checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
+  settingsNav: vi.fn(), referralsNav: vi.fn(),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
@@ -40,7 +41,7 @@ function location(pathname, action = 'POP') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
+  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav', 'settingsNav', 'referralsNav']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
@@ -58,6 +59,14 @@ describe('history middleware', () => {
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
     expect(actions.selectDevice).not.toHaveBeenCalled();
+  });
+
+  it('selects a device for a plain PUSH, not just pop/replace', () => {
+    const { store, invoke } = create(baseState);
+    invoke(location(`/${OTHER}`, 'PUSH'));
+    expect(actions.selectDevice).toHaveBeenCalledWith(OTHER, false, false);
+    expect(actions.checkRoutesData).toHaveBeenCalledOnce();
+    expect(store.dispatch).toHaveBeenCalledWith({ action: 'selectDevice', args: [OTHER, false, false] });
   });
 
   it.each(['POP', 'REPLACE'])('selects a changed device for %s and refreshes routes', (historyAction) => {
@@ -88,11 +97,43 @@ describe('history middleware', () => {
     expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
   });
 
+  it('reuses a matching selection, down to the millisecond', () => {
+    const { invoke } = create({
+      ...baseState,
+      selectedRouteId: LOG,
+      zoom: { start: 10432, end: 20999 }, // finer precision than the URL stores
+    });
+    invoke(location(`/${DONGLE}/${LOG}/10/20`));
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+  });
+
+  it('reuses a whole-route selection for a drive URL without a range', () => {
+    const { invoke } = create({
+      ...baseState,
+      selectedRouteId: LOG,
+      currentRoute: { log_id: LOG, duration: 60000 },
+      zoom: { start: 0, end: 60000 },
+    });
+    invoke(location(`/${DONGLE}/${LOG}`));
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+  });
+
+  it('widens a partial selection when the URL drops the range', () => {
+    const { invoke } = create({
+      ...baseState,
+      selectedRouteId: LOG,
+      currentRoute: { log_id: LOG, duration: 60000 },
+      zoom: { start: 0, end: 5000 },
+    });
+    invoke(location(`/${DONGLE}/${LOG}`));
+    expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, false);
+  });
+
   it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
     const { invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
+    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, true));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
@@ -118,14 +159,27 @@ describe('history middleware', () => {
   it.each([
     ['Prime', 'prime', 'primeNav'],
     ['stream', 'stream', 'streamNav'],
+    ['settings', 'settings', 'settingsNav'],
   ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
     const entering = create();
     entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(true, false);
 
     vi.clearAllMocks();
     const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
     leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(false, false);
+  });
+
+  it('activates and deactivates referrals through history', () => {
+    const entering = create();
+    entering.invoke(location('/referrals', 'REPLACE'));
+    expect(actions.referralsNav).toHaveBeenCalledWith(true, false);
+    expect(actions.selectDevice).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    const leaving = create({ ...baseState, referralsNav: true });
+    leaving.invoke(location(`/${DONGLE}`, 'POP'));
+    expect(actions.referralsNav).toHaveBeenCalledWith(false, false);
   });
 });
