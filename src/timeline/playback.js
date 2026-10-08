@@ -77,7 +77,7 @@ export function reducer(_state, action) {
   if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom
     && state.loop.startTime === state.zoom.start && state.zoom.start === 0) {
     const loopRouteOffset = state.loop.startTime - state.zoom.start;
-    if (state.currentRoute.videoStartOffset > loopRouteOffset) {
+    if (state.currentRoute.videoStartOffset > loopRouteOffset && state.currentRoute.videoStartOffset < state.zoom.end) {
       state.loop = {
         startTime: state.zoom.start + state.currentRoute.videoStartOffset,
         duration: state.loop.duration - (state.currentRoute.videoStartOffset - loopRouteOffset),
@@ -86,7 +86,7 @@ export function reducer(_state, action) {
   }
 
   // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
+  if (state.offset !== null && state.loop?.startTime != null && state.loop.duration > 0) {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
     const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
     loopOffset = state.loop.startTime;

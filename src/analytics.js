@@ -4,19 +4,18 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseLocation } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  const { dongleId, routeId, range, legacyRange } = parseLocation({ pathname });
+  if (dongleId) pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+  if (routeId) pageLocation = pageLocation.replace(routeId, '<routeId>');
+  if (range || legacyRange) {
+    const scale = range ? 1000 : 1;
+    const bounds = range || legacyRange;
+    pageLocation = pageLocation.replace(`/${bounds.start / scale}/${bounds.end / scale}`, '/<zoomStart>/<zoomEnd>');
   }
 
   if (pageLocation.endsWith('/')) {
@@ -104,9 +103,7 @@ function logAction(action, prevState, state) {
       gtag('event', 'page_view', {
         page_location: getPageViewEventLocation(action.payload.location.pathname),
       });
-      return;
 
-    case Types.TIMELINE_PUSH_SELECTION:
       if (!prevState.zoom && state.zoom) {
         params = {
           ...params,
@@ -116,6 +113,30 @@ function logAction(action, prevState, state) {
         attachRelTime(params, 'start', true, 'h');
         attachRelTime(params, 'end', true, 'h');
         gtag('event', 'select_zoom', params);
+      }
+      if (prevState.dongleId !== state.dongleId) {
+        gtag('event', 'select_device', {
+          ...params,
+          device_prime_type: state.device?.prime_type,
+          device_type: state.device?.device_type,
+          device_version: state.device?.openpilot_version,
+          device_owner: state.device?.is_owner,
+          device_online: state.device ? deviceIsOnline(state.device) : undefined,
+          device_sim_type: state.device?.sim_type,
+          device_trial_claimed: state.device?.trial_claimed,
+        });
+
+        gtag('set', {
+          user_properties: {
+            device_prime_type: state.device?.prime_type,
+            device_type: state.device?.device_type,
+            device_version: state.device?.openpilot_version,
+            device_owner: state.device?.is_owner,
+            device_online: state.device ? deviceIsOnline(state.device) : undefined,
+            device_sim_type: state.device?.sim_type,
+            device_trial_claimed: state.device?.trial_claimed,
+          },
+        });
       }
       return;
 
@@ -139,31 +160,6 @@ function logAction(action, prevState, state) {
       gtag('event', 'page_view', {
         ...params,
         page_location: getPageViewEventLocation(window.location.pathname),
-      });
-      return;
-
-    case Types.ACTION_SELECT_DEVICE:
-      gtag('event', 'select_device', {
-        ...params,
-        device_prime_type: state.device?.prime_type,
-        device_type: state.device?.device_type,
-        device_version: state.device?.openpilot_version,
-        device_owner: state.device?.is_owner,
-        device_online: state.device ? deviceIsOnline(state.device) : undefined,
-        device_sim_type: state.device?.sim_type,
-        device_trial_claimed: state.device?.trial_claimed,
-      });
-
-      gtag('set', {
-        user_properties: {
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
-        },
       });
       return;
 

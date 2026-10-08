@@ -7,6 +7,7 @@ import DriveListItem from './DriveListItem';
 
 const defaultState = {
   start: Date.now(),
+  routeCache: {},
 };
 
 vi.mock('../Timeline', () => ({ default: () => null }));

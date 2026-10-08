@@ -1,61 +1,50 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { driveUrl } from '../url';
+import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice } from './index';
 import { api } from '../api/backend';
+import { webrtcConnectionManager } from '../utils/webrtc';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
+export function loadDevice() {
+  return (dispatch, getState) => {
+    const { dongleId, device, profile } = getState();
+    if (!dongleId) return;
+    window.localStorage.setItem('selectedDongleId', dongleId);
+    if (device && (device.is_owner || profile?.superuser)) {
+      dispatch(primeFetchSubscription(dongleId, device, profile));
+      dispatch(fetchDeviceOnline(dongleId));
+    } else {
+      dispatch(fetchSharedDevice(dongleId));
+    }
+  };
+}
+
+// Navigation has already been reduced when effects run. Effects never select routes in Redux.
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
+  const previous = getState();
+  const result = next(action);
+  if (action.type !== LOCATION_CHANGE) return result;
+
+  const state = getState();
+  const { navigation, dongleId } = state;
+  if (previous.dongleId !== dongleId) {
+    if (previous.dongleId) webrtcConnectionManager.disconnect();
+    dispatch(loadDevice());
+  }
+  if (previous.dongleId !== dongleId || previous.navigation.routeId !== navigation.routeId) {
+    dispatch(state.limit === 0 ? checkLastRoutesData() : checkRoutesData());
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  if (navigation.legacyRange) {
+    const location = state.router.location;
+    const { start, end } = navigation.legacyRange;
+    api.routes.getRoutesSegments(dongleId, start, end).then((routes) => {
+      // Never let a slow legacy lookup redirect a later navigation.
+      if (getState().router.location !== location || !routes?.length) return;
+      dispatch(replace({
+        ...location,
+        pathname: driveUrl(dongleId, routes[0].fullname.split('|')[1]),
+      }));
+    }).catch((err) => console.error('Error fetching routes data for log ID conversion', err));
   }
+  return result;
 };

@@ -4,6 +4,7 @@ import thunk from 'redux-thunk';
 import { createBrowserHistory } from 'history';
 
 import rootReducer from './reducers';
+import { createInitialState } from './initialState';
 import composeEnhancers from './devtools';
 import { onHistoryMiddleware } from './actions/history';
 import { analyticsMiddleware } from './analytics';
@@ -13,7 +14,7 @@ export const history = createBrowserHistory();
 export function createAppStore(appHistory, preloadedState) {
   return Redux.createStore(
     connectRouter(appHistory)(rootReducer),
-    preloadedState,
+    preloadedState || createInitialState(appHistory.location),
     composeEnhancers(Redux.applyMiddleware(
       thunk,
       onHistoryMiddleware,

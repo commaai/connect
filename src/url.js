@@ -1,66 +1,88 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+import { DEMO_DONGLE_ID } from './api/demo';
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const dongleIdRegex = /^[a-f0-9]{16}$/;
+const logIdRegex = /^[a-f0-9-]{20}$/;
+const isDeviceId = (value) => dongleIdRegex.test(value) || value === DEMO_DONGLE_ID;
+const decimalRegex = /^\d+(?:\.\d+)?$/;
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
-  }
+/** @typedef {{start: number, end: number}} Range Milliseconds, relative to a drive. */
+/**
+ * @typedef {Object} Navigation
+ * @property {'dashboard'|'drive'|'prime'|'stream'|'referrals'|'demo'|'auth'|'legacy'} page
+ * @property {string|null} dongleId Device in the path; account pages retain the selected device.
+ * @property {string|null} routeId
+ * @property {Range|null} range
+ * @property {Range|null} legacyRange Absolute timestamps in old shared links.
+ * @property {{name: 'settings'|'uploads'|'pair'|'filter'|'clips', dongleId: string|null, clip?: string|null}|null} modal
+ * @property {string|null} stripeSuccess
+ * @property {string|null} stripeCancelled
+ */
 
-  return parts[0] || null;
+function parseRange(start, end, scale = 1) {
+  if (!decimalRegex.test(start) || !decimalRegex.test(end)) return null;
+  const range = { start: Math.round(Number(start) * scale), end: Math.round(Number(end) * scale) };
+  return Number.isSafeInteger(range.start) && Number.isSafeInteger(range.end)
+    && range.start >= 0 && range.end > range.start ? range : null;
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+/**
+ * The only URL parser. Invalid paths fall back to a dashboard; invalid ranges to the whole drive.
+ * @returns {Navigation}
+ */
+export function parseLocation({ pathname = '/', search = '' } = {}) {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const dongleId = isDeviceId(parts[0]) ? parts[0] : null;
+  const params = new URLSearchParams(search);
+  const navigation = {
+    page: 'dashboard', dongleId, routeId: null, range: null, legacyRange: null, modal: null,
+    stripeSuccess: params.get('stripe_success'), stripeCancelled: params.get('stripe_cancelled'),
+  };
+
+  if (dongleId) {
+    if (parts.length === 2 && ['prime', 'stream'].includes(parts[1])) {
+      navigation.page = parts[1];
+    } else if (logIdRegex.test(parts[1]) && [2, 3, 4].includes(parts.length)) {
+      navigation.page = 'drive';
+      navigation.routeId = parts[1];
+      navigation.range = parseRange(parts[2], parts[3], 1000);
+    } else if (parts.length === 3) {
+      navigation.legacyRange = parseRange(parts[1], parts[2]);
+      if (navigation.legacyRange) navigation.page = 'legacy';
+    }
+  } else if (parts.length === 1 && ['referrals', 'demo', 'auth'].includes(parts[0])) {
+    navigation.page = parts[0];
   }
-  return null;
+
+  const modal = params.get('modal');
+  const modalDevice = params.has('device') ? params.get('device') : dongleId;
+  if (['settings', 'uploads', 'clips'].includes(modal) && isDeviceId(modalDevice)) {
+    navigation.modal = { name: modal, dongleId: modalDevice };
+    if (modal === 'clips') navigation.modal.clip = params.get('clip') || null;
+  } else if (modal === 'pair' || (modal === 'filter' && navigation.page === 'dashboard' && dongleId)) {
+    navigation.modal = { name: modal, dongleId: null };
+  }
+  return navigation;
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
-  }
-  return false;
+/** Serialize navigation using seconds in drive URLs, milliseconds everywhere inside the app. */
+export function deviceUrl(dongleId) {
+  return dongleId ? `/${dongleId}` : '/';
 }
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+export function driveUrl(dongleId, routeId, range = null) {
+  if (!routeId) return deviceUrl(dongleId);
+  const path = `${deviceUrl(dongleId)}/${routeId}`;
+  return range ? `${path}/${range.start / 1000}/${range.end / 1000}` : path;
+}
 
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
+export function modalLocation(location, name, dongleId = null, clip = null) {
+  const params = new URLSearchParams(location.search);
+  params.delete('modal');
+  params.delete('device');
+  params.delete('clip');
+  if (name) params.set('modal', name);
+  if (name && dongleId) params.set('device', dongleId);
+  if (name === 'clips' && clip) params.set('clip', clip);
+  const search = params.toString();
+  return { pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash };
 }

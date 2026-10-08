@@ -130,4 +130,22 @@ describe('playback', () => {
 
     expect(state.desiredPlaySpeed).toEqual(2);
   });
+
+  it('loops ranges starting at zero in both the reducer and offset selector', () => {
+    const state = {
+      ...makeDefaultStruct(), offset: 25000, isBufferingVideo: true,
+      loop: { startTime: 0, duration: 20000 },
+    };
+    expect(currentOffset(state)).toBe(5000);
+    expect(reducer(state, { type: 'LOCATION_CHANGE' }).offset).toBe(5000);
+  });
+
+  it('does not move a short zero-start range past its end to reach the first video frame', () => {
+    const state = {
+      ...makeDefaultStruct(), currentRoute: { videoStartOffset: 40000 },
+      zoom: { start: 0, end: 20000 }, loop: { startTime: 0, duration: 20000 },
+    };
+    expect(reducer(state, { type: 'LOCATION_CHANGE' }).loop).toEqual(state.loop);
+  });
+
 });

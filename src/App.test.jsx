@@ -5,8 +5,11 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { openModal } from './actions/navigation';
+import { pause, seek } from './timeline/playback';
+import { clipDevice } from './api/clips';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], videoMounts: 0, hardNavigate: vi.fn() }));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -39,8 +42,17 @@ vi.mock('react-map-gl', () => ({
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
 }));
+vi.mock('./api/clips', () => ({
+  deviceSupportsClips: vi.fn(async () => true),
+  clipDevice: {
+    getClipState: vi.fn(async () => ({ clips: [{ filename: 'drive.mp4', status: 'ready', camera: 'fcamera.hevc', source_start_time: 0, source_end_time: 10, requested_at: 1 }], cameras: {} })),
+    hasClipBlob: vi.fn(async () => true),
+    getClipUrl: vi.fn(async () => 'blob:drive-preview'),
+  },
+}));
 vi.mock('react-player/file', () => ({
   default: React.forwardRef((_props, ref) => {
+    React.useEffect(() => { mocks.videoMounts += 1; }, []);
     React.useImperativeHandle(ref, () => ({
       getCurrentTime: () => 0,
       getDuration: () => 60,
@@ -107,6 +119,7 @@ async function mockFetch(input, init = {}) {
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
+    if (options.emptyList) return json([]);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
   }
@@ -114,12 +127,15 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/stats')) return json(null);
   if (/^\/v1\.1\/devices\/[a-f0-9]{16}\/$/.test(url.pathname)) {
     const dongleId = url.pathname.split('/')[3];
-    return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
+    return json(deviceList.find((device) => device.dongle_id === dongleId) || { alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const method = JSON.parse(init.body || '{}').method;
+    return json({ jsonrpc: '2.0', id: 0, result: method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -127,11 +143,14 @@ async function renderApp(pathname, options = {}) {
   mocks.authenticated = options.authenticated !== false;
   mocks.options = options;
   mocks.requests = [];
+  mocks.videoMounts = 0;
+  Object.defineProperty(window, 'innerWidth', { configurable: true, value: options.width || 1024 });
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
-  const view = render(<App history={history} store={store} />);
+  const store = createAppStore(history, createInitialState(history.location));
+  let view;
+  await act(async () => { view = render(<App history={history} store={store} />); });
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
     { timeout: 5000 },
@@ -149,6 +168,7 @@ describe('whole-app behavior', () => {
   beforeAll(() => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
+    URL.revokeObjectURL = vi.fn();
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
@@ -227,7 +247,7 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
     const ranged = pathname.endsWith('/10/20');
     expect(store.getState()).toMatchObject({
-      selectedRouteId: LOG,
+      navigation: { routeId: LOG },
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
@@ -242,9 +262,9 @@ describe('whole-app behavior', () => {
   });
 
   test('a missing public route redirects to login with the requested route', async () => {
-    const pathname = `/${FIRST}/2026-08-06--99-99-99`;
+    const pathname = `/${FIRST}/2026-08-06--99-99-99?keep=value#anchor`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${encodeURIComponent(pathname)}`));
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {
@@ -264,7 +284,7 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
-    act(() => history.goBack());
+    await act(async () => history.goBack());
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
   });
 
@@ -274,18 +294,18 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Close teleop' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
-    act(() => history.goBack());
+    await act(async () => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
   test('device browser history restores exact dashboards', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    act(() => history.push(`/${SECOND}`));
+    await act(async () => history.push(`/${SECOND}`));
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
-    act(() => history.goBack());
+    await act(async () => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
-    act(() => history.goForward());
+    await act(async () => history.goForward());
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
   });
 
@@ -298,9 +318,188 @@ describe('whole-app behavior', () => {
     fireEvent.pointerMove(document, { clientX: 700, pageX: 700 });
     fireEvent.pointerUp(document, { button: 0, clientX: 700, pageX: 700 });
     await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
-    act(() => history.goBack());
+    await act(async () => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
-    fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+    await act(async () => fireEvent.click(within(document.body).getByRole('button', { name: 'Close' })));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test.each([
+    ['settings', 'Device settings'], ['uploads', 'Upload queue'], ['pair', 'Pair device'],
+    ['filter', 'Start date:'], ['clips', 'CLIPS ON THIS DEVICE'],
+  ])('%s modal opens on a cold link and after a fresh mount', async (modal, text) => {
+    const pathname = `/${FIRST}?modal=${modal}`;
+    const first = await renderApp(pathname, { width: 375 });
+    expect(await screen.findByText(text)).toBeVisible();
+    first.unmount();
+    const refreshed = await renderApp(pathname, { width: 375 });
+    expect(await screen.findByText(text)).toBeVisible();
+    expect(refreshed.history.location.search).toBe(`?modal=${modal}`);
+  });
+
+  test('settings close from a cold link preserves the underlying drive and independent arguments', async () => {
+    const path = `/${FIRST}/${LOG}/0/20?keep=value&modal=settings&device=${SECOND}#anchor`;
+    const { store, history } = await renderApp(path);
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Alpha');
+    const player = await screen.findByTestId('video-player');
+    const route = store.getState().currentRoute;
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe('?keep=value'));
+    expect(history.location.hash).toBe('#anchor');
+    expect(store.getState().zoom).toEqual({ start: 0, end: 20000 });
+    expect(store.getState().currentRoute).toBe(route);
+    expect(screen.getByTestId('video-player')).toBe(player);
+  });
+
+  test('settings, nested uploads, back, and forward preserve drive data and local form state', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20`, { width: 1440 });
+    const player = await screen.findByTestId('video-player');
+    act(() => { store.dispatch(seek(15000)); store.dispatch(pause()); });
+    const before = store.getState();
+    const routeRequests = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    fireEvent.click(screen.getAllByRole('button', { name: 'device settings' })[0]);
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Alpha');
+    fireEvent.change(screen.getByLabelText('Device name'), { target: { value: 'Unsaved name' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Uploads' }));
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Unsaved name');
+    await act(async () => history.goBack());
+    await waitFor(() => expect(history.location.search).toBe(''));
+    await act(async () => history.goForward());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByTestId('video-player')).toBe(player);
+    expect(mocks.videoMounts).toBe(1);
+    expect(store.getState().currentRoute).toBe(before.currentRoute);
+    expect(store.getState().offset).toBe(before.offset);
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(routeRequests);
+  });
+
+  test('changing a range preserves the player while changing a drive replaces its local media state', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    const player = await screen.findByTestId('video-player');
+    await act(async () => history.push(`/${FIRST}/${LOG}/0/20`));
+    expect(store.getState().zoom).toEqual({ start: 0, end: 20000 });
+    expect(screen.getByTestId('video-player')).toBe(player);
+    await act(async () => history.push(`/${FIRST}/${RECENT_LOG}/0/20`));
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(RECENT_LOG));
+    expect(screen.getByTestId('video-player')).not.toBe(player);
+    expect(mocks.videoMounts).toBe(2);
+  });
+
+  test('a drive outside an empty dashboard list still renders its media', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`, { emptyList: true });
+    expect(store.getState().routes).toEqual([]);
+    await act(async () => history.push(`/${FIRST}/${LOG}`));
+    expect(await screen.findByTestId('video-player')).toBeVisible();
+    expect(store.getState().routes).toEqual([]);
+  });
+
+  test('query-only navigation updates modal target and Prime return arguments', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/prime`);
+    const routeList = store.getState().routes;
+    await act(async () => history.push(`/${FIRST}/prime?stripe_cancelled=1&modal=settings&device=${FIRST}`));
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Zulu');
+    await act(async () => history.replace(`/${FIRST}/prime?stripe_cancelled=1&modal=settings&device=${SECOND}`));
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Alpha');
+    expect(store.getState().navigation.stripeCancelled).toBe('1');
+    expect(store.getState().routes).toBe(routeList);
+  });
+
+  test('signed-out modal links retain their complete login return URL', async () => {
+    const pathname = `/${FIRST}/${LOG}?modal=settings&device=${FIRST}#anchor`;
+    const { history } = await renderApp(pathname, { authenticated: false });
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+    expect(sessionStorage.getItem('redirectURL')).toBe(pathname);
+    await act(async () => history.push(`/${FIRST}/prime?stripe_cancelled=1`));
+    await waitFor(() => expect(sessionStorage.getItem('redirectURL')).toBe(`/${FIRST}/prime?stripe_cancelled=1`));
+  });
+
+  test('pairing opens from the no-device page and closes through browser history', async () => {
+    const { history } = await renderApp('/', { devices: [] });
+    fireEvent.click(screen.getAllByRole('button', { name: 'add new device' })[0]);
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    expect(history.location.search).toBe('?modal=pair');
+    await act(async () => history.goBack());
+    await waitFor(() => expect(screen.queryByText('Pair device')).not.toBeInTheDocument());
+    await act(async () => history.goForward());
+    expect(await screen.findByText('Pair device')).toBeVisible();
+  });
+
+  test('a clip preview opens from its URL and Back restores the inventory', async () => {
+    const online = devices.map((device) => ({ ...device, last_athena_ping: Math.floor(Date.now() / 1000) }));
+    const { store, history } = await renderApp(`/${FIRST}/${LOG}?modal=clips`, { devices: online });
+    expect(await screen.findByText('CLIPS ON THIS DEVICE')).toBeVisible();
+    await act(async () => store.dispatch(openModal('clips', FIRST, 'drive.mp4')));
+    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
+    const previewUrl = history.location.pathname + history.location.search;
+    fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=clips'));
+    await act(async () => history.goForward());
+    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
+    expect(history.location.pathname + history.location.search).toBe(previewUrl);
+  });
+
+  test('a clip preview can refresh on another device without using the underlying drive', async () => {
+    const online = devices.map((device) => ({ ...device, last_athena_ping: Math.floor(Date.now() / 1000) }));
+    const path = `/${FIRST}/${LOG}?modal=clips&device=${SECOND}&clip=drive.mp4`;
+    clipDevice.getClipState.mockClear();
+    const first = await renderApp(path, { devices: online });
+    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
+    expect(clipDevice.getClipState).toHaveBeenCalledWith(SECOND, {});
+    first.unmount();
+    const refreshed = await renderApp(path, { devices: online });
+    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+    await waitFor(() => expect(refreshed.history.location.search).toBe(''));
+    expect(refreshed.store.getState().dongleId).toBe(FIRST);
+  });
+
+  test('an upload modal reloads when only its device argument changes', async () => {
+    const { history, store } = await renderApp(`/${FIRST}?modal=uploads`);
+    await waitFor(() => expect(store.getState().filesUploadingMeta.dongleId).toBe(FIRST));
+    await act(async () => history.replace(`/${FIRST}?modal=uploads&device=${SECOND}`));
+    await waitFor(() => expect(store.getState().filesUploadingMeta.dongleId).toBe(SECOND));
+    expect(store.getState().dongleId).toBe(FIRST);
+  });
+
+  test('a pending clip download cannot reopen a preview after its URL changes', async () => {
+    let resolvePreview;
+    clipDevice.getClipUrl.mockReturnValueOnce(new Promise((resolve) => { resolvePreview = resolve; }));
+    const online = devices.map((device) => ({ ...device, last_athena_ping: Math.floor(Date.now() / 1000) }));
+    const { history } = await renderApp(`/${FIRST}?modal=clips&clip=drive.mp4`, { devices: online });
+    await act(async () => history.replace(`/${FIRST}?modal=clips`));
+    await act(async () => resolvePreview('blob:outdated-preview'));
+    expect(screen.queryByRole('button', { name: 'Close video' })).not.toBeInTheDocument();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:outdated-preview');
+  });
+
+
+  test('closing pairing while camera permission is pending releases a late camera stream', async () => {
+    let resolveCamera;
+    const getUserMedia = vi.fn(() => new Promise((resolve) => { resolveCamera = resolve; }));
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: vi.fn(async () => [{ kind: 'videoinput' }]), getUserMedia,
+    } });
+    try {
+      const { history } = await renderApp(`/${FIRST}?modal=pair`);
+      await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
+      await act(async () => history.push(`/${FIRST}`));
+      const stop = vi.fn();
+      await act(async () => resolveCamera({ getTracks: () => [{ stop }] }));
+      expect(stop).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Pair device')).not.toBeInTheDocument();
+    } finally {
+      delete navigator.mediaDevices;
+    }
+  });
+
+  test('unknown device modal links show a closable fallback', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=settings&device=dddddddddddddddd`);
+    expect(await screen.findByText('Device unavailable')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+  });
+
 });

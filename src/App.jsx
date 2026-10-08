@@ -1,6 +1,6 @@
 import React, { Component, lazy, Suspense } from 'react';
-import { Provider } from 'react-redux';
-import { Route, Switch, Redirect } from 'react-router-dom';
+import { connect, Provider } from 'react-redux';
+import { Redirect } from 'react-router-dom';
 import { ConnectedRouter } from 'connected-react-router';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
+import { parseLocation } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -19,6 +19,13 @@ import FullPageLoading from './components/FullPageLoading';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
+
+const AppRoutes = connect((state) => ({ navigation: state.navigation }))(({ navigation, redirectTo }) => {
+  const authenticated = api.auth.isAuthenticated();
+  if (navigation.page === 'auth') return <Redirect to={authenticated ? redirectTo : '/'} />;
+  const publicDrive = ['drive', 'legacy'].includes(navigation.page) && !navigation.modal;
+  return authenticated || publicDrive ? <Explorer /> : <AnonymousLanding />;
+});
 
 class App extends Component {
   constructor(props) {
@@ -51,7 +58,8 @@ class App extends Component {
   async componentDidMount() {
     // Select the API backend once during startup: /demo gets the demo backend,
     // everything else the real backend.
-    initBackend();
+    const { history = defaultHistory } = this.props;
+    initBackend(history.location.pathname);
 
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
@@ -78,10 +86,9 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { pathname } = window.location;
-      const teleopDongleId = getDongleID(pathname);
-      if (teleopDongleId && getStreamNav(pathname)) {
-        webrtcConnectionManager.reconnect(teleopDongleId);
+      const navigation = parseLocation(history.location);
+      if (navigation.page === 'stream') {
+        webrtcConnectionManager.reconnect(navigation.dongleId);
       }
 
       fetchTurnCredentials().catch((err) => {
@@ -90,7 +97,10 @@ class App extends Component {
       });
     }
 
-    this.setState({ initialized: true });
+    this.setState({
+      initialized: true,
+      redirectTo: api.auth.isAuthenticated() && parseLocation(history.location).page === 'auth' ? this.redirectLink() : '/',
+    });
   }
 
   redirectLink() {
@@ -102,39 +112,15 @@ class App extends Component {
     return url;
   }
 
-  authRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to={this.redirectLink()} />
-        </Route>
-        <Route path="/" component={Explorer} />
-      </Switch>
-    );
-  }
-
-  anonymousRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to="/" />
-        </Route>
-        <Route path="/" component={AnonymousLanding} />
-      </Switch>
-    );
-  }
-
   render() {
     if (!this.state.initialized) {
       return <FullPageLoading />;
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
     let content = (
       <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+        <AppRoutes redirectTo={this.state.redirectTo} />
       </Suspense>
     );
 
