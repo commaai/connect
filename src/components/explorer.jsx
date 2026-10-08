@@ -201,7 +201,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, device, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
       routeModal, routeModalDeviceId, routeLocation,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
@@ -209,10 +209,12 @@ class ExplorerApp extends Component {
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
-    const canManageRouteDevice = Boolean(profile?.superuser
-      || devices?.some((device) => device.dongle_id === routeModalDeviceId && device.is_owner));
+    const modalDevice = devices?.find((candidate) => candidate.dongle_id === routeModalDeviceId)
+      || (device?.dongle_id === routeModalDeviceId ? device : null);
+    const canManageRouteDevice = Boolean(profile?.superuser || modalDevice?.is_owner);
+    const canViewUploadQueue = routeModal === 'upload-queue' && Boolean(modalDevice);
     const closeDeviceOverlay = () => dispatch(push(
-      ['upload-queue', 'unpair'].includes(routeModal)
+      routeModal === 'unpair'
         ? routeModalUrl(routeLocation, 'device-settings', routeModalDeviceId)
         : routeModalUrl(routeLocation, null),
     ));
@@ -287,7 +289,7 @@ class ExplorerApp extends Component {
           open
           onClose={() => dispatch(push(routeModalUrl(routeLocation, null)))}
         />}
-        {canManageRouteDevice && <DeviceSettingsModal
+        {(canManageRouteDevice || canViewUploadQueue) && <DeviceSettingsModal
           isOpen={routeModal === 'device-settings'}
           dongleId={routeModalDeviceId}
           routeModal={routeModal}
@@ -302,6 +304,7 @@ const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
+  device: state.device,
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
