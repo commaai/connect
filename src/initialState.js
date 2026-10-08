@@ -10,6 +10,7 @@ export function createInitialState(location = `${window.location.pathname}${wind
     isBufferingVideo: true, // if we're currently buffering for more data
     offset: null,           // in miliseconds, relative to state.zoom.start
     startTime: Date.now(),  // millisecond timestamp in which play began
+
     routes: null,
     routesMeta: {
       dongleId: null,
