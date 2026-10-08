@@ -115,6 +115,16 @@ describe('reconcile', () => {
     expect(actions).toEqual([{ type: 'checkRoutesData' }]);
   });
 
+  it.each([
+    ['drops settings for a device the user does not own', { id: 'me' }, [replace({ pathname: `/${DONGLE}`, search: '?ci=1', hash: '' })]],
+    ['keeps settings for a superuser', { id: 'me', superuser: true }, []],
+  ])('%s', (_name, profile, expected) => {
+    const location = { pathname: `/${DONGLE}`, search: `?ci=1&modal=settings&device=${OTHER}`, hash: '' };
+    const shared = [devices[0], { dongle_id: OTHER, is_owner: false }];
+    const { actions } = run(state(`/${DONGLE}`), state(`/${DONGLE}`, { router: { location }, devices: shared, profile }));
+    expect(actions.filter((action) => action.type !== 'checkRoutesData')).toEqual(expected);
+  });
+
   it('replaces a legacy timestamp link with its drive, keeping the query and hash', async () => {
     api.routes.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}` }]);
     const legacy = state(`/${DONGLE}/1000/2000`, { router: { location: { pathname: `/${DONGLE}/1000/2000`, search: '?ci=1', hash: '#top' } } });

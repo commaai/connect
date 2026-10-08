@@ -7,7 +7,7 @@ import {
 } from '@material-ui/core';
 
 import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } from '../../actions/files';
-import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
+import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast, getDeviceFromState } from '../../utils';
 import { HighlightOffIcon, WarningIcon } from '../../icons';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
@@ -134,12 +134,11 @@ class UploadQueue extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.update !== this.props.update) {
-      this.uploadQueue(this.props.update);
-    } else if (this.props.update && prevProps.device.dongle_id !== this.props.device.dongle_id) {
-      this.uploadQueue(true);
-    } else if (this.props.update && prevProps.filesUploading !== this.props.filesUploading) {
-      this.uploadQueue(Boolean(Object.keys(this.props.filesUploading).length));
+    const { device, filesUploading } = this.props;
+    if (prevProps.device?.dongle_id !== device?.dongle_id) {
+      this.uploadQueue(Boolean(device));
+    } else if (device && prevProps.filesUploading !== filesUploading) {
+      this.uploadQueue(Boolean(Object.keys(filesUploading).length));
     }
   }
 
@@ -177,6 +176,9 @@ class UploadQueue extends Component {
   render() {
     const { device, classes, filesUploading, filesUploadingMeta } = this.props;
     const { cancelQueue, windowWidth, windowHeight } = this.state;
+    if (!device) {
+      return null;
+    }
 
     const deviceOffline = !deviceIsOnline(device);
     const hasData = filesUploadingMeta.dongleId === device.dongle_id;
@@ -195,7 +197,7 @@ class UploadQueue extends Component {
 
     return (
       <>
-        <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
+        <Modal aria-labelledby="upload-queue-modal" open onClose={ this.props.onClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
               <Typography variant="title">Upload queue</Typography>
@@ -297,7 +299,8 @@ class UploadQueue extends Component {
   }
 }
 
-const stateToProps = (state) => ({
+const stateToProps = (state, ownProps) => ({
+  device: getDeviceFromState(state, ownProps.dongleId),
   filesUploading: state.filesUploading,
   filesUploadingMeta: state.filesUploadingMeta,
 });

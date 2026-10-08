@@ -92,7 +92,6 @@ export default function reducer(_state, action) {
           end: null,
         },
         routes: null,
-        currentRoute: null,
       };
       break;
     case Types.ACTION_UPDATE_ROUTE_LIMIT:
@@ -238,7 +237,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           last_athena_ping: action.last_athena_ping,
@@ -260,7 +259,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           network_metered: action.networkMetered,
@@ -285,7 +284,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           rpc: {

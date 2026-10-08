@@ -9,12 +9,16 @@ import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
+import AddDevice from './Dashboard/AddDevice';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import UploadQueue from './Files/UploadQueue';
+import TimeSelect from './TimeSelect';
 
 import { analyticsEvent, updateDevices } from '../actions';
-import { navigate } from '../actions/history';
+import { closeModal, navigate } from '../actions/history';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
@@ -178,7 +182,9 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, currentRoute, devices, dongleId, page, profile } = this.props;
+    const {
+      classes, currentRoute, devices, dispatch, dongleId, modal, modalDongleId, page, profile,
+    } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
@@ -248,6 +254,10 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        { modal === 'settings' && <DeviceSettingsModal dongleId={ modalDongleId } onClose={ () => dispatch(closeModal()) } /> }
+        { modal === 'uploads' && <UploadQueue dongleId={ modalDongleId } onClose={ () => dispatch(closeModal()) } /> }
+        { modal === 'pair' && <AddDevice onClose={ () => dispatch(closeModal()) } /> }
+        { modal === 'filter' && <TimeSelect onClose={ () => dispatch(closeModal()) } /> }
       </div>
     );
   }
@@ -255,6 +265,8 @@ class ExplorerApp extends Component {
 
 const stateToProps = (state) => ({
   page: state.page,
+  modal: state.modal,
+  modalDongleId: state.modalDongleId,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
   devices: state.devices,

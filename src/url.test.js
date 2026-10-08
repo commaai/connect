@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseLocation, urlFor } from './url';
+import { parseLocation, urlFor, withModal } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
@@ -82,5 +82,22 @@ describe('urlFor', () => {
 
   it('rejects a page without its device', () => {
     expect(() => urlFor(nav({ page: 'dashboard' }))).toThrow('Expected "dongleId" to be defined');
+  });
+});
+
+describe('withModal', () => {
+  const location = { pathname: `/${DONGLE}/${LOG}/10/20`, search: '?stripe_success=abc', hash: '#top' };
+
+  it('opens a modal over the page, keeping the rest of the URL', () => {
+    expect(withModal(location, 'settings', OTHER)).toEqual({
+      pathname: `/${DONGLE}/${LOG}/10/20`, search: `?stripe_success=abc&modal=settings&device=${OTHER}`, hash: '#top',
+    });
+    expect(withModal(location, 'settings', DONGLE).search).toBe('?stripe_success=abc&modal=settings');
+  });
+
+  it('closes only the modal', () => {
+    const open = { ...location, search: `?modal=settings&stripe_success=abc&device=${OTHER}` };
+    expect(withModal(open, null)).toEqual(location);
+    expect(withModal({ ...location, search: '?modal=pair' }, null).search).toBe('');
   });
 });

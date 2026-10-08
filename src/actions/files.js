@@ -20,7 +20,8 @@ const MAX_RETRIES = 5;
 // connect uploads should be high priority as they are user requested (lower is higher)
 const HIGH_PRIORITY = 0;
 
-let uploadQueueTimeout = null;
+// The polling run allowed to dispatch and schedule. Cancelling clears it, so a late response is dropped.
+let uploadQueuePoll = null;
 let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
@@ -131,20 +132,19 @@ export function fetchFiles(routeName, nocache = false) {
 }
 
 export function cancelFetchUploadQueue() {
-  if (uploadQueueTimeout) {
-    if (uploadQueueTimeout !== true) {
-      clearTimeout(uploadQueueTimeout);
-    }
-    uploadQueueTimeout = null;
+  if (uploadQueuePoll) {
+    clearTimeout(uploadQueuePoll.timeout);
+    uploadQueuePoll = null;
   }
 }
 
 export function fetchUploadQueue(dongleId) {
   return async (dispatch, getState) => {
-    if (uploadQueueTimeout) {
+    if (uploadQueuePoll) {
       return;
     }
-    uploadQueueTimeout = true;
+    const poll = { timeout: null };
+    uploadQueuePoll = poll;
 
     dispatch(fetchDeviceNetworkStatus(dongleId));
 
@@ -154,6 +154,9 @@ export function fetchUploadQueue(dongleId) {
       id: 0,
     };
     const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
+    if (uploadQueuePoll !== poll) {
+      return;
+    }
     if (!uploadQueue || !uploadQueue.result) {
       if (uploadQueue && uploadQueue.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
@@ -201,12 +204,13 @@ export function fetchUploadQueue(dongleId) {
       uploading: newCurrentUploading,
       files: uploadingFiles,
     });
-    if (uploadQueueTimeout === true && uploadQueue.result.length) {
-      cancelFetchUploadQueue();
-      uploadQueueTimeout = setTimeout(() => {
-        uploadQueueTimeout = null;
+    if (uploadQueuePoll === poll && uploadQueue.result.length) {
+      poll.timeout = setTimeout(() => {
+        uploadQueuePoll = null;
         dispatch(fetchUploadQueue(dongleId));
       }, 2000);
+    } else if (uploadQueuePoll === poll) {
+      uploadQueuePoll = null;
     }
   };
 }

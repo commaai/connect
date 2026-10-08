@@ -1,7 +1,7 @@
-import { LOCATION_CHANGE, push, replace } from 'connected-react-router';
+import { LOCATION_CHANGE, goBack, push, replace } from 'connected-react-router';
 
 import { api } from '../api/backend';
-import { parseLocation, urlFor } from '../url';
+import { parseLocation, urlFor, withModal } from '../url';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { checkRoutesData, fetchDeviceOnline, fetchSharedDevice, primeFetchSubscription } from './index';
 import { ACTION_STARTUP_DATA } from './types';
@@ -84,6 +84,14 @@ export function reconcile(prev) {
       dispatch(loadDevice(nav.dongleId, startup));
     }
 
+    // the same rule as the drawer's settings button
+    if (nav.modal === 'settings') {
+      const device = state.devices.find((d) => d.dongle_id === nav.modalDongleId);
+      if (!device?.is_owner && !state.profile?.superuser) {
+        dispatch(replace(withModal(location, null)));
+      }
+    }
+
     if (nav.legacyRange && (startup || location.pathname !== prev.router.location.pathname)) {
       dispatch(resolveLegacyRange(nav.dongleId, nav.legacyRange, location.pathname));
     }
@@ -100,6 +108,21 @@ export function navigate(nav) {
     if (url !== pathname + search) {
       dispatch(push(url));
     }
+  };
+}
+
+// The entry is marked so closeModal knows the page is one step back.
+export function openModal(modal, modalDongleId) {
+  return (dispatch, getState) => {
+    dispatch(push(withModal(getState().router.location, modal, modalDongleId), { modal: true }));
+  };
+}
+
+// A modal opened from a link has no page behind it in history, so closing it replaces the URL.
+export function closeModal() {
+  return (dispatch, getState) => {
+    const { location } = getState().router;
+    dispatch(location.state?.modal ? goBack() : replace(withModal(location, null)));
   };
 }
 

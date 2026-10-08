@@ -74,6 +74,17 @@ export function parseLocation({ pathname, search }) {
   };
 }
 
+function setModal(query, dongleId, modal, modalDongleId) {
+  query.delete('modal');
+  query.delete('device');
+  if (modal) {
+    query.set('modal', modal);
+    if (modalDongleId && modalDongleId !== dongleId) {
+      query.set('device', modalDongleId);
+    }
+  }
+}
+
 export function urlFor({ page, dongleId, logId, range, modal, modalDongleId, returnTo }) {
   const { path } = ROUTES.find((route) => route.page === page);
   const pathname = generatePath(path, {
@@ -87,12 +98,15 @@ export function urlFor({ page, dongleId, logId, range, modal, modalDongleId, ret
   if (returnTo) {
     query.set('r', returnTo);
   }
-  if (modal) {
-    query.set('modal', modal);
-    if (modalDongleId && modalDongleId !== dongleId) {
-      query.set('device', modalDongleId);
-    }
-  }
+  setModal(query, dongleId, modal, modalDongleId);
   const search = query.toString();
   return search ? `${pathname}?${search}` : pathname;
+}
+
+// Opens a modal over the current page, or closes it when modal is null, keeping the rest of the URL.
+export function withModal(location, modal, modalDongleId = null) {
+  const query = new URLSearchParams(location.search);
+  setModal(query, parseLocation(location).dongleId, modal, modalDongleId);
+  const search = query.toString();
+  return { pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash };
 }
