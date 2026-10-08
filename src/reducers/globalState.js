@@ -1,6 +1,6 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
-import { getDefaultFilter } from '../utils/filter';
+import { getDefaultFilter } from '../initialState';
 
 const eventsMap = {};
 const locationMap = {};
@@ -53,35 +53,80 @@ export default function reducer(_state, action) {
       state.profile = action.profile;
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_APPLY_DESTINATION: {
+      const { destination } = action;
+      const deviceChanged = state.dongleId !== destination.dongleId;
+
       state = {
         ...state,
-        filter: getDefaultFilter(),
-        dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
-        subscription: null,
-        subscribeInfo: null,
-        files: null,
-        limit: 0,
+        dongleId: destination.dongleId,
+        primeNav: destination.page === 'prime',
+        streamNav: destination.page === 'stream',
+        deviceNotFound: false,
       };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
-      if (state.devices) {
-        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
-        if (!state.device || state.device.dongle_id !== action.dongleId) {
-          state.device = newDevice;
+
+      if (deviceChanged && destination.dongleId) {
+        state.filter = getDefaultFilter();
+        state.subscription = null;
+        state.subscribeInfo = null;
+        state.files = null;
+        state.limit = 0;
+        if (state.devices) {
+          const newDevice = state.devices.find((d) => d.dongle_id === destination.dongleId) || null;
+          if (newDevice) {
+            state.device = newDevice;
+          }
+        }
+        if (state.routesMeta && state.routesMeta.dongleId !== destination.dongleId) {
+          state.routesMeta = { dongleId: null, start: null, end: null };
+          state.routes = null;
+          state.lastRoutes = null;
+          state.currentRoute = null;
         }
       }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
-        state.routesMeta = {
-          dongleId: null,
-          start: null,
-          end: null,
+
+      // Drive selection
+      if (destination.drive) {
+        state.segmentRange = {
+          log_id: destination.drive.logId,
+          start: destination.drive.start,
+          end: destination.drive.end,
         };
-        state.routes = null;
-        state.lastRoutes = null;
+        const currentRoute = state.routes?.find((route) => route.log_id === destination.drive.logId);
+        if (currentRoute) {
+          state.currentRoute = currentRoute;
+          state.zoom = {
+            start: destination.drive.start ?? 0,
+            end: destination.drive.end ?? currentRoute.duration,
+            previous: state.zoom,
+          };
+          state.segmentRange = {
+            log_id: currentRoute.log_id,
+            start: currentRoute.start_time_utc_millis,
+            end: currentRoute.end_time_utc_millis,
+          };
+          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
+            state.loop = {
+              startTime: state.zoom.start,
+              duration: state.zoom.end - state.zoom.start,
+            };
+          }
+        }
+      } else {
+        state.segmentRange = null;
         state.currentRoute = null;
+        state.zoom = null;
+        state.loop = null;
       }
+
+      // Reset zoom when entering prime
+      if (destination.page === 'prime') {
+        state.zoom = null;
+      }
+      break;
+    }
+    case Types.ACTION_DEVICE_NOT_FOUND:
+      state = { ...state, deviceNotFound: true };
       break;
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
@@ -300,21 +345,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -348,26 +378,38 @@ export default function reducer(_state, action) {
         state.files = null;
       }
 
-      state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
+      if (!action.log_id) {
+        state.segmentRange = null;
+      }
+
+      const r = state.routes?.find((route) => route.log_id === action.log_id);
+      if (action.log_id && r) {
+        state.currentRoute = r;
+        if (action.start == null || action.end == null) {
+          state.zoom = {
+            start: 0,
+            end: state.currentRoute.duration,
+            previous: state.zoom,
+          }
+
+          // fix loop on last zoom level
+          state.loop = null;
+        } else {
           state.zoom = {
             start: action.start,
             end: action.end,
             previous: state.zoom,
           };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
         }
+        state.segmentRange = {
+          log_id: state.currentRoute.log_id,
+          start: state.currentRoute.start_time_utc_millis,
+          end: state.currentRoute.end_time_utc_millis,
+        };
       } else {
         state.zoom = null;
         state.loop = null;
+        state.currentRoute = null;
       }
       break;
     }
@@ -424,18 +466,29 @@ export default function reducer(_state, action) {
         start: action.start,
         end: action.end,
       };
-      if (!state.currentRoute && state.selectedRouteId) {
-        const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
+      if (!state.currentRoute && state.segmentRange) {
+        const curr = state.routes?.find((route) => route.log_id === state.segmentRange.log_id);
         if (curr) {
           state.currentRoute = {
             ...curr,
           };
-          if (!state.zoom) {
+          if (state.segmentRange.start != null && state.segmentRange.end != null) {
+            state.zoom = {
+              start: state.segmentRange.start,
+              end: state.segmentRange.end,
+            };
+          } else {
             state.zoom = {
               start: 0,
               end: state.currentRoute.duration,
             };
           }
+
+          state.segmentRange = {
+            log_id: curr.log_id,
+            start: state.currentRoute.start_time_utc_millis,
+            end: state.currentRoute.end_time_utc_millis,
+          };
 
           if (!state.loop || !state.loop.startTime || !state.loop.duration) {
             state.loop = {

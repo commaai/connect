@@ -14,7 +14,8 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, updateDevices, checkLastRoutesData } from '../actions';
+import { syncStateFromUrl } from '../actions/history';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -85,7 +86,7 @@ class ExplorerApp extends Component {
   }
 
   closeBodyTeleop() {
-    this.props.dispatch(streamNav(false));
+    this.props.dispatch(push(`/${this.props.dongleId}`));
   }
 
   async componentDidMount() {
@@ -103,6 +104,7 @@ class ExplorerApp extends Component {
     }
 
     this.props.dispatch(init());
+    this.props.dispatch(syncStateFromUrl(this.props.pathname));
 
     let pairToken;
     try {
@@ -179,7 +181,7 @@ class ExplorerApp extends Component {
     const { pairDongleId } = this.state;
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      this.props.dispatch(push(`/${pairDongleId}`));
     }
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
@@ -198,7 +200,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, segmentRange, pathname, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -247,7 +249,7 @@ class ExplorerApp extends Component {
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
+                : ((currentRoute || segmentRange) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -281,7 +283,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
-  selectedRouteId: state.selectedRouteId,
+  segmentRange: state.segmentRange,
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,

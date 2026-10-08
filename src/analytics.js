@@ -142,7 +142,7 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_APPLY_DESTINATION:
       gtag('event', 'select_device', {
         ...params,
         device_prime_type: state.device?.prime_type,

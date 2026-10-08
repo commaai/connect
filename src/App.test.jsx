@@ -227,7 +227,9 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
     const ranged = pathname.endsWith('/10/20');
     expect(store.getState()).toMatchObject({
-      selectedRouteId: LOG,
+      segmentRange: {
+        log_id: LOG,
+      },
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });

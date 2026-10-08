@@ -1,9 +1,11 @@
 import * as Sentry from '@sentry/react';
+import { replace } from 'connected-react-router';
 
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, checkLastRoutesData, fetchSharedDevice } from '.';
+import { destinationFromUrl } from '../url';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -43,7 +45,8 @@ async function initDevices() {
 export default function init() {
   return async (dispatch, getState) => {
     let state = getState();
-    if (state.dongleId && !state.routes) {
+    const destination = destinationFromUrl(state.router.location.pathname);
+    if (state.dongleId && !state.routes && destination.kind === 'dashboard') {
       dispatch(checkLastRoutesData());
     }
 
@@ -54,14 +57,21 @@ export default function init() {
       Sentry.setUser({ id: profile.id });
     }
 
+    dispatch({
+      type: ACTION_STARTUP_DATA,
+      profile,
+      devices,
+    });
+
     if (devices.length > 0) {
       if (!state.dongleId) {
         const allowPathChange = state.router.location.pathname === '/';
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
+        const device = devices.find((d) => d.dongle_id === selectedDongleId) || devices[0];
         if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
+          if (allowPathChange) dispatch(replace(`/${selectedDongleId}`));
         } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+          if (allowPathChange) dispatch(replace(`/${device.dongle_id}`));
         }
       }
       const dongleId = getState().dongleId;
@@ -72,11 +82,5 @@ export default function init() {
         dispatch(fetchSharedDevice(dongleId));
       }
     }
-
-    dispatch({
-      type: ACTION_STARTUP_DATA,
-      profile,
-      devices,
-    });
   };
 }
