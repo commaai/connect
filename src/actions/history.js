@@ -2,7 +2,7 @@ import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import { buildUrl, parseLocation } from '../url';
 import { nextTimeline } from '../timeline/zoom';
-import { loadDevice, selectTimeline } from './index';
+import { checkRoutesData, loadDevice, selectTimeline } from './index';
 
 function fallbackDongleId(devices) {
   const stored = window.localStorage.getItem('selectedDongleId');
@@ -50,6 +50,8 @@ export function syncLocation(devicesInApiOrder) {
     if (dongleId && dongleId !== state.dongleId) {
       dispatch(loadDevice(dongleId));
     }
+
+    dispatch(checkRoutesData());
   };
 }
 

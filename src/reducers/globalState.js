@@ -391,6 +391,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         start: action.start,
         end: action.end,
+        logId: action.logId ?? null,
       };
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
