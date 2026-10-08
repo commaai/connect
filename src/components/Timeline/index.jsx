@@ -8,7 +8,7 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { navigate } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
@@ -266,16 +266,17 @@ class Timeline extends Component {
     const startOffset = Math.round(this.percentToOffset(startPercent));
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
-    if (Math.abs(dragging[1] - dragging[0]) > 3) {
+    const start = Math.floor(startOffset / 1000);
+    const end = Math.floor(endOffset / 1000);
+
+    if (Math.abs(dragging[1] - dragging[0]) > 3 && start < end) {
       const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      this.props.dispatch(navigate('zoom', {
+        dongleId: route.dongle_id, routeId: route.log_id, start, end,
+      }));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

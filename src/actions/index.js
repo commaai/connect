@@ -9,12 +9,48 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { LIMIT_INCREMENT } from '../utils/filter';
+import { urlFor } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
-const LIMIT_INCREMENT = 5
+let routeRequest = null;
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
+function toRoute(r) {
+  let startTime = r.segment_start_times[0];
+  let endTime = r.segment_end_times[r.segment_end_times.length - 1];
+
+  // TODO: these will all be relative times soon
+  // fix segment boundary times for routes that have the wrong time at the start
+  if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
+      && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
+    startTime = r.start_time_utc_millis;
+    endTime = r.end_time_utc_millis;
+    r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
+    r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + ((x + 1) * 60 * 1000), endTime));
+  }
+  // TODO: backwards compatiblity, remove later
+  if (r.distance == null && r.length != null) {
+    r.distance = r.length;
+  }
+  return {
+    ...r,
+    url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
+    log_id: r.fullname.split('|')[1],
+    duration: endTime - startTime,
+    start_time_utc_millis: startTime,
+    end_time_utc_millis: endTime,
+    // TODO: get this from the API, this isn't correct for segments with a time jump
+    segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
+  };
+}
+
+function redirectToLogin(state) {
+  hardNavigate(`/?r=${encodeURI(currentPathname(state))}`);
+}
+
+// the drives of the dashboard
 export function checkRoutesData() {
   return (dispatch, getState) => {
     let state = getState();
@@ -33,18 +69,10 @@ export function checkRoutesData() {
     const { dongleId, limit: fetchLimit } = state;
     const fetchRange = state.filter;
 
-    // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.selectedRouteId) {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
-        dongleId,
-      };
-    } else {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit),
-        dongleId,
-      };
-    }
+    routesRequest = {
+      req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit),
+      dongleId,
+    };
 
     routesRequestPromise = routesRequest.req.then((routesData) => {
       state = getState();
@@ -60,38 +88,11 @@ export function checkRoutesData() {
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
         routesRequest = null;
-        hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
+        redirectToLogin(state);
         return;
       }
 
-      const routes = routesData.map((r) => {
-        let startTime = r.segment_start_times[0];
-        let endTime = r.segment_end_times[r.segment_end_times.length - 1];
-
-        // TODO: these will all be relative times soon
-        // fix segment boundary times for routes that have the wrong time at the start
-        if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
-            && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
-          startTime = r.start_time_utc_millis;
-          endTime = r.end_time_utc_millis;
-          r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
-          r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + ((x + 1) * 60 * 1000), endTime));
-        }
-        // TODO: backwards compatiblity, remove later
-        if (r.distance == null && r.length != null) {
-          r.distance = r.length;
-        }
-        return {
-          ...r,
-          url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
-          log_id: r.fullname.split('|')[1],
-          duration: endTime - startTime,
-          start_time_utc_millis: startTime,
-          end_time_utc_millis: endTime,
-          // TODO: get this from the API, this isn't correct for segments with a time jump
-          segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
-        };
-      }).sort((a, b) => {
+      const routes = routesData.map(toRoute).sort((a, b) => {
         return b.create_time - a.create_time;
       });
 
@@ -113,6 +114,37 @@ export function checkRoutesData() {
     });
 
     return routesRequestPromise
+  };
+}
+
+// the drive of the url. it is fetched on its own unless the dashboard already listed it,
+// so opening a drive never replaces the dashboard's drives
+export function checkRouteData() {
+  return async (dispatch, getState) => {
+    const state = getState();
+    const fullname = `${state.dongleId}|${state.selectedRouteId}`;
+    if (!state.selectedRouteId || state.currentRoute !== null || routeRequest === fullname) {
+      return;
+    }
+
+    routeRequest = fullname;
+    try {
+      const routesData = await api.routes.getRoutesSegments(state.dongleId, undefined, undefined, undefined, fullname);
+      if (routesData.length === 0 && !api.auth.isAuthenticated()) {
+        redirectToLogin(getState());
+        return;
+      }
+      dispatch({
+        type: Types.ACTION_UPDATE_CURRENT_ROUTE,
+        fullname,
+        route: routesData.length ? toRoute(routesData[0]) : false,
+      });
+    } catch (err) {
+      console.error('Failure fetching routes metadata', err);
+      Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
+    } finally {
+      routeRequest = null;
+    }
   };
 }
 
@@ -142,75 +174,32 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
+// what is on screen only changes by changing the url, see actions/history.js
+export function navigate(page, params) {
+  return push(urlFor(page, params));
 }
 
-function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
+// zoom is { start, end } in milliseconds, or null for the whole drive
+export function selectRoute(routeId, zoom) {
+  return (dispatch, getState) => {
+    const state = getState();
+    const sameRoute = state.selectedRouteId === routeId;
+    const route = sameRoute ? state.currentRoute : (state.routes?.find((r) => r.log_id === routeId) || null);
+    const selection = zoom || (route ? { start: 0, end: route.duration } : null);
+    if (sameRoute && state.zoom?.start === selection?.start && state.zoom?.end === selection?.end) {
+      return;
+    }
+
+    dispatch({
+      type: Types.ACTION_SELECT_ROUTE,
+      routeId,
+      route,
+      zoom: selection,
+    });
     dispatch(resetPlayback());
-    dispatch(selectLoop(start, end));
-  }
-
-  if (allowPathChange) {
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
-    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
-
-    if (currentPathname(state) !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
-  }
-}
-
-export function popTimelineRange(log_id, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (state.zoom.previous) {
-      dispatch({
-        type: Types.TIMELINE_POP_SELECTION,
-      });
-
-      const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
-    }
+    dispatch(selectLoop(selection?.start, selection?.end));
   };
 }
-
-export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
-      dispatch({
-        type: Types.TIMELINE_PUSH_SELECTION,
-        log_id,
-        start,
-        end,
-      });
-    }
-
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
-  };
-
-}
-
 
 export function primeGetSubscription(dongleId, subscription) {
   return {
@@ -268,7 +257,7 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
+export function selectDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
@@ -289,69 +278,9 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
       dongleId,
     });
 
-    dispatch(pushTimelineRange(null, null, null, false));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
-    }
-
-    if (fetchRoutes) {
-      dispatch(checkLastRoutesData());
-    }
-
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
-  };
-}
-
-export function primeNav(nav, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.primeNav !== nav) {
-      dispatch({
-        type: Types.ACTION_PRIME_NAV,
-        primeNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
-  };
-}
-
-export function streamNav(nav, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.streamNav !== nav) {
-      dispatch({
-        type: Types.ACTION_STREAM_NAV,
-        streamNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
     }
   };
 }

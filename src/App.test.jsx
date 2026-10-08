@@ -1,10 +1,13 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
+import { LOCATION_CHANGE } from 'connected-react-router';
 
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import startup from './actions/startup';
+import { PAGES, parseUrl, urlFor } from './url';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -130,7 +133,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -302,5 +305,174 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  const dragTimeline = (timeline, from, to) => {
+    fireEvent.pointerDown(timeline, { button: 0, clientX: from, pageX: from });
+    fireEvent.pointerMove(document, { clientX: to, pageX: to });
+    fireEvent.pointerUp(document, { button: 0, clientX: to, pageX: to });
+  };
+
+  test('device settings open from their URL, close to the dashboard and return with browser history', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByDisplayValue('Zulu')).toBeVisible();
+    fireEvent.keyDown(document, { key: 'Escape', keyCode: 27 });
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('the settings button of another device opens the settings of that device', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    expect(await screen.findByDisplayValue('Alpha')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('device settings stay closed for a device that is only shared', async () => {
+    await renderApp(`/${SHARED}/settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('a zoom keeps the URL it was opened with while playing', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/0/20`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    expect(store.getState().zoom).toEqual({ start: 0, end: 20000 });
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/20`);
+  });
+
+  test('a timeline selection from the start of a drive gets its own URL, and back zooms out', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    dragTimeline(await screen.findByRole('slider', { name: 'Drive timeline' }), 0, 500);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/30`));
+    expect(store.getState().zoom).toEqual({ start: 0, end: 30000 });
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(store.getState().zoom).toEqual({ start: 0, end: 60000 });
+  });
+
+  test('a legacy timestamp URL is replaced, so back does not return to it', async () => {
+    const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.entries).toHaveLength(1);
+  });
+
+  test.each([
+    ['a device', `/${FIRST}`],
+    ['an unknown page', `/${FIRST}/unknown/page`],
+    ['a path that only looks like a drive', `/${FIRST}/x${LOG}`],
+  ])('signed-out entry to %s asks to sign in without loading anything', async (_name, pathname) => {
+    await renderApp(pathname, { authenticated: false });
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+    expect(mocks.requests).toEqual([]);
+    expect(mocks.hardNavigate).not.toHaveBeenCalled();
+  });
+
+  test('leaving a public drive while signed out asks to sign in', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`, { authenticated: false });
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(sessionStorage.getItem('redirectURL')).toBe(`/${FIRST}`);
+  });
+
+  test('the login redirect parameter only leads to a connect page', async () => {
+    const { history } = await renderApp(`/?r=${encodeURIComponent('//evil.example/path')}`, { selected: FIRST });
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+});
+
+// The screen is a function of the url. This walks every pair of pages in the route table,
+// so a page added to the table is covered without writing a test for it.
+describe('from every page to every page', () => {
+  const sample = { dongleId: FIRST, routeId: RECENT_LOG, start: 10, end: 20 };
+  const stops = [
+    ...Object.keys(PAGES).map((page) => urlFor(page, page === 'legacy' ? { ...sample, start: START, end: START + 60_000 } : sample)),
+    urlFor('drive', { dongleId: FIRST, routeId: LOG }), // a drive the dashboard does not list
+    urlFor('dashboard', { dongleId: SECOND }),
+    urlFor('drive', { dongleId: SECOND, routeId: RECENT_LOG }),
+  ];
+
+  // waits until two turns of the event loop leave the state alone
+  async function settled(store, state) {
+    await new Promise((resolve) => setTimeout(resolve));
+    await new Promise((resolve) => setTimeout(resolve));
+    return state === store.getState() ? state : settled(store, store.getState());
+  }
+
+  // loads the first url in a fresh tab, then arrives at the second by a link or by the back button
+  async function open(first, second, arrive) {
+    const history = createMemoryHistory(arrive === 'back'
+      ? { initialEntries: [second, first], initialIndex: 1 } : { initialEntries: [first] });
+    const store = createAppStore(history, createInitialState());
+    const locate = () => store.dispatch({ type: LOCATION_CHANGE, payload: { location: history.location, action: history.action } });
+    history.listen(locate);
+    locate();
+    store.dispatch(startup());
+    await settled(store);
+    mocks.requests = [];
+    if (arrive === 'back') {
+      history.goBack();
+    } else if (arrive === 'link') {
+      history.push(second);
+    }
+    const state = await settled(store);
+    return { state, requests: mocks.requests.map(({ url }) => new URL(url)) };
+  }
+
+  const shown = ({ router, dongleId, selectedRouteId, currentRoute, zoom, loop, routes }) => ({
+    pathname: router.location.pathname,
+    dongleId,
+    selectedRouteId,
+    currentRoute: currentRoute && currentRoute.log_id,
+    zoom,
+    loop,
+    drives: selectedRouteId ? null : routes?.map((route) => route.log_id), // only on screen without a drive
+  });
+
+  const fresh = new Map();
+
+  beforeAll(() => {
+    vi.stubGlobal('fetch', vi.fn(mockFetch));
+    mocks.authenticated = true;
+    mocks.options = {};
+  });
+  afterEach(() => localStorage.clear());
+
+  describe.each(stops.flatMap((from) => [[from, 'link'], [from, 'back']]))('from %s by %s', (from, arrive) => {
+    test.each(stops)('to %s', async (to) => {
+      const { state, requests } = await open(from, to, arrive);
+      const url = parseUrl(state.router.location.pathname);
+
+      // the state agrees with the url
+      expect(state.dongleId).toBe(url.dongleId ?? state.dongleId);
+      expect(state.selectedRouteId).toBe(url.routeId ?? null);
+      expect(state.zoom).toEqual(url.page === 'zoom' ? { start: 10_000, end: 20_000 } : (url.routeId ? { start: 0, end: 60_000 } : null));
+
+      // nothing is loaded twice: not the same page, not the drives of a device, not a drive the dashboard lists
+      const lists = requests.filter(({ searchParams }) => searchParams.has('limit'));
+      const drives = requests.filter(({ searchParams }) => searchParams.has('route_str'));
+      const fromDashboard = parseUrl(from).dongleId === state.dongleId && !parseUrl(from).routeId;
+      expect(from === to && parseUrl(to).page !== 'legacy' ? requests : []).toEqual([]);
+      expect(fromDashboard ? lists : []).toEqual([]);
+      expect(fromDashboard && state.selectedRouteId === RECENT_LOG ? drives : []).toEqual([]);
+      expect(lists.length).toBeLessThanOrEqual(1);
+
+      // it looks the same as loading the url in a fresh tab
+      const key = `${state.dongleId}${state.router.location.pathname}`;
+      if (!fresh.has(key)) {
+        localStorage.setItem('selectedDongleId', state.dongleId);
+        fresh.set(key, shown((await open(state.router.location.pathname)).state));
+      }
+      expect(shown(state)).toEqual(fresh.get(key));
+    });
   });
 });

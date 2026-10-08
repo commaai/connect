@@ -3,6 +3,7 @@ import React from 'react';
 import * as Redux from 'redux';
 import thunk from 'redux-thunk';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import DriveListItem from './DriveListItem';
 
 const defaultState = {
@@ -21,7 +22,7 @@ const store = Redux.createStore((state) => {
 
 describe('drive list items', () => {
   it('has DriveEntry class', () => {
-    render(React.createElement(DriveListItem, {
+    render(React.createElement(MemoryRouter, null, React.createElement(DriveListItem, {
       store,
       drive: {
         fullname: '1d3dc3e03047b0c7/000000dd--455f14369d',
@@ -32,7 +33,8 @@ describe('drive list items', () => {
         distance: 12.5212,
         duration: 1234,
       },
-    }));
+    })));
     expect(screen.getByRole('link')).toHaveClass('DriveEntry');
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/1d3dc3e03047b0c7/000000dd--455f14369d');
   });
 });

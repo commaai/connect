@@ -1,17 +1,16 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { connect } from 'react-redux';
-import { Link } from 'react-router-dom';
 
 import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
-import { selectDevice } from '../../actions';
+import Link from '../Link';
 
 const listener = (ev) => ev.stopPropagation();
 
 const AppDrawer = ({
-  dispatch, isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width,
+  isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width,
 }) => {
   const contentRef = useRef(null);
 
@@ -27,11 +26,6 @@ const AppDrawer = ({
     handleDrawerStateChanged(false);
   }, [handleDrawerStateChanged]);
 
-  const handleDeviceSelected = useCallback((dongleId) => {
-    dispatch(selectDevice(dongleId));
-    toggleDrawerOff();
-  }, [dispatch, toggleDrawerOff]);
-
   return (
     <Drawer
       open={isPermanent || drawerIsOpen}
@@ -42,14 +36,14 @@ const AppDrawer = ({
       <div ref={contentRef} className="flex flex-col h-full bg-[linear-gradient(180deg,#1B2023_0%,#111516_100%)] ml-safe-left">
         {!isPermanent
           && (
-            <Link to="/" className="flex items-center min-h-[64px] mx-2">
+            <Link page="dashboard" params={{ dongleId: selectedDongleId }} className="flex items-center min-h-[64px] mx-2">
               <img alt="comma" src="/images/comma-white.png" className="w-[18.9px] mx-6" />
               <span className="text-xl font-extrabold">connect</span>
             </Link>
           )}
         <DeviceList
           selectedDevice={selectedDongleId}
-          handleDeviceSelected={handleDeviceSelected}
+          handleDeviceSelected={toggleDrawerOff}
         />
       </div>
     </Drawer>

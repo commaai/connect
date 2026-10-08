@@ -674,7 +674,7 @@ class Media extends Component {
           anchorEl={clipMenu}
           onClose={() => this.setState({ clipMenu: null })}
           route={currentRoute}
-          routes={this.props.routes}
+          routes={this.props.routes || [currentRoute]}
           zoom={this.props.zoom}
           deviceOnline={deviceIsOnline(device)}
         />

@@ -1,6 +1,6 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
-import { getDefaultFilter } from '../utils/filter';
+import { getDefaultFilter, LIMIT_INCREMENT } from '../utils/filter';
 
 const eventsMap = {};
 const locationMap = {};
@@ -58,12 +58,14 @@ export default function reducer(_state, action) {
         ...state,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
+        selectedRouteId: null,
+        currentRoute: null,
+        zoom: null,
+        loop: null,
         subscription: null,
         subscribeInfo: null,
         files: null,
-        limit: 0,
+        limit: LIMIT_INCREMENT,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
@@ -300,21 +302,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -335,42 +322,35 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
+    case Types.ACTION_SELECT_ROUTE:
+      if (action.routeId !== state.selectedRouteId) {
         state.files = null;
       }
-
-      state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
+      state.selectedRouteId = action.routeId;
+      state.currentRoute = action.route;
+      state.zoom = action.zoom;
+      break;
+    case Types.ACTION_UPDATE_CURRENT_ROUTE:
+      if (action.fullname !== `${state.dongleId}|${state.selectedRouteId}`) { // ignore outdated info
+        break;
+      }
+      state.currentRoute = action.route;
+      if (state.currentRoute) {
+        if (!state.zoom) {
           state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
             start: 0,
             end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
+          };
         }
-      } else {
-        state.zoom = null;
-        state.loop = null;
+
+        if (!state.loop || !state.loop.startTime || !state.loop.duration) {
+          state.loop = {
+            startTime: state.zoom.start,
+            duration: state.zoom.end - state.zoom.start,
+          };
+        }
       }
       break;
-    }
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
@@ -424,27 +404,6 @@ export default function reducer(_state, action) {
         start: action.start,
         end: action.end,
       };
-      if (!state.currentRoute && state.selectedRouteId) {
-        const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
-        if (curr) {
-          state.currentRoute = {
-            ...curr,
-          };
-          if (!state.zoom) {
-            state.zoom = {
-              start: 0,
-              end: state.currentRoute.duration,
-            };
-          }
-
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
-            state.loop = {
-              startTime: state.zoom.start,
-              duration: state.zoom.end - state.zoom.start,
-            };
-          }
-        }
-      }
       break;
     default:
       return state;

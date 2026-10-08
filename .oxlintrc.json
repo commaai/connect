@@ -63,5 +63,22 @@
     "vitest/expect-expect": "off",
     "vitest/valid-title": "off",
     "oxc/double-comparisons": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/components/**"],
+      "excludeFiles": ["src/components/Link.jsx", "**/*.test.*"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              { "name": "connected-react-router", "message": "Change pages with navigate() from actions." },
+              { "name": "react-router-dom", "message": "Link to pages with components/Link." }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

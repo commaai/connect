@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { USERADMIN_URL_ROOT } from '../../api';
-import { filterRegularClick } from '../../utils';
+import Link from '../Link';
 
 const logOut = async () => {
   await MyCommaAuth.logOut();
@@ -34,7 +34,7 @@ const Version = () => {
   return <span className="text-xs text-[#ffffff66]">{content}</span>
 };
 
-const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
+const AccountMenu = ({ profile, open, onClose }) => {
   const version = useMemo(() => <Version />, []);
 
   const onLogOut = useCallback(() => {
@@ -56,16 +56,9 @@ const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
           {version}
         </div>
         <div className="h-px bg-white/10" />
-        <a
-          className="block px-4 py-3 text-white hover:bg-white/10"
-          href="/referrals"
-          onClick={filterRegularClick(() => {
-            onClose();
-            onReferrals();
-          })}
-        >
+        <Link className="block px-4 py-3 text-white hover:bg-white/10" page="referrals" onClick={onClose}>
           Referrals
-        </a>
+        </Link>
         <a
           className="block px-4 py-3 text-white hover:bg-white/10"
           href={USERADMIN_URL_ROOT}

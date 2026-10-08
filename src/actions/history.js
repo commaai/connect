@@ -1,61 +1,68 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+
+import { canonicalUrl, isPublic, parseUrl, urlFor } from '../url';
+import { checkRouteData, checkRoutesData, selectDevice, selectRoute } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
+// links from before drives had ids point at a time range, open the drive recorded in it
+const openLegacyLink = ({ dongleId, start, end }) => async (dispatch, getState) => {
+  const { location } = getState().router;
+  try {
+    const routes = await api.routes.getRoutesSegments(dongleId, start, end);
+    const routeId = routes?.[0]?.fullname.split('|')[1];
+    if (routeId && getState().router.location === location) {
+      dispatch(replace(urlFor('drive', { dongleId, routeId })));
+    }
+  } catch (err) {
+    console.error('Error fetching routes data for log ID conversion', err);
+  }
+};
+
+// url -> state. the screen is a function of the url, this makes the state agree with it.
+// every step is skipped when the state already agrees, so it can run any number of times
+// and moving between urls only changes, and only fetches, what is different
+export const applyUrl = () => (dispatch, getState) => {
+  const state = getState();
+  const { pathname, search } = state.router.location;
+  if (!api.auth.isAuthenticated() && !isPublic(pathname)) {
+    return; // the login page is on screen
+  }
+
+  // the login page sends people on to where they were going. only ever to one of our pages
+  const redirect = new URLSearchParams(search).get('r');
+  if (redirect) {
+    dispatch(replace(canonicalUrl(redirect)));
+    return;
+  }
+  const url = parseUrl(pathname);
+
+  // a page without a device keeps the current one
+  const dongleId = url.dongleId || state.dongleId;
+  if (!dongleId) {
+    return; // the devices aren't loaded yet, or there are none
+  }
+  if (dongleId !== state.dongleId) {
+    dispatch(selectDevice(dongleId));
+  }
+  if (url.page === 'home') {
+    dispatch(replace(urlFor('dashboard', { dongleId })));
     return;
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
+  const zoomed = url.page === 'zoom' && url.start < url.end;
+  dispatch(selectRoute(url.routeId ?? null, zoomed ? { start: url.start * 1000, end: url.end * 1000 } : null));
 
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  if (url.page === 'legacy') {
+    dispatch(openLegacyLink(url));
   }
+  dispatch(url.routeId ? checkRouteData() : checkRoutesData());
+};
+
+// the first page load, links, back and forward all arrive here as a location change
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
+  const result = next(action);
+  if (action.type === LOCATION_CHANGE) {
+    dispatch(applyUrl());
+  }
+  return result;
 };

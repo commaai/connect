@@ -131,15 +131,6 @@ export function verifyPairToken(pairToken, fromUrl, sentryFingerprint) {
   }
 }
 
-export function filterRegularClick(func) {
-  return (ev) => {
-    if (ev.button === 0 && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !ev.shiftKey) {
-      ev.preventDefault();
-      func();
-    }
-  };
-}
-
 export function deviceVersionAtLeast(device, version) {
   if (!device || !device.openpilot_version) {
     return false;
