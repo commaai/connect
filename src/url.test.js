@@ -1,71 +1,36 @@
-import { describe, expect, it } from 'vitest';
-
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
-
-const DONGLE = '0000aaaa0000aaaa';
+import { parseLocation, driveUrl, deviceUrl, dialogUrl } from './url';
+const DEVICE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
 
-describe('URL pathname helpers', () => {
+describe('URL contract', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
+    ['/', 'home'], ['/demo', 'demo'], ['/referrals', 'referrals'],
+    [`/${DEVICE}`, 'dashboard'], [`/${DEVICE}/prime`, 'prime'], [`/${DEVICE}/stream`, 'stream'],
+    [`/${DEVICE}/${LOG}`, 'drive'], [`/${DEVICE}/00000000--0000000001`, 'drive'],
+    [`/${DEVICE}/1000/2000`, 'legacy'],
+  ])('parses %s', (url, page) => expect(parseLocation(url).page).toBe(page));
+  it.each(['NaN/20', '10/10', '20/10', '-1/20', '1/Infinity', '0/1e300', '0/20/extra'])('rejects invalid ranges %s', (range) => {
+    expect(parseLocation(`/${DEVICE}/${LOG}/${range}`).page).toBe('dashboard');
   });
-
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
+  it.each(['prefix0000aaaa0000aaaa', '0000aaaa0000aaaaextra', 'not-a-device'])('rejects an invalid device %s', (id) => {
+    expect(parseLocation(`/${id}/${LOG}`).dongleId).toBeNull();
   });
-
-  it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
+  it('round trips zero and fractional millisecond ranges', () => {
+    const url = driveUrl(DEVICE, LOG, 0, 125);
+    expect(url).toBe(`/${DEVICE}/${LOG}/0/0.125`);
+    expect(parseLocation(url).range).toEqual({ start: 0, end: 125 });
+    expect(deviceUrl(DEVICE, 'prime')).toBe(`/${DEVICE}/prime`);
   });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
+  it('preserves unrelated query arguments and hashes while opening/closing overlays', () => {
+    const location = { pathname: `/${DEVICE}/${LOG}`, search: '?share=hello&ci=1', hash: '#position' };
+    const opened = dialogUrl(location, 'settings', DEVICE);
+    const url = new URL(opened, 'https://connect.comma.ai');
+    expect(parseLocation(url)).toMatchObject({ page: 'drive', dialog: 'settings', dialogDevice: DEVICE });
+    expect(dialogUrl(url, null)).toBe(`${location.pathname}${location.search}${location.hash}`);
   });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+  it('does not open confirmations on inappropriate pages', () => {
+    expect(parseLocation({ pathname: `/${DEVICE}`, search: '?dialog=cancel-prime' }).dialog).toBeNull();
+    expect(parseLocation({ pathname: '/', search: '?dialog=uploads' }).dialog).toBeNull();
+    expect(parseLocation({ pathname: '/', search: '?dialog=settings&device=invalid' }).dialog).toBeNull();
   });
 });

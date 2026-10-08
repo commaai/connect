@@ -23,6 +23,29 @@ API and useradmin URL roots can be overridden at build time with
 * Keep files small and clean
 * Use branches / pull requests to isolate work. Don't do work that can't be merged quickly, find ways to break it up
 
+## Navigation
+
+`src/url.js` defines the URL grammar and builders. Components change the URL;
+`applyLocation` in `src/actions/history.js` applies every initial, PUSH, POP and
+REPLACE location to the device and drive selection. It changes only selections
+that differ and ignores obsolete asynchronous legacy-link lookups.
+
+Drive ranges use seconds in the URL, preserving millisecond precision and zero
+starts. Browser Back/Forward walks through ranges; the drive back arrow returns
+to the whole drive. Legacy timestamp links replace their entry when resolved.
+
+Major dialogs use `?dialog=...`: `settings`, `unpair`, `settings-uploads`,
+`add-device`, `filter`, `uploads`, `cancel-prime`, and `switch-plan`. Settings
+also accepts `&device=<dongleId>` without changing the drive underneath. Closing
+an app-opened dialog goes Back; closing a cold link replaces the entry. Unrelated
+query arguments and hashes are preserved. Settings require ownership or superuser
+access; confirmation URLs never perform their action automatically. Anchored menus
+and transient pairing results remain local component state.
+
+Single-drive lookups enrich the loaded routes without claiming dashboard-list
+coverage. Changing just the range or dialog keeps routes, files, and playback
+speed; closing a cold drive fetches the dashboard if its list has not been loaded.
+
 ## Libraries Used
 There's a ton of them, but these are worth mentioning because they sort of affect everything.
 

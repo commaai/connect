@@ -1,3 +1,4 @@
+import { openDialog, closeDialog } from '../../actions/navigation';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
@@ -101,7 +102,6 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -134,7 +134,9 @@ class AddDevice extends Component {
   }
 
   async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+    const { pairLoading, pairError, pairDongleId } = this.state;
+    const modalOpen = this.props.open;
+    if (!modalOpen) return;
     let { hasCamera } = this.state;
 
     // Check for camera availability
@@ -153,11 +155,17 @@ class AddDevice extends Component {
     if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
-        this.stream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
-        this.videoRef.srcObject = this.stream;
+        if (!this.props.open || !this.videoRef) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        this.stream = stream;
+        this.videoRef.srcObject = stream;
         this.videoRef.setAttribute('playsinline', 'true');
+        this.videoRef.muted = true;
         await this.videoRef.play();
         this.startScanning();
       } catch (err) {
@@ -229,6 +237,7 @@ class AddDevice extends Component {
 
     try {
       const results = await this.detector.detect(this.videoRef);
+      if (!this.scanning) return;
       if (results.length > 0) {
         this.onQrRead({ data: results[0].rawValue });
         return; // Stop scanning after detection
@@ -296,10 +305,9 @@ class AddDevice extends Component {
       return;
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
-    if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
-    }
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
+    if (pairDongleId) this.props.dispatch(selectDevice(pairDongleId));
+    else this.props.dispatch(closeDialog());
   }
 
   async onQrRead({ data: result }) {
@@ -370,21 +378,22 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    this.props.dispatch(openDialog('add-device'));
   }
 
   render() {
     const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const modalOpen = Boolean(this.props.open);
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
+        {!this.props.modalOnly && <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
           { buttonText }
           { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
+        </Button>}
         <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>

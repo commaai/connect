@@ -4,20 +4,15 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseLocation } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
+  const view = parseLocation(pathname);
   let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
+  if (view.dongleId) pageLocation = pageLocation.replace(view.dongleId, '<dongleId>');
+  if (view.logId) pageLocation = pageLocation.replace(view.logId, '<logId>');
+  if (view.range) pageLocation = `/${view.dongleId ? '<dongleId>' : ''}/<logId>/<zoomStart>/<zoomEnd>`;
 
   if (pageLocation.endsWith('/')) {
     pageLocation = pageLocation.substring(0, pageLocation.length - 1);

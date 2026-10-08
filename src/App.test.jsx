@@ -116,7 +116,8 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
   if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
@@ -244,7 +245,7 @@ describe('whole-app behavior', () => {
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${encodeURIComponent(pathname)}`));
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {
@@ -303,4 +304,75 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('cold device settings works with the mobile drawer closed and retains the drive', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 600 });
+    const { store, history } = await renderApp(`/${FIRST}/${LOG}?dialog=settings&device=${SECOND}`);
+    expect(screen.getByText('Device settings')).toBeVisible();
+    expect(screen.getByDisplayValue('Alpha')).toBeVisible();
+    expect(store.getState()).toMatchObject({ dongleId: FIRST, selectedRouteId: LOG });
+    expect(screen.getByTestId('video-player')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape', keyCode: 27 });
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(history.length).toBe(1);
+  });
+
+  test('a settings deep link cannot configure a device the viewer does not own', async () => {
+    await renderApp(`/${FIRST}?dialog=settings&device=${FIRST}`, {
+      devices: [{ ...devices[0], is_owner: false }],
+    });
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('direct PUSH, Back and Forward render the URL page without losing route data', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    const routes = store.getState().routes;
+    await act(async () => history.push('/referrals'));
+    expect(screen.queryByTestId('video-player')).not.toBeInTheDocument();
+    expect(store.getState().selectedRouteId).toBeNull();
+    await act(async () => history.goBack());
+    expect(screen.getByTestId('video-player')).toBeInTheDocument();
+    expect(store.getState().routes).toBe(routes);
+    await act(async () => history.goForward());
+    expect(screen.queryByTestId('video-player')).not.toBeInTheDocument();
+  });
+
+  test('cold date-filter URL opens over the dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=filter`);
+    expect(screen.getByText('Start date:')).toBeVisible();
+    expect(history.location.search).toBe('?dialog=filter');
+  });
+
+  test('closing a cold drive loads the dashboard list rather than treating one drive as all routes', async () => {
+    const { store, history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(store.getState().routesMeta.dongleId).toBeNull();
+    await act(async () => history.push(`/${FIRST}`));
+    await waitFor(() => expect(store.getState().routesMeta.dongleId).toBe(FIRST));
+    expect(store.getState().routes.some((r) => r.log_id === RECENT_LOG)).toBe(true);
+  });
+
+
+  test.each(['cancel-prime', 'switch-plan'])('cold %s URL only opens a confirmation', async (dialog) => {
+    const { history } = await renderApp(`/${FIRST}/prime?dialog=${dialog}`, {
+      devices: [{ ...devices[0], prime: true }],
+      subscription: { user_id: 'test-user', plan: 'nodata', amount: 1400, created_at: 1777000000, next_charge_at: 1779000000 },
+    });
+    expect(await screen.findByRole('heading', { name: dialog === 'cancel-prime' ? 'Cancel prime subscription' : 'Switch to Standard plan' })).toBeVisible();
+    expect(mocks.requests.some((request) => request.method !== 'GET')).toBe(false);
+    if (dialog === 'cancel-prime') fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    else fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.length).toBe(1);
+  });
+
+
+  test('Prime settings for another device navigates directly to that device', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}?dialog=settings&device=${SECOND}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    expect(store.getState()).toMatchObject({ dongleId: SECOND, selectedRouteId: null, zoom: null });
+    expect(screen.queryByTestId('video-player')).not.toBeInTheDocument();
+  });
+
 });

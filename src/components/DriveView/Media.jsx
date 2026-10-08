@@ -1,3 +1,5 @@
+import { openDialog, closeDialog } from '../../actions/navigation';
+import { currentView } from '../../url';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
@@ -208,7 +210,6 @@ class Media extends Component {
       downloadMenu: null,
       clipMenu: null,
       moreInfoMenu: null,
-      uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
@@ -637,7 +638,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, clipMenu, moreInfoMenu, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -747,7 +748,7 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+              onClick={ files ? () => { this.setState({ downloadMenu: null }); this.props.dispatch(openDialog('uploads')); } : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -823,9 +824,9 @@ class Media extends Component {
           ] }
         </Menu>
         <UploadQueue
-          open={ uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
-          update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
+          open={ canUpload && this.props.dialog === 'uploads' }
+          onClose={ () => this.props.dispatch(closeDialog()) }
+          update={ canUpload && Boolean(moreInfoMenu || this.props.dialog === 'uploads' || downloadMenu) }
           store={ this.props.store }
           device={ device }
         />
@@ -930,6 +931,7 @@ const stateToProps = (state) => ({
   files: state.files,
   profile: state.profile,
   isBufferingVideo: state.isBufferingVideo,
+  dialog: currentView(state).dialog,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
