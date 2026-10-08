@@ -131,6 +131,25 @@ test('a missing manifest shows a retry action and recovers at the selected posit
   await expect.poll(async () => (await state(page)).buffering).toBe(false);
 });
 
+test('Map mode explains a video failure and retries it from the map', async ({ page }) => {
+  let failed = true;
+  await openPlayer(page, { manifestFails: () => failed });
+  await page.getByText('Map', { exact: true }).click();
+  const retry = page.getByRole('button', { name: 'Retry video' });
+  await expect(retry).toBeVisible({ timeout: 30000 });
+  await expect(retry).toHaveCount(1);
+  // Nothing inside the hidden player may take keyboard focus.
+  const invisibleFocusable = await page.locator('button', { hasText: 'Retry video' }).evaluateAll((buttons) => buttons
+    .filter((button) => { button.focus(); return document.activeElement === button && !button.checkVisibility({ opacityProperty: true }); }).length);
+  expect(invisibleFocusable).toBe(0);
+  await page.locator('.DriveView').screenshot({ path: test.info().outputPath('map-retry.png') });
+  failed = false;
+  await retry.click();
+  await expect.poll(async () => (await video(page)).time, { timeout: 20000 }).toBeGreaterThan(500);
+  await expect(retry).toHaveCount(0);
+  await expect.poll(async () => (await state(page)).offset).toBeGreaterThan(500);
+});
+
 test('a missing media fragment cannot advance the map clock and retry restores playback', async ({ page }) => {
   let failed = true;
   await openPlayer(page, { segmentFails: () => failed });

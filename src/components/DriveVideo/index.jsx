@@ -11,16 +11,20 @@ import { isFirefox } from '../../utils/browser.js';
 
 const sourceIdentity = (route) => JSON.stringify([route?.fullname, route?.share_exp, route?.share_sig]);
 
+const RetryButton = ({ onRetry, className = '' }) => (
+  <button type="button" onClick={onRetry} className={`${className} shrink-0 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#16181A] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white`}>
+    Retry video
+  </button>
+);
+
 const VideoOverlay = ({ loading, error, onRetry }) => {
   let content;
   if (error) {
     content = (
       <>
         <ErrorOutline className="mb-2" aria-hidden="true" />
-        <Typography>{error}</Typography>
-        <button type="button" onClick={onRetry} className="mt-4 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#16181A] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
-          Retry video
-        </button>
+        <Typography className="pb-4">{error}</Typography>
+        <RetryButton onRetry={onRetry} />
       </>
     );
   } else if (loading) {
@@ -36,6 +40,16 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
     </div>
   );
 };
+
+// While the map is shown the player is hidden, so explain why the map is not
+// moving rather than leaving a stalled marker.
+const VideoErrorBanner = ({ error, onRetry }) => (
+  <div role="alert" className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-[#16181A] py-3 pl-4 pr-3">
+    <ErrorOutline className="text-white/60" fontSize="small" aria-hidden="true" />
+    <Typography className="min-w-48 flex-1">{error}</Typography>
+    <RetryButton onRetry={onRetry} className="ml-auto" />
+  </div>
+);
 
 export class DriveVideo extends Component {
   videoPlayer = React.createRef();
@@ -237,28 +251,34 @@ export class DriveVideo extends Component {
   };
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted } = this.props;
+    const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted, hidden } = this.props;
     const { videoError, retry } = this.state;
     const route = currentRoute?.fullname;
     const src = currentRoute && api.video.getQcameraStreamUrl(route, currentRoute.share_exp, currentRoute.share_sig);
+    // A hidden player stays mounted and keeps playing so it can drive the map.
     return (
-      <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] overflow-hidden rounded-lg bg-[#16181A]">
-        <VideoOverlay loading={isBufferingVideo && !videoError} error={videoError} onRetry={this.retry} />
-        {src && <ReactPlayer
-          key={`${route}:${src}:${retry}`}
-          ref={this.videoPlayer}
-          url={src}
-          playsinline
-          muted={isMuted}
-          width="100%"
-          height="100%"
-          playing={Boolean(desiredPlaySpeed && !videoError)}
-          playbackRate={Math.min(isFirefox() && !isMuted ? 8 : 16, desiredPlaySpeed || 1)}
-          onReady={(player) => this.onReady(player, route, retry)}
-          onError={(error, data) => this.onError(error, data, route, retry)}
-          config={{ hlsVersion: '1.4.8', hlsOptions: { maxBufferLength: 40 } }}
-        />}
-      </div>
+      <>
+        {hidden && videoError && <VideoErrorBanner error={videoError} onRetry={this.retry} />}
+        <div inert={hidden ? '' : undefined} className={hidden ? 'absolute w-px h-px overflow-hidden opacity-0 pointer-events-none' : undefined}>
+          <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] overflow-hidden rounded-lg bg-[#16181A]">
+            {!hidden && <VideoOverlay loading={isBufferingVideo && !videoError} error={videoError} onRetry={this.retry} />}
+            {src && <ReactPlayer
+              key={`${route}:${src}:${retry}`}
+              ref={this.videoPlayer}
+              url={src}
+              playsinline
+              muted={isMuted}
+              width="100%"
+              height="100%"
+              playing={Boolean(desiredPlaySpeed && !videoError)}
+              playbackRate={Math.min(isFirefox() && !isMuted ? 8 : 16, desiredPlaySpeed || 1)}
+              onReady={(player) => this.onReady(player, route, retry)}
+              onError={(error, data) => this.onError(error, data, route, retry)}
+              config={{ hlsVersion: '1.4.8', hlsOptions: { maxBufferLength: 40 } }}
+            />}
+          </div>
+        </div>
+      </>
     );
   }
 }
