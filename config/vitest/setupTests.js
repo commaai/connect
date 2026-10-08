@@ -12,3 +12,8 @@ vi.mock('mapbox-gl/dist/mapbox-gl', () => ({
     remove: vi.fn(),
   })),
 }));
+
+// jsdom has no media playback; these would only log "not implemented"
+HTMLMediaElement.prototype.load = vi.fn();
+HTMLMediaElement.prototype.play = vi.fn(() => Promise.resolve());
+HTMLMediaElement.prototype.pause = vi.fn();

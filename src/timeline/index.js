@@ -1,33 +1,58 @@
 import store from '../store';
 
+// The drive's <video>, while it is on screen and has loaded, is the playback clock.
+// Without one (map view, before the video loads) playback runs off wall time.
+let video = null;
+
 /**
- * Get current playback offset
+ * @param {{ element: HTMLVideoElement, startOffset: number }} clock
+ */
+export function attachVideo(clock) {
+  video = clock;
+}
+
+export function detachVideo(clock) {
+  if (video === clock) {
+    video = null;
+  }
+}
+
+function clampToLoop(offset, loop) {
+  if (offset === null || !loop?.startTime) {
+    return offset;
+  }
+  if (offset < loop.startTime) {
+    return loop.startTime;
+  }
+  if (offset > loop.startTime + loop.duration) {
+    return ((offset - loop.startTime) % loop.duration) + loop.startTime;
+  }
+  return offset;
+}
+
+/**
+ * Where the store says playback is: the last seek or play/pause, advanced by wall time.
  *
  * @param {object} state
  * @returns {number}
  */
-export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
-  }
-
-  /** @type {number} */
-  let offset;
+export function storeOffset(state) {
   if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+    return state.loop.startTime;
   }
+  const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
+  return clampToLoop(state.offset + ((Date.now() - state.startTime) * playSpeed), state.loop);
+}
 
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
+/**
+ * Get current playback offset in ms from the start of the drive.
+ *
+ * @param {object} state
+ * @returns {number}
+ */
+export function currentOffset(state = store.getState()) {
+  if (video) {
+    return clampToLoop((video.element.currentTime * 1000) + video.startOffset, state.loop);
   }
-  return offset;
+  return storeOffset(state);
 }

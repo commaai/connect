@@ -64,6 +64,8 @@ export default defineConfig(({ mode }) => {
       process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),
     optimizeDeps: {
+      // only reached through a dynamic import, so vite would discover it late and reload
+      include: ['hls.js/light'],
       esbuildOptions: {
         // Node.js global to browser globalThis
         // Required for Material UI v1
