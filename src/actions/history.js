@@ -46,7 +46,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
     if (previousDongleId) webrtcConnectionManager.disconnect();
     dispatch(loadDevice(state.dongleId));
     dispatch(checkLastRoutesData());
-  } else if (state.selectedRouteId && !state.currentRoute) {
+  } else if (!state.currentRoute) {
     dispatch(checkRoutesData());
   }
 

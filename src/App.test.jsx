@@ -323,6 +323,13 @@ describe('whole-app behavior', () => {
     expect(routeRequests()).toBe(before);
   });
 
+  test('closing a drive opened by link loads the drive list', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
   test('a modal opened in the app has a URL and closes back through history', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     fireEvent.click(await screen.findByRole('button', { name: 'Filter' }));
