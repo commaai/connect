@@ -29,6 +29,30 @@ export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
+    case Types.ACTION_APPLY_DESTINATION: {
+      const { page, dongleId = null } = action.destination;
+
+      const deviceChanged = state.dongleId !== dongleId;
+      if (deviceChanged) {
+        state.device = state.devices?.find((device) => device.dongle_id === dongleId) ?? null;
+        state.filter = getDefaultFilter();
+        state.subscription = null;
+        state.subscribeInfo = null;
+        state.files = null;
+        state.routes = null;
+        state.lastRoutes = null;
+        state.currentRoute = null;
+        state.routesMeta = { dongleId: null, start: null, end: null };
+        state.limit = 0;
+      }
+
+      if (page === 'prime' && !state.primeNav) state.zoom = null;
+
+      state.dongleId = dongleId;
+      state.primeNav = page === 'prime';
+      state.streamNav = page === 'stream';
+      break;
+    }
     case Types.ACTION_STARTUP_DATA: {
       const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
 
