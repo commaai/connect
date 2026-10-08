@@ -73,7 +73,9 @@ function useHlsErrors(hls, onError) {
     }
 
     const handleError = (_, data) => {
-      if (!data.fatal) {
+      const isMissingSegment = data.response?.code === 404;
+      const isReportable = data.fatal || isMissingSegment;
+      if (!isReportable) {
         return;
       }
       onError?.({ kind: hlsErrorKind(data), cause: data });
