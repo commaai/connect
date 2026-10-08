@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import { athena as Athena } from '../api';
 import { api } from '../api/backend';
 
-import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
+import { updateDeviceOnline, fetchDeviceNetworkStatus, deviceUnreachable } from '.';
 import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
@@ -45,8 +45,7 @@ async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) 
       await asyncSleep(2000);
       return athenaCall(dongleId, payload, sentryFingerprint, retryCount + 1);
     }
-    if (err.message && (err.message.indexOf('Timed out') === -1
-      || err.message.indexOf('Device not registered') === -1)) {
+    if (deviceUnreachable(err)) {
       return { offline: true };
     }
     console.error(err);

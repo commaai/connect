@@ -385,6 +385,11 @@ export function updateDeviceOnline(dongleId, lastAthenaPing) {
   };
 }
 
+export function deviceUnreachable(err) {
+  return Boolean(err.message?.includes('Timed out')
+    || err.message?.includes('Device not registered'));
+}
+
 export function fetchDeviceNetworkStatus(dongleId) {
   return async (dispatch, getState) => {
     const device = getDeviceFromState(getState(), dongleId);
@@ -405,7 +410,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
           dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
-        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
+        if (deviceUnreachable(err)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
           console.error(err);
@@ -430,7 +435,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
           dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
-        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
+        if (deviceUnreachable(err)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
           console.error(err);
