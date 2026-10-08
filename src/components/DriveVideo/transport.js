@@ -2,7 +2,7 @@ import { parseQcameraPlaylist } from '../../timeline/videoTime';
 
 const MISSING_VIDEO = 'This video segment has not uploaded yet or has been deleted.';
 
-export function attachSource(video, { src, onStatus = () => {}, onManifest, onAudio, onTimeline, fetchPlaylist = fetch, loadHls = () => import('hls.js') }) {
+export function attachSource(video, { src, onStatus = () => {}, onManifest, onAudio, onTimeline, onReady, fetchPlaylist = fetch, loadHls = () => import('hls.js') }) {
   let alive = true;
   let generation = 0;
   let hls;
@@ -33,6 +33,7 @@ export function attachSource(video, { src, onStatus = () => {}, onManifest, onAu
   const waiting = () => { if (!status.error && !status.blocked) report({ loading: true }); };
   const ready = event => {
     if (status.error || (status.blocked && event.type !== 'playing')) return;
+    if (video.buffered?.length) onReady?.();
     if (event.type === 'playing') { initialLoad = false; clearTimeout(timeout); timeout = null; }
     if (video.audioTracks) onAudio?.(video.audioTracks.length > 0);
     report({ loading: false, error: null, blocked: false });
@@ -120,6 +121,9 @@ export function attachSource(video, { src, onStatus = () => {}, onManifest, onAu
       });
       player.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
         if (alive && visit === generation) onManifest?.(data.details.fragments.map(({ url, duration, start: time, sn }) => ({ url, duration, start: time, sn })));
+      });
+      player.on(Hls.Events.FRAG_BUFFERED, () => {
+        if (alive && visit === generation && !status.error && video.buffered?.length) onReady?.();
       });
       player.on(Hls.Events.BUFFER_CODECS, (_event, data) => {
         if (alive && visit === generation) onAudio?.(Boolean(data.audio));

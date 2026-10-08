@@ -9,7 +9,7 @@ function media(native = false) {
 function engine() {
   let player;
   class Hls {
-    static Events = { ERROR: 'error', LEVEL_LOADED: 'manifest', BUFFER_CODECS: 'audio' };
+    static Events = { ERROR: 'error', LEVEL_LOADED: 'manifest', BUFFER_CODECS: 'audio', FRAG_BUFFERED: 'buffered' };
     static isSupported = () => true;
     constructor() { player = this; this.handlers = {}; }
     on(event, fn) { this.handlers[event] = fn; }
@@ -150,4 +150,19 @@ it('retires native audio and the old source after removing status callbacks', ()
   expect(video.removeAttribute).toHaveBeenCalledWith('src');
   expect(video.load).toHaveBeenCalledTimes(2);
   expect(onStatus).not.toHaveBeenCalled();
+});
+it('signals seek readiness only after the MSE first fragment is buffered', async () => {
+  const sdk = engine(); const video = media(); const onReady = vi.fn();
+  video.buffered = { length: 0 };
+  const source = attachSource(video, { src: 'clip', onReady, loadHls: async () => ({ default: sdk.Hls }) });
+  await vi.waitFor(() => expect(sdk.player).toBeDefined());
+  video.dispatchEvent(new Event('loadedmetadata'));
+  video.dispatchEvent(new Event('canplay'));
+  sdk.player.handlers.buffered();
+  expect(onReady).not.toHaveBeenCalled();
+  video.buffered.length = 1;
+  sdk.player.handlers.buffered();
+  expect(onReady).toHaveBeenCalledOnce();
+  source.destroy(); sdk.player.handlers.buffered();
+  expect(onReady).toHaveBeenCalledOnce();
 });
