@@ -77,12 +77,12 @@ const DriveList = (props) => {
   }
 
   // we clean up routes during data fetching, fallback to using lastRoutes to display current data
-  const displayRoutes = routes || lastRoutes;
+  let displayRoutes = routes || lastRoutes;
   if (displayRoutes && displayRoutes.length){
     // sort routes by start_time_utc_millis with the latest drive first
     // Workaround upstream sorting issue for now
     // possibly from https://github.com/commaai/connect/issues/451
-    displayRoutes.sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis);
+    displayRoutes = [...displayRoutes].sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis);
     const routesSize = displayRoutes.length
 
     content = (

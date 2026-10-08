@@ -21,6 +21,7 @@ export function createInitialState() {
     lastRoutes: null,
     urlRange: null,
     selectedRouteId: null,
+    missingRouteId: null,
 
     profile: null,
     devices: null,
@@ -28,8 +29,8 @@ export function createInitialState() {
 
     primeNav: false,
     streamNav: false,
-    settingsNav: false,
     referralsNav: false,
+    modal: null,
     subscription: null,
     subscribeInfo: null,
 

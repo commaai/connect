@@ -55,7 +55,7 @@ class App extends Component {
 
     // Select the API backend once during startup: /demo gets the demo backend,
     // everything else the real backend.
-    initBackend();
+    initBackend(history.location.pathname);
 
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {

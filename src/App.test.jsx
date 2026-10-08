@@ -244,7 +244,7 @@ describe('whole-app behavior', () => {
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${encodeURIComponent(pathname)}`));
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {
@@ -297,10 +297,28 @@ describe('whole-app behavior', () => {
     fireEvent.pointerDown(timeline, { button: 0, clientX: 200, pageX: 200 });
     fireEvent.pointerMove(document, { clientX: 700, pageX: 700 });
     fireEvent.pointerUp(document, { button: 0, clientX: 700, pageX: 700 });
-    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
+    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/[\\d.]+/[\\d.]+$`)));
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    // the drive view must actually unmount — the dashboard list shows again
+    await waitFor(() => expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument());
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('a settings query param opens the modal over the dashboard', async () => {
+    await renderApp(`/${FIRST}?modal=settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('closing an in-app settings modal pops back to the page', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push({ pathname: `/${FIRST}`, search: '?modal=settings', state: { modalParent: true } }));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
   });
 });

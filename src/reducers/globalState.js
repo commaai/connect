@@ -54,7 +54,7 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_APPLY_DESTINATION: {
-      const { dongleId, page, drive } = action.destination;
+      const { dongleId, page, drive, modal, modalDevice } = action.destination;
       const deviceChanged = state.dongleId !== dongleId;
       const routeChanged = !!drive && state.selectedRouteId !== drive.logId;
       const prevLoop = state.loop;
@@ -62,8 +62,8 @@ export default function reducer(_state, action) {
       state.deviceNotFound = false;
       state.primeNav = page === 'prime';
       state.streamNav = page === 'stream';
-      state.settingsNav = page === 'settings';
       state.referralsNav = page === 'referrals';
+      state.modal = modal ? { name: modal, dongleId: modalDevice ?? dongleId } : null;
       if (deviceChanged) {
         state.device = state.devices?.find((device) => device.dongle_id === dongleId) || null;
         state.subscription = null;
@@ -82,14 +82,31 @@ export default function reducer(_state, action) {
 
       // state.urlRange mirrors what the URL describes; state.zoom is the
       // resolved millisecond range and keeps its drill history in .previous.
-      // Drive view state (zoom, files, currentRoute) survives page navigation
-      // on the same device so going back to a drive reuses the loaded view.
       state.urlRange = drive ? { logId: drive.logId, start: drive.start, end: drive.end } : null;
-      if (drive) {
-        const route = state.routes?.find((candidate) => candidate.log_id === drive.logId);
+      state.missingRouteId = null;
+      if (!drive) {
+        // a non-drive URL names no route — the open drive goes away
+        state.selectedRouteId = null;
+        state.currentRoute = null;
+        state.zoom = null;
+        state.loop = null;
+        state.files = null;
+      } else {
+        // keep the resolved route across list refreshes that lack it
+        const route = state.routes?.find((candidate) => candidate.log_id === drive.logId)
+          || (state.currentRoute?.log_id === drive.logId ? state.currentRoute : null);
         const routeFrame = route ? { start: 0, end: route.duration } : null;
-        const newStart = drive.start ?? 0;
-        const newEnd = drive.end ?? routeFrame?.end ?? null;
+        let newStart = drive.start ?? 0;
+        let newEnd = drive.end ?? routeFrame?.end ?? null;
+        if (routeFrame) {
+          // a URL can name a range past the drive's end; clamp it
+          if (newStart >= routeFrame.end) {
+            newStart = 0;
+            newEnd = routeFrame.end;
+          } else {
+            newEnd = Math.min(newEnd ?? routeFrame.end, routeFrame.end);
+          }
+        }
         state.selectedRouteId = drive.logId;
         state.currentRoute = route || null;
         if (routeChanged) state.files = null;
@@ -99,10 +116,14 @@ export default function reducer(_state, action) {
         } else {
           const prevZoom = state.zoom;
           const sameBounds = prevZoom?.start === newStart && prevZoom?.end === newEnd;
-          const isPop = prevZoom?.previous?.start === newStart && prevZoom?.previous?.end === newEnd;
+          // a pop may land deeper than one level; walk the whole chain so the
+          // ancestor frame is restored with its own history intact
+          let ancestor = routeChanged ? null : prevZoom;
+          while (ancestor && (ancestor.start !== newStart || ancestor.end !== newEnd)) {
+            ancestor = ancestor.previous;
+          }
           state.zoom = sameBounds ? prevZoom
-            : isPop ? prevZoom.previous
-            : {
+            : ancestor ?? {
               start: newStart,
               end: newEnd,
               previous: prevZoom && !routeChanged && newStart >= prevZoom.start && newEnd <= prevZoom.end
@@ -114,8 +135,9 @@ export default function reducer(_state, action) {
 
       if (state.loop && (routeChanged
         || prevLoop?.startTime !== state.loop.startTime || prevLoop?.duration !== state.loop.duration)) {
-        // the URL moved playback to a new range; restart it at the range start
-        state.desiredPlaySpeed = 1;
+        // the URL moved playback to a new range; restart at the range start.
+        // speed only resets when the route itself changes.
+        if (routeChanged) state.desiredPlaySpeed = 1;
         state.isBufferingVideo = true;
         state.offset = state.loop.startTime;
         state.startTime = Date.now();
@@ -359,18 +381,22 @@ export default function reducer(_state, action) {
       };
       break;
     case Types.ACTION_FILES_URLS:
+      if (action.dongleId !== state.dongleId) break;
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
         ...action.urls,
       };
       break;
     case Types.ACTION_FILES_UPDATE:
+      if (action.dongleId !== state.dongleId) break;
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
         ...action.files,
       };
       break;
     case Types.ACTION_FILES_UPLOADING:
+      if (action.dongleId !== state.dongleId
+          && state.modal?.dongleId !== action.dongleId) break;
       state.filesUploading = action.uploading;
       state.filesUploadingMeta = {
         dongleId: action.dongleId,
@@ -384,47 +410,55 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.ACTION_FILES_CANCELLED_UPLOADS:
+      if (action.dongleId !== state.dongleId
+          && state.modal?.dongleId !== action.dongleId) break;
       if (state.files) {
-        const cancelFileNames = Object.keys(state.filesUploading)
+        const cancelFileNames = Object.keys(state.filesUploading || {})
           .filter((id) => action.ids.includes(id))
           .map((id) => state.filesUploading[id].fileName);
         state.files = Object.keys(state.files)
           .filter((fileName) => !cancelFileNames.includes(fileName))
           .reduce((obj, fileName) => { obj[fileName] = state.files[fileName]; return obj; }, {});
       }
-      state.filesUploading = Object.keys(state.filesUploading)
+      state.filesUploading = Object.keys(state.filesUploading || {})
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
-      // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
-        return {
-          ...existingRoute,
-          ...route,
-        }
+    case Types.ACTION_ROUTES_METADATA: {
+      // merge existing routes' event and location info into incoming routes
+      const incoming = action.routes.map((route) => {
+        const existingRoute = (state.routes || state.lastRoutes || [])
+          .find((r) => r.fullname === route.fullname) || {};
+        return { ...existingRoute, ...route };
       });
-      state.routesMeta = {
-        dongleId: action.dongleId,
-        start: action.start,
-        end: action.end,
-      };
+      if (action.logId) {
+        // a drive-scoped fetch augments the cached list; it never replaces it
+        // or claims to cover the filter range
+        const known = new Map((state.routes || []).map((r) => [r.fullname, r]));
+        incoming.forEach((route) => known.set(route.fullname, route));
+        state.routes = [...known.values()];
+        state.missingRouteId = incoming.length ? null : action.logId;
+      } else {
+        state.routes = incoming;
+        state.routesMeta = {
+          dongleId: action.dongleId,
+          start: action.start,
+          end: action.end,
+        };
+      }
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
         if (curr) {
           state.currentRoute = {
             ...curr,
           };
-          if (!state.zoom) {
-            state.zoom = {
-              start: 0,
-              end: state.currentRoute.duration,
-            };
-          }
-
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
+          state.missingRouteId = null;
+          if (!state.zoom || state.zoom.start >= curr.duration || state.zoom.end > curr.duration) {
+            // the url range predates the route's resolved duration; clamp it,
+            // and rebuild the loop so it mirrors the zoom it describes
+            const zoomStart = Math.min(state.zoom?.start ?? 0, curr.duration);
+            const zoomEnd = Math.min(state.zoom?.end ?? curr.duration, curr.duration);
+            state.zoom = zoomStart < zoomEnd ? { start: zoomStart, end: zoomEnd } : { start: 0, end: curr.duration };
             state.loop = {
               startTime: state.zoom.start,
               duration: state.zoom.end - state.zoom.start,
@@ -433,6 +467,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }

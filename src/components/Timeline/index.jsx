@@ -267,6 +267,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
+      if (startOffset >= endOffset) return; // a rounded-equal drag has no range
       const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));

@@ -156,6 +156,12 @@ class AddDevice extends Component {
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
+        if (!this.state.modalOpen || !this.videoRef) {
+          // the modal closed while the camera was starting — release it
+          this.stream.getTracks().forEach((track) => track.stop());
+          this.stream = null;
+          return;
+        }
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();

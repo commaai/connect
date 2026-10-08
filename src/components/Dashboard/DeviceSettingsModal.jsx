@@ -129,6 +129,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -148,6 +149,11 @@ class DeviceSettingsModal extends Component {
         ...initialState,
         deviceAlias: alias,
       });
+    } else if (prevProps.device?.alias !== this.props.device?.alias
+        && this.state.deviceAlias === (prevProps.device?.alias || '')) {
+      // the device's details arrived after the modal opened; fill the alias
+      // unless the user already typed over it
+      this.setState({ deviceAlias: this.props.device?.alias || '' });
     }
   }
 
@@ -255,23 +261,34 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
-    const commacare = device?.commacare;
-    if (!device) {
+    const { classes, device, isOpen, profile, devicesLoaded } = this.props;
+    if (!isOpen || (!device && !devicesLoaded)) {
       return null;
     }
+    if (!device || !(device.is_owner || profile?.superuser)) {
+      // settings deep links can't open the owner UI on a device the viewer
+      // doesn't own
+      return (
+        <Modal open onClose={this.props.onClose}>
+          <Paper className={classes.modal}>
+            <Typography variant="title">No access</Typography>
+          </Paper>
+        </Modal>
+      );
+    }
+    const commacare = device?.commacare;
 
     return (
       <>
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
+          open={isOpen}
           onClose={this.props.onClose}
         >
           <Paper className={classes.modal}>
             <div className={ classes.titleContainer }>
-              <Typography variant="title">
+              <Typography variant="title" id="device-settings-modal">
                 Device settings
               </Typography>
               <Typography variant="caption">
@@ -432,10 +449,12 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
-    subscription: state.subscription,
+    subscription: ownProps.dongleId === state.dongleId ? state.subscription : null,
+    profile: state.profile,
+    devicesLoaded: state.devices !== null,
     device,
   };
 };

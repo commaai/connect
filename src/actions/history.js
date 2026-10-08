@@ -5,9 +5,9 @@ import { DEMO_DONGLE_ID } from '../api/demo';
 import { destinationFromUrl } from '../url';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import * as Types from './types';
+import { hasRoutesData } from '../timeline/segments';
 import {
   checkRoutesData,
-  checkLastRoutesData,
   fetchDeviceOnline,
   primeFetchSubscription,
 } from './index';
@@ -21,10 +21,12 @@ const dashboard = { dongleId: null, page: 'dashboard', drive: null };
 
 const stateMatches = (state, destination) => {
   if (state.dongleId !== destination.dongleId) return false;
-  const navOpen = state.primeNav || state.streamNav || state.settingsNav || state.referralsNav;
+  if ((state.modal?.name ?? null) !== (destination.modal ?? null)) return false;
+  if ((state.modal?.dongleId ?? null)
+      !== (destination.modal ? destination.modalDevice ?? destination.dongleId : null)) return false;
+  const navOpen = state.primeNav || state.streamNav || state.referralsNav;
   if (destination.page === 'prime') return state.primeNav;
   if (destination.page === 'stream') return state.streamNav;
-  if (destination.page === 'settings') return state.settingsNav;
   if (destination.page === 'referrals') return state.referralsNav;
   if (destination.drive) {
     return !navOpen
@@ -57,17 +59,27 @@ const loadStartupData = () => {
   return startupRequest;
 };
 
+// Monotonic token: only the newest location change's async completions may
+// apply state. Stronger than comparing pathnames — a re-visit to the same URL
+// also supersedes earlier visits' pending work.
+let navToken = 0;
+
 // One function owns the whole url -> state mapping. Every location change,
 // whether PUSH, POP, or REPLACE, resolves through this so state always
 // converges to whatever the URL describes.
-export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
-  const destination = destinationFromUrl(pathname);
-  const isCurrent = () => getState().router.location.pathname === pathname;
+export const syncStateFromUrl = (loc) => async (dispatch, getState) => {
+  const location = typeof loc === 'string' ? { pathname: loc, search: '', hash: '' } : loc;
+  const visit = (navToken += 1);
+  const isCurrent = () => navToken === visit
+    && getState().router.location.pathname === location.pathname;
+  const destination = destinationFromUrl(location);
+
+  if (destination.kind === 'auth') return;
 
   const authenticated = api.auth.isAuthenticated();
   // Unauthenticated sessions can only resolve public drive links; App renders
   // the login wall for everything else.
-  if (!authenticated && destination.kind !== 'drive' && destination.kind !== 'legacy') return;
+  if (!authenticated && !['drive', 'legacy', 'demo'].includes(destination.kind)) return;
 
   let startupDevices = null;
   if (authenticated && getState().devices === null) {
@@ -90,7 +102,8 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
       dispatch(applyDestination(dashboard));
       return;
     }
-    dispatch(replace(`/${device.dongle_id}`));
+    // carry query/hash forward: /?modal=settings survives the device pick
+    dispatch(replace({ ...location, pathname: `/${device.dongle_id}` }));
     return;
   }
 
@@ -100,7 +113,21 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   }
 
   if (destination.kind === 'referrals') {
-    dispatch(applyDestination({ dongleId: getState().dongleId, page: 'referrals', drive: null }));
+    dispatch(applyDestination({
+      dongleId: getState().dongleId,
+      page: 'referrals',
+      drive: null,
+      modal: destination.modal,
+      modalDevice: destination.modalDevice,
+    }));
+    return;
+  }
+
+  if (destination.kind === 'settings') {
+    // legacy form: canonicalize /{d}/settings to /{d}?modal=settings
+    const params = new URLSearchParams(location.search || '');
+    params.set('modal', 'settings');
+    dispatch(replace({ pathname: `/${destination.dongleId}`, search: `?${params.toString()}`, hash: location.hash }));
     return;
   }
 
@@ -139,9 +166,10 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
         const routeStart = route.start_time_utc_millis;
         const routeEnd = routeStart + route.duration;
         const ranged = destination.start > routeStart || destination.end < routeEnd;
-        dispatch(replace(ranged
-          ? `/${dongleId}/${logId}/${Math.floor((destination.start - routeStart) / 1000)}/${Math.ceil((destination.end - routeStart) / 1000)}`
-          : `/${dongleId}/${logId}`));
+        const pathname = ranged
+          ? `/${dongleId}/${logId}/${(destination.start - routeStart) / 1000}/${(destination.end - routeStart) / 1000}`
+          : `/${dongleId}/${logId}`;
+        dispatch(replace({ ...location, pathname }));
         return;
       }
     } catch (err) {
@@ -154,8 +182,10 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
 
   const next = {
     dongleId,
-    page: destination.kind === 'demo' ? 'dashboard' : destination.kind,
+    page: { demo: 'dashboard' }[destination.kind] ?? destination.kind,
     drive: destination.drive ?? null,
+    modal: destination.modal,
+    modalDevice: destination.modal ? destination.modalDevice ?? dongleId : undefined,
   };
   if (!stateMatches(getState(), next)) {
     // TODO: write better redux and move this out
@@ -172,7 +202,9 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
         dispatch(fetchDeviceOnline(dongleId));
         dispatch(primeFetchSubscription(dongleId, device, profile));
       }
-      if (next.page === 'dashboard' && getState().routes == null) dispatch(checkLastRoutesData());
+      // a deep-linked drive may have merged a single route into the list
+      // without filling routesMeta; the dashboard always verifies coverage
+      if (next.page === 'dashboard' && !hasRoutesData(getState())) dispatch(checkRoutesData());
     }
   } else if (deviceNotFound) {
     dispatch({ type: Types.ACTION_DEVICE_NOT_FOUND });
@@ -183,7 +215,7 @@ export function onHistoryMiddleware({ dispatch, getState }) {
   return (next) => (action) => {
     const result = next(action);
     if (action.type === LOCATION_CHANGE) {
-      dispatch(syncStateFromUrl(action.payload.location.pathname));
+      dispatch(syncStateFromUrl(action.payload.location));
     }
     return result;
   };

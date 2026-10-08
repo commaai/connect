@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router';
+import { push, replace, goBack } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -20,48 +20,66 @@ export function checkRoutesData() {
     if (!state.dongleId) {
       return;
     }
-    const routeMissing = state.selectedRouteId
-      && !state.routes?.some((route) => route.log_id === state.selectedRouteId);
+    const selectedRouteId = state.selectedRouteId;
+    const routeMissing = selectedRouteId
+      && !state.routes?.some((route) => route.log_id === selectedRouteId);
+    if (selectedRouteId && !routeMissing) {
+      // a drive page only needs its own route
+      return;
+    }
     if (!routeMissing && hasRoutesData(state)) {
       // already has metadata, don't bother
       return;
     }
-    if (routesRequest && routesRequest.dongleId === state.dongleId) {
-      // there is already an pending request
+    if (routesRequest && routesRequest.dongleId === state.dongleId
+        && routesRequest.routeId === (selectedRouteId ?? null)) {
+      // there is already an pending request for the same scope
       return routesRequestPromise;
     }
     console.debug('We need to update the segment metadata...');
-    const { dongleId, limit: fetchLimit } = state;
+    const { dongleId } = state;
+    let fetchLimit = state.limit;
+    if (!fetchLimit) {
+      // first fetch asks for a page, like checkLastRoutesData's initial bump did
+      fetchLimit = LIMIT_INCREMENT;
+      dispatch({ type: Types.ACTION_UPDATE_ROUTE_LIMIT, limit: fetchLimit });
+    }
     const fetchRange = state.filter;
 
     // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.selectedRouteId) {
+    if (selectedRouteId) {
       routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
+        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${selectedRouteId}`),
         dongleId,
+        routeId: selectedRouteId,
       };
     } else {
       routesRequest = {
         req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit),
         dongleId,
+        routeId: null,
       };
     }
 
+    const request = routesRequest;
     routesRequestPromise = routesRequest.req.then((routesData) => {
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.limit !== fetchLimit
-        || state.dongleId !== dongleId) {
-        routesRequest = null;
+        || state.dongleId !== dongleId
+        || state.selectedRouteId !== selectedRouteId) {
+        if (routesRequest === request) routesRequest = null;
         dispatch(checkRoutesData());
         return;
       }
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
-        routesRequest = null;
-        hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
+        if (routesRequest === request) routesRequest = null;
+        const target = state.router?.location;
+        const path = target ? `${target.pathname}${target.search || ''}${target.hash || ''}` : currentPathname(state);
+        hardNavigate(`/?r=${encodeURIComponent(path)}`); // redirect to login
         return;
       }
 
@@ -99,20 +117,21 @@ export function checkRoutesData() {
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
-        // a route-scoped response doesn't cover the filter range; leave the
-        // meta empty so the list fills in on the next checkRoutesData call
-        start: state.selectedRouteId ? null : fetchRange.start,
-        end: state.selectedRouteId ? null : fetchRange.end,
+        // a route-scoped response augments the cached list without claiming
+        // to cover the filter range
+        logId: selectedRouteId ?? null,
+        start: fetchRange.start,
+        end: fetchRange.end,
         routes,
       });
 
-      routesRequest = null;
+      if (routesRequest === request) routesRequest = null;
 
       return routes
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
+      if (routesRequest === request) routesRequest = null;
     });
 
     return routesRequestPromise
@@ -149,10 +168,60 @@ export function checkLastRoutesData() {
 // destination to state atomically. Nav actions stay pure url -> history writes.
 export function navigateTo(destination) {
   return (dispatch, getState) => {
-    const desiredPath = urlForDestination(destination);
-    if (currentPathname(getState()) !== desiredPath) {
-      dispatch(push(desiredPath));
+    const location = getState().router?.location;
+    let desiredUrl = urlForDestination(destination);
+    if (location?.search) {
+      // carry unmanaged params (?ci=1, utm, ...) through real navigation;
+      // modal/device belong to the destination so they're dropped here
+      const params = new URLSearchParams(location.search);
+      params.delete('modal');
+      params.delete('device');
+      const extra = params.toString();
+      if (extra) desiredUrl += `${desiredUrl.includes('?') ? '&' : '?'}${extra}`;
     }
+    const currentUrl = location
+      ? `${location.pathname}${location.search || ''}`
+      : `${window.location.pathname}${window.location.search}`;
+    if (currentUrl !== desiredUrl) {
+      dispatch(push(desiredUrl));
+    }
+  };
+}
+
+// Modals live in the query string, so the page underneath — including an
+// open drive's range — is untouched. Opening in-app pushes an entry marked
+// modalParent so closeModal can goBack; a cold link closes in place instead.
+export function openModal(name, dongleId) {
+  return (dispatch, getState) => {
+    const { location } = getState().router;
+    const params = new URLSearchParams(location.search || '');
+    params.set('modal', name);
+    if (dongleId) params.set('device', dongleId);
+    dispatch(push({
+      pathname: location.pathname,
+      search: `?${params.toString()}`,
+      hash: location.hash,
+      state: { modalParent: true },
+    }));
+  };
+}
+
+export function closeModal() {
+  return (dispatch, getState) => {
+    const { location } = getState().router;
+    if (location.state?.modalParent) {
+      dispatch(goBack());
+      return;
+    }
+    const params = new URLSearchParams(location.search || '');
+    params.delete('modal');
+    params.delete('device');
+    const search = params.toString();
+    dispatch(replace({
+      pathname: location.pathname,
+      search: search ? `?${search}` : '',
+      hash: location.hash,
+    }));
   };
 }
 

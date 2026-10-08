@@ -32,12 +32,15 @@ class DriveView extends Component {
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dongleId, zoom, currentRoute, missingRouteId, selectedRouteId } = this.props;
 
     if (!currentRoute) {
+      // missingRouteId is only set once the route-scoped fetch came back
+      // empty; until then we're honestly still loading
+      const missing = missingRouteId && missingRouteId === selectedRouteId;
       return (
         <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+          <Typography>{missing ? 'Route does not exist.' : 'Loading...'}</Typography>
         </div>
       );
     }
@@ -86,9 +89,7 @@ class DriveView extends Component {
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
           <div className='px-3 pb-3 md:px-8 md:pb-8'>
-            {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
-              : <Media />}
+            <Media key={currentRoute.fullname} />
           </div>
         </div>
       </div>
@@ -98,7 +99,8 @@ class DriveView extends Component {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  routes: state.routes,
+  selectedRouteId: state.selectedRouteId,
+  missingRouteId: state.missingRouteId,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
 });

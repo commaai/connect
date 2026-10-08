@@ -7,14 +7,13 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
-import { updateDevices, navigateTo } from '../../actions';
+import { updateDevices, openModal } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
 
 const styles = (theme) => ({
   deviceList: {
@@ -90,18 +89,15 @@ class DeviceList extends Component {
 
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
+  // Settings is a query overlay: it can open over any page (including a drive)
+  // and for a device other than the selected one, without switching context.
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.props.dispatch(navigateTo({ dongleId, page: 'settings', drive: null }));
-  }
-
-  handleClosedSettingsModal() {
-    this.props.dispatch(navigateTo({ dongleId: this.props.selectedDevice, page: 'dashboard', drive: null }));
+    this.props.dispatch(openModal('settings', dongleId));
   }
 
   async onVisible() {
@@ -144,6 +140,8 @@ class DeviceList extends Component {
           <IconButton
             className={classes.settingsButton}
             aria-label="device settings"
+            component="a"
+            href={ `${window.location.pathname}?modal=settings&device=${device.dongle_id}` }
             onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
           >
             <SettingsIcon className={classes.settingsButtonIcon} />
@@ -154,7 +152,7 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { classes, device, selectedDevice: dongleId, settingsNavOpen } = this.props;
+    const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
     if (devices === null) {
@@ -197,11 +195,6 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={settingsNavOpen}
-          dongleId={settingsNavOpen ? dongleId : null}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }
@@ -211,7 +204,6 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
-  settingsNavOpen: state.settingsNav,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

@@ -15,7 +15,7 @@ function getPageViewEventLocation(pathname) {
   }
   if (destination.kind === 'legacy'
     || (destination.kind === 'drive' && destination.drive?.start != null)) {
-    pageLocation = pageLocation.replace(/\/\d+\/\d+$/, '/<zoomStart>/<zoomEnd>');
+    pageLocation = pageLocation.replace(/\/\d+(\.\d+)?\/\d+(\.\d+)?$/, '/<zoomStart>/<zoomEnd>');
   }
 
   if (pageLocation.endsWith('/')) {
@@ -100,6 +100,8 @@ function logAction(action, prevState, state) {
   // eslint-disable-next-line default-case
   switch (action.type) {
     case LOCATION_CHANGE:
+      // opening or closing an overlay like ?modal=settings is not a new page
+      if (prevState.router?.location?.pathname === action.payload.location.pathname) return;
       gtag('event', 'page_view', {
         page_location: getPageViewEventLocation(action.payload.location.pathname),
       });

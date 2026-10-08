@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav, closeModal } from '../actions';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
@@ -23,6 +23,7 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 const styles = (theme) => ({
   app: {
@@ -190,8 +191,8 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dongleId, bodyTeleopOpen, selectedRouteId,
-      profile, referralsOpen,
+      classes, currentRoute, devices, dongleId, bodyTeleopOpen, viewingDrive,
+      profile, referralsOpen, modal,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -239,7 +240,12 @@ class ExplorerApp extends Component {
                 ? <Referrals profile={profile} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
+                : (viewingDrive ? <DriveView /> : <Dashboard />)}
+              <DeviceSettingsModal
+                isOpen={modal?.name === 'settings'}
+                dongleId={modal?.name === 'settings' ? modal.dongleId : null}
+                onClose={this.props.closeModal}
+              />
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -273,10 +279,16 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
-  selectedRouteId: state.selectedRouteId,
+  viewingDrive: state.urlRange != null,
   bodyTeleopOpen: state.streamNav,
   referralsOpen: state.referralsNav,
   profile: state.profile,
+  modal: state.modal,
 });
 
-export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
+const dispatchToProps = (dispatch) => ({
+  dispatch,
+  closeModal: () => dispatch(closeModal()),
+});
+
+export default connect(stateToProps, dispatchToProps)(withStyles(styles)(ExplorerApp));
