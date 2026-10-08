@@ -161,7 +161,7 @@ class RouteVideo extends Component {
 
   config = {
     hlsVersion: '1.4.8',
-    hlsOptions: { maxBufferLength: 40, ...api.video.getHlsOptions?.(this.props.currentRoute) },
+    hlsOptions: { maxBufferLength: 40 },
     attributes: {
       onTimeUpdate: (event) => this.updateOffset(event.target),
       onSeeking: this.onSeeking,
