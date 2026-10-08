@@ -122,7 +122,7 @@ const initialState = {
   windowWidth: window.innerWidth,
 };
 
-class Navigation extends Component {
+export class Navigation extends Component {
   constructor(props) {
     super(props);
     this.mounted = null;
@@ -259,6 +259,7 @@ class Navigation extends Component {
   }
 
   onCarSelect(carLocation) {
+    const { dongleId } = this.props;
     this.focus();
 
     const [lng, lat] = carLocation.location;
@@ -290,7 +291,9 @@ class Navigation extends Component {
         return;
       }
 
-      this.setState((prevState) => ({
+      if (!this.mounted || this.props.dongleId !== dongleId) return;
+
+      this.setState((prevState) => (prevState.searchSelect === item ? {
         searchSelect: {
           ...prevState.searchSelect,
           address: {
@@ -298,7 +301,7 @@ class Navigation extends Component {
           },
           title: location.place,
         },
-      }));
+      } : null));
     });
   }
 
