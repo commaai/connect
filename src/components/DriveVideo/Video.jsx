@@ -8,6 +8,7 @@ import { playsHlsNatively } from '../../utils/browser.js';
 const HLS_CONFIG = { maxBufferLength: 40, workerPath: hlsWorkerUrl };
 const HLS_ERROR = 'hlsError';
 const HLS_BUFFER_CODECS = 'hlsBufferCodecs';
+const HLS_FRAG_LOADED = 'hlsFragLoaded';
 
 function hlsErrorKind(data) {
   if (data.response?.code === 404) return 'not-found';
@@ -59,11 +60,21 @@ function useHls(video, src, startPosition, onError) {
   return hls;
 }
 
+function bufferedEnd(video) {
+  const { buffered, currentTime } = video;
+  for (let index = 0; index < buffered.length; index++) {
+    const containsPlayhead = buffered.start(index) <= currentTime && currentTime <= buffered.end(index);
+    if (containsPlayhead) return buffered.end(index);
+  }
+  return currentTime;
+}
+
 function useHlsErrors(hls, onError) {
   useEffect(() => {
     if (!hls) return undefined;
 
     const video = hls.media;
+    const missingFragments = new Map();
     let hasTriedRecovery = false;
     const recoverOrReport = (error) => {
       const canRecover = error.kind === 'media' && !hasTriedRecovery;
@@ -72,19 +83,43 @@ function useHlsErrors(hls, onError) {
       hls.recoverMediaError();
     };
 
+    const isMissingAtPlayhead = () => {
+      const playableUntil = bufferedEnd(video);
+      for (const fragment of missingFragments.values()) {
+        const startsWhereBufferEnds = fragment.start <= playableUntil + hls.config.maxBufferHole;
+        if (startsWhereBufferEnds && playableUntil < fragment.end) return true;
+      }
+      return false;
+    };
+    const reportMissingIfStalled = () => {
+      const isStarved = video.readyState < video.HAVE_FUTURE_DATA;
+      if (!isStarved || !isMissingAtPlayhead()) return;
+      onError?.({ kind: 'not-found' });
+    };
+
     const handleHlsError = (_, data) => {
       const kind = hlsErrorKind(data);
-      const isReportable = data.fatal || kind === 'not-found';
-      if (!isReportable) return;
-      recoverOrReport({ kind, cause: data });
+      if (data.fatal) return recoverOrReport({ kind, cause: data });
+      const isMissingFragment = kind === 'not-found' && data.frag;
+      if (!isMissingFragment) return;
+      missingFragments.set(data.frag.sn, data.frag);
+      reportMissingIfStalled();
     };
+    const handleFragLoaded = (_, data) => missingFragments.delete(data.frag.sn);
+    const handleSeeking = () => missingFragments.clear();
     const handleMediaError = () => recoverOrReport({ kind: mediaErrorKind(video.error), cause: video.error });
 
     hls.on(HLS_ERROR, handleHlsError);
+    hls.on(HLS_FRAG_LOADED, handleFragLoaded);
     video.addEventListener('error', handleMediaError);
+    video.addEventListener('waiting', reportMissingIfStalled);
+    video.addEventListener('seeking', handleSeeking);
     return () => {
       hls.off(HLS_ERROR, handleHlsError);
+      hls.off(HLS_FRAG_LOADED, handleFragLoaded);
       video.removeEventListener('error', handleMediaError);
+      video.removeEventListener('waiting', reportMissingIfStalled);
+      video.removeEventListener('seeking', handleSeeking);
     };
   }, [hls, onError]);
 }
