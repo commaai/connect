@@ -4,7 +4,12 @@ import { createMediaFixture } from './media-fixture';
 test.use({ media: true, fault: true });
 test.beforeAll(() => createMediaFixture());
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, info) => {
+  info.mediaFailures = [];
+  page.on('requestfailed', request => info.mediaFailures.push({ url: request.url(), failure: request.failure() }));
+  page.on('console', message => {
+    if (message.type() === 'error') info.mediaFailures.push({ text: message.text(), location: message.location() });
+  });
   await page.addInitScript(() => {
     window.mediaEvents = [];
     for (const name of ['loadedmetadata', 'canplay', 'playing', 'pause', 'seeking', 'seeked', 'waiting', 'error', 'ended']) {
@@ -20,6 +25,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.afterEach(async ({ page, browser }, info) => {
+  if (info.mediaFailures.length) {
+    console.log('Playback resource diagnostics:', JSON.stringify(info.mediaFailures));
+    await info.attach('media-resource-failures', { body: JSON.stringify(info.mediaFailures, null, 2), contentType: 'application/json' });
+  }
   if (info.status === info.expectedStatus || page.isClosed()) return;
   const state = await page.evaluate(() => {
     const video = document.querySelector('video[aria-label="Drive video"]') || document.createElement('video');
