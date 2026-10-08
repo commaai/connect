@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -19,6 +20,7 @@ import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
+import { routeModalUrl } from '../../url';
 
 const styles = (theme) => ({
   modal: {
@@ -115,12 +117,10 @@ const initialState = {
   loadingDeviceShare: false,
   hasSavedAlias: false,
   shareEmail: '',
-  unpairConfirm: false,
   unpaired: false,
   loadingUnpair: false,
   error: null,
   unpairError: null,
-  uploadModal: false,
 };
 
 class DeviceSettingsModal extends Component {
@@ -254,7 +254,7 @@ class DeviceSettingsModal extends Component {
     if (this.state.unpaired) {
       window.location = window.location.origin;
     } else {
-      this.setState({ unpairConfirm: false });
+      this.props.onClose();
     }
   }
 
@@ -290,7 +290,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ unpairConfirm: true }) }
+                onClick={ () => this.props.dispatch(push(routeModalUrl(this.props.routeLocation, 'unpair', this.props.dongleId))) }
               >
                 Unpair
               </Button>
@@ -299,7 +299,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.props.dispatch(push(routeModalUrl(this.props.routeLocation, 'upload-queue', this.props.dongleId))) }
               >
                 Uploads
               </Button>
@@ -362,7 +362,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.state.unpairConfirm}
+          open={this.props.routeModal === 'unpair'}
           onClose={ this.closeUnpair }
         >
           <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
@@ -425,9 +425,9 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          open={ this.props.routeModal === 'upload-queue' }
+          update={ this.props.routeModal === 'upload-queue' }
+          onClose={ this.props.onClose }
           device={ device }
         />
       </>
@@ -436,12 +436,13 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
     device,
     globalDongleId: state.dongleId,
+    routeLocation: state.router.location,
   };
 };
 
