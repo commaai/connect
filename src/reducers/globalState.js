@@ -417,15 +417,13 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
+    case Types.ACTION_ROUTES_METADATA: {
       // merge existing routes' event and location info with new routes
+      const previousRoutes = new Map((state.routes || state.lastRoutes || [])
+        .map((route) => [route.fullname, route]));
       state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
-        return {
-          ...existingRoute,
-          ...route,
-        }
+        const existingRoute = previousRoutes.get(route.fullname);
+        return existingRoute === route ? route : { ...existingRoute, ...route };
       });
       state.routesMeta = {
         dongleId: action.dongleId,
@@ -454,6 +452,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }
