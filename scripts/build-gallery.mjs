@@ -12,6 +12,7 @@ import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import puppeteer from 'puppeteer';
 import { build, preview } from 'vite';
+import { installGalleryMedia } from './gallery-media.mjs';
 
 const ROUTE_NAME = '5beb9b58bd12b691|0000010a--a51155e496';
 const [DONGLE_ID, LOG_ID] = ROUTE_NAME.split('|');
@@ -320,6 +321,7 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
     return request.continue();
   }
 
+  // Retain the CDN fixture for --base captures of the previous ReactPlayer.
   if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/hls.js@')) {
     return request.respond({
       status: 200,
@@ -632,6 +634,8 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
       globalThis.RTCPeerConnection = GalleryPeerConnection;
       globalThis.RTCRtpReceiver = { getCapabilities: () => ({ codecs: [] }) };
     }, FIXED_TIMESTAMP, !pageState.anonymous);
+    const { route } = galleryData(origin, pageState.name);
+    await page.evaluateOnNewDocument(installGalleryMedia, (route.end_time_utc_millis - route.start_time_utc_millis) / 1000);
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       if (['data:', 'blob:'].includes(new URL(request.url()).protocol)) {

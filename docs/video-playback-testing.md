@@ -19,6 +19,10 @@ Before submitting, exercise this checklist on desktop, iOS Safari, Android
 Chrome, and installed iOS and Android PWAs. Viewport emulation does not validate
 mobile media behavior. Use both a silent route and a route recorded with audio.
 
+The screenshot gallery simulates native media readiness at a fixed position in
+its browser contexts. It checks layout stability, not decoding or playback, and
+does not modify the app build or the deployed preview's media behavior.
+
 - Open a whole drive and a selected range from a fresh URL. Verify the first
   camera-frame offset and that a selected range repeats at its boundaries.
 - Pause, resume, and change speed. Seek repeatedly with the native scrubber,
