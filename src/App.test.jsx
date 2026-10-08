@@ -418,11 +418,20 @@ describe('whole-app behavior', () => {
     expect(history.location.search).toBe('?modal=clips');
   });
 
-  test('date filter modal opens from its URL and closes through history state', async () => {
-    const { history } = await renderApp(`/${FIRST}?modal=date-filter`);
+  test.each([`/${FIRST}`, '/demo'])('date filter follows its URL and browser history on %s', async (pathname) => {
+    const { history } = await renderApp(`${pathname}?modal=date-filter`);
     expect(await screen.findByText('Start date:')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(history.location.search).toBe(''));
+    await waitFor(() => expect(screen.queryByText('Start date:')).not.toBeInTheDocument());
+    act(() => history.goBack());
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    act(() => history.goForward());
+    await waitFor(() => expect(screen.queryByText('Start date:')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    expect(history.location.pathname).toBe(pathname);
+    expect(history.location.search).toBe('?modal=date-filter');
   });
 
   test('direct navigation fetches a route missing from the same-device list', async () => {
