@@ -129,6 +129,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.dongle_id === props.dongleId ? props.device.alias || '' : '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -147,6 +148,12 @@ class DeviceSettingsModal extends Component {
       this.setState({
         ...initialState,
         deviceAlias: alias,
+      });
+    } else if (prevProps.device?.dongle_id !== this.props.device?.dongle_id
+      || (prevProps.device?.alias !== this.props.device?.alias
+        && this.state.deviceAlias === (prevProps.device?.alias || ''))) {
+      this.setState({
+        deviceAlias: this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias || '' : '',
       });
     }
   }
