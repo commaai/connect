@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router';
+import { push, go } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -7,7 +7,7 @@ import * as Types from './types';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { hardNavigate } from '../utils/navigation';
-import { urlFor, modalLocation } from '../url';
+import { urlFor, modalLocation, parseLocation } from '../url';
 
 const routesRequests = new WeakMap();
 const LIMIT_INCREMENT = 5
@@ -126,14 +126,19 @@ export function checkLastRoutesData() {
 export function navigate(destination) {
   return (dispatch, getState) => {
     const location = currentLocation(getState());
-    const next = typeof destination === 'string' ? { pathname: destination } : destination;
+    const next = typeof destination === 'string' ? { pathname: destination } : { ...destination };
     if (location.pathname !== next.pathname || location.search !== (next.search || '')
-      || location.hash !== (next.hash || '')) dispatch(push(next));
+      || location.hash !== (next.hash || '')) {
+      if (location.pathname === next.pathname && location.state?.driveBackDelta && !next.state) {
+        next.state = { driveBackDelta: location.state.driveBackDelta + 1 };
+      }
+      dispatch(push(next));
+    }
   };
 }
 
-export function modalNav(modal, device) {
-  return (dispatch, getState) => dispatch(navigate(modalLocation(currentLocation(getState()), modal, device)));
+export function modalNav(modal, device, clip) {
+  return (dispatch, getState) => dispatch(navigate(modalLocation(currentLocation(getState()), modal, device, clip)));
 }
 
 export function pushTimelineRange(logId, start, end) {
@@ -141,7 +146,21 @@ export function pushTimelineRange(logId, start, end) {
     const { dongleId, routes, currentRoute } = getState();
     const route = routes?.find((candidate) => candidate.log_id === logId) || currentRoute;
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-    dispatch(navigate(urlFor({ dongleId, logId, zoom: wholeDrive ? null : { start, end } })));
+    const previous = parseLocation(currentLocation(getState()));
+    dispatch(navigate({
+      pathname: urlFor({ dongleId, logId, zoom: wholeDrive ? null : { start, end } }),
+      state: previous.page === 'drive' && previous.dongleId === dongleId && previous.logId === logId
+        ? { driveBackDelta: 1 } : undefined,
+    }));
+  };
+}
+
+export function timelineBack() {
+  return (dispatch, getState) => {
+    const location = currentLocation(getState());
+    const delta = location.state?.driveBackDelta;
+    if (delta) dispatch(go(-delta));
+    else dispatch(pushTimelineRange(parseLocation(location).logId, null, null));
   };
 }
 

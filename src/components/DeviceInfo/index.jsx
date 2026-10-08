@@ -329,7 +329,7 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={this.props.modal === 'clips'}
+          open={['clips', 'clip', 'clip-delete'].includes(this.props.modal)}
           dongleId={this.props.dongleId}
           anchorEl={this.clipAnchor}
           onClose={() => this.props.dispatch(modalNav(null))}

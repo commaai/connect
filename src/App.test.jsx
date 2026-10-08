@@ -196,8 +196,8 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe('/');
   });
 
-  test('referrals URL opens the referrals page', async () => {
-    await renderApp('/referrals');
+  test.each(['/referrals', '/referrals/'])('%s opens the referrals page', async (pathname) => {
+    await renderApp(pathname);
     expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
     expect((await screen.findAllByText('$50', { selector: 'dd' }))).toHaveLength(3);
     expect(screen.getByRole('link', { name: 'claim rewards ($50)' })).toHaveAttribute(

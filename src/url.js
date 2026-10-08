@@ -1,6 +1,6 @@
 const dongleIdRegex = /^[a-f0-9]{16}$/;
 const logIdRegex = /^(?:\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}|[a-f0-9]{8}--[a-f0-9]{10})$/;
-const modals = ['settings', 'pair', 'filter', 'uploads', 'files', 'info', 'clips', 'unpair', 'prime-plan', 'prime-cancel'];
+const modals = ['settings', 'pair', 'filter', 'uploads', 'files', 'info', 'clips', 'clip', 'clip-delete', 'unpair', 'prime-plan', 'prime-cancel'];
 
 function parseRange(start, end, scale = 1) {
   if (!/^\d+(?:\.\d+)?$/.test(start) || !/^\d+(?:\.\d+)?$/.test(end)) return null;
@@ -12,7 +12,7 @@ function parseRange(start, end, scale = 1) {
 export function parseLocation({ pathname = '/', search = '' } = {}) {
   const parts = pathname.split('/').filter(Boolean);
   const query = new URLSearchParams(search);
-  const location = { page: 'home', dongleId: null, logId: null, zoom: null, legacy: null, modal: null, modalDevice: null };
+  const location = { page: 'home', dongleId: null, logId: null, zoom: null, legacy: null, modal: null, modalDevice: null, clip: null };
 
   if (parts.length === 1 && ['auth', 'referrals', 'demo'].includes(parts[0])) {
     location.page = parts[0];
@@ -37,6 +37,7 @@ export function parseLocation({ pathname = '/', search = '' } = {}) {
   }
 
   if (modals.includes(query.get('modal'))) location.modal = query.get('modal');
+  if (['clip', 'clip-delete'].includes(location.modal)) location.clip = query.get('clip') || null;
   const modalDevice = query.get('device');
   location.modalDevice = dongleIdRegex.test(modalDevice) ? modalDevice : location.dongleId;
   return location;
@@ -52,12 +53,14 @@ export function urlFor({ dongleId, logId, zoom, page } = {}) {
   return `/${dongleId}${['prime', 'stream'].includes(page) ? `/${page}` : ''}`;
 }
 
-export function modalLocation(location, modal, device) {
+export function modalLocation(location, modal, device, clip) {
   const query = new URLSearchParams(location.search);
   query.delete('modal');
   query.delete('device');
+  query.delete('clip');
   if (modal) query.set('modal', modal);
   if (modal && device) query.set('device', device);
+  if (['clip', 'clip-delete'].includes(modal) && clip) query.set('clip', clip);
   const search = query.toString();
   return { pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash };
 }

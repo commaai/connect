@@ -670,7 +670,7 @@ class Media extends Component {
     return (
       <>
         <ClipMenu
-          open={Boolean(alwaysOpen || modal === 'clips')}
+          open={Boolean(alwaysOpen || ['clips', 'clip', 'clip-delete'].includes(modal))}
           dongleId={this.props.dongleId}
           anchorEl={this.clipAnchor}
           onClose={() => dispatch(modalNav(null))}

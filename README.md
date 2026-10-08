@@ -38,7 +38,9 @@ Legacy `/:dongleId/:start/:end` links use absolute milliseconds and are replaced
 with a drive URL after lookup. Malformed paths fall back to a device dashboard.
 
 Use `?modal=` for `settings`, `unpair`, `pair`, `filter`, `uploads`, `files`,
-`info`, `clips`, `prime-plan`, or `prime-cancel`. Drive menus require a drive
+`info`, `clips`, `clip`, `clip-delete`, `prime-plan`, or `prime-cancel`. Clip
+preview and deletion use `&clip=:filename`; deletion always requires confirmation.
+Drive menus require a drive
 path; Prime confirmations require a Prime path and an existing subscription.
 `settings`, `unpair`, and `uploads` accept `&device=:dongleId` to target a device
 without changing the selected drive. Existing access checks still apply.
@@ -47,6 +49,8 @@ Opening a confirmation URL never submits it.
 Dialog changes preserve the route, player, and playback position. Drive ranges
 reuse metadata and files. The dashboard list and directly fetched drives are
 cached separately for the selected device and cleared on device changes.
+The drive Back button uses browser history to restore the previous range,
+skipping intervening dialog entries; a cold range link returns to the whole drive.
 To add a route or dialog, extend the parser/builder, its rendering branch, and
 the URL/navigation tests. No second navigation state or history stack is needed.
 

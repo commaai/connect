@@ -42,4 +42,12 @@ describe('URL grammar', () => {
     expect(modalLocation(opened, null)).toEqual(location);
     expect(parseLocation({ search: '?modal=unknown&device=bad' })).toMatchObject({ modal: null, modalDevice: null });
   });
+
+  it('round trips a clip filename and clears it when leaving the clip dialog', () => {
+    const location = { pathname: `/${DONGLE}`, search: '?ci=1', hash: '' };
+    const opened = modalLocation(location, 'clip-delete', null, 'road clip.mp4');
+    expect(parseLocation(opened)).toMatchObject({ modal: 'clip-delete', clip: 'road clip.mp4' });
+    expect(modalLocation(opened, 'clips').search).toBe('?ci=1&modal=clips');
+    expect(modalLocation(opened, null)).toEqual(location);
+  });
 });

@@ -5,7 +5,7 @@ import { createAppStore } from '../store';
 import { createInitialState } from '../initialState';
 import { api } from '../api/backend';
 import { syncLocation } from './history';
-import { modalNav, navigate, pushTimelineRange, selectDevice } from './index';
+import { modalNav, navigate, pushTimelineRange, selectDevice, timelineBack } from './index';
 import { seek, pause } from '../timeline/playback';
 
 vi.mock('../api/backend', () => ({ api: {
@@ -87,6 +87,32 @@ describe('URL-driven navigation', () => {
     expect(store.getState().routes).toBe(routes);
     expect(store.getState().currentRoute).toBe(loaded);
     expect(api.routes.getRoutesSegments).not.toHaveBeenCalled();
+  });
+
+  it('restores the prior range through browser history after opening and closing a modal', () => {
+    const { history, store } = create(`/${DONGLE}/${LOG}`);
+    store.dispatch(pushTimelineRange(LOG, 10000, 40000));
+    store.dispatch(pushTimelineRange(LOG, 20000, 30000));
+    store.dispatch(modalNav('info'));
+    store.dispatch(modalNav(null));
+    const length = history.length;
+    store.dispatch(timelineBack());
+    expect(history.location.pathname).toBe(`/${DONGLE}/${LOG}/10/40`);
+    expect(history.location.search).toBe('');
+    expect(store.getState().zoom).toEqual({ start: 10000, end: 40000 });
+    expect(history.length).toBe(length);
+    history.goForward();
+    expect(store.getState().zoom).toEqual({ start: 20000, end: 30000 });
+    history.goBack();
+    store.dispatch(timelineBack());
+    expect(history.location.pathname).toBe(`/${DONGLE}/${LOG}`);
+  });
+
+  it('returns a cold ranged link to the whole drive', () => {
+    const { history, store } = create(`/${DONGLE}/${LOG}/10/20`);
+    store.dispatch(timelineBack());
+    expect(history.location.pathname).toBe(`/${DONGLE}/${LOG}`);
+    expect(store.getState().zoom).toEqual({ start: 0, end: route.duration });
   });
 
   it('clears device-specific state when a different device is selected', () => {
