@@ -9,6 +9,7 @@ import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
 import Media from './Media';
+import Spinner from '../utils/Spinner';
 import Timeline from '../Timeline';
 
 class DriveView extends Component {
@@ -36,8 +37,9 @@ class DriveView extends Component {
 
     if (!currentRoute) {
       return (
-        <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+        <div className="DriveView flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8">
+          {routes === null && <Spinner label="Loading drive" />}
+          <Typography>{routes === null ? 'Loading drive...' : 'Route does not exist.'}</Typography>
         </div>
       );
     }

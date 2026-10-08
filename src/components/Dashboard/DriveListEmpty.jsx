@@ -1,6 +1,7 @@
 import { Grid, Typography, withStyles } from '@material-ui/core';
 
 import { useWindowWidth } from '../../hooks/window';
+import Spinner from '../utils/Spinner';
 
 const styles = () => ({
   zeroState: {
@@ -14,8 +15,14 @@ const DriveListEmpty = (props) => {
   let zeroRidesEle = null;
 
   if (device && routes === null) {
-    zeroRidesEle = <Typography>Loading...</Typography>;
-  } else if (routes?.length === 0) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8">
+        <Spinner label="Loading drives" />
+        <Typography>Loading drives...</Typography>
+      </div>
+    );
+  }
+  if (routes?.length === 0) {
     zeroRidesEle = (
       <Typography>No routes found in selected time range.</Typography>
     );
