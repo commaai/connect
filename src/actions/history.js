@@ -1,18 +1,16 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { buildUrl, parseUrl } from '../url';
-import { checkRoutesData, checkLastRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, popTimelineRange } from './index';
+import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, popTimelineRange } from './index';
 import { api } from '../api/backend';
 
 // History is the entry point for clicks, redirects, and browser Back/Forward.
 // Keep data and playback intact when navigation only changes a dialog query.
 export const onHistoryMiddleware = ({ dispatch, getState }) => {
-  let revision = 0;
+  let legacyRequest = null;
   return (next) => (action) => {
     if (!action) return undefined;
     if (action.type !== LOCATION_CHANGE) return next(action);
 
-    revision += 1;
-    const navigationRevision = revision;
     const state = getState();
     const result = next(action); // Publish the new location before applying it.
     const { location } = action.payload;
@@ -23,14 +21,25 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => {
 
     if (url.legacyRange) {
       const { start, end } = url.legacyRange;
-      api.routes.getRoutesSegments(url.dongleId, start, end).then((routes) => {
-        if (navigationRevision !== revision || !routes?.length) return;
-        const route = routes[0];
-        const logId = route.fullname.split('|')[1];
-        dispatch(replace({ ...location, pathname: buildUrl({ page: 'drive', dongleId: url.dongleId, logId }) }));
-      }).catch((error) => {
-        console.error('Error fetching routes data for log ID conversion', error);
-      });
+      const key = JSON.stringify([url.dongleId, start, end]);
+      if (legacyRequest?.key === key) {
+        // The newest entry owns the result, including query/hash-only changes.
+        legacyRequest.location = location;
+      } else {
+        const request = { key, location };
+        legacyRequest = request;
+        api.routes.getRoutesSegments(url.dongleId, start, end).then((routes) => {
+          if (legacyRequest !== request || !routes?.length) return;
+          const logId = routes[0].fullname.split('|')[1];
+          dispatch(replace({ ...request.location, pathname: buildUrl({ page: 'drive', dongleId: url.dongleId, logId }) }));
+        }).catch((error) => {
+          if (legacyRequest === request) console.error('Error fetching routes data for log ID conversion', error);
+        }).finally(() => {
+          if (legacyRequest === request) legacyRequest = null;
+        });
+      }
+    } else {
+      legacyRequest = null;
     }
 
     if (location.pathname !== state.router?.location.pathname && (url.logId || state.selectedRouteId)) {
@@ -48,7 +57,9 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => {
         dispatch(pushTimelineRange(url.logId, range ? range.start * 1000 : null, range ? range.end * 1000 : null));
       }
     }
-    if (deviceChanged) dispatch(state.limit === 0 ? checkLastRoutesData() : checkRoutesData());
+    if (!url.legacyRange && (deviceChanged || url.logId !== state.selectedRouteId)) {
+      dispatch(checkRoutesData());
+    }
 
     const prime = url.page === 'prime';
     if (prime !== state.primeNav) dispatch(primeNav(prime));

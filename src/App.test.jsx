@@ -113,6 +113,7 @@ async function mockFetch(input, init = {}) {
     if (options.failedRoutes && url.searchParams.has('start')) return json({}, 500);
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
+    if (routeStr && options.routeLookup) return options.routeLookup(routeStr);
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
@@ -316,16 +317,40 @@ describe('whole-app behavior', () => {
     const pathname = `/${FIRST}/${LOG}/10/20`;
     const { history, store } = await renderApp(pathname);
     await screen.findByRole('slider', { name: 'Drive timeline' });
+    const player = screen.getByTestId('video-player');
     const { routes, currentRoute, zoom, loop } = store.getState();
     const requestCount = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
     act(() => history.push(`${pathname}?modal=settings&device=${FIRST}`));
     expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByTestId('video-player')).toBe(player);
     act(() => history.goBack());
     await waitFor(() => expect(screen.queryByText('Device settings')).toBeNull());
+    expect(screen.getByTestId('video-player')).toBe(player);
+    act(() => history.goForward());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByTestId('video-player')).toBe(player);
     for (const [key, value] of Object.entries({ routes, currentRoute, zoom, loop })) {
       expect(store.getState()[key]).toBe(value);
     }
     expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requestCount);
+  });
+
+  test('a late drive response cannot replace the drive rendered after navigation', async () => {
+    const pending = new Map();
+    const routeLookup = (fullname) => new Promise((resolve) => pending.set(fullname, resolve));
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`, { routeLookup });
+    await waitFor(() => expect(pending.has(`${FIRST}|${LOG}`)).toBe(true));
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}`));
+    await waitFor(() => expect(pending.has(`${FIRST}|${RECENT_LOG}`)).toBe(true));
+    await act(async () => pending.get(`${FIRST}|${RECENT_LOG}`)(await json([makeRoute(FIRST, RECENT_LOG)])));
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const accepted = store.getState().currentRoute;
+    await act(async () => pending.get(`${FIRST}|${LOG}`)(await json([makeRoute(FIRST, LOG)])));
+    expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`);
+    expect(store.getState().currentRoute).toBe(accepted);
+    expect(accepted.log_id).toBe(RECENT_LOG);
+    expect(screen.getByTestId('video-player')).toBeInTheDocument();
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(2);
   });
 
   test('upload queue opens from a drive URL and closes without losing the drive', async () => {

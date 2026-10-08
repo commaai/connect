@@ -11,8 +11,9 @@ import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../uti
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
 
-let routesRequest = null;
-let routesRequestPromise = null;
+// Each store owns its in-flight metadata lookup. A request belongs to a device,
+// route, filter and limit, rather than to whichever URL happens to finish last.
+const routesRequests = new WeakMap();
 const LIMIT_INCREMENT = 5
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
@@ -26,45 +27,46 @@ export function checkRoutesData() {
       dispatch({ type: Types.ACTION_UPDATE_ROUTE_LIMIT, limit: LIMIT_INCREMENT });
       state = getState();
     }
-    if (hasRoutesData(state)) {
+    const selectedRouteId = state.selectedRouteId;
+    const loaded = selectedRouteId
+      ? state.routes?.some((route) => route.log_id === selectedRouteId)
+      : hasRoutesData(state);
+    if (loaded) {
       // already has metadata, don't bother
       return;
     }
-    if (routesRequest && routesRequest.dongleId === state.dongleId) {
+    const requestKey = JSON.stringify([state.dongleId, selectedRouteId, state.filter.start, state.filter.end, state.limit]);
+    const pending = routesRequests.get(getState);
+    if (pending?.key === requestKey) {
       // there is already an pending request
-      return routesRequestPromise;
+      return pending.promise;
     }
     console.debug('We need to update the segment metadata...');
     const { dongleId, limit: fetchLimit } = state;
     const fetchRange = state.filter;
 
     // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.selectedRouteId) {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
-        dongleId,
-      };
-    } else {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit),
-        dongleId,
-      };
-    }
+    const request = { key: requestKey };
+    routesRequests.set(getState, request);
+    const response = selectedRouteId
+      ? api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${selectedRouteId}`)
+      : api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit);
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    request.promise = response.then((routesData) => {
+      if (routesRequests.get(getState) !== request) return;
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.limit !== fetchLimit
-        || state.dongleId !== dongleId) {
-        routesRequest = null;
+        || state.dongleId !== dongleId
+        || state.selectedRouteId !== selectedRouteId) {
+        routesRequests.delete(getState);
         dispatch(checkRoutesData());
         return;
       }
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
-        routesRequest = null;
         hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
         return;
       }
@@ -103,21 +105,22 @@ export function checkRoutesData() {
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
-        start: fetchRange.start,
-        end: fetchRange.end,
+        // A single drive does not establish coverage of the dashboard filter.
+        start: selectedRouteId ? null : fetchRange.start,
+        end: selectedRouteId ? null : fetchRange.end,
         routes,
       });
 
-      routesRequest = null;
-
       return routes
     }).catch((err) => {
+      if (routesRequests.get(getState) !== request) return;
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
+    }).finally(() => {
+      if (routesRequests.get(getState) === request) routesRequests.delete(getState);
     });
 
-    return routesRequestPromise
+    return request.promise
   };
 }
 
@@ -165,8 +168,8 @@ function rangeUrl(state, log_id, start, end, wholeDrive = false) {
   return buildUrl({ page: 'drive', dongleId: state.dongleId, logId: log_id, range });
 }
 
-function updateTimeline(state, dispatch, start, end) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
+function updateTimeline(state, dispatch, start, end, routeChanged = false) {
+  if (routeChanged || !state.loop || state.loop.startTime == null || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
@@ -231,7 +234,10 @@ export function pushTimelineRange(log_id, start, end) {
       });
     }
 
-    updateTimeline(state, dispatch, start, end);
+    // A whole-drive URL has no explicit bounds; cached metadata resolves them
+    // in the reducer just as metadata arriving after a direct entry would.
+    const zoom = getState().zoom;
+    updateTimeline(state, dispatch, zoom?.start ?? start, zoom?.end ?? end, state.selectedRouteId !== log_id);
   };
 }
 

@@ -140,6 +140,43 @@ describe('history middleware', () => {
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
+  it('reuses a pending legacy lookup and preserves the newest query and hash', async () => {
+    let resolveLookup;
+    Drives.getRoutesSegments.mockReturnValue(new Promise((resolve) => { resolveLookup = resolve; }));
+    const { store, invoke } = create();
+    const first = location(`/${DONGLE}/1000/2000`);
+    invoke(first);
+    const newest = location(first.payload.location.pathname, 'PUSH');
+    newest.payload.location.search = '?camera=driver';
+    newest.payload.location.hash = '#timeline';
+    invoke(newest);
+    expect(Drives.getRoutesSegments).toHaveBeenCalledOnce();
+    resolveLookup([{ fullname: `${DONGLE}|${LOG}` }]);
+    await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith({
+      type: '@@router/CALL_HISTORY_METHOD',
+      payload: { method: 'replace', args: [{ pathname: `/${DONGLE}/${LOG}`, search: '?camera=driver', hash: '#timeline' }] },
+    }));
+  });
+
+  it('an older legacy rejection does not clear a newer pending lookup', async () => {
+    let rejectOld;
+    let resolveNew;
+    Drives.getRoutesSegments.mockReturnValueOnce(new Promise((_resolve, reject) => { rejectOld = reject; }))
+      .mockReturnValueOnce(new Promise((resolve) => { resolveNew = resolve; }));
+    const { store, invoke } = create();
+    invoke(location(`/${DONGLE}/1000/2000`));
+    invoke(location(`/${DONGLE}/3000/4000`));
+    rejectOld(new Error('obsolete lookup'));
+    await Promise.resolve();
+    await Promise.resolve();
+    invoke(location(`/${DONGLE}/3000/4000`, 'REPLACE'));
+    expect(Drives.getRoutesSegments).toHaveBeenCalledTimes(2);
+    resolveNew([{ fullname: `${DONGLE}|${LOG}` }]);
+    await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: '@@router/CALL_HISTORY_METHOD',
+    })));
+  });
+
   it.each([null, []])('keeps a legacy range unchanged for an empty lookup (%j)', async (routes) => {
     Drives.getRoutesSegments.mockResolvedValue(routes);
     const { invoke } = create();
