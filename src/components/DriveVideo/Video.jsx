@@ -26,7 +26,7 @@ function mediaErrorKind(error) {
   return 'media';
 }
 
-function useHls(video, src) {
+function useHls(video, src, onError) {
   const [hls, setHls] = useState(null);
 
   useEffect(() => {
@@ -52,13 +52,18 @@ function useHls(video, src) {
       instance.attachMedia(video);
       controller.signal.addEventListener('abort', () => instance.destroy());
       setHls(instance);
+    }).catch((error) => {
+      if (controller.signal.aborted) {
+        return;
+      }
+      onError?.({ kind: 'network', cause: error });
     });
 
     return () => {
       controller.abort();
       setHls(null);
     };
-  }, [video, src]);
+  }, [video, src, onError]);
 
   return hls;
 }
@@ -143,7 +148,7 @@ function useHlsAudioDetection(hls, onHasAudioChange) {
 
 export default function Video({ src, onError, onHasAudioChange, ...props }) {
   const video = useVideo();
-  const hls = useHls(video, src);
+  const hls = useHls(video, src, onError);
   useHlsErrors(hls, onError);
   useVideoErrors(video, onError);
   useAudioTrackDetection(video, onHasAudioChange);
