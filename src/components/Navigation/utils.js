@@ -38,7 +38,7 @@ export function formatPlaceAddress(item) {
     if (stateCode || postalCode) {
       res += ',';
       if (stateCode) res += ` ${stateCode}`;
-      res += ` ${postalCode}`;
+      if (postalCode) res += ` ${postalCode}`;
     }
   }
 
@@ -46,7 +46,7 @@ export function formatPlaceAddress(item) {
   //       for cases where we only have the address label, without individual
   //       address components (search results and favorites).
   const name = formatPlaceName(item);
-  if (res.startsWith(name)) res = res.substring(name.length + 2);
+  if (name && res.startsWith(`${name}, `)) res = res.substring(name.length + 2);
 
   return res;
 }

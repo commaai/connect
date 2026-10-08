@@ -1,6 +1,24 @@
 import * as Utils from './utils';
 
 describe('navigation formatting utils', () => {
+  test.each([
+    [{ stateCode: 'CA' }, 'San Diego, CA'],
+    [{ postalCode: '92104' }, 'San Diego, 92104'],
+    [{ stateCode: 'CA', postalCode: '92104' }, 'San Diego, CA 92104'],
+    [{}, 'San Diego'],
+  ])('formats optional state and postal code: %j', (region, expected) => {
+    expect(Utils.formatPlaceAddress({ title: 'Place', resultType: 'houseNumber',
+      address: { city: 'San Diego', street: 'Main Street', ...region } })).toBe(expected);
+  });
+
+  test.each([
+    ['York', 'Yorkshire Road', 'Yorkshire Road'],
+    ['', 'Main Street', 'Main Street'],
+    ['Cafe', 'Cafe, Main Street', 'Main Street'],
+    ['York', 'York', 'York'],
+  ])('only removes a complete name prefix from the label', (title, label, expected) => {
+    expect(Utils.formatPlaceAddress({ title, resultType: 'car', address: { label } })).toBe(expected);
+  });
   describe('location formatting', () => {
     const testCases = [
       {
