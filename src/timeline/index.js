@@ -1,10 +1,20 @@
 import store from '../store';
 import { playbackRange, videoOffset } from './video';
 
+// The redux playback clock: keeps time when there is no video, e.g. while it loads or when it failed.
+function clockOffset(state, range) {
+  if (state.offset === null) {
+    return range ? range.start : 0;
+  }
+  const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
+  return state.offset + ((Date.now() - state.startTime) * playSpeed);
+}
+
 /**
  * Get current playback offset
  *
  * Reads the attached video when there is one, otherwise the redux playback clock.
+ * Clamped to the selected range: DriveVideo sends playback back to its start once it reaches the end.
  *
  * @param {object} state
  * @returns {number}
@@ -14,30 +24,7 @@ export function currentOffset(state = null) {
     state = store.getState();
   }
 
-  const fromVideo = videoOffset(state.currentRoute);
-  if (fromVideo !== null) {
-    // the video can be a frame past the range end before it is sent back, so clamp
-    const range = playbackRange(state.loop, state.zoom);
-    return range ? Math.min(Math.max(fromVideo, range.start), range.end) : fromVideo;
-  }
-
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
-
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
-  }
-  return offset;
+  const range = playbackRange(state.loop, state.zoom);
+  const offset = videoOffset(state.currentRoute) ?? clockOffset(state, range);
+  return range ? Math.min(Math.max(offset, range.start), range.end) : offset;
 }

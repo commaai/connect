@@ -2,29 +2,21 @@
 // we shouldn't want to edit the raw state most of the time, helper functions are better
 import * as Types from '../actions/types';
 import { currentOffset } from '.';
+import { playbackRange } from './video';
 
 export function reducer(_state, action) {
   let state = { ..._state };
-  let loopOffset = null;
-  if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime;
-  }
   switch (action.type) {
-    case Types.ACTION_SEEK:
+    case Types.ACTION_SEEK: {
+      // seeks stay within the selected range
+      const range = playbackRange(state.loop, state.zoom);
       state = {
         ...state,
-        offset: action.offset,
+        offset: range ? Math.min(Math.max(action.offset, range.start), range.end) : action.offset,
         startTime: Date.now(),
       };
-
-      if (loopOffset !== null) {
-        if (state.offset < loopOffset) {
-          state.offset = loopOffset;
-        } else if (state.offset > (loopOffset + state.loop.duration)) {
-          state.offset = loopOffset + state.loop.duration;
-        }
-      }
       break;
+    }
     case Types.ACTION_PAUSE:
       state = {
         ...state,
@@ -75,32 +67,6 @@ export function reducer(_state, action) {
       break;
     default:
       break;
-  }
-
-  if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom
-    && state.loop.startTime === state.zoom.start && state.zoom.start === 0) {
-    const loopRouteOffset = state.loop.startTime - state.zoom.start;
-    if (state.currentRoute.videoStartOffset > loopRouteOffset) {
-      state.loop = {
-        startTime: state.zoom.start + state.currentRoute.videoStartOffset,
-        duration: state.loop.duration - (state.currentRoute.videoStartOffset - loopRouteOffset),
-      };
-    }
-  }
-
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
   }
 
   state.isBufferingVideo = Boolean(state.isBufferingVideo);

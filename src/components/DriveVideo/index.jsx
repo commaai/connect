@@ -12,7 +12,7 @@ import { currentOffset } from '../../timeline';
 import { popTimelineRange } from '../../actions';
 import { seek, bufferVideo, pause, play } from '../../timeline/playback';
 import {
-  attachVideo, detachVideo, isActiveVideo, isPartialRange, isStalled, playbackRange, seekVideo, videoOffset,
+  attachVideo, detachVideo, isActiveVideo, isPartialRange, isStalled, playbackRange, seekVideo,
 } from '../../timeline/video';
 import { isIos, isFirefox } from '../../utils/browser.js';
 
@@ -62,6 +62,7 @@ class DriveVideo extends Component {
     this.onVideoError = this.onVideoError.bind(this);
 
     this.video = null;
+    this.videoFailed = false; // the video can't play, the playback clock keeps time instead
     this.frame = null;
     this.leftZoom = null; // range we already left, until props catch up
     this.buffering = null; // last buffering state sent to redux
@@ -119,9 +120,23 @@ class DriveVideo extends Component {
     if (!currentRoute || !this.video) {
       return;
     }
+    this.videoFailed = false;
     const offset = currentOffset();
     attachVideo(this.video, currentRoute.fullname);
     seekVideo(currentRoute, offset);
+  }
+
+  // The video can't play: let the playback clock keep time from here,
+  // so the map and timeline still replay the drive.
+  handOverToClock() {
+    if (this.videoFailed) {
+      return;
+    }
+    const offset = currentOffset();
+    this.videoFailed = true;
+    detachVideo(this.video);
+    this.props.dispatch(seek(offset));
+    this.updateBuffering();
   }
 
   // play and pause can also come from outside the page controls,
@@ -151,11 +166,14 @@ class DriveVideo extends Component {
 
   // checked every frame rather than on timeupdate, which only fires a few times a second
   checkRangeEnd() {
-    const { currentRoute, loop, zoom } = this.props;
+    const { currentRoute, desiredPlaySpeed, isBufferingVideo, loop, zoom } = this.props;
     const el = this.video;
-    if (el && !el.paused && !el.seeking && zoom !== this.leftZoom && isActiveVideo(el, currentRoute)) {
+    const playing = isActiveVideo(el, currentRoute)
+      ? !el.paused && !el.seeking
+      : desiredPlaySpeed > 0 && !isBufferingVideo;
+    if (playing && zoom !== this.leftZoom) {
       const range = playbackRange(loop, zoom);
-      if (range && videoOffset(currentRoute) >= range.end) {
+      if (range && currentOffset() >= range.end) {
         this.onRangeEnd();
       }
     }
@@ -176,7 +194,9 @@ class DriveVideo extends Component {
       dispatch(popTimelineRange(currentRoute.log_id));
       return true;
     }
-    this.video.pause();
+    if (isActiveVideo(this.video, currentRoute)) {
+      this.video.pause();
+    }
     if (desiredPlaySpeed > 0) {
       dispatch(pause());
     }
@@ -184,9 +204,13 @@ class DriveVideo extends Component {
   }
 
   restartRange() {
-    const { currentRoute, loop, zoom } = this.props;
+    const { dispatch, loop, zoom } = this.props;
     const range = playbackRange(loop, zoom);
-    return Boolean(range) && seekVideo(currentRoute, range.start);
+    if (!range) {
+      return false;
+    }
+    dispatch(seek(range.start));
+    return true;
   }
 
   onPlaying() {
@@ -208,6 +232,10 @@ class DriveVideo extends Component {
       this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
     } else {
       this.setState({ videoError: 'Unable to load video' });
+    }
+    // hls.js recovers from non fatal errors by itself
+    if (e.fatal) {
+      this.handOverToClock();
     }
   }
 
@@ -242,18 +270,18 @@ class DriveVideo extends Component {
     if (e.type === 'networkError') {
       console.error('Network error', { e, data });
       this.setState({ videoError: 'Unable to load video. Check network connection.' });
-      return;
+    } else {
+      const videoError = e.response?.code === 404
+        ? 'This video segment has not uploaded yet or has been deleted.'
+        : (e.response?.text || 'Unable to load video');
+      this.setState({ videoError });
     }
-
-    const videoError = e.response?.code === 404
-      ? 'This video segment has not uploaded yet or has been deleted.'
-      : (e.response?.text || 'Unable to load video');
-    this.setState({ videoError });
+    this.handOverToClock();
   }
 
   // compare against what we last sent, props can lag behind redux between media events
   updateBuffering() {
-    const buffering = isStalled(this.video);
+    const buffering = !this.videoFailed && isStalled(this.video);
     if (buffering !== this.buffering) {
       this.buffering = buffering;
       this.props.dispatch(bufferVideo(buffering));
@@ -315,6 +343,7 @@ class DriveVideo extends Component {
       if (this.video) {
         detachVideo(this.video);
       }
+      this.videoFailed = false;
       this.setState({
         src: api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig),
         videoError: null,

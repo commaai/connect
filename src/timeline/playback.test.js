@@ -141,3 +141,14 @@ describe('range looping setting', () => {
     expect(state.rangeLooping).toBe(true);
   });
 });
+
+describe('playback clock within a range', () => {
+  it('stops at the range end instead of wrapping', () => {
+    newNow();
+    let state = { ...makeDefaultStruct(), isBufferingVideo: false };
+    state = reducer(state, selectLoop(1000, 2000));
+    state = reducer(state, seek(1900));
+    mostRecentNow += 500; // 500ms later at 1x
+    expect(currentOffset(state)).toEqual(2000);
+  });
+});
