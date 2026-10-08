@@ -99,6 +99,18 @@ describe('timeline thumbnails', () => {
     });
   });
 
+  it('shows each segment\'s own frames past the first minute', () => {
+    render(React.createElement(Thumbnails, {
+      thumbnail: { width: 640, height: 50 },
+      percentToOffset: (percent) => percent * 240000,
+      currentRoute: { ...mockRoute, url: 'https://chffrprivate.azureedge.net/route' },
+    }));
+
+    const sprite = (segment) => `url("https://chffrprivate.azureedge.net/route/${segment}/sprite.jpg")`;
+    expect(screen.getAllByRole('img').map((image) => [image.style.backgroundImage, image.style.backgroundPositionX]))
+      .toEqual([0, 1, 2, 3].flatMap((segment) => [[sprite(segment), '-240px'], [sprite(segment), '-720px']]));
+  });
+
   it('works when it\'s supermegaskinny', () => {
     render(React.createElement(Thumbnails, {
       thumbnail: {
