@@ -61,6 +61,7 @@ const SECOND = 'bbbbbbbbbbbbbbbb';
 const SHARED = 'cccccccccccccccc';
 const LOG = '2026-08-06--12-00-00';
 const RECENT_LOG = '2026-08-06--13-00-00';
+const EVENTS_LOG = '2026-08-06--14-00-00';
 const START = Date.UTC(2026, 7, 6, 12);
 
 const devices = [
@@ -72,7 +73,7 @@ function makeRoute(dongleId, logId = RECENT_LOG) {
   const start = logId === LOG ? START : START + 3_600_000;
   return {
     create_time: start, distance: 1, dongle_id: dongleId, end_time_utc_millis: start + 60_000,
-    events: [], fullname: `${dongleId}|${logId}`, maxqlog: 0,
+    fullname: `${dongleId}|${logId}`, maxqlog: 0,
     segment_end_times: [start + 60_000], segment_numbers: [0], segment_start_times: [start],
     startLocation: { place: logId === LOG ? 'Mock route start' : 'Mock recent route start', details: 'Start details' },
     endLocation: { place: 'Mock route end', details: 'End details' }, start_time_utc_millis: start,
@@ -107,7 +108,7 @@ async function mockFetch(input, init = {}) {
     if (options.failedRoutes && url.searchParams.has('start')) return json({}, 500);
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
-    if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
+    if (routeStr) return json([LOG, RECENT_LOG, EVENTS_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
     if (options.emptyList) return json([]);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
@@ -121,7 +122,8 @@ async function mockFetch(input, init = {}) {
   }
   if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
   if (url.pathname.endsWith('/subscribe_info')) return json(null);
-  if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
+  if (url.pathname.endsWith('/events.json')) return json(options.events ?? []);
+  if (url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
   if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
@@ -235,6 +237,15 @@ describe('whole-app behavior', () => {
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
+  });
+
+  test('a cold drive renders event markers without loading its dashboard list', async () => {
+    const { store } = await renderApp(`/${FIRST}/${EVENTS_LOG}`, {
+      events: [{ type: 'engage', route_offset_millis: 1000, data: {} }],
+    });
+    await waitFor(() => expect(document.querySelector('.DriveView .engage')).toBeInTheDocument());
+    expect(store.getState().routes).toBeNull();
+    expect(store.getState().currentRoute.events).toHaveLength(1);
   });
 
   test.each([
