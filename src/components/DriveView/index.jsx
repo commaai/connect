@@ -88,7 +88,9 @@ class DriveView extends Component {
                   {`${startTime} - ${endTime}`}
                 </div>
               </div>
+              {/* Home already leaves the whole drive; keep the slot so the title stays centered. */}
               <IconButton
+                className={ currentRouteBoundsSelected ? 'invisible' : undefined }
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
                 href={ `/${dongleId}` }

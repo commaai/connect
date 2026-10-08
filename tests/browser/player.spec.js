@@ -129,9 +129,13 @@ test('changing the section keeps pause and moves only a playhead outside it', as
   const home = page.getByRole('button', { name: 'Home' });
   await expect(home).toHaveAttribute('href', '/0000aaaa0000aaaa');
   await expect(page.getByRole('button', { name: 'Go Back' })).toHaveCount(0);
+  // Home already leaves the drive, so a second exit would only duplicate it.
+  const close = page.locator('a[aria-label="Close"]');
+  await expect(close).toBeHidden();
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await page.getByRole('button', { name: 'Select 8–12 second clip' }).click();
   await expect(home).toHaveCount(0);
+  await expect(close).toBeVisible();
   await expect.poll(async () => (await video(page)).time).toBeGreaterThanOrEqual(8000);
   await expect(page.locator('.DriveView')).toContainText(/@ \d\d:00:08 - \d\d:00:12/);
   // Back to the whole drive contains the playhead, so nothing should move.
