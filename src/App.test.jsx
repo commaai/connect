@@ -489,10 +489,12 @@ describe('whole-app behavior', () => {
   test('in-app back zooms out to the whole drive, browser back walks the ranges', async () => {
     const { history } = await renderApp(`/${FIRST}/${LOG}`);
     await screen.findByRole('slider', { name: 'Drive timeline' });
-    act(() => history.push(`/${FIRST}/${LOG}/10/50`));
-    act(() => history.push(`/${FIRST}/${LOG}/20/30`));
+    dragTimeline(300, 700);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/18/42`));
+    dragTimeline(200, 600);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/22/32`));
     act(() => history.goBack());
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/50`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/18/42`));
     fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
     expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
