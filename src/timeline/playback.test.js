@@ -1,133 +1,58 @@
-import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, resetPlayback, seek, selectLoop, videoTime } from './playback';
 
-const makeDefaultStruct = function makeDefaultStruct() {
-  return {
-    desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
-    offset: 0, // in miliseconds from the start
-    startTime: Date.now(), // millisecond timestamp in which play began
+const fullname = 'aaaaaaaaaaaaaaaa|2026-08-06--12-00-00';
+const makeState = () => ({ currentRoute: { fullname, duration: 60000 }, desiredPlaySpeed: 1, offset: 1200,
+  isBufferingVideo: false, loop: { startTime: 0, duration: 60000 }, seekRequest: null });
 
-    isBuffering: true,
-  };
-};
+it('does not invent elapsed time while media is playing, paused, buffering or hidden', () => {
+  vi.useFakeTimers();
+  const state = makeState();
+  vi.advanceTimersByTime(60000);
+  expect(currentOffset(state)).toBe(1200);
+  expect(currentOffset(reducer(state, pause()))).toBe(1200);
+  expect(currentOffset(reducer(state, bufferVideo(true)))).toBe(1200);
+  vi.useRealTimers();
+});
 
-// make Date.now super stable for tests
-let mostRecentNow = Date.now();
-const oldNow = Date.now;
-Date.now = function now() {
-  return mostRecentNow;
-};
-function newNow() {
-  mostRecentNow = oldNow();
-  return mostRecentNow;
-}
+it('only the current route media can publish observed time', () => {
+  const state = makeState();
+  expect(reducer(state, videoTime('another-route', 2000))).toBe(state);
+  expect(reducer(state, videoTime(fullname, NaN))).toBe(state);
+  expect(reducer(state, videoTime(fullname, 1234.5)).offset).toBe(1234.5);
+});
 
-describe('playback', () => {
-  it('has playback controls', async () => {
-    newNow();
-    let state = makeDefaultStruct();
+it('separates rapid seek commands from observed time and clamps zero-based bounds', () => {
+  let state = reducer(makeState(), seek(-100));
+  expect(state.offset).toBe(1200);
+  expect(state.seekRequest).toEqual({ id: 1, fullname, offset: 0 });
+  state = reducer(state, seek(100000));
+  expect(state.seekRequest).toEqual({ id: 2, fullname, offset: 60000 });
+  expect(state.offset).toBe(1200);
+});
 
-    // should do nothing
-    state = reducer(state, pause());
-    expect(state.desiredPlaySpeed).toEqual(0);
+it('clamps seeks to a selected range and ignores invalid commands', () => {
+  const state = { ...makeState(), loop: { startTime: 10000, duration: 20000 } };
+  expect(reducer(state, seek(0)).seekRequest.offset).toBe(10000);
+  expect(reducer(state, seek(Infinity))).toBe(state);
+  expect(reducer(state, play(NaN))).toBe(state);
+  expect(reducer(state, play(-1))).toBe(state);
+});
 
-    // start playing, should set start time and such
-    let playTime = newNow();
-    state = reducer(state, play());
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(1);
+it('play, pause, rates and buffering do not move the media clock', () => {
+  let state = reducer(makeState(), pause());
+  expect(state.desiredPlaySpeed).toBe(0);
+  state = reducer(state, play(0.5));
+  state = reducer(state, bufferVideo(true));
+  expect(state).toMatchObject({ desiredPlaySpeed: 0.5, offset: 1200, isBufferingVideo: true });
+  expect(reducer(state, play(100)).desiredPlaySpeed).toBe(16);
+  expect(reducer(state, play(0.01)).desiredPlaySpeed).toBe(0.1);
+});
 
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset
-    let ellapsed = newNow() - playTime;
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // start playing, should set start time and such
-    playTime = newNow();
-    state = reducer(state, play(0.5));
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset, playback speed 1/2
-    ellapsed += (newNow() - playTime) / 2;
-    expect(currentOffset(state)).toEqual(ellapsed);
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // seek!
-    newNow();
-    state = reducer(state, seek(123));
-    expect(state.offset).toEqual(123);
-    expect(state.startTime).toEqual(Date.now());
-    expect(currentOffset(state)).toEqual(123);
-  });
-
-  it('should clamp loop when seeked after loop end time', () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
-
-    // seek past loop end boundary a
-    state = reducer(state, seek(3000));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(2000);
-  });
-
-  it('should clamp loop when seeked before loop start time', () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
-
-    // seek past loop end boundary a
-    state = reducer(state, seek(0));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(1000);
-  });
-
-  it('should buffer video and data', async () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    state = reducer(state, play());
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    // claim the video is buffering
-    state = reducer(state, bufferVideo(true));
-    expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    state = reducer(state, play(0.5));
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
-    state = reducer(state, play(2));
-    state = reducer(state, bufferVideo(false));
-    expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBufferingVideo).toEqual(false);
-
-    expect(state.desiredPlaySpeed).toEqual(2);
-  });
+it('resets commands and observed position for new playback without a second clock', () => {
+  const state = reducer(reducer(makeState(), seek(2000)), resetPlayback());
+  expect(state).toMatchObject({ offset: null, seekRequest: null, desiredPlaySpeed: 1, isBufferingVideo: true });
+  expect(currentOffset(state)).toBe(0);
+  expect(currentOffset(reducer(state, selectLoop(10000, 20000)))).toBe(10000);
+  expect(reducer(state, selectLoop(null, null)).loop).toBeNull();
 });
