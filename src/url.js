@@ -20,7 +20,8 @@ const PARAMS = {
   end: /^\d+$/,
 };
 
-// view -> path templates. Templates never overlap, so their order does not matter.
+// view -> path templates, general to specific. Templates of different views never
+// overlap, so a path matches at most one.
 const ROUTES = {
   dashboard: ['/', '/:dongleId'],
   referrals: ['/referrals'],
@@ -97,25 +98,20 @@ export function parseLocation({ pathname, search = '' }) {
   return { ...route, settings: settings && PARAMS.dongleId.test(settings) ? settings : null };
 }
 
-const paramNames = (template) => segments(template)
-  .filter((name) => name.startsWith(':'))
-  .map((name) => name.slice(1));
-
 export function buildPath(route) {
   const params = toParams(route);
+  const fill = (name) => (name.startsWith(':') ? params[name.slice(1)] : name);
 
-  // the most specific template whose parameters the route provides
-  const candidates = ROUTES[route.view]
-    .filter((candidate) => paramNames(candidate).every((key) => params[key] != null));
-  if (!candidates.length) {
+  // templates are listed general to specific: use the last one the route can fill
+  const template = ROUTES[route.view]
+    .map(segments)
+    .filter((names) => names.map(fill).every((part) => part != null))
+    .pop();
+  if (!template) {
     throw new Error(`incomplete ${route.view} route: ${JSON.stringify(route)}`);
   }
-  const template = candidates
-    .reduce((best, candidate) => (paramNames(candidate).length > paramNames(best).length ? candidate : best));
 
-  const path = `/${segments(template)
-    .map((name) => (name.startsWith(':') ? params[name.slice(1)] : name))
-    .join('/')}`;
+  const path = `/${template.map(fill).join('/')}`;
   return route.settings ? `${path}?settings=${route.settings}` : path;
 }
 

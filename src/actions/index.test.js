@@ -94,11 +94,6 @@ describe('pushTimelineRange', () => {
   ])('navigates to %j', (args, path) => {
     expect(run(pushTimelineRange(...args))).toEqual([{ type: 'push', path }]);
   });
-
-  it('does not touch the store directly', () => {
-    const actions = run(pushTimelineRange(LOG, 10000, 20000));
-    expect(actions.map(({ type }) => type)).toEqual(['push']);
-  });
 });
 
 describe('setTimelineRange', () => {
