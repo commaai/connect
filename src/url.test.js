@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parseLocation, routePath, dialogLocation } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -15,18 +15,14 @@ describe('URL pathname helpers', () => {
     expect(getDongleID(pathname)).toBe(expected);
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
+  it('does not accept a device ID embedded in another segment', () => {
+    expect(getDongleID(`/prefix${DONGLE}suffix`)).toBeNull();
   });
 
   it.each([
     [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
+    [`/${DONGLE}/0/20/ignored`, null],
+    [`/${DONGLE}/${LOG}/10/20`, null],
     [`/${DONGLE}/10`, null],
     ['/auth/code/provider', null],
   ])('getZoom(%s)', (pathname, expected) => {
@@ -35,6 +31,8 @@ describe('URL pathname helpers', () => {
 
   it.each([
     [`/${DONGLE}/${LOG}`, LOG],
+    [`/${DONGLE}/00000000--0000000002`, '00000000--0000000002'],
+    [`/${DONGLE}/prefix${LOG}`, null],
     [`/${DONGLE}/${LOG}/10/20`, LOG],
     [`/${DONGLE}/prime`, null],
     [`/${DONGLE}`, null],
@@ -67,5 +65,27 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/prime`, false],
   ])('getStreamNav(%s)', (pathname, expected) => {
     expect(getStreamNav(pathname)).toBe(expected);
+  });
+
+  it.each(['NaN/20', 'Infinity/20', '-1/20', '20/10', '10/10', '10/no', '0/20/extra'])('rejects an invalid drive range %s', (range) => {
+    expect(parseLocation({ pathname: `/${DONGLE}/${LOG}/${range}` }).page).toBe('unknown');
+    expect(getRouteZoom(`/${DONGLE}/${LOG}/${range}`)).toBeNull();
+  });
+
+  it('round trips a range starting at zero', () => {
+    expect(parseLocation({ pathname: routePath(DONGLE, LOG, 0, 20) })).toMatchObject({
+      page: 'drive', dongleId: DONGLE, routeId: LOG, range: { start: 0, end: 20000 },
+    });
+  });
+
+  it('preserves the underlying page, unrelated query parameters and hash for a dialog', () => {
+    const location = { pathname: routePath(DONGLE, LOG), search: '?r=kept', hash: '#position' };
+    const opened = dialogLocation(location, 'settings', DONGLE);
+    expect(parseLocation(opened)).toMatchObject({ page: 'drive', dialog: 'settings', dialogDevice: DONGLE });
+    expect(dialogLocation(opened, null)).toEqual(location);
+  });
+
+  it.each(['unknown', 'settings&device=invalid'])('ignores unsupported dialogs or invalid devices (%s)', (query) => {
+    expect(parseLocation({ pathname: '/', search: `?dialog=${query}` }).dialog).toBeNull();
   });
 });

@@ -16,6 +16,28 @@ API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
 `VITE_USERADMIN_URL_ROOT`. Docker Compose accepts the same variables.
 
+## Routing
+
+`src/url.js` parses locations and builds device, drive, and dialog URLs.
+`src/actions/history.js` reconciles every router location change (PUSH, REPLACE,
+and POP) with Redux. Reconciliation only updates changed selections; query-only
+navigation keeps the current drive, playback, and cached route data.
+
+Pages are `/`, `/demo`, `/referrals`, `/:dongleId`, `/:dongleId/prime`,
+`/:dongleId/stream`, and `/:dongleId/:routeId[/startSeconds/endSeconds]`.
+Legacy `/:dongleId/startMilliseconds/endMilliseconds` links resolve to a drive
+and replace their history entry. A lookup cannot redirect a newer navigation.
+
+Dialogs use `?dialog=settings|pair|filter|uploads|cancel-prime|switch-plan`.
+Settings and uploads can target another accessible device with `&device=:dongleId`
+without changing the page underneath. Filter dialogs belong to dashboards;
+subscription confirmations belong to Prime. A URL opens a confirmation, never
+performs the operation. Closing an overlay preserves unrelated query parameters
+and the hash. Account menus and transient operation results remain local state.
+
+When adding a page or dialog, extend `parseLocation` and its URL tests, then add
+whole-app coverage for direct entry and browser history in `src/App.test.jsx`.
+
 ## Contributing
 
 * Use best practices

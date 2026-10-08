@@ -106,6 +106,7 @@ async function mockFetch(input, init = {}) {
     if (options.failedRoutes && url.searchParams.has('start')) return json({}, 500);
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
+    if (routeStr && options.routeLookup) return options.routeLookup(dongleId, routeStr.split('|')[1]);
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
@@ -116,10 +117,14 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const payload = JSON.parse(init.body || '{}');
+    return json({ jsonrpc: '2.0', id: 0, result: payload.method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -146,7 +151,143 @@ async function renderApp(pathname, options = {}) {
 }
 
 describe('whole-app behavior', () => {
-  beforeAll(() => {
+  test('an empty drive lookup is not retried for every dialog navigation', async () => {
+    const missing = '2026-08-06--14-00-00';
+    const routeLookup = vi.fn(() => json([]));
+    const { history, store } = await renderApp(`/${FIRST}`, { routeLookup });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/${missing}`));
+    await waitFor(() => expect(store.getState().routesMeta.routeId).toBe(missing));
+    act(() => history.push(`/${FIRST}/${missing}?dialog=settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(routeLookup).toHaveBeenCalledOnce();
+  });
+  test('an obsolete drive lookup cannot replace a newer cached drive', async () => {
+    let resolveRoute;
+    const routeLookup = vi.fn(() => new Promise((resolve) => { resolveRoute = resolve; }));
+    const { history, store } = await renderApp(`/${FIRST}`, { routeLookup });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    await waitFor(() => expect(routeLookup).toHaveBeenCalledOnce());
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}`));
+    await act(async () => resolveRoute(await json([makeRoute(FIRST, LOG)])));
+    expect(store.getState().currentRoute.log_id).toBe(RECENT_LOG);
+    expect(store.getState().routes.some((route) => route.log_id === LOG)).toBe(false);
+  });
+  test('fetches a deep-linked drive missing from the cached dashboard without dropping cached drives', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    const cachedRoute = store.getState().routes.find((route) => route.log_id === RECENT_LOG);
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    expect(store.getState().routes.find((route) => route.log_id === RECENT_LOG)).toBe(cachedRoute);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+  test.each([
+    ['pair', 'Pair device'],
+    [`settings&device=${SECOND}`, 'Device settings'],
+  ])('root-level dialog %s survives automatic device selection', async (query, title) => {
+    const { history } = await renderApp(`/?dialog=${query}#kept`);
+    expect(await screen.findByText(title)).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(history.location.search).toBe(`?dialog=${query}`);
+    expect(history.location.hash).toBe('#kept');
+    expect(history.length).toBe(1);
+  });
+  test('stops a camera stream granted after the pairing dialog is closed', async () => {
+    let grantCamera;
+    const stop = vi.fn();
+    const getUserMedia = vi.fn(() => new Promise((resolve) => { grantCamera = resolve; }));
+    const previous = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: vi.fn(async () => [{ kind: 'videoinput' }]), getUserMedia,
+    } });
+    try {
+      const { history } = await renderApp(`/${FIRST}?dialog=pair`);
+      await waitFor(() => expect(getUserMedia).toHaveBeenCalledOnce());
+      act(() => history.push(`/${FIRST}`));
+      await act(async () => grantCamera({ getTracks: () => [{ stop }] }));
+      expect(stop).toHaveBeenCalledOnce();
+      expect(screen.queryByText('Pair device')).not.toBeInTheDocument();
+    } finally {
+      if (previous) Object.defineProperty(navigator, 'mediaDevices', previous);
+      else delete navigator.mediaDevices;
+    }
+  });
+  test.each([
+    ['filter', 'Start date:'],
+    ['uploads', 'Upload queue'],
+  ])('dialog %s opens on a cold entry and closes without refetching routes', async (dialog, title) => {
+    const { history, store } = await renderApp(`/${FIRST}?dialog=${dialog}`);
+    expect(await screen.findByText(title)).toBeVisible();
+    const routes = store.getState().routes;
+    const routeRequests = mocks.requests.filter(({ url }) => url.includes('/routes_segments')).length;
+    act(() => history.push(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText(title)).not.toBeInTheDocument());
+    expect(store.getState().routes).toBe(routes);
+    expect(mocks.requests.filter(({ url }) => url.includes('/routes_segments')).length).toBe(routeRequests);
+  });
+  test.each([
+    ['cancel-prime', 'Cancel prime subscription'],
+    ['switch-plan', 'Switch to Standard plan'],
+  ])('Prime confirmation deep link %s never performs a billing mutation', async (dialog, heading) => {
+    const { history } = await renderApp(`/${FIRST}/prime?dialog=${dialog}`, {
+      devices: devices.map((device) => ({ ...device, prime: true })),
+      subscription: { user_id: 'test-user', plan: 'nodata', subscribed_at: 1000, next_charge_at: 2000 },
+    });
+    expect(await screen.findByRole('heading', { name: heading })).toBeVisible();
+    expect(mocks.requests.filter(({ method, url }) => method !== 'GET' && url.includes('billing'))).toHaveLength(0);
+    act(() => history.push(`/${FIRST}/prime`));
+    await waitFor(() => expect(screen.queryByRole('heading', { name: heading })).not.toBeInTheDocument());
+    act(() => history.goBack());
+    expect(await screen.findByRole('heading', { name: heading })).toBeVisible();
+    expect(mocks.requests.filter(({ method, url }) => method !== 'GET' && url.includes('billing'))).toHaveLength(0);
+  });
+
+  test('settings deep link preserves the drive through close, back and forward', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/0/20?dialog=settings&device=${SECOND}`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    const { currentRoute, routes, files, zoom, loop } = store.getState();
+    const routeRequests = mocks.requests.filter(({ url }) => url.includes('/routes_segments')).length;
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(history.location.search).toBe('');
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goForward());
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(store.getState()).toMatchObject({ selectedRouteId: LOG, dongleId: FIRST });
+    for (const [key, value] of Object.entries({ currentRoute, routes, files, zoom, loop })) {
+      expect(store.getState()[key]).toBe(value);
+    }
+    expect(mocks.requests.filter(({ url }) => url.includes('/routes_segments')).length).toBe(routeRequests);
+  });
+
+  test('a settings URL cannot open another user\'s device settings', async () => {
+    await renderApp(`/${FIRST}?dialog=settings&device=${SHARED}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('a pairing deep link opens exactly one camera dialog', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=pair`);
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    expect(screen.getAllByText('Pair device')).toHaveLength(1);
+    act(() => history.push(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Pair device')).not.toBeInTheDocument());
+  });
+
+  test('PUSH and REPLACE select devices, not just change the address', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    act(() => history.push(`/${SECOND}`));
+    expect(store.getState().dongleId).toBe(SECOND);
+    act(() => history.replace(`/${FIRST}`));
+    expect(store.getState().dongleId).toBe(FIRST);
+    act(() => history.push(`/${FIRST}/${LOG}/0/20`));
+    expect(store.getState().selectedRouteId).toBe(LOG);
+    expect(store.getState().zoom).toMatchObject({ start: 0, end: 20000 });
+  });
+  beforeAll(async () => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
@@ -158,6 +299,10 @@ describe('whole-app behavior', () => {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
     });
+    // Transform lazy chunks outside individual test deadlines; each test still
+    // starts with a fresh history, store, and mounted application.
+    await import('./components/explorer');
+    await import('./components/anonymous');
   });
   afterEach(() => {
     localStorage.clear();

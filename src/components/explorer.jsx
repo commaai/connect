@@ -14,7 +14,12 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav, closeDialog } from '../actions';
+import { parseLocation } from '../url';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import TimeSelect from './TimeSelect';
+import UploadQueue from './Files/UploadQueue';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -198,9 +203,13 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, device, dispatch, dongleId, bodyTeleopOpen,
+      selectedRouteId, pathname, profile, dialog, dialogDeviceId,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+    const dialogDevice = devices?.find((candidate) => candidate.dongle_id === dialogDeviceId)
+      || (device?.dongle_id === dialogDeviceId ? device : null);
+    const settingsOpen = dialog === 'settings' && Boolean(dialogDevice && (dialogDevice.is_owner || profile?.superuser));
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const referralsOpen = pathname === '/referrals';
@@ -224,6 +233,16 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
+        {dialog === 'pair' && <AddDevice dialogHost />}
+        {dialog === 'filter' && <TimeSelect onClose={() => dispatch(closeDialog())} />}
+        {dialog === 'uploads' && dialogDevice && (
+          <UploadQueue open update device={dialogDevice} onClose={() => dispatch(closeDialog())} />
+        )}
+        {settingsOpen && <DeviceSettingsModal
+          isOpen
+          dongleId={dialogDeviceId}
+          onClose={() => dispatch(closeDialog())}
+        />}
         { bodyTeleopOpen ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
@@ -275,16 +294,22 @@ class ExplorerApp extends Component {
   }
 }
 
-const stateToProps = (state) => ({
-  zoom: state.zoom,
-  pathname: state.router.location.pathname,
-  dongleId: state.dongleId,
-  devices: state.devices,
-  currentRoute: state.currentRoute,
-  selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
-  profile: state.profile,
-});
+const stateToProps = (state) => {
+  const location = parseLocation(state.router.location);
+  return {
+    dialog: location.dialog,
+    dialogDeviceId: location.dialogDevice,
+    zoom: state.zoom,
+    pathname: state.router.location.pathname,
+    dongleId: state.dongleId,
+    devices: state.devices,
+    device: state.device,
+    currentRoute: state.currentRoute,
+    selectedRouteId: state.selectedRouteId,
+    limit: state.limit,
+    bodyTeleopOpen: state.streamNav,
+    profile: state.profile,
+  };
+};
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

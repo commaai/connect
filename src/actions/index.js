@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { devicePath, routePath, dialogLocation } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -21,7 +22,9 @@ export function checkRoutesData() {
     if (!state.dongleId) {
       return;
     }
-    if (hasRoutesData(state)) {
+    const hasCachedRoutes = hasRoutesData(state);
+    if (hasCachedRoutes && (!state.selectedRouteId || state.routesMeta.routeId === state.selectedRouteId
+      || state.routes.some((route) => route.log_id === state.selectedRouteId))) {
       // already has metadata, don't bother
       return;
     }
@@ -30,7 +33,7 @@ export function checkRoutesData() {
       return routesRequestPromise;
     }
     console.debug('We need to update the segment metadata...');
-    const { dongleId, limit: fetchLimit } = state;
+    const { dongleId, limit: fetchLimit, selectedRouteId } = state;
     const fetchRange = state.filter;
 
     // if requested segment range not in loaded routes, fetch it explicitly
@@ -46,12 +49,15 @@ export function checkRoutesData() {
       };
     }
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    const request = routesRequest;
+    routesRequestPromise = request.req.then((routesData) => {
+      if (routesRequest !== request) return;
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.limit !== fetchLimit
+        || state.selectedRouteId !== selectedRouteId
         || state.dongleId !== dongleId) {
         routesRequest = null;
         dispatch(checkRoutesData());
@@ -64,7 +70,7 @@ export function checkRoutesData() {
         return;
       }
 
-      const routes = routesData.map((r) => {
+      const fetchedRoutes = routesData.map((r) => {
         let startTime = r.segment_start_times[0];
         let endTime = r.segment_end_times[r.segment_end_times.length - 1];
 
@@ -91,25 +97,32 @@ export function checkRoutesData() {
           // TODO: get this from the API, this isn't correct for segments with a time jump
           segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
         };
-      }).sort((a, b) => {
+      });
+      // A drive deep link may fall outside the loaded dashboard page. Add it
+      // without evicting the existing route objects or their cached data.
+      const fetchedNames = new Set(fetchedRoutes.map((route) => route.fullname));
+      const cachedRoutes = selectedRouteId && hasCachedRoutes
+        ? state.routes.filter((route) => !fetchedNames.has(route.fullname)) : [];
+      const routes = [...cachedRoutes, ...fetchedRoutes].sort((a, b) => {
         return b.create_time - a.create_time;
       });
 
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
+        routeId: selectedRouteId,
         start: fetchRange.start,
         end: fetchRange.end,
         routes,
       });
 
-      routesRequest = null;
+      if (routesRequest === request) routesRequest = null;
 
       return routes
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
+      if (routesRequest === request) routesRequest = null;
     });
 
     return routesRequestPromise
@@ -143,19 +156,15 @@ export function checkLastRoutesData() {
 }
 
 export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
+  return prime && !log_id ? `${devicePath(dongleId)}/prime` : routePath(dongleId, log_id, start, end);
+}
 
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
+export function openDialog(dialog, device) {
+  return (dispatch, getState) => dispatch(push(dialogLocation(getState().router.location, dialog, device)));
+}
 
-  return `/${path.join('/')}`;
+export function closeDialog() {
+  return (dispatch, getState) => dispatch(push(dialogLocation(getState().router.location, null)));
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
@@ -271,6 +280,12 @@ export function fetchDeviceOnline(dongleId) {
 export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
   return (dispatch, getState) => {
     const state = getState();
+    if (state.dongleId === dongleId) {
+      if (allowPathChange && (currentPathname(state) !== devicePath(dongleId) || state.router?.location?.search)) {
+        dispatch(push(devicePath(dongleId)));
+      }
+      return;
+    }
     let device;
     if (state.devices && state.devices.length > 1) {
       device = state.devices.find((d) => d.dongle_id === dongleId);

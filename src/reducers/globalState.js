@@ -409,9 +409,11 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
+    case Types.ACTION_ROUTES_METADATA: {
+      const cachedRoutes = new Set(state.routes);
       // merge existing routes' event and location info with new routes
       state.routes = action.routes.map((route) => {
+        if (cachedRoutes.has(route)) return route;
         const existingRoute = state.lastRoutes ?
           state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
         return {
@@ -421,6 +423,7 @@ export default function reducer(_state, action) {
       });
       state.routesMeta = {
         dongleId: action.dongleId,
+        routeId: action.routeId ?? null,
         start: action.start,
         end: action.end,
       };
@@ -446,6 +449,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }
