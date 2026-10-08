@@ -14,7 +14,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { primeNav, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -225,11 +225,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
     this.props.dispatch(primeNav(true));
-    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -436,12 +432,11 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = (state.devices || []).find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
   };
 };
 

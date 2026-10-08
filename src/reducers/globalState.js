@@ -60,6 +60,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         primeNav: false,
         streamNav: false,
+        settingsNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
@@ -313,6 +314,12 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         streamNav: action.streamNav,
+      };
+      break;
+    case Types.ACTION_SETTINGS_NAV:
+      state = {
+        ...state,
+        settingsNav: action.settingsNav,
       };
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:

@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { pathFor } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -142,73 +143,91 @@ export function checkLastRoutesData() {
   };
 }
 
+// start and end are seconds. A start of 0 is left out, matching pathFor.
 export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
   if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
+    return pathFor({
+      name: 'drive',
+      dongleId,
+      routeId: log_id,
+      zoom: start && end ? { start: start * 1000, end: end * 1000 } : null,
+    });
   }
-
-  return `/${path.join('/')}`;
+  return pathFor({ name: prime ? 'prime' : 'device', dongleId });
 }
 
-function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
+function syncLoop(state, dispatch, start, end) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
   }
+}
 
-  if (allowPathChange) {
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
-    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
-
-    if (currentPathname(state) !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
+// True when state already shows this drive range, so a location change does not
+// stack another zoom frame on top of the one the back button pops.
+function timelineAgrees(state, logId, start, end) {
+  if ((state.selectedRouteId || null) !== (logId || null)) return false;
+  if (!logId) return state.zoom == null;
+  if (start == null || end == null) {
+    if (!state.zoom) return true;
+    const route = state.currentRoute || state.routes?.find((candidate) => candidate.log_id === logId);
+    return Boolean(route) && state.zoom.start === 0 && state.zoom.end === route.duration;
   }
+  return state.zoom?.start === start && state.zoom?.end === end;
 }
 
-export function popTimelineRange(log_id, allowPathChange = true) {
+// The state half of a drive URL. Navigation pushes the path; this writes zoom.
+export function commitTimeline(logId, start, end) {
   return (dispatch, getState) => {
-    const state = getState();
-    if (state.zoom.previous) {
-      dispatch({
-        type: Types.TIMELINE_POP_SELECTION,
-      });
+    if (timelineAgrees(getState(), logId, start, end)) return;
 
-      const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
-    }
+    dispatch({
+      type: Types.TIMELINE_PUSH_SELECTION,
+      log_id: logId,
+      start,
+      end,
+    });
+
+    const state = getState();
+    const wholeDrive = Boolean(logId) && (start == null || end == null) && state.zoom;
+    syncLoop(state, dispatch, wholeDrive ? state.zoom.start : start, wholeDrive ? state.zoom.end : end);
   };
 }
 
-export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
+function pushPath(dispatch, state, path) {
+  if (currentPathname(state) !== path) dispatch(push(path));
+}
+
+function drivePath(state, logId, start, end) {
+  const route = state.routes?.find((candidate) => candidate.log_id === logId);
+  const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+  return urlForState(
+    state.dongleId,
+    logId,
+    wholeDrive ? null : Math.floor(start / 1000),
+    wholeDrive ? null : Math.floor(end / 1000),
+    false,
+  );
+}
+
+export function popTimelineRange(log_id) {
   return (dispatch, getState) => {
     const state = getState();
+    if (!state.zoom?.previous) return;
 
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
-      dispatch({
-        type: Types.TIMELINE_PUSH_SELECTION,
-        log_id,
-        start,
-        end,
-      });
-    }
-
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    const { start, end } = state.zoom.previous;
+    dispatch({ type: Types.TIMELINE_POP_SELECTION });
+    syncLoop(getState(), dispatch, start, end);
+    pushPath(dispatch, state, drivePath(state, log_id, start, end));
   };
+}
 
+export function pushTimelineRange(log_id, start, end) {
+  return (dispatch, getState) => {
+    const state = getState();
+    pushPath(dispatch, state, drivePath(state, log_id, start, end));
+  };
 }
 
 
@@ -268,7 +287,8 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
+// Device data only. The URL is changed by selectDevice / applyLocation, not here.
+export function loadDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
@@ -279,7 +299,6 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
       device = state.device;
     }
 
-    // tear down existing webrtc connection
     if (state.dongleId && state.dongleId !== dongleId) {
       webrtcConnectionManager.disconnect();
     }
@@ -289,70 +308,48 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
       dongleId,
     });
 
-    dispatch(pushTimelineRange(null, null, null, false));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
     }
-
-    if (fetchRoutes) {
-      dispatch(checkLastRoutesData());
-    }
-
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
   };
 }
 
-export function primeNav(nav, allowPathChange = true) {
+export function selectDevice(dongleId, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    if (!state.dongleId) {
+    const path = `/${dongleId}`;
+    if (allowPathChange && currentPathname(state) !== path) {
+      dispatch(push(path));
       return;
     }
+    if (state.dongleId === dongleId) return;
 
-    if (state.primeNav !== nav) {
-      dispatch({
-        type: Types.ACTION_PRIME_NAV,
-        primeNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
+    dispatch(loadDevice(dongleId));
+    dispatch(commitTimeline(null, null, null));
+    dispatch(checkLastRoutesData());
   };
 }
 
-export function streamNav(nav, allowPathChange = true) {
+export function primeNav(nav) {
   return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
+    const { dongleId } = getState();
+    if (!dongleId) return;
+    pushPath(dispatch, getState(), nav ? `/${dongleId}/prime` : `/${dongleId}`);
+  };
+}
 
-    if (state.streamNav !== nav) {
-      dispatch({
-        type: Types.ACTION_STREAM_NAV,
-        streamNav: nav,
-      });
-    }
+export function streamNav(nav) {
+  return (dispatch, getState) => {
+    const { dongleId } = getState();
+    if (!dongleId) return;
+    pushPath(dispatch, getState(), nav ? `/${dongleId}/stream` : `/${dongleId}`);
+  };
+}
 
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
+export function openSettings(dongleId) {
+  return (dispatch, getState) => {
+    pushPath(dispatch, getState(), `/${dongleId}/settings`);
   };
 }
 
