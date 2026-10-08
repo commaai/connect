@@ -55,7 +55,8 @@ export function checkRoutesData() {
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.limit !== fetchLimit
-        || state.dongleId !== dongleId) {
+        || state.dongleId !== dongleId
+        || state.selectedRouteId !== selectedRouteId) {
         routesRequest = null;
         dispatch(checkRoutesData());
         return;

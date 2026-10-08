@@ -109,6 +109,7 @@ async function mockFetch(input, init = {}) {
     if (options.legacyLookup && url.searchParams.get('start') === String(START)) await options.legacyLookup;
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
+    if (routeStr && options.driveLookup) await options.driveLookup;
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
@@ -421,6 +422,42 @@ describe('whole-app behavior', () => {
     await screen.findByRole('slider', { name: 'Drive timeline' });
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('closing a drive opened by link before it loads lists all drives', async () => {
+    let resolveLookup;
+    const driveLookup = new Promise((resolve) => { resolveLookup = resolve; });
+    const { history } = await renderApp(`/${FIRST}/${LOG}`, { driveLookup });
+    act(() => history.push(`/${FIRST}`));
+    await act(async () => resolveLookup());
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('a timeline selection of the whole drive shows the whole drive', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled());
+    dragTimeline(0, 1000);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
+  });
+
+  test('opening and closing device settings is not a page view', async () => {
+    const gtag = vi.fn();
+    window.gtag = gtag;
+    try {
+      const { history } = await renderApp(`/${FIRST}`);
+      await screen.findByRole('heading', { name: 'Zulu' });
+      gtag.mockClear();
+      act(() => history.push(`/${FIRST}?settings=${FIRST}`));
+      act(() => history.goBack());
+      expect(gtag).not.toHaveBeenCalledWith('event', 'page_view', expect.anything());
+      act(() => history.push(`/${SECOND}`));
+      expect(gtag).toHaveBeenCalledWith('event', 'page_view', expect.objectContaining({ page_location: '/<dongleId>' }));
+    } finally {
+      delete window.gtag;
+    }
   });
 
   test('changing the range of a drive opened by link does not refetch it', async () => {

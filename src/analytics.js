@@ -100,6 +100,11 @@ function logAction(action, prevState, state) {
   // eslint-disable-next-line default-case
   switch (action.type) {
     case LOCATION_CHANGE:
+      // opening or closing an overlay such as ?settings= is not a new page
+      if (action.payload.location.pathname === prevState.router.location.pathname
+        && action.payload.location.search !== prevState.router.location.search) {
+        return;
+      }
       gtag('event', 'page_view', {
         page_location: getPageViewEventLocation(action.payload.location.pathname),
       });

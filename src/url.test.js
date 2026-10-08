@@ -53,15 +53,18 @@ describe('urlFor', () => {
     expect(urlFor(parseLocation({ pathname, search: '' }))).toBe(canonical);
   });
 
-  it('rounds a drive range outward to whole seconds', () => {
-    const location = { page: 'drive', dongleId: DONGLE, logId: HEX_LOG, range: { start: 1500, end: 20200 } };
-    expect(urlFor(location)).toBe(`/${DONGLE}/${HEX_LOG}/1/21`);
+  it.each([
+    [{ start: 1500, end: 20700 }, `/${DONGLE}/${HEX_LOG}/1/20`],
+    [{ start: 10300, end: 10700 }, `/${DONGLE}/${HEX_LOG}/10/11`],
+  ])('rounds the drive range %j down to whole seconds, keeping at least one', (range, expected) => {
+    expect(urlFor({ page: 'drive', dongleId: DONGLE, logId: HEX_LOG, range })).toBe(expected);
   });
 
   it.each([
-    [`/${DONGLE}/${HEX_LOG}`, `?settings=${DONGLE}`, `/${DONGLE}/${HEX_LOG}?settings=${DONGLE}`],
-    [`/${DONGLE}`, '?settings=not-a-dongle', `/${DONGLE}`],
-  ])('keeps a valid settings overlay: %s%s', (pathname, search, expected) => {
-    expect(urlFor(parseLocation({ pathname, search }))).toBe(expected);
+    [`?settings=${DONGLE}`, DONGLE],
+    ['?settings=not-a-dongle', null],
+    [`?stripe_success=1&settings=${DONGLE}`, DONGLE],
+  ])('reads the settings overlay from %s', (search, expected) => {
+    expect(parseLocation({ pathname: `/${DONGLE}`, search }).settingsDongleId).toBe(expected);
   });
 });

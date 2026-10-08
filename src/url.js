@@ -48,19 +48,25 @@ export function parseLocation({ pathname, search }) {
   return { ...location, page: 'dashboard', dongleId };
 }
 
-// The canonical URL for a location. Legacy and auth URLs are never built.
-export function urlFor({ page, dongleId, logId, range, settingsDongleId }) {
-  let pathname = '/';
+// The canonical path for a location. Legacy and auth URLs are never built.
+export function urlFor({ page, dongleId, logId, range }) {
   if (page === 'referrals') {
-    pathname = '/referrals';
-  } else if (page === 'dashboard') {
-    pathname = `/${dongleId}`;
-  } else if (page === 'prime' || page === 'stream') {
-    pathname = `/${dongleId}/${page}`;
-  } else if (page === 'drive') {
-    pathname = range
-      ? `/${dongleId}/${logId}/${Math.floor(range.start / 1000)}/${Math.ceil(range.end / 1000)}`
-      : `/${dongleId}/${logId}`;
+    return '/referrals';
   }
-  return settingsDongleId ? `${pathname}?settings=${settingsDongleId}` : pathname;
+  if (page === 'dashboard') {
+    return `/${dongleId}`;
+  }
+  if (page === 'prime' || page === 'stream') {
+    return `/${dongleId}/${page}`;
+  }
+  if (page === 'drive' && range) {
+    // whole seconds inside the selection, but never an empty range
+    const start = Math.floor(range.start / 1000);
+    const end = Math.max(Math.floor(range.end / 1000), start + 1);
+    return `/${dongleId}/${logId}/${start}/${end}`;
+  }
+  if (page === 'drive') {
+    return `/${dongleId}/${logId}`;
+  }
+  return '/';
 }

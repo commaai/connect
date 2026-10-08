@@ -272,7 +272,8 @@ class Timeline extends Component {
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
-      const range = { start: startOffset, end: endOffset };
+      const wholeDrive = startOffset === 0 && endOffset === route.duration;
+      const range = wholeDrive ? null : { start: startOffset, end: endOffset };
       this.props.dispatch(navigate(urlFor({ page: 'drive', dongleId: route.dongle_id, logId: route.log_id, range })));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);

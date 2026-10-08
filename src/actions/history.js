@@ -37,7 +37,7 @@ export function applyLocation(location) {
       return;
     }
 
-    const canonical = urlFor({ ...url, settingsDongleId: null });
+    const canonical = urlFor(url);
     if (url.page !== 'legacy' && canonical !== location.pathname) {
       dispatch(replace({ pathname: canonical, search: location.search }));
       return;
