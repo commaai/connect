@@ -15,6 +15,8 @@ export function reducer(_state, action) {
         ...state,
         offset: action.offset,
         startTime: Date.now(),
+        // tells the video to move its playhead, which play/pause/buffering never do
+        seekRevision: (state.seekRevision || 0) + 1,
       };
 
       if (loopOffset !== null) {
@@ -54,6 +56,7 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_BUFFER_VIDEO:
+      // currentOffset reads the video if it's still attached, so this also hands its playhead to the clock
       state = {
         ...state,
         isBufferingVideo: action.buffering,
@@ -65,9 +68,10 @@ export function reducer(_state, action) {
       state = {
         ...state,
         desiredPlaySpeed: 1,
-        isBufferingVideo: true,
+        isBufferingVideo: false, // the video sets this while it loads; the map plays right away
         offset: 0,
         startTime: Date.now(),
+        seekRevision: (state.seekRevision || 0) + 1,
       };
       break;
     default:
