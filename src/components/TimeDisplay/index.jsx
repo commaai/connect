@@ -72,7 +72,7 @@ const styles = (theme) => ({
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
   },
   currentTime: {
-    margin: `0 ${theme.spacing.unit * 1}px`,
+    margin: `0 ${theme.spacing.unit / 2}px`,
     fontSize: 15,
     fontWeight: 500,
     display: 'block',
@@ -191,7 +191,7 @@ class TimeDisplay extends Component {
           onClick={(ev) => this.setState({ speedMenu: ev.currentTarget })}
           aria-label="Play speed"
           aria-haspopup="true"
-          className="mr-2 h-8 min-w-12 rounded-full bg-white/10 px-2.5 text-sm font-semibold text-white tabular-nums cursor-pointer"
+          className="mr-1 h-8 min-w-10 rounded-full bg-white/10 px-2 text-sm font-semibold text-white tabular-nums cursor-pointer"
         >
           {`${playSpeed}×`}
         </button>
