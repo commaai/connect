@@ -298,48 +298,24 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
   };
 }
 
-export function primeNav(nav, allowPathChange = true) {
+// page is one of Pages.DEVICE, Pages.PRIME or Pages.STREAM: what is open over the device's drives.
+export function showPage(page, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     if (!state.dongleId) {
       return;
     }
 
-    if (state.primeNav !== nav) {
+    if (state.page !== page) {
       dispatch({
-        type: Types.ACTION_PRIME_NAV,
-        primeNav: nav,
+        type: Types.ACTION_SET_PAGE,
+        page,
       });
     }
 
     if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = buildPath({ page: nav ? Pages.PRIME : Pages.DEVICE, dongleId: state.dongleId });
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
-  };
-}
-
-export function streamNav(nav, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.streamNav !== nav) {
-      dispatch({
-        type: Types.ACTION_STREAM_NAV,
-        streamNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = buildPath({ page: nav ? Pages.STREAM : Pages.DEVICE, dongleId: state.dongleId });
-      if (curPath !== desiredPath) {
+      const desiredPath = buildPath({ page, dongleId: state.dongleId });
+      if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
     }

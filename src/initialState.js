@@ -24,8 +24,7 @@ export function createInitialState(pathname = window.location.pathname) {
     profile: null,
     devices: null,
 
-    primeNav: page === Pages.PRIME,
-    streamNav: page === Pages.STREAM,
+    page: page === Pages.PRIME || page === Pages.STREAM ? page : Pages.DEVICE,
     subscription: null,
     subscribeInfo: null,
 

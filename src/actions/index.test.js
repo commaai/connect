@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav } from './index';
+import { pushTimelineRange, showPage } from './index';
+import { Pages } from '../url';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -39,11 +40,21 @@ describe('timeline actions', () => {
   });
 
   it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
+    ['Prime', Pages.PRIME, '/statedongle/prime'],
+    ['stream', Pages.STREAM, '/statedongle/stream'],
+    ['device', Pages.DEVICE, '/statedongle'],
+  ])('generates the %s URL when showing the page', (_name, page, expected) => {
     const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    showPage(page)(dispatch, () => ({ dongleId: 'statedongle', page: 'other' }));
     expect(push).toHaveBeenCalledWith(expected);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'ACTION_SET_PAGE', page });
+  });
+
+  it('shows a page without changing the URL when asked not to', () => {
+    push.mockClear();
+    const dispatch = vi.fn();
+    showPage(Pages.STREAM, false)(dispatch, () => ({ dongleId: 'statedongle', page: Pages.DEVICE }));
+    expect(push).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledOnce();
   });
 });

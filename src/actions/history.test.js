@@ -17,14 +17,14 @@ vi.mock('../api', () => ({
 }));
 vi.mock('./index', () => ({
   selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
-  checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
+  checkRoutesData: vi.fn(), showPage: vi.fn(),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
 const baseState = {
-  dongleId: DONGLE, zoom: null, selectedRouteId: null, primeNav: false, streamNav: false,
+  dongleId: DONGLE, zoom: null, selectedRouteId: null, page: 'device',
 };
 
 function create(state = baseState) {
@@ -40,7 +40,7 @@ function location(pathname, action = 'POP') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
+  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'showPage']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
@@ -115,17 +115,20 @@ describe('history middleware', () => {
     consoleError.mockRestore();
   });
 
-  it.each([
-    ['Prime', 'prime', 'primeNav'],
-    ['stream', 'stream', 'streamNav'],
-  ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
+  it.each(['prime', 'stream'])('opens and closes the %s page through history', (page) => {
     const entering = create();
-    entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
+    entering.invoke(location(`/${DONGLE}/${page}`, 'REPLACE'));
+    expect(actions.showPage).toHaveBeenCalledWith(page, false);
 
     vi.clearAllMocks();
-    const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
+    const leaving = create({ ...baseState, page });
     leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions.showPage).toHaveBeenCalledWith('device', false);
+  });
+
+  it('does not touch the page when it already matches the URL', () => {
+    const { invoke } = create({ ...baseState, page: 'prime' });
+    invoke(location(`/${DONGLE}/prime`));
+    expect(actions.showPage).not.toHaveBeenCalled();
   });
 });
