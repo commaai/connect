@@ -14,6 +14,8 @@ import { isIos } from '../../utils/browser.js';
 
 const SEEK_TOLERANCE_SECONDS = 1;
 const UNEXPECTED_REWIND_SECONDS = 1;
+// A nonfatal retry option is offered after a prolonged unresolved load/seek.
+const STALL_RETRY_DELAY_MS = 15000;
 
 // Only connectivity-related failures should be retried when the browser comes back online.
 const isTransientNetworkStatus = (code) => {
@@ -28,7 +30,7 @@ const sourceForRoute = (route) => route
 
 const routeSourceKey = (route) => JSON.stringify([route?.fullname || null, sourceForRoute(route)]);
 
-const VideoOverlay = ({ loading, error, onRetry }) => {
+const VideoOverlay = ({ loading, error, onRetry, showSlowRetry }) => {
   let content;
   if (error) {
     content = (
@@ -39,7 +41,17 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
       </>
     );
   } else if (loading) {
-    content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />;
+    content = (
+      <>
+        <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
+        {showSlowRetry && (
+          <>
+            <Typography className="mt-3">Video is taking longer than expected.</Typography>
+            <Button onClick={onRetry} variant="contained" className="mt-3">Retry video</Button>
+          </>
+        )}
+      </>
+    );
   } else {
     return null;
   }
@@ -66,6 +78,7 @@ export class DriveVideo extends Component {
     this.onReconnect = this.onReconnect.bind(this);
     this.retryVideo = this.retryVideo.bind(this);
     this.recoverOnReconnect = false;
+    this.stallTimer = null;
     this.appliedSeekRevision = null;
     this.pendingSeek = null;
     this.reseekedRevision = null;
@@ -81,11 +94,13 @@ export class DriveVideo extends Component {
       videoError: null,
       retryGeneration: 0,
       restartingLoop: false,
+      showSlowRetry: false,
     };
   }
 
   componentDidMount() {
     window.addEventListener('online', this.onReconnect);
+    if (this.props.isBufferingVideo) this.startStallWatch(this.playerKey());
   }
 
   componentDidUpdate(prevProps) {
@@ -95,7 +110,9 @@ export class DriveVideo extends Component {
     if (routeSourceKey(prevProps.currentRoute) !== routeSourceKey(this.props.currentRoute)) {
       this.props.onAudioStatusChange?.(false);
       this.resetPlayer();
-      this.setState({ videoError: null, retryGeneration: 0, restartingLoop: false });
+      this.setState({ videoError: null, retryGeneration: 0, restartingLoop: false, showSlowRetry: false }, () => {
+        this.startStallWatch(this.playerKey());
+      });
       this.props.dispatch(bufferVideo(true));
     }
     if (prevProps.loop !== this.props.loop && this.props.loop?.duration > 0
@@ -104,6 +121,36 @@ export class DriveVideo extends Component {
       this.props.dispatch(seek(this.props.loop.startTime));
     }
     if (prevProps.seekRevision !== this.props.seekRevision) this.applyPendingSeek();
+    if (prevProps.desiredPlaySpeed > 0 && this.props.desiredPlaySpeed === 0 && !this.pendingSeek) {
+      this.stopStallWatch();
+      if (this.state.showSlowRetry) this.setState({ showSlowRetry: false });
+    }
+  }
+
+  // This timer only offers a manual recovery action; it never changes the
+  // media clock, seeks automatically, or labels a slow stream as a fatal error.
+  startStallWatch(key) {
+    if (!this.isCurrentPlayer(key) || !this.props.currentRoute || this.state.videoError
+      || this.state.showSlowRetry || (this.props.desiredPlaySpeed <= 0 && !this.pendingSeek)
+      || this.stallTimer !== null) return;
+
+    this.stallTimer = setTimeout(() => {
+      this.stallTimer = null;
+      if (this.isCurrentPlayer(key) && this.props.currentRoute && !this.state.videoError
+        && (this.props.desiredPlaySpeed > 0 || this.pendingSeek)) {
+        this.setState({ showSlowRetry: true });
+      }
+    }, STALL_RETRY_DELAY_MS);
+  }
+
+  stopStallWatch() {
+    if (this.stallTimer !== null) clearTimeout(this.stallTimer);
+    this.stallTimer = null;
+  }
+
+  clearStallOffer() {
+    this.stopStallWatch();
+    if (this.state.showSlowRetry && !this.unmounted) this.setState({ showSlowRetry: false });
   }
 
   playerKey() {
@@ -115,6 +162,7 @@ export class DriveVideo extends Component {
   }
 
   resetPlayer() {
+    this.stopStallWatch();
     this.recoverOnReconnect = false;
     this.ready = false;
     this.pendingSeek = null;
@@ -142,7 +190,12 @@ export class DriveVideo extends Component {
   retryVideo() {
     this.props.onAudioStatusChange?.(false);
     this.resetPlayer();
-    this.setState((state) => ({ videoError: null, retryGeneration: state.retryGeneration + 1, restartingLoop: false }));
+    this.setState((state) => ({
+      videoError: null,
+      retryGeneration: state.retryGeneration + 1,
+      restartingLoop: false,
+      showSlowRetry: false,
+    }), () => this.startStallWatch(this.playerKey()));
     this.props.dispatch(bufferVideo(true));
   }
 
@@ -152,6 +205,7 @@ export class DriveVideo extends Component {
     const seconds = this.videoPlayer.current?.getCurrentTime();
     this.bufferingAtSeconds = Number.isFinite(seconds) ? seconds : null;
     this.props.dispatch(bufferVideo(true));
+    this.startStallWatch(key);
   }
 
   onVideoBufferEnd(key) {
@@ -161,6 +215,9 @@ export class DriveVideo extends Component {
     // discard the independently tracked last-good position during this event.
     this.bufferingAtSeconds = null;
     this.onVideoProgress(key);
+    // A paused decoder may report buffer-end without moving; that is healthy.
+    // While playing, keep the watchdog until we observe actual media progress.
+    if (!this.pendingSeek && this.props.desiredPlaySpeed <= 0) this.clearStallOffer();
   }
 
   completeSeek() {
@@ -181,10 +238,13 @@ export class DriveVideo extends Component {
     this.appliedSeekRevision = revision;
     this.pendingSeek = { revision, target };
     this.reseekedRevision = null;
+    this.stopStallWatch();
+    if (this.state.showSlowRetry) this.setState({ showSlowRetry: false });
     if (Math.abs(player.getCurrentTime() - target) <= 0.03) {
       this.completeSeek();
     } else {
       player.seekTo(target, 'seconds');
+      this.startStallWatch(this.playerKey());
     }
   }
 
@@ -192,6 +252,7 @@ export class DriveVideo extends Component {
     if (!this.isCurrentPlayer(key)) return;
     this.ready = true;
     this.applyPendingSeek();
+    if (this.props.isBufferingVideo || this.pendingSeek) this.startStallWatch(key);
     const { onAudioStatusChange } = this.props;
     if (isIos()) {
       const tracks = player.getInternalPlayer()?.audioTracks;
@@ -267,6 +328,7 @@ export class DriveVideo extends Component {
 
   onPlayerEnded(key) {
     if (!this.isCurrentPlayer(key) || !this.ready || this.state.videoError || this.state.restartingLoop) return;
+    this.clearStallOffer();
     const { currentRoute, loop, desiredPlaySpeed, dispatch } = this.props;
     if (!currentRoute || desiredPlaySpeed <= 0) return;
 
@@ -285,6 +347,7 @@ export class DriveVideo extends Component {
     const player = this.videoPlayer.current;
     if (!player || !this.ready || !this.props.currentRoute) return;
     const mediaSeconds = player.getCurrentTime();
+    const completingSeek = Boolean(this.pendingSeek);
     if (!Number.isFinite(mediaSeconds) || !this.acknowledgeSeek(mediaSeconds)) return;
 
     // Decoder resets may happen before onBuffer fires, so use the last
@@ -298,6 +361,7 @@ export class DriveVideo extends Component {
       this.bufferingAtSeconds = null;
       this.props.dispatch(bufferVideo(true));
       player.seekTo(target, 'seconds');
+      this.startStallWatch(key);
       return;
     }
 
@@ -313,7 +377,12 @@ export class DriveVideo extends Component {
       dispatch(seek(loop.startTime));
       return;
     }
+    // Progress callbacks may report the same paused/stalled time repeatedly.
+    // Only a genuinely moving clock or completed seek proves recovery.
+    const movedForward = this.lastAcceptedSeconds === null
+      ? mediaSeconds > 0.02 : mediaSeconds > this.lastAcceptedSeconds + 0.02;
     this.lastAcceptedSeconds = mediaSeconds;
+    if (movedForward || (completingSeek && !this.pendingSeek)) this.clearStallOffer();
     dispatch(videoProgress(routeOffset, seekRevision));
   }
 
@@ -322,6 +391,7 @@ export class DriveVideo extends Component {
    */
   onHlsError(e) {
     if (!e || e.fatal === false) return;
+    this.clearStallOffer();
     this.recoverOnReconnect = e.type === 'networkError' && isTransientNetworkStatus(e.response?.code);
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
@@ -363,6 +433,7 @@ export class DriveVideo extends Component {
     }
 
     const { dispatch } = this.props;
+    this.clearStallOffer();
     dispatch(bufferVideo(true));
 
     if (e.type === 'networkError') {
@@ -402,7 +473,12 @@ export class DriveVideo extends Component {
 
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-        <VideoOverlay loading={isBufferingVideo} error={videoError} onRetry={this.retryVideo} />
+        <VideoOverlay
+          loading={isBufferingVideo || this.state.showSlowRetry}
+          error={videoError}
+          onRetry={this.retryVideo}
+          showSlowRetry={this.state.showSlowRetry}
+        />
         <ReactPlayer
           ref={this.videoPlayer}
           key={key}

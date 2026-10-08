@@ -775,4 +775,112 @@ describe('DriveVideo player lifecycle', () => {
     }));
   });
 
+
+  it('offers a nonfatal Retry after an unreachable seek, without accepting a wrong clock', () => {
+    vi.useFakeTimers();
+    try {
+      const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+      changeProps({ offset: 12000, seekRevision: 1 });
+      media.time = 10;
+      callbacks().onSeek(10);
+      vi.advanceTimersByTime(15000);
+      expect(video.state.showSlowRetry).toBe(true);
+      expect(video.state.videoError).toBeNull();
+      expect(video.pendingSeek).toEqual({ revision: 1, target: 12 });
+      expect(dispatch.mock.calls.some(([a]) => a.type === ACTION_VIDEO_PROGRESS)).toBe(false);
+      media.time = 12;
+      callbacks().onProgress();
+      expect(video.pendingSeek).toBeNull();
+      expect(video.state.showSlowRetry).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('offers Retry for a silent buffering stall; recovery does not force a new seek', () => {
+    vi.useFakeTimers();
+    try {
+      const { video, media, callbacks, dispatch } = playerFixture();
+      media.time = 5;
+      callbacks().onProgress();
+      dispatch.mockClear();
+      callbacks().onBuffer();
+      vi.advanceTimersByTime(15000);
+      expect(video.state.showSlowRetry).toBe(true);
+      expect(video.state.videoError).toBeNull();
+      expect(dispatch.mock.calls.some(([a]) => a.type === ACTION_SEEK)).toBe(false);
+      media.time = 5.1;
+      callbacks().onProgress();
+      expect(video.state.showSlowRetry).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never offers a stalled-playback Retry while intentionally paused without a seek', () => {
+    vi.useFakeTimers();
+    try {
+      const { video, callbacks, changeProps } = playerFixture();
+      changeProps({ desiredPlaySpeed: 0 });
+      callbacks().onBuffer();
+      vi.advanceTimersByTime(30000);
+      expect(video.state.showSlowRetry).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('invalidates stalled loading timers when the route changes or the player unmounts', () => {
+    vi.useFakeTimers();
+    try {
+      const { video, callbacks, changeProps } = playerFixture();
+      const old = callbacks();
+      old.onBuffer();
+      changeProps({ currentRoute: null });
+      vi.advanceTimersByTime(30000);
+      expect(video.state.showSlowRetry).toBe(false);
+      changeProps({ currentRoute: route('route-B') });
+      callbacks().onBuffer();
+      video.componentWillUnmount();
+      vi.advanceTimersByTime(30000);
+      expect(video.state.showSlowRetry).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps a recovery timer during repeated zero-time progress callbacks', () => {
+    vi.useFakeTimers();
+    try {
+      const { video, callbacks } = playerFixture();
+      video.props = { ...video.props, isBufferingVideo: true };
+      video.componentDidMount();
+      callbacks().onProgress(); // Media time is still zero; ReactPlayer emitted a callback, not actual progress.
+      callbacks().onProgress();
+      vi.advanceTimersByTime(15000);
+      expect(video.state.showSlowRetry).toBe(true);
+      video.componentWillUnmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('manual Retry clears the stalled offer and preserves the intended seek', () => {
+    vi.useFakeTimers();
+    try {
+      const { video, media, callbacks, changeProps } = playerFixture();
+      changeProps({ offset: 12000, seekRevision: 1, desiredPlaySpeed: 0 });
+      vi.advanceTimersByTime(15000);
+      expect(video.state.showSlowRetry).toBe(true);
+      video.retryVideo();
+      expect(video.state.showSlowRetry).toBe(false);
+      expect(video.state.videoError).toBeNull();
+      expect(video.state.retryGeneration).toBe(1);
+      callbacks().onReady(media);
+      expect(media.seekTo).toHaveBeenLastCalledWith(12, 'seconds');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
 });
