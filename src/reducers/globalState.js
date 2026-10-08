@@ -58,14 +58,14 @@ export default function reducer(_state, action) {
         ...state,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
-        limit: 0,
       };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
+      // `/` opens this device later, unless it was opened from someone else's link
+      if (state.devices?.some((device) => device.dongle_id === action.dongleId)) {
+        window.localStorage.setItem('selectedDongleId', action.dongleId);
+      }
       if (state.devices) {
         const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
         if (!state.device || state.device.dongle_id !== action.dongleId) {
@@ -300,21 +300,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -335,14 +320,6 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
     case Types.TIMELINE_PUSH_SELECTION: {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
@@ -355,13 +332,11 @@ export default function reducer(_state, action) {
           state.zoom = {
             start: action.start,
             end: action.end,
-            previous: state.zoom,
           };
         } else {
           state.zoom = state.currentRoute ? {
             start: 0,
             end: state.currentRoute.duration,
-            previous: state.zoom,
           } : null;
           state.loop = null;
         }

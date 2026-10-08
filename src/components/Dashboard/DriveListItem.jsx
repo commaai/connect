@@ -4,11 +4,12 @@ import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
-import { pushTimelineRange } from '../../actions';
+import { navigate } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
 import { RightArrow } from '../../icons';
+import { driveUrl } from '../../url';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Timeline from '../Timeline';
@@ -84,7 +85,7 @@ const DriveListItem = (props) => {
   }, [drive, dispatch, isVisible, el]);
 
   const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
+    () => dispatch(navigate(driveUrl(drive))),
   );
 
   const small = windowWidth < 580;

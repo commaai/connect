@@ -6,7 +6,7 @@ import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
-import { selectDevice } from '../../actions';
+import { navigate } from '../../actions';
 
 const listener = (ev) => ev.stopPropagation();
 
@@ -28,7 +28,7 @@ const AppDrawer = ({
   }, [handleDrawerStateChanged]);
 
   const handleDeviceSelected = useCallback((dongleId) => {
-    dispatch(selectDevice(dongleId));
+    dispatch(navigate(`/${dongleId}`));
     toggleDrawerOff();
   }, [dispatch, toggleDrawerOff]);
 
@@ -42,7 +42,7 @@ const AppDrawer = ({
       <div ref={contentRef} className="flex flex-col h-full bg-[linear-gradient(180deg,#1B2023_0%,#111516_100%)] ml-safe-left">
         {!isPermanent
           && (
-            <Link to="/" className="flex items-center min-h-[64px] mx-2">
+            <Link to={`/${selectedDongleId}`} className="flex items-center min-h-[64px] mx-2">
               <img alt="comma" src="/images/comma-white.png" className="w-[18.9px] mx-6" />
               <span className="text-xl font-extrabold">connect</span>
             </Link>
