@@ -70,7 +70,7 @@ export class DriveVideo extends Component {
     this.ready = false;
     this.unmounted = false;
     this.retryVideo = this.retryVideo.bind(this);
-
+    this.lastPlaybackRate = props.desiredPlaySpeed > 0 ? props.desiredPlaySpeed : 1;
     this.videoPlayer = React.createRef();
 
     this.state = {
@@ -85,6 +85,9 @@ export class DriveVideo extends Component {
   }
 
   componentDidUpdate(prevProps) {
+    if (this.props.desiredPlaySpeed > 0) {
+      this.lastPlaybackRate = this.props.desiredPlaySpeed;
+    }
     if (routeSourceKey(prevProps.currentRoute) !== routeSourceKey(this.props.currentRoute)) {
       this.props.onAudioStatusChange?.(false);
       this.resetPlayer();
@@ -371,7 +374,7 @@ export class DriveVideo extends Component {
               maxBufferLength: 40,
             },
           }}
-          playbackRate={desiredPlaySpeed}
+          playbackRate={desiredPlaySpeed > 0 ? desiredPlaySpeed : this.lastPlaybackRate}
           onBuffer={() => this.onVideoBuffering(key)}
           onBufferEnd={() => this.onVideoProgress(key)}
           onError={(error, data) => this.onVideoError(error, data, key)}

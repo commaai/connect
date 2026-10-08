@@ -416,4 +416,14 @@ describe('DriveVideo player lifecycle', () => {
     oldEnded();
     expect(dispatch).not.toHaveBeenCalled();
   });
+  it('pauses without setting the playback rate to zero', () => {
+    const { callbacks, changeProps } = playerFixture();
+
+    changeProps({ desiredPlaySpeed: 4 });
+    expect(callbacks().playbackRate).toBe(4);
+
+    changeProps({ desiredPlaySpeed: 0 });
+    expect(callbacks().playing).toBe(false);
+    expect(callbacks().playbackRate).toBe(4);
+  });
 });
