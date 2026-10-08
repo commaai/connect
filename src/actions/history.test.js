@@ -1,6 +1,6 @@
 /* eslint-disable no-import-assign */
 import { vi } from 'vitest';
-import { LOCATION_CHANGE } from 'connected-react-router';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import { drives as Drives } from '../api';
 import { onHistoryMiddleware } from './history';
@@ -168,9 +168,10 @@ describe('history middleware', () => {
 
   it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
-    const { invoke } = create();
+    const { invoke, store } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, true));
+    await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith(replace(`/${DONGLE}/${LOG}`)));
+    expect(actions.pushTimelineRange).not.toHaveBeenCalledWith(LOG, null, null, true);
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
@@ -178,15 +179,16 @@ describe('history middleware', () => {
     let resolveLookup;
     const lookup = new Promise((resolve) => { resolveLookup = resolve; });
     Drives.getRoutesSegments.mockReturnValue(lookup);
-    const { invoke } = create();
+    const { invoke, store } = create();
     const pathname = `/${DONGLE}/1000/2000`;
     invoke(location(pathname, 'PUSH'));
     invoke({
       type: LOCATION_CHANGE,
-      payload: { action: 'PUSH', location: { pathname, search: '?modal=date-filter' } },
+      payload: { action: 'PUSH', location: { pathname, search: '?modal=date-filter', hash: '#recent' } },
     });
     resolveLookup([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, true));
+    await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith(replace(`/${DONGLE}/${LOG}?modal=date-filter#recent`)));
+    expect(actions.pushTimelineRange).not.toHaveBeenCalledWith(LOG, null, null, true);
     expect(Drives.getRoutesSegments).toHaveBeenCalledOnce();
   });
 
