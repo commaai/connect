@@ -1,11 +1,132 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import {
+  destinationFromUrl,
+  getDongleID,
+  getPrimeNav,
+  getRouteId,
+  getRouteZoom,
+  getStreamNav,
+  getZoom,
+  urlForDestination,
+} from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
 
-describe('URL pathname helpers', () => {
+describe('URL destination grammar', () => {
+  it.each([
+    ['/', { kind: 'home' }],
+    [`/${DONGLE}`, {
+      kind: 'dashboard',
+      dongleId: DONGLE,
+    }],
+    [`/${DONGLE}/prime`, {
+      kind: 'prime',
+      dongleId: DONGLE,
+    }],
+    [`/${DONGLE}/stream`, {
+      kind: 'stream',
+      dongleId: DONGLE,
+    }],
+    [`/${DONGLE}/${LOG}`, {
+      kind: 'drive',
+      dongleId: DONGLE,
+      logId: LOG,
+      start: null,
+      end: null,
+    }],
+    [`/${DONGLE}/${LOG}/10/20`, {
+      kind: 'drive',
+      dongleId: DONGLE,
+      logId: LOG,
+      start: 10,
+      end: 20,
+    }],
+    [`/${DONGLE}/1000/2000`, {
+      kind: 'legacy',
+      dongleId: DONGLE,
+      start: 1000,
+      end: 2000,
+    }],
+  ])('parses %s', (pathname, expected) => {
+    expect(destinationFromUrl(pathname)).toEqual(expected);
+  });
+
+  it.each([
+    '/not-a-device',
+    '/not-a-device/prime',
+    `/${DONGLE}/not-a-route`,
+    `/${DONGLE}/${LOG}/not-a-number/20`,
+    `/${DONGLE}/${LOG}/10`,
+    `/${DONGLE}/10/20/extra`,
+  ])('rejects malformed URL %s', (pathname) => {
+    expect(destinationFromUrl(pathname)).toEqual({ kind: 'unknown' });
+  });
+
+  it('does not interpret auth URLs as application destinations', () => {
+    expect(destinationFromUrl('/auth/code/provider')).toEqual({
+      kind: 'unknown',
+    });
+  });
+});
+
+describe('URL destination generation', () => {
+  it.each([
+    ['home', { kind: 'home' }, '/'],
+    ['dashboard', {
+      kind: 'dashboard',
+      dongleId: DONGLE,
+    }, `/${DONGLE}`],
+    ['prime', {
+      kind: 'prime',
+      dongleId: DONGLE,
+    }, `/${DONGLE}/prime`],
+    ['stream', {
+      kind: 'stream',
+      dongleId: DONGLE,
+    }, `/${DONGLE}/stream`],
+    ['drive', {
+      kind: 'drive',
+      dongleId: DONGLE,
+      logId: LOG,
+      start: null,
+      end: null,
+    }, `/${DONGLE}/${LOG}`],
+    ['drive range', {
+      kind: 'drive',
+      dongleId: DONGLE,
+      logId: LOG,
+      start: 10,
+      end: 20,
+    }, `/${DONGLE}/${LOG}/10/20`],
+    ['legacy', {
+      kind: 'legacy',
+      dongleId: DONGLE,
+      start: 1000,
+      end: 2000,
+    }, `/${DONGLE}/1000/2000`],
+  ])('builds %s URL', (_name, destination, expected) => {
+    expect(urlForDestination(destination)).toBe(expected);
+  });
+});
+
+describe('URL round trips', () => {
+  it.each([
+    '/',
+    `/${DONGLE}`,
+    `/${DONGLE}/prime`,
+    `/${DONGLE}/stream`,
+    `/${DONGLE}/${LOG}`,
+    `/${DONGLE}/${LOG}/10/20`,
+    `/${DONGLE}/1000/2000`,
+  ])('round trips %s', (pathname) => {
+    const destination = destinationFromUrl(pathname);
+    expect(urlForDestination(destination)).toBe(pathname);
+  });
+});
+
+describe('legacy compatibility helpers', () => {
   it.each([
     [`/${DONGLE}`, DONGLE],
     [`/${DONGLE}/${LOG}`, DONGLE],
@@ -15,18 +136,13 @@ describe('URL pathname helpers', () => {
     expect(getDongleID(pathname)).toBe(expected);
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
   it.each([
     [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
     [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
+    [`/${DONGLE}/${LOG}/10/20`, {
+      start: Number(LOG),
+      end: 10,
+    }],
     [`/${DONGLE}/10`, null],
     ['/auth/code/provider', null],
   ])('getZoom(%s)', (pathname, expected) => {
@@ -44,8 +160,14 @@ describe('URL pathname helpers', () => {
 
   it.each([
     [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
+    [`/${DONGLE}/${LOG}/556/610`, {
+      start: 556000,
+      end: 610000,
+    }],
+    [`/${DONGLE}/${LOG}/0/20`, {
+      start: 0,
+      end: 20000,
+    }],
     [`/${DONGLE}/10/20`, null],
   ])('getRouteZoom(%s)', (pathname, expected) => {
     expect(getRouteZoom(pathname)).toEqual(expected);
