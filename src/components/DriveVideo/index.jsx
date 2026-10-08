@@ -41,6 +41,7 @@ export class DriveVideo extends Component {
     this.transport = null;
     this.entries = null;
     this.observedRevision = null;
+    this.bufferStart = undefined;
   }
 
   changeSource(startOffset) {
@@ -73,7 +74,11 @@ export class DriveVideo extends Component {
     this.transport = attachSource(this.video.current, {
       src: api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig),
       onStatus: (status) => { if (active()) this.setState(status); },
-      onReady: () => { if (active()) this.updateIntent(); },
+      onReady: ({ bufferStart } = {}) => {
+        if (!active()) return;
+        if (Number.isFinite(bufferStart) && bufferStart >= 0) this.bufferStart = bufferStart;
+        this.updateIntent();
+      },
       onAudio: (hasAudio) => { if (active()) this.props.onAudioStatusChange?.(hasAudio); },
       onTimeline: (entries) => {
         if (!active()) return;
@@ -96,7 +101,7 @@ export class DriveVideo extends Component {
     const mapping = createVideoMapping(currentRoute, this.entries);
     const range = loop ? { start: loop.startTime, end: loop.startTime + loop.duration } : zoom;
     this.controller?.update({ speed: desiredPlaySpeed, muted: isMuted, range,
-      seekRevision, seekOffset, waitForBuffer: true,
+      seekRevision, seekOffset, waitForBuffer: true, bufferStart: this.bufferStart,
       toMedia: (offset) => mapping ? routeToMedia(mapping, offset) : null,
       toRoute: (seconds) => mapping ? mediaToRoute(mapping, seconds) : null,
       videoStartOffset: currentRoute?.videoStartOffset ?? 0 });

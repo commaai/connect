@@ -160,3 +160,16 @@ test('Retry keeps an in-flight explicit target instead of the old native positio
   screen.getByText('Retry').click();
   expect(initial.dispatch).toHaveBeenCalledWith({ type: 'ACTION_SEEK', offset: 15000 });
 });
+
+
+test('buffer readiness forwards the actual first playable boundary and ignores retired source readiness', () => {
+  const initial = props();
+  const view = render(<DriveVideo {...initial} />);
+  act(() => mocks.sources[0].callbacks.onReady({ bufferStart: 0.023 }));
+  expect(mocks.sessions[0].update).toHaveBeenLastCalledWith(expect.objectContaining({ bufferStart: 0.023 }));
+  view.rerender(<DriveVideo {...initial} currentRoute={{ ...ROUTE, fullname: 'aaaaaaaaaaaaaaaa|2026-08-06--13-00-00' }} />);
+  expect(mocks.sessions[1].update).toHaveBeenLastCalledWith(expect.objectContaining({ bufferStart: undefined }));
+  const calls = mocks.sessions[1].update.mock.calls.length;
+  act(() => mocks.sources[0].callbacks.onReady({ bufferStart: 99 }));
+  expect(mocks.sessions[1].update).toHaveBeenCalledTimes(calls);
+});
