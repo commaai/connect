@@ -10,6 +10,7 @@ import { createInitialState } from '../../initialState';
 import { createAppStore } from '../../store';
 
 const DEVICE_ID = 'aaaaaaaaaaaaaaaa';
+const OTHER_DEVICE_ID = 'bbbbbbbbbbbbbbbb';
 const FILENAME = 'drive_clip.mp4';
 const clip = {
   filename: FILENAME,
@@ -31,26 +32,27 @@ vi.mock('../../api/clips', () => ({
   },
 }));
 
-function renderClipMenu(path) {
+function renderClipMenu(path, dongleId = DEVICE_ID) {
   const history = createMemoryHistory({ initialEntries: [path] });
   const state = createInitialState(path);
   const store = createAppStore(history, {
     ...state,
   });
-  render(
+  const element = currentDongleId => (
     <Provider store={store}>
       <ConnectedRouter history={history}>
         <ClipMenu
           open
-          dongleId={DEVICE_ID}
+          dongleId={currentDongleId}
           deviceOnline
           inventoryOnly
           onClose={() => {}}
         />
       </ConnectedRouter>
-    </Provider>,
+    </Provider>
   );
-  return { history, store };
+  const view = render(element(dongleId));
+  return { history, store, rerender: nextDongleId => view.rerender(element(nextDongleId)) };
 }
 
 describe('URL-hosted clip dialogs', () => {
@@ -103,5 +105,52 @@ describe('URL-hosted clip dialogs', () => {
     await act(async () => store.dispatch(push(`/${DEVICE_ID}?modal=clips`)));
     await waitFor(() => expect(store.getState().routeModal).toBe('clips'));
     await waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:clip-preview'));
+  });
+
+  test('an inventory error from the previous device does not appear after a device change', async () => {
+    let rejectPreviousLoad;
+    clipDevice.getClipState.mockImplementationOnce(() => new Promise((resolve, reject) => {
+      rejectPreviousLoad = reject;
+    }));
+    const { history, store, rerender } = renderClipMenu(`/${DEVICE_ID}?modal=clips`);
+    await waitFor(() => expect(clipDevice.getClipState).toHaveBeenCalledWith(DEVICE_ID, {}));
+
+    await act(async () => {
+      store.dispatch(push(`/${OTHER_DEVICE_ID}?modal=clips`));
+      rerender(OTHER_DEVICE_ID);
+    });
+    await act(async () => rejectPreviousLoad(new Error('old device failed')));
+
+    expect(history.location.pathname).toBe(`/${OTHER_DEVICE_ID}`);
+    expect(screen.queryByText('old device failed')).not.toBeInTheDocument();
+  });
+
+  test('a pending delete cannot change the route after the user leaves its dialog', async () => {
+    let resolveDelete;
+    clipDevice.deleteClip.mockImplementation(() => new Promise(resolve => { resolveDelete = resolve; }));
+    const { history, store } = renderClipMenu(`/${DEVICE_ID}?modal=clip-delete&clip=${encodeURIComponent(FILENAME)}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(clipDevice.deleteClip).toHaveBeenCalled());
+
+    await act(async () => store.dispatch(push(`/${OTHER_DEVICE_ID}`)));
+    await act(async () => store.dispatch(push(`/${DEVICE_ID}?modal=clip-delete&clip=${FILENAME}`)));
+    expect(await screen.findByText('Delete clip?')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+    await act(async () => resolveDelete());
+
+    expect(history.location.pathname).toBe(`/${DEVICE_ID}`);
+    expect(history.location.search).toBe(`?modal=clip-delete&clip=${FILENAME}`);
+    expect(store.getState().routeModal).toBe('clip-delete');
+    expect(screen.getByText('Delete clip?')).toBeInTheDocument();
+  });
+
+  test('leaving a clip deep link clears its route-specific error', async () => {
+    const staleFilename = 'missing_clip.mp4';
+    const { store } = renderClipMenu(`/${DEVICE_ID}?modal=clip-viewer&clip=${staleFilename}`);
+    expect(await screen.findByText('Clip not found on this device')).toBeInTheDocument();
+
+    await act(async () => store.dispatch(push(`/${DEVICE_ID}?modal=clips`)));
+
+    expect(screen.queryByText('Clip not found on this device')).not.toBeInTheDocument();
   });
 });
