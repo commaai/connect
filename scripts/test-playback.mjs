@@ -201,6 +201,7 @@ async function snapshot(page) {
     try { mapPoint = window.__playbackMap?.getSource('seekPoint')?.serialize().data.coordinates; }
     catch { /* The Mapbox instance can be between unmount and resize remount. */ }
     return { mediaTime: video?.currentTime, paused: video?.paused, muted: video?.muted, rate: video?.playbackRate,
+      ended: video?.ended, seeking: video?.seeking, readyState: video?.readyState, mediaError: video?.error?.code,
       offset: currentOffset(), storeOffset: state.offset, startOffset: state.currentRoute?.videoStartOffset || 0,
       zoom: state.zoom, loop: state.loop, desiredPlaySpeed: state.desiredPlaySpeed, buffering: state.isBufferingVideo,
       decoded: video?.getVideoPlaybackQuality?.().totalVideoFrames || video?.webkitDecodedFrameCount || 0,
@@ -619,9 +620,11 @@ async function coldEntryRoutesAndRates(browser, server, fixture, forceMse = fals
   const { page, context } = await openFixture(browser, origin, 'audio', forceMse,
     { path: `/${DEMO_DONGLE}/${BASELINE_LOG}/5/9` });
   try {
-    await page.waitForFunction(() => {
+    await page.waitForFunction(async () => {
       const video = document.querySelector('video');
-      return video?.readyState >= 2 && !video.seeking && video.currentTime >= 3.4 && video.currentTime < 4.2;
+      const state = (await import('/src/store.js')).default.getState();
+      return video?.readyState >= 2 && !video.seeking && video.currentTime >= 3.4 && video.currentTime < 4.2
+        && Number.isFinite(state.offset) && !state.isBufferingVideo;
     });
     const cold = await snapshot(page);
     assert.equal(cold.zoom.start, 5000);
@@ -845,6 +848,13 @@ async function mapErrorAndRetry(browser, server, fixture, forceMse = false) {
     assert(await page.evaluate(() => window.__playbackMap === window.__mapErrorMap), 'Map retry retains the map instance');
     assertAlignment(await snapshot(page), fixture);
     return ['Map-selected fragment error is visible and retryable'];
+  } catch (error) {
+    const state = await snapshot(page);
+    const events = await page.evaluate(() => window.__playbackEvents.slice(-30));
+    measurements.push({ browser: browser.browserType().name(), mapErrorFailure: { state, events } });
+    console.error('Map error/retry failure:', state, events);
+    await page.screenshot({ path: resolve(root, 'test-results/playback-failure.png') });
+    throw error;
   } finally { server.releaseStall(); await context.close(); }
 }
 
