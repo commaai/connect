@@ -34,46 +34,36 @@ const GALLERY_STATES = [
     name: 'pair-device-modal',
     label: 'Pair device modal',
     page: 'pair',
-    actions: [{ text: 'add new device' }],
+    search: '?modal=pair',
     modalText: 'Pair device',
   },
   {
     name: 'date-filter-modal',
     label: 'Date filter modal',
     page: 'dashboard',
-    actions: [{ text: 'Filter' }],
+    search: '?modal=filter',
     modalText: 'Start date:',
   },
   {
     name: 'device-settings-modal',
     label: 'Device settings modal',
     page: 'dashboard',
-    actions: [
-      { selector: '[aria-label="menu"]', optional: true },
-      { selector: '[aria-label="device settings"]' },
-    ],
+    search: '?modal=settings',
     modalText: 'Device settings',
   },
   {
     name: 'unpair-device-modal',
     label: 'Unpair device modal',
     page: 'dashboard',
-    actions: [
-      { selector: '[aria-label="menu"]', optional: true },
-      { selector: '[aria-label="device settings"]' },
-      { text: 'Unpair' },
-    ],
+    search: '?modal=settings',
+    actions: [{ text: 'Unpair' }],
     modalText: 'Unpair device',
   },
   {
     name: 'upload-queue-modal',
     label: 'Upload queue modal',
     page: 'dashboard',
-    actions: [
-      { selector: '[aria-label="menu"]', optional: true },
-      { selector: '[aria-label="device settings"]' },
-      { text: 'Uploads' },
-    ],
+    search: '?modal=uploads',
     modalText: 'Upload queue',
   },
   {
@@ -659,7 +649,7 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
       }
     });
 
-    await page.goto(`${origin}${pageState.path}`, {
+    await page.goto(`${origin}${pageState.path}${state.search ?? ''}`, {
       waitUntil: 'domcontentloaded',
       timeout: 15000,
     });
