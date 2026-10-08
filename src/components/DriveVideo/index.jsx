@@ -55,7 +55,8 @@ function usePlaybackError(src) {
   const handleError = useCallback(({ kind, retry }) => {
     setFailure((current) => {
       const isSameFailure = current?.src === src && current.kind === kind;
-      if (isSameFailure) return current;
+      const gainsRetry = !current?.retry && Boolean(retry);
+      if (isSameFailure && !gainsRetry) return current;
       return { src, kind, retry };
     });
   }, [src]);
