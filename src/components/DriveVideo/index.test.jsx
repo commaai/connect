@@ -104,6 +104,12 @@ describe('DriveVideo media events', () => {
     expect(player.props.desiredPlaySpeed).toBe(2);
   });
 
+  it.each([401, 403])('explains an expired stream link (HTTP %i) instead of blaming the connection', (code) => {
+    const { player } = fixture();
+    player.onError('hlsError', { fatal: true, response: { code } }, 'route', 0);
+    expect(player.state.videoError).toContain('expired');
+  });
+
   it('rejects an old player ready callback even for the same route', () => {
     const { player, media } = fixture();
     player.onReady({ getInternalPlayer: () => new EventTarget() }, 'route', 0);

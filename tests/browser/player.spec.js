@@ -24,10 +24,12 @@ test.beforeAll(async () => {
     response.setHeader('Access-Control-Allow-Origin', '*');
     const file = new URL(request.url, 'http://localhost').pathname.slice(1);
     await new Promise((resolve) => setTimeout(resolve, segmentDelay?.(file) || 0));
-    if (!/^(video\.m3u8|segment\d+\.ts)$/.test(file)
-      || (file === 'video.m3u8' ? manifestFails?.() : segmentFails?.(file))) {
+    // A failure callback may return an HTTP status; true means 404.
+    const failure = !/^(video\.m3u8|segment\d+\.ts)$/.test(file)
+      || (file === 'video.m3u8' ? manifestFails?.() : segmentFails?.(file));
+    if (failure) {
       failures.push(file);
-      response.writeHead(404).end();
+      response.writeHead(failure === true ? 404 : failure).end();
       return;
     }
     response.setHeader('Content-Type', file.endsWith('.ts') ? 'video/mp2t' : 'application/vnd.apple.mpegurl');
@@ -175,6 +177,20 @@ test('a missing manifest shows a retry action and recovers at the selected posit
   expect((await video(page)).paused).toBe(false);
   await expect(page.getByRole('button', { name: 'Retry video' })).toHaveCount(0);
   await expect.poll(async () => (await state(page)).buffering).toBe(false);
+});
+
+test('an expired stream link offers a page reload rather than a futile retry', async ({ page }) => {
+  let status = 403;
+  await openPlayer(page, { manifestFails: () => status });
+  await expect(page.getByRole('alert')).toBeVisible({ timeout: 30000 });
+  // Native HLS does not expose the HTTP status, so it can only offer Retry.
+  const hlsjs = await page.evaluate(() => 'Hls' in window);
+  const action = page.getByRole('button', { name: hlsjs ? 'Reload page' : 'Retry video' });
+  await expect(action).toBeVisible();
+  if (hlsjs) await expect(page.getByRole('alert')).toContainText('expired');
+  status = 0;
+  await action.click();
+  await playing(page);
 });
 
 test('Map mode explains a video failure and retries it from the map', async ({ page }) => {

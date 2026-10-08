@@ -11,9 +11,17 @@ import { isFirefox } from '../../utils/browser.js';
 
 const sourceIdentity = (route) => JSON.stringify([route?.fullname, route?.share_exp, route?.share_sig]);
 
-const RetryButton = ({ onRetry, className = '' }) => (
-  <button type="button" onClick={onRetry} className={`${className} shrink-0 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#16181A] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white`}>
-    Retry video
+// Signed stream URLs expire; only a fresh route fetch (a reload) renews them.
+const EXPIRED_ERROR = 'This video link has expired. Reload the page to continue.';
+const HTTP_ERRORS = {
+  401: EXPIRED_ERROR,
+  403: EXPIRED_ERROR,
+  404: 'This video segment has not uploaded yet or has been deleted.',
+};
+
+const RetryButton = ({ error, onRetry, className = '' }) => (
+  <button type="button" onClick={error === EXPIRED_ERROR ? () => window.location.reload() : onRetry} className={`${className} shrink-0 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#16181A] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white`}>
+    {error === EXPIRED_ERROR ? 'Reload page' : 'Retry video'}
   </button>
 );
 
@@ -24,7 +32,7 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
         <div className="p-6 text-center max-w-md">
           <ErrorOutline className="mb-2 text-white/60" aria-hidden="true" />
           <Typography className="pb-4 text-white/80">{error}</Typography>
-          <RetryButton onRetry={onRetry} />
+          <RetryButton error={error} onRetry={onRetry} />
         </div>
       </div>
     );
@@ -47,7 +55,7 @@ const VideoErrorBanner = ({ error, onRetry }) => (
   <div role="alert" className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-[#16181A] py-3 pl-4 pr-3">
     <ErrorOutline className="text-white/60" fontSize="small" aria-hidden="true" />
     <Typography className="min-w-48 flex-1 text-white/80">{error}</Typography>
-    <RetryButton onRetry={onRetry} className="ml-auto" />
+    <RetryButton error={error} onRetry={onRetry} className="ml-auto" />
   </div>
 );
 
@@ -238,9 +246,8 @@ export class DriveVideo extends Component {
     }
     this.publishPosition();
     this.props.dispatch(bufferVideo(false));
-    this.setState({ videoError: (data || error)?.response?.code === 404
-      ? 'This video segment has not uploaded yet or has been deleted.'
-      : 'Unable to load video. Check your connection and try again.' });
+    this.setState({ videoError: HTTP_ERRORS[(data || error)?.response?.code]
+      || 'Unable to load video. Check your connection and try again.' });
   };
 
   retry = () => {
