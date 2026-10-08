@@ -31,9 +31,15 @@ export function attachSource(video, { src, onStatus = () => {}, onManifest, onAu
     report({ loading: false, blocked: false, error });
   }
   const waiting = () => { if (!status.error && !status.blocked) report({ loading: true }); };
+  const notifyReady = () => {
+    const buffered = video.buffered;
+    if (!buffered?.length) return;
+    const bufferStart = buffered.start(0);
+    if (Number.isFinite(bufferStart)) onReady?.({ bufferStart });
+  };
   const ready = event => {
     if (status.error || (status.blocked && event.type !== 'playing')) return;
-    if (video.buffered?.length) onReady?.();
+    notifyReady();
     if (event.type === 'playing') { initialLoad = false; clearTimeout(timeout); timeout = null; }
     if (video.audioTracks) onAudio?.(video.audioTracks.length > 0);
     report({ loading: false, error: null, blocked: false });
@@ -123,7 +129,7 @@ export function attachSource(video, { src, onStatus = () => {}, onManifest, onAu
         if (alive && visit === generation) onManifest?.(data.details.fragments.map(({ url, duration, start: time, sn }) => ({ url, duration, start: time, sn })));
       });
       player.on(Hls.Events.FRAG_BUFFERED, () => {
-        if (alive && visit === generation && !status.error && video.buffered?.length) onReady?.();
+        if (alive && visit === generation && !status.error) notifyReady();
       });
       player.on(Hls.Events.BUFFER_CODECS, (_event, data) => {
         if (alive && visit === generation) onAudio?.(Boolean(data.audio));

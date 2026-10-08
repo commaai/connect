@@ -153,7 +153,7 @@ it('retires native audio and the old source after removing status callbacks', ()
 });
 it('signals seek readiness only after the MSE first fragment is buffered', async () => {
   const sdk = engine(); const video = media(); const onReady = vi.fn();
-  video.buffered = { length: 0 };
+  video.buffered = { length: 0, start: () => 0.023 };
   const source = attachSource(video, { src: 'clip', onReady, loadHls: async () => ({ default: sdk.Hls }) });
   await vi.waitFor(() => expect(sdk.player).toBeDefined());
   video.dispatchEvent(new Event('loadedmetadata'));
@@ -162,7 +162,7 @@ it('signals seek readiness only after the MSE first fragment is buffered', async
   expect(onReady).not.toHaveBeenCalled();
   video.buffered.length = 1;
   sdk.player.handlers.buffered();
-  expect(onReady).toHaveBeenCalledOnce();
+  expect(onReady).toHaveBeenCalledWith({ bufferStart: 0.023 });
   source.destroy(); sdk.player.handlers.buffered();
   expect(onReady).toHaveBeenCalledOnce();
 });
