@@ -41,7 +41,7 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
   const hasNothingToShow = !error && !loading;
   if (hasNothingToShow) return null;
   return (
-    <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
+    <div className="z-50 absolute h-full w-full bg-[#16181AAA] transition-opacity delay-300 starting:opacity-0">
       <div className="relative text-center top-[calc(50%_-_25px)]">
         <OverlayContent error={error} onRetry={onRetry} />
       </div>
