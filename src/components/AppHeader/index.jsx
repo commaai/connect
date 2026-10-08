@@ -106,7 +106,7 @@ const AppHeader = ({
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
+    dispatch(push(pathname === '/referrals' ? (dongleId ? `/${dongleId}` : '/') : '/referrals'));
   }, [dispatch, dongleId, pathname]);
 
   const toggleDrawer = useCallback(() => {

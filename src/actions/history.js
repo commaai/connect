@@ -17,6 +17,8 @@ export const applyDestination = (destination) => ({
   destination,
 });
 
+const dashboard = { dongleId: null, page: 'dashboard', drive: null };
+
 const stateMatches = (state, destination) => {
   if (state.dongleId !== destination.dongleId) return false;
   const navOpen = state.primeNav || state.streamNav || state.settingsNav || state.referralsNav;
@@ -63,6 +65,10 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   const isCurrent = () => getState().router.location.pathname === pathname;
 
   const authenticated = api.auth.isAuthenticated();
+  // Unauthenticated sessions can only resolve public drive links; App renders
+  // the login wall for everything else.
+  if (!authenticated && destination.kind !== 'drive' && destination.kind !== 'legacy') return;
+
   let startupDevices = null;
   if (authenticated && getState().devices === null) {
     const [profile, devices] = await loadStartupData();
@@ -76,12 +82,12 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
 
   const { devices, profile } = getState();
 
-  if (authenticated && destination.kind === 'root') {
+  if (destination.kind === 'root') {
     const remembered = window.localStorage.getItem('selectedDongleId');
     const unordered = startupDevices || devices;
     const device = unordered?.find((candidate) => candidate.dongle_id === remembered) || unordered?.[0];
     if (!device) {
-      dispatch(applyDestination({ dongleId: null, page: 'dashboard', drive: null }));
+      dispatch(applyDestination(dashboard));
       return;
     }
     dispatch(replace(`/${device.dongle_id}`));
@@ -89,7 +95,7 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   }
 
   if (destination.kind === 'not-found') {
-    dispatch(applyDestination({ dongleId: null, page: 'dashboard', drive: null }));
+    dispatch(applyDestination(dashboard));
     return;
   }
 
@@ -101,77 +107,80 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   const dongleId = destination.kind === 'demo' ? DEMO_DONGLE_ID : destination.dongleId;
   const deviceChanged = getState().dongleId !== dongleId;
 
-  // TODO: write better redux and move this out
-  if (deviceChanged) webrtcConnectionManager.disconnect();
-
   // The URL names the device; fetch it directly if it isn't in the owned list
   // (shared devices) so deep links always land on the device.
   let device = devices?.find((candidate) => candidate.dongle_id === dongleId);
-  if (authenticated) {
-    if (device == null) {
-      try {
-        device = await api.devices.fetchDevice(dongleId);
-        if (!isCurrent()) return;
-      } catch (err) {
-        if (err?.resp?.status === 404) {
-          dispatch({ type: Types.ACTION_DEVICE_NOT_FOUND });
-          return;
-        }
-        // 403: the device exists but isn't shared with this account; public
-        // routes underneath it can still load, so keep syncing.
-        if (err?.resp?.status !== 403) throw err;
+  let deviceNotFound = false;
+  if (authenticated && device == null) {
+    try {
+      device = await api.devices.fetchDevice(dongleId);
+    } catch (err) {
+      if (!isCurrent()) return;
+      if (err?.resp?.status === 404 || err?.resp?.status === 403) {
+        // The device is gone, or exists but isn't shared with this account.
+        // Public routes underneath it still load via the drive path, which
+        // does not need a device object.
+        deviceNotFound = true;
+      } else {
+        throw err;
       }
     }
+    if (!isCurrent()) return;
     if (device) dispatch({ type: Types.ACTION_UPDATE_DEVICE, device });
-
-    dispatch(fetchDeviceOnline(dongleId));
-    window.localStorage.setItem('selectedDongleId', dongleId);
   }
 
   if (destination.kind === 'legacy') {
     try {
       const routesData = await api.routes.getRoutesSegments(dongleId, destination.start, destination.end);
       if (!isCurrent()) return;
-      const logId = routesData?.[0]?.fullname?.split('|')[1];
+      const route = routesData?.[0];
+      const logId = route?.fullname?.split('|')[1];
       if (logId) {
-        dispatch(replace(`/${dongleId}/${logId}`));
+        const routeStart = route.start_time_utc_millis;
+        const routeEnd = routeStart + route.duration;
+        const ranged = destination.start > routeStart || destination.end < routeEnd;
+        dispatch(replace(ranged
+          ? `/${dongleId}/${logId}/${Math.floor((destination.start - routeStart) / 1000)}/${Math.ceil((destination.end - routeStart) / 1000)}`
+          : `/${dongleId}/${logId}`));
         return;
       }
     } catch (err) {
       console.error('Error fetching routes data for log ID conversion', err);
       if (!isCurrent()) return;
     }
-    dispatch(applyDestination({ dongleId: null, page: 'dashboard', drive: null }));
+    dispatch(applyDestination(dashboard));
     return;
   }
 
-  const drive = destination.kind === 'drive'
-    ? { logId: destination.logId, start: destination.start, end: destination.end }
-    : null;
-  const page = {
-    drive: 'drive',
-    prime: 'prime',
-    stream: 'stream',
-    settings: 'settings',
-    demo: 'dashboard',
-    dashboard: 'dashboard',
-  }[destination.kind];
-  const next = { dongleId, page, drive };
-  if (!stateMatches(getState(), next)) dispatch(applyDestination(next));
+  const next = {
+    dongleId,
+    page: destination.kind === 'demo' ? 'dashboard' : destination.kind,
+    drive: destination.drive ?? null,
+  };
+  if (!stateMatches(getState(), next)) {
+    // TODO: write better redux and move this out
+    if (deviceChanged) {
+      webrtcConnectionManager.disconnect();
+      if (device) window.localStorage.setItem('selectedDongleId', dongleId);
+    }
+    dispatch(applyDestination(next));
+    if (deviceNotFound) dispatch({ type: Types.ACTION_DEVICE_NOT_FOUND });
 
-  if (authenticated && destination.kind === 'dashboard') {
-    dispatch(primeFetchSubscription(dongleId, device, profile));
-    if (deviceChanged || getState().routes == null) dispatch(checkLastRoutesData());
+    if (next.page === 'drive') dispatch(checkRoutesData());
+    if (authenticated) {
+      if (deviceChanged && device) {
+        dispatch(fetchDeviceOnline(dongleId));
+        dispatch(primeFetchSubscription(dongleId, device, profile));
+      }
+      if (next.page === 'dashboard' && getState().routes == null) dispatch(checkLastRoutesData());
+    }
+  } else if (deviceNotFound) {
+    dispatch({ type: Types.ACTION_DEVICE_NOT_FOUND });
   }
-  if (authenticated && destination.kind === 'prime' && deviceChanged) {
-    dispatch(primeFetchSubscription(dongleId, device, profile));
-  }
-  if (destination.kind === 'drive') dispatch(checkRoutesData());
 };
 
 export function onHistoryMiddleware({ dispatch, getState }) {
   return (next) => (action) => {
-    if (!action) return undefined;
     const result = next(action);
     if (action.type === LOCATION_CHANGE) {
       dispatch(syncStateFromUrl(action.payload.location.pathname));

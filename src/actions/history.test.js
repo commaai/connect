@@ -28,7 +28,6 @@ vi.mock('./index', () => ({
   checkLastRoutesData: vi.fn(() => ({ type: 'CHECK_LAST_ROUTES' })),
   fetchDeviceOnline: vi.fn(() => ({ type: 'FETCH_ONLINE' })),
   primeFetchSubscription: vi.fn(() => ({ type: 'PRIME_SUB' })),
-  navigateTo: vi.fn((dest) => ({ type: 'NAV', dest })),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
@@ -37,8 +36,8 @@ const SHARED = 'cccccccccccccccc';
 const LOG = '2026-08-06--12-00-00';
 
 const baseState = {
-  dongleId: null, devices: [], profile: null, zoom: null, loop: null,
-  urlRange: null, selectedRouteId: null, primeNav: false, streamNav: false,
+  dongleId: null, devices: [], profile: null,
+  urlRange: null, primeNav: false, streamNav: false,
   settingsNav: false, referralsNav: false, routes: null,
   router: { location: { pathname: '/' } },
 };
@@ -103,7 +102,7 @@ describe('syncStateFromUrl', () => {
   });
 
   it('maps a drive URL to a drive destination', async () => {
-    const store = await run(`/${DONGLE}/${LOG}/10/20`, { ...baseState, devices: [{ dongleId: DONGLE }] });
+    const store = await run(`/${DONGLE}/${LOG}/10/20`, { ...baseState, devices: [{ dongle_id: DONGLE }] });
     await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: Types.ACTION_APPLY_DESTINATION,
       destination: { dongleId: DONGLE, page: 'drive', drive: { logId: LOG, start: 10000, end: 20000 } },
@@ -114,6 +113,27 @@ describe('syncStateFromUrl', () => {
     api.routes.getRoutesSegments.mockResolvedValueOnce([{ fullname: `${DONGLE}|${LOG}` }]);
     const store = await run(`/${DONGLE}/1000/2000`);
     await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith(replace(`/${DONGLE}/${LOG}`)));
+  });
+
+  it('preserves a legacy sub-range in the canonical route URL', async () => {
+    api.routes.getRoutesSegments.mockResolvedValueOnce([{
+      fullname: `${DONGLE}|${LOG}`,
+      start_time_utc_millis: 0,
+      duration: 60000,
+    }]);
+    const store = await run(`/${DONGLE}/10500/20900`);
+    await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith(replace(`/${DONGLE}/${LOG}/10/21`)));
+  });
+
+  it('abandons a sync superseded by a newer navigation', async () => {
+    const store = {
+      getState: vi.fn(() => ({ ...baseState, router: { location: { pathname: '/elsewhere' } } })),
+      dispatch: vi.fn((a) => (typeof a === 'function' ? a(store.dispatch, store.getState) : a)),
+    };
+    await syncStateFromUrl(`/${DONGLE}`)(store.dispatch, store.getState);
+    expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: Types.ACTION_APPLY_DESTINATION,
+    }));
   });
 
   it('flags a missing device', async () => {

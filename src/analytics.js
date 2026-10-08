@@ -13,12 +13,9 @@ function getPageViewEventLocation(pathname) {
   if (destination.dongleId) {
     pageLocation = pageLocation.replace(destination.dongleId, '<dongleId>');
   }
-  if (destination.kind === 'legacy') {
-    pageLocation = pageLocation.replace(destination.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(destination.end.toString(), '<zoomEnd>');
-  } else if (destination.kind === 'drive' && destination.start != null) {
-    pageLocation = pageLocation.replace(String(destination.start / 1000), '<zoomStart>');
-    pageLocation = pageLocation.replace(String(destination.end / 1000), '<zoomEnd>');
+  if (destination.kind === 'legacy'
+    || (destination.kind === 'drive' && destination.drive?.start != null)) {
+    pageLocation = pageLocation.replace(/\/\d+\/\d+$/, '/<zoomStart>/<zoomEnd>');
   }
 
   if (pageLocation.endsWith('/')) {

@@ -14,8 +14,8 @@ describe('destinationFromUrl', () => {
     [`/${DONGLE}/settings`, { kind: 'settings', dongleId: DONGLE }],
     [`/${DONGLE}/prime`, { kind: 'prime', dongleId: DONGLE }],
     [`/${DONGLE}/stream`, { kind: 'stream', dongleId: DONGLE }],
-    [`/${DONGLE}/${LOG}`, { kind: 'drive', dongleId: DONGLE, logId: LOG, start: null, end: null }],
-    [`/${DONGLE}/${LOG}/10/20`, { kind: 'drive', dongleId: DONGLE, logId: LOG, start: 10000, end: 20000 }],
+    [`/${DONGLE}/${LOG}`, { kind: 'drive', dongleId: DONGLE, drive: { logId: LOG, start: null, end: null } }],
+    [`/${DONGLE}/${LOG}/10/20`, { kind: 'drive', dongleId: DONGLE, drive: { logId: LOG, start: 10000, end: 20000 } }],
     [`/${DONGLE}/10/20`, { kind: 'legacy', dongleId: DONGLE, start: 10, end: 20 }],
   ])('parses %s', (pathname, expected) => {
     expect(destinationFromUrl(pathname)).toEqual(expected);
@@ -28,7 +28,7 @@ describe('destinationFromUrl', () => {
     [`/${DONGLE}/${LOG}/${'9'.repeat(400)}/${'9'.repeat(401)}`],
   ])('drops an invalid range from %s', (pathname) => {
     expect(destinationFromUrl(pathname)).toEqual({
-      kind: 'drive', dongleId: DONGLE, logId: LOG, start: null, end: null,
+      kind: 'drive', dongleId: DONGLE, drive: { logId: LOG, start: null, end: null },
     });
   });
 
@@ -59,5 +59,12 @@ describe('urlForDestination', () => {
     ['zero-start range', { dongleId: DONGLE, page: 'drive', drive: { logId: LOG, start: 0, end: 20000 } }, `/${DONGLE}/${LOG}/0/20`],
   ])('serializes a %s destination', (_name, destination, expected) => {
     expect(urlForDestination(destination)).toBe(expected);
+  });
+
+  it('emits a range that always contains the requested one', () => {
+    const destination = { dongleId: DONGLE, page: 'drive', drive: { logId: LOG, start: 10500, end: 10900 } };
+    const roundTripped = destinationFromUrl(urlForDestination(destination));
+    expect(roundTripped.drive.start).toBeLessThanOrEqual(10500);
+    expect(roundTripped.drive.end).toBeGreaterThanOrEqual(10900);
   });
 });

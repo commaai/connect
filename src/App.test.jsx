@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),

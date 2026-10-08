@@ -56,8 +56,8 @@ export default function reducer(_state, action) {
     case Types.ACTION_APPLY_DESTINATION: {
       const { dongleId, page, drive } = action.destination;
       const deviceChanged = state.dongleId !== dongleId;
-      const prevLoopStart = state.loop?.startTime ?? null;
-      const prevLoopDuration = state.loop?.duration ?? null;
+      const routeChanged = !!drive && state.selectedRouteId !== drive.logId;
+      const prevLoop = state.loop;
       state.dongleId = dongleId;
       state.deviceNotFound = false;
       state.primeNav = page === 'prime';
@@ -74,42 +74,50 @@ export default function reducer(_state, action) {
         state.limit = 0;
         state.routesMeta = { dongleId: null, start: null, end: null };
         state.filter = getDefaultFilter();
-      }
-
-      if (!state.zoom || drive?.start == null || drive.start < state.zoom.start
-        || drive.end > state.zoom.end) {
-        state.files = null;
+        state.selectedRouteId = null;
+        state.currentRoute = null;
+        state.zoom = null;
+        state.loop = null;
       }
 
       // state.urlRange mirrors what the URL describes; state.zoom is the
       // resolved millisecond range and keeps its drill history in .previous.
+      // Drive view state (zoom, files, currentRoute) survives page navigation
+      // on the same device so going back to a drive reuses the loaded view.
       state.urlRange = drive ? { logId: drive.logId, start: drive.start, end: drive.end } : null;
-      state.selectedRouteId = drive?.logId ?? null;
-      const route = drive && state.routes?.find((candidate) => candidate.log_id === drive.logId);
-      state.currentRoute = route || null;
-      if (!drive) {
-        state.zoom = null;
-        state.loop = null;
-      } else if (drive.start != null && drive.end != null) {
-        const drillsDown = state.zoom && drive.start >= state.zoom.start && drive.end <= state.zoom.end;
-        state.zoom = {
-          start: drive.start,
-          end: drive.end,
-          previous: drillsDown ? state.zoom : (route ? { start: 0, end: route.duration } : null),
-        };
-        state.loop = { startTime: drive.start, duration: drive.end - drive.start };
-      } else {
-        state.zoom = route ? { start: 0, end: route.duration } : null;
-        state.loop = route ? { startTime: 0, duration: route.duration } : null;
+      if (drive) {
+        const route = state.routes?.find((candidate) => candidate.log_id === drive.logId);
+        const routeFrame = route ? { start: 0, end: route.duration } : null;
+        const newStart = drive.start ?? 0;
+        const newEnd = drive.end ?? routeFrame?.end ?? null;
+        state.selectedRouteId = drive.logId;
+        state.currentRoute = route || null;
+        if (routeChanged) state.files = null;
+        if (newEnd == null) {
+          state.zoom = null;
+          state.loop = null;
+        } else {
+          const prevZoom = state.zoom;
+          const sameBounds = prevZoom?.start === newStart && prevZoom?.end === newEnd;
+          const isPop = prevZoom?.previous?.start === newStart && prevZoom?.previous?.end === newEnd;
+          state.zoom = sameBounds ? prevZoom
+            : isPop ? prevZoom.previous
+            : {
+              start: newStart,
+              end: newEnd,
+              previous: prevZoom && !routeChanged && newStart >= prevZoom.start && newEnd <= prevZoom.end
+                ? prevZoom : routeFrame,
+            };
+          state.loop = { startTime: state.zoom.start, duration: state.zoom.end - state.zoom.start };
+        }
       }
 
-      const newLoopStart = state.loop?.startTime ?? null;
-      const newLoopDuration = state.loop?.duration ?? null;
-      if (state.loop && (prevLoopStart !== newLoopStart || prevLoopDuration !== newLoopDuration)) {
+      if (state.loop && (routeChanged
+        || prevLoop?.startTime !== state.loop.startTime || prevLoop?.duration !== state.loop.duration)) {
         // the URL moved playback to a new range; restart it at the range start
         state.desiredPlaySpeed = 1;
         state.isBufferingVideo = true;
-        state.offset = newLoopStart;
+        state.offset = state.loop.startTime;
         state.startTime = Date.now();
       }
       break;
@@ -273,7 +281,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           last_athena_ping: action.last_athena_ping,
@@ -295,7 +303,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           network_metered: action.networkMetered,
@@ -320,7 +328,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           rpc: {

@@ -20,7 +20,9 @@ export function checkRoutesData() {
     if (!state.dongleId) {
       return;
     }
-    if (hasRoutesData(state)) {
+    const routeMissing = state.selectedRouteId
+      && !state.routes?.some((route) => route.log_id === state.selectedRouteId);
+    if (!routeMissing && hasRoutesData(state)) {
       // already has metadata, don't bother
       return;
     }
@@ -97,8 +99,10 @@ export function checkRoutesData() {
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
-        start: fetchRange.start,
-        end: fetchRange.end,
+        // a route-scoped response doesn't cover the filter range; leave the
+        // meta empty so the list fills in on the next checkRoutesData call
+        start: state.selectedRouteId ? null : fetchRange.start,
+        end: state.selectedRouteId ? null : fetchRange.end,
         routes,
       });
 
@@ -205,14 +209,14 @@ export function primeFetchSubscription(dongleId, device, profile) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if (!device && state.device && state.device === dongleId) {
+    if (!device && state.device?.dongle_id === dongleId) {
       device = state.device;
     }
     if (!profile && state.profile) {
       profile = state.profile;
     }
 
-    if (device && (device.is_owner || profile.superuser)) {
+    if (device && (device.is_owner || profile?.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
           dispatch(primeGetSubscription(dongleId, subscription));

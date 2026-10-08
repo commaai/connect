@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -190,7 +190,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId,
+      classes, currentRoute, devices, dongleId, bodyTeleopOpen, selectedRouteId,
       profile, referralsOpen,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
@@ -236,7 +236,7 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
