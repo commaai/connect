@@ -42,4 +42,23 @@ describe('playback state follows the media clock', () => {
     const clamped = reducer(looped, seek(1200));
     expect(clamped.offset).toBe(1000);
   });
+
+  it('moves cold playback to a selected range and seeks when media reports before it', () => {
+    const ranged = reducer({ ...state, offset: 0 }, selectLoop(10000, 20000));
+    expect(ranged.offset).toBe(10000);
+    expect(ranged.seekRevision).toBe(1);
+
+    const corrected = reducer(ranged, reportVideoTime(5000));
+    expect(corrected.offset).toBe(10000);
+    expect(corrected.seekRevision).toBe(1);
+
+    const missedSeek = reducer({
+      ...state,
+      offset: 5000,
+      loop: { startTime: 10000, duration: 10000 },
+    }, reportVideoTime(5000));
+    expect(missedSeek.seekRevision).toBe(1);
+    const repeated = reducer(missedSeek, reportVideoTime(5000));
+    expect(repeated.seekRevision).toBe(1);
+  });
 });
