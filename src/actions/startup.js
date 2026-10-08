@@ -1,9 +1,11 @@
 import * as Sentry from '@sentry/react';
+import { replace } from 'connected-react-router';
 
 import { api } from '../api/backend';
+import { NOWHERE, formatUrl } from '../url';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, checkLastRoutesData, enterDevice, fetchSharedDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -40,15 +42,21 @@ async function initDevices() {
   return devices;
 }
 
+const openRememberedDevice = (devices) => (dispatch, getState) => {
+  const remembered = window.localStorage.getItem('selectedDongleId');
+  const dongleId = devices.some((d) => d.dongle_id === remembered) ? remembered : devices[0].dongle_id;
+  if (getState().place.page !== 'referrals') {
+    dispatch(replace(formatUrl({ ...NOWHERE, page: 'dashboard', dongleId })));
+    return;
+  }
+  dispatch(enterDevice(dongleId));
+  dispatch(checkLastRoutesData());
+};
+
 export default function init() {
   return async (dispatch, getState) => {
-    let state = getState();
-    if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
-    }
-
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    state = getState();
+    const state = getState();
 
     if (profile) {
       Sentry.setUser({ id: profile.id });
@@ -56,13 +64,7 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
-        }
+        dispatch(openRememberedDevice(devices));
       }
       const dongleId = getState().dongleId;
       const device = devices.find((dev) => dev.dongle_id === dongleId);

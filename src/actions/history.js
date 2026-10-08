@@ -1,61 +1,37 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { api } from '../api/backend';
+import { NOWHERE, PUBLIC_PAGES, formatUrl } from '../url';
+import { checkLastRoutesData, enterDevice, enterDrive } from './index';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
+let latest = 0;
+
+const openLegacyRange = ({ dongleId, startMs, endMs }) => async (dispatch) => {
+  const ticket = latest;
+  try {
+    const routes = await api.routes.getRoutesSegments(dongleId, startMs, endMs);
+    const logId = routes?.[0]?.fullname.split('|')[1];
+    if (logId && ticket === latest) dispatch(replace(formatUrl({ ...NOWHERE, page: 'drive', dongleId, logId })));
+  } catch (err) {
+    console.error('Error fetching routes data for log ID conversion', err);
   }
+};
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
+const reconcile = (place) => (dispatch, getState) => {
+  if (!api.auth.isAuthenticated() && !PUBLIC_PAGES.has(place.page)) return;
+  if (place.page === 'legacy') dispatch(openLegacyRange(place));
+  if (!place.dongleId) return;
+  const newDevice = place.dongleId !== getState().dongleId;
+  if (newDevice) dispatch(enterDevice(place.dongleId));
+  if (place.page !== 'legacy') dispatch(enterDrive(place));
+  if (newDevice) dispatch(checkLastRoutesData());
+};
 
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
+  if (!action) return undefined;
+  const result = next(action);
+  if (action.type === LOCATION_CHANGE) {
+    latest += 1;
+    dispatch(reconcile(getState().place));
   }
+  return result;
 };

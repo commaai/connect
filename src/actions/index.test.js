@@ -1,53 +1,58 @@
 import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { createMemoryHistory } from 'history';
+import { LOCATION_CHANGE } from 'connected-react-router';
 
-vi.mock('../timeline/playback', () => ({
-  reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
+import { createInitialState } from '../initialState';
+import { createAppStore } from '../store';
+import { navigate, popTimelineRange, primeNav, pushTimelineRange, selectDevice, streamNav } from './index';
+
+vi.mock('../api/backend', () => ({
+  api: {
+    auth: { isAuthenticated: () => true },
+    routes: { getRoutesSegments: vi.fn(async () => []) },
+  },
 }));
+vi.mock('../utils/webrtc', () => ({ webrtcConnectionManager: { disconnect: vi.fn() } }));
 
-vi.mock('connected-react-router', async () => {
-  const originalModule = await vi.importActual('connected-react-router');
-  return {
-    __esModule: true,
-    ...originalModule,
-    push: vi.fn(),
-  };
-});
+const DONGLE = '0000aaaa0000aaaa';
+const OTHER = '1111bbbb1111bbbb';
+const LOG = '2026-08-06--12-00-00';
 
-describe('timeline actions', () => {
+function open(url) {
+  const history = createMemoryHistory({ initialEntries: [url] });
+  const store = createAppStore(history, createInitialState());
+  const announce = (location, action) => store.dispatch({ type: LOCATION_CHANGE, payload: { location, action } });
+  history.listen(announce);
+  announce(history.location, history.action);
+  return { history, store };
+}
+
+describe('navigation actions', () => {
   it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+    ['selectDevice', () => selectDevice(OTHER), `/${OTHER}`],
+    ['primeNav', () => primeNav(true), `/${DONGLE}/prime`],
+    ['streamNav', () => streamNav(true), `/${DONGLE}/stream`],
+    ['the referrals page', () => navigate({ page: 'referrals' }), '/referrals'],
+    ['a zoom from 0 seconds', () => pushTimelineRange(LOG, 0, 20000), `/${DONGLE}/${LOG}/0/20`],
+    ['a zoom shorter than a second', () => pushTimelineRange(LOG, 10200, 10800), `/${DONGLE}/${LOG}/10/11`],
+    ['closing a drive', () => pushTimelineRange(null, null, null), `/${DONGLE}`],
+  ])('%s writes its URL', (_name, action, url) => {
+    const { history, store } = open(`/${DONGLE}/${LOG}`);
+    store.dispatch(action());
+    expect(`${history.location.pathname}${history.location.search}`).toBe(url);
   });
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+  it('keeps a zoom shorter than a second precise in state', () => {
+    const { store } = open(`/${DONGLE}/${LOG}`);
+    store.dispatch(pushTimelineRange(LOG, 10200, 10800));
+    expect(store.getState().zoom).toMatchObject({ start: 10200, end: 10800 });
   });
 
-  it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
-    expect(push).toHaveBeenCalledWith(expected);
+  it('zooms back out to the previous range', () => {
+    const { history, store } = open(`/${DONGLE}/${LOG}/10/20`);
+    store.dispatch(pushTimelineRange(LOG, 12000, 14000));
+    store.dispatch(popTimelineRange(LOG));
+    expect(history.location.pathname).toBe(`/${DONGLE}/${LOG}/10/20`);
+    expect(store.getState().zoom).toMatchObject({ start: 10000, end: 20000 });
   });
 });
