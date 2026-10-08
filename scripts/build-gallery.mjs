@@ -12,6 +12,7 @@ import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import puppeteer from 'puppeteer';
 import { build, preview } from 'vite';
+import { installGalleryVideo } from './gallery-video.mjs';
 
 const ROUTE_NAME = '5beb9b58bd12b691|0000010a--a51155e496';
 const [DONGLE_ID, LOG_ID] = ROUTE_NAME.split('|');
@@ -551,6 +552,11 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
       { name: 'prefers-color-scheme', value: 'light' },
       { name: 'prefers-reduced-motion', value: 'reduce' },
     ]);
+    if (pageState.name === 'drive') {
+      const { route } = galleryData(origin, pageState.name);
+      await page.evaluateOnNewDocument(installGalleryVideo,
+        (route.end_time_utc_millis - route.start_time_utc_millis) / 1000);
+    }
     await page.evaluateOnNewDocument((timestamp, authenticated) => {
       const NativeDate = Date;
       class FrozenDate extends NativeDate {
