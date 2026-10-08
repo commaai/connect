@@ -1,6 +1,6 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek, selectLoop, videoTime } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -129,5 +129,20 @@ describe('playback', () => {
     expect(state.isBufferingVideo).toEqual(false);
 
     expect(state.desiredPlaySpeed).toEqual(2);
+  });
+
+  it('uses video time as the playback clock source', () => {
+    newNow();
+    let state = makeDefaultStruct();
+
+    state = reducer(state, bufferVideo(true));
+    expect(state.isBufferingVideo).toEqual(true);
+
+    const syncTime = newNow();
+    state = reducer(state, videoTime(4200));
+    expect(state.offset).toEqual(4200);
+    expect(state.startTime).toEqual(syncTime);
+    expect(state.isBufferingVideo).toEqual(false);
+    expect(currentOffset(state)).toEqual(4200);
   });
 });
