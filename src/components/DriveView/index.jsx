@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { goBackRange, goToRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -19,16 +19,16 @@ class DriveView extends Component {
 
   onBack(zoom, currentRoute) {
     if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
+      this.props.dispatch(goBackRange(currentRoute?.log_id));
     } else if (currentRoute) {
       this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
+        goToRange(currentRoute.log_id, null, null),
       );
     }
   }
 
   close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(goToRange(null, null, null));
   }
 
   render() {

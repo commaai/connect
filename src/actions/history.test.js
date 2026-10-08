@@ -16,7 +16,7 @@ vi.mock('../api', () => ({
   video: {},
 }));
 vi.mock('./index', () => ({
-  selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
+  selectDevice: vi.fn(), pushTimelineRange: vi.fn(), goToRange: vi.fn(),
   checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
 }));
 
@@ -40,7 +40,7 @@ function location(pathname, action = 'POP') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
+  for (const name of ['selectDevice', 'pushTimelineRange', 'goToRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
@@ -65,9 +65,9 @@ describe('history middleware', () => {
     const action = location(`/${OTHER}`, historyAction);
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
-    expect(actions.selectDevice).toHaveBeenCalledWith(OTHER, false, false);
+    expect(actions.selectDevice).toHaveBeenCalledWith(OTHER, false);
     expect(actions.checkRoutesData).toHaveBeenCalledOnce();
-    expect(store.dispatch).toHaveBeenCalledWith({ action: 'selectDevice', args: [OTHER, false, false] });
+    expect(store.dispatch).toHaveBeenCalledWith({ action: 'selectDevice', args: [OTHER, false] });
   });
 
   it('does nothing when the pathname already matches state', () => {
@@ -79,20 +79,20 @@ describe('history middleware', () => {
   it('enters a log range', () => {
     const { invoke } = create();
     invoke(location(`/${DONGLE}/${LOG}/10/20`));
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 10000, 20000, false);
+    expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 10000, 20000);
   });
 
   it('leaves a log range', () => {
     const { invoke } = create({ ...baseState, selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
     invoke(location(`/${DONGLE}`));
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
+    expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null);
   });
 
   it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
     const { invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
+    await vi.waitFor(() => expect(actions.goToRange).toHaveBeenCalledWith(LOG, 0, 60000, { wholeDrive: true }));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
@@ -121,11 +121,11 @@ describe('history middleware', () => {
   ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
     const entering = create();
     entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(true);
 
     vi.clearAllMocks();
     const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
     leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(false);
   });
 });

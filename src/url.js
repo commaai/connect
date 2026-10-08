@@ -1,66 +1,87 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+// Every URL connect understands, and the only place that reads or builds one.
+//
+//   /                              -> home (selects a device)
+//   /:dongleId                     -> device
+//   /:dongleId/prime               -> prime management
+//   /:dongleId/stream              -> teleop stream
+//   /:dongleId/:logId              -> whole drive
+//   /:dongleId/:logId/:start/:end  -> drive range, in seconds
+//   /:dongleId/:start/:end         -> legacy timestamp range (ms), resolved to a drive on load
+//   /referrals                     -> referrals
+//   ?modal=:name[&device=:id]      -> a dialog over any page, see MODALS
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const dongleIdRegex = /^[a-f0-9]{16}$/;
+const logIdRegex = /^[a-f0-9-]{20}$/;
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
-  }
+// Dialogs that belong to one device carry its id as &device=
+export const DEVICE_MODALS = ['settings', 'unpair', 'uploads'];
+const MODALS = [...DEVICE_MODALS, 'date', 'pair', 'prime-cancel', 'prime-switch'];
 
-  return parts[0] || null;
-}
-
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+export function parseUrl(pathname = '/', search = '') {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const [first, second, third, fourth] = parts;
+  const query = new URLSearchParams(search);
+  const modal = MODALS.includes(query.get('modal')) ? query.get('modal') : null;
+  const url = {
+    page: 'home',
+    dongleId: null,
+    logId: null,
+    range: null, // seconds into the drive, or null for the whole drive
+    legacyRange: null, // absolute timestamps, only without a logId
+    modal,
+    modalDongleId: DEVICE_MODALS.includes(modal) && dongleIdRegex.test(query.get('device')) ? query.get('device') : null,
+  };
+
+  if (first === 'referrals') {
+    return { ...url, page: 'referrals' };
   }
-  return null;
+  if (!dongleIdRegex.test(first)) {
+    return url;
+  }
+
+  url.dongleId = first;
+  url.page = 'device';
+  if (parts.length === 2 && (second === 'prime' || second === 'stream')) {
+    url.page = second;
+  } else if (logIdRegex.test(second)) {
+    url.page = 'drive';
+    url.logId = second;
+    if (parts.length >= 4) {
+      url.range = { start: Number(third), end: Number(fourth) };
+    }
+  } else if (parts.length >= 3) {
+    url.legacyRange = { start: Number(second), end: Number(third) };
+  }
+  return url;
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+export function buildUrl({ page = 'device', dongleId, logId, range, modal, modalDongleId } = {}) {
+  let path = '/';
+  if (page === 'referrals') {
+    path = '/referrals';
+  } else if (dongleId) {
+    path = `/${dongleId}`;
+    if (page === 'prime' || page === 'stream') {
+      path += `/${page}`;
+    } else if (logId) {
+      path += `/${logId}`;
+      if (range) {
+        path += `/${range.start}/${range.end}`;
+      }
+    }
   }
-  return false;
+  if (!modal) {
+    return path;
+  }
+  const query = new URLSearchParams({ modal });
+  if (modalDongleId) {
+    query.set('device', modalDongleId);
+  }
+  return `${path}?${query}`;
 }
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
+// The current page with a modal opened, or closed when modal is null.
+export function withModal({ pathname, search }, modal, modalDongleId) {
+  const current = parseUrl(pathname, search);
+  return buildUrl({ ...current, modal, modalDongleId });
 }
