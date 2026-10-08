@@ -1,71 +1,64 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { pagePath, parseLocation, selectPage } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
+const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
 
-describe('URL pathname helpers', () => {
-  it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
-  });
+function locationOf(path) {
+  const [pathname, search = ''] = path.split('?');
+  return { pathname, search: search ? `?${search}` : '' };
+}
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
+describe('URL pages', () => {
   it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
+    ['/', { kind: 'home', dongleId: null, settings: null }],
+    ['/referrals', { kind: 'referrals', dongleId: null, settings: null }],
+    [`/${DONGLE}`, { kind: 'device', dongleId: DONGLE, settings: null }],
+    [`/${DONGLE}/prime`, { kind: 'prime', dongleId: DONGLE, settings: null }],
+    [`/${DONGLE}/stream`, { kind: 'stream', dongleId: DONGLE, settings: null }],
+    [`/${DONGLE}/${LOG}`, { kind: 'drive', dongleId: DONGLE, logId: LOG, range: null, settings: null }],
+    [`/${DONGLE}/${LOG}/10/20`, { kind: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10000, end: 20000 }, settings: null }],
+    [`/${DONGLE}/${LOG}/0/20`, { kind: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 0, end: 20000 }, settings: null }],
+    [`/${DONGLE}?settings`, { kind: 'device', dongleId: DONGLE, settings: DONGLE }],
+    [`/${DONGLE}/${LOG}?settings=${OTHER}`, { kind: 'drive', dongleId: DONGLE, logId: LOG, range: null, settings: OTHER }],
+    [`/referrals?settings=${OTHER}`, { kind: 'referrals', dongleId: null, settings: OTHER }],
+  ])('round trips %s', (path, page) => {
+    expect(pagePath(page)).toBe(path);
+    expect(parseLocation(locationOf(path))).toEqual(page);
   });
 
   it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
+    [`/${DONGLE}/1690488081496/1690488851596`, { kind: 'legacyRange', dongleId: DONGLE, start: 1690488081496, end: 1690488851596, settings: null }],
+    [`/${DONGLE}/`, { kind: 'device', dongleId: DONGLE, settings: null }],
+    ['/auth/', { kind: 'home', dongleId: null, settings: null }],
+    ['/demo', { kind: 'home', dongleId: null, settings: null }],
+    ['/not-a-device/prime', { kind: 'home', dongleId: null, settings: null }],
+    [`/${DONGLE}/prime/extra`, { kind: 'device', dongleId: DONGLE, settings: null }],
+    [`/${DONGLE}/${LOG}/10`, { kind: 'drive', dongleId: DONGLE, logId: LOG, range: null, settings: null }],
+    [`/${DONGLE}/${LOG}/10/20/extra`, { kind: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10000, end: 20000 }, settings: null }],
+    [`/${DONGLE}/${LOG}x`, { kind: 'device', dongleId: DONGLE, settings: null }],
+    [`/${DONGLE}?settings=nope`, { kind: 'device', dongleId: DONGLE, settings: null }],
+    ['/?settings', { kind: 'home', dongleId: null, settings: null }],
+  ])('parses %s', (path, page) => {
+    expect(parseLocation(locationOf(path))).toEqual(page);
   });
 
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
+  it('keeps stripe keys only on prime', () => {
+    const search = '?stripe_success=sess_1&pair=token&r=/x';
+    expect(pagePath({ kind: 'prime', dongleId: DONGLE, settings: DONGLE }, search)).toBe(`/${DONGLE}/prime?stripe_success=sess_1&settings`);
+    expect(pagePath({ kind: 'device', dongleId: DONGLE, settings: null }, search)).toBe(`/${DONGLE}`);
   });
 
-  it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
+  it.each(['legacyRange', 'settings'])('refuses to format kind %s', (kind) => {
+    expect(() => pagePath({ kind, dongleId: DONGLE, settings: null })).toThrow(kind);
   });
 
-  it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+  it('caches the page on the location object', () => {
+    const location = locationOf(`/${DONGLE}`);
+    const page = selectPage({ router: { location } });
+    expect(selectPage({ router: { location } })).toBe(page);
+    expect(selectPage({ router: { location: { ...location } } })).not.toBe(page);
   });
 });

@@ -1,61 +1,82 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, push, replace } from 'connected-react-router';
+import { pagePath, parseLocation, selectPage } from '../url';
+import { checkLastRoutesData, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
+export function navigate(change, { replace: useReplace = false } = {}) {
+  return (dispatch, getState) => {
+    const state = getState();
+    const page = change.kind
+      ? { ...change, dongleId: change.dongleId || state.dongleId, settings: null }
+      : { ...selectPage(state), ...change };
+    const { location } = state.router;
+    const path = pagePath(page, location.search);
+    if (path !== location.pathname + location.search) {
+      dispatch((useReplace ? replace : push)(path));
+    }
+  };
+}
+
+function rangeMatches({ zoom, currentRoute }, range) {
+  if (!range) {
+    return !zoom || (zoom.start === 0 && zoom.end === currentRoute?.duration);
+  }
+  return zoom?.start === range.start && zoom?.end === range.end;
+}
+
+function resolveLegacyRange(page) {
+  return (dispatch, getState) => {
+    const { location } = getState().router;
+    api.routes.getRoutesSegments(page.dongleId, page.start, page.end).then((routesData) => {
+      if (!routesData?.length || getState().router.location !== location) {
+        return;
+      }
+      const logId = routesData[0].fullname.split('|')[1];
+      dispatch(navigate({ kind: 'drive', dongleId: page.dongleId, logId }, { replace: true }));
+    }).catch((err) => {
+      console.error('Error fetching routes data for log ID conversion', err);
+    });
+  };
+}
+
+export function applyPage(page, historyAction) {
+  return (dispatch, getState) => {
+    const state = getState();
+    const deviceChanged = Boolean(page.dongleId) && page.dongleId !== state.dongleId;
+
+    if (page.kind === 'legacyRange') {
+      if (deviceChanged) {
+        dispatch(selectDevice(page.dongleId));
+        dispatch(checkLastRoutesData());
+      }
+      dispatch(resolveLegacyRange(page));
+      return;
+    }
+
+    const logId = page.logId ?? null;
+    const range = page.range ?? null;
+    if (!deviceChanged && state.selectedRouteId === logId && rangeMatches(state, range)) {
+      return;
+    }
+
+    if (deviceChanged) {
+      dispatch(selectDevice(page.dongleId));
+    }
+    dispatch(pushTimelineRange(logId, range?.start ?? null, range?.end ?? null, historyAction === 'PUSH'));
+    if (deviceChanged) {
+      dispatch(checkLastRoutesData());
+    }
+  };
+}
+
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
   if (!action) {
     return;
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  const result = next(action);
+  if (action.type === LOCATION_CHANGE) {
+    dispatch(applyPage(parseLocation(action.payload.location), action.payload.action));
   }
+  return result;
 };
