@@ -1,71 +1,45 @@
-import { describe, expect, it } from 'vitest';
-
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { parseLocation, urlFor, modalLocation } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
 
-describe('URL pathname helpers', () => {
+describe('URL grammar', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
-  });
-
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
+    ['/', 'home'], ['/demo', 'demo'], ['/referrals', 'referrals'], ['/auth/', 'auth'],
+    [`/${DONGLE}`, 'dashboard'], [`/${DONGLE}/prime`, 'prime'], [`/${DONGLE}/stream`, 'stream'],
+    [`/${DONGLE}/${LOG}`, 'drive'], [`/${DONGLE}/0000010a--a51155e496`, 'drive'],
+    [`/${DONGLE}/1000/2000`, 'legacy'],
+  ])('parses %s as %s', (pathname, page) => {
+    expect(parseLocation({ pathname }).page).toBe(page);
   });
 
   it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
+    '/not-a-device/prime', `/${DONGLE}extra`, `/${DONGLE}/prime/extra`,
+    `/${DONGLE}/${LOG}/10`, `/${DONGLE}/${LOG}/10/20/extra`,
+    `/${DONGLE}/${LOG}/-1/20`, `/${DONGLE}/${LOG}/20/10`,
+    `/${DONGLE}/${LOG}/10/10`, `/${DONGLE}/${LOG}/NaN/20`,
+    `/${DONGLE}/${LOG}/0/Infinity`, `/${DONGLE}/${LOG}/0/1e3`,
+    `/${DONGLE}/0x10/20`, `/${DONGLE}/10/20/ignored`,
+    `/${DONGLE}/prefix${LOG}`, `/${DONGLE}/${LOG}/0/${'9'.repeat(310)}`,
+  ])('rejects malformed path %s', (pathname) => {
+    expect(parseLocation({ pathname })).toMatchObject({ page: 'not-found', logId: null, zoom: null, legacy: null });
   });
 
-  it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
+  it.each([[0, 20000], [123, 1234], [10000, 20000]])('round trips a range from %s to %s ms', (start, end) => {
+    const location = { dongleId: DONGLE, logId: LOG, zoom: { start, end } };
+    expect(parseLocation({ pathname: urlFor(location) })).toMatchObject(location);
   });
 
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
+  it('keeps route ranges separate from legacy timestamps', () => {
+    expect(parseLocation({ pathname: `/${DONGLE}/${LOG}/0/20` })).toMatchObject({ zoom: { start: 0, end: 20000 }, legacy: null });
+    expect(parseLocation({ pathname: `/${DONGLE}/1000/2000` })).toMatchObject({ zoom: null, legacy: { start: 1000, end: 2000 } });
   });
 
-  it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+  it('changes only the modal query parameters', () => {
+    const location = { pathname: `/${DONGLE}/${LOG}/0/20`, search: '?ci=1', hash: '#position' };
+    const opened = modalLocation(location, 'settings', DONGLE);
+    expect(parseLocation(opened)).toMatchObject({ modal: 'settings', modalDevice: DONGLE });
+    expect(modalLocation(opened, null)).toEqual(location);
+    expect(parseLocation({ search: '?modal=unknown&device=bad' })).toMatchObject({ modal: null, modalDevice: null });
   });
 });
