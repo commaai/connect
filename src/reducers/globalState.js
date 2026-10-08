@@ -77,36 +77,6 @@ export default function reducer(_state, action) {
       state.profile = action.profile;
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
-      state = {
-        ...state,
-        filter: getDefaultFilter(),
-        dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
-        subscription: null,
-        subscribeInfo: null,
-        files: null,
-        limit: 0,
-      };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
-      if (state.devices) {
-        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
-        if (!state.device || state.device.dongle_id !== action.dongleId) {
-          state.device = newDevice;
-        }
-      }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
-        state.routesMeta = {
-          dongleId: null,
-          start: null,
-          end: null,
-        };
-        state.routes = null;
-        state.lastRoutes = null;
-        state.currentRoute = null;
-      }
-      break;
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
@@ -267,7 +237,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           last_athena_ping: action.last_athena_ping,
@@ -289,7 +259,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           network_metered: action.networkMetered,
@@ -314,7 +284,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           rpc: {

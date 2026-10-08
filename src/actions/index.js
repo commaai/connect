@@ -7,7 +7,6 @@ import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
-import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
 import { buildURL } from '../url';
 
@@ -269,44 +268,9 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    let device;
-    if (state.devices && state.devices.length > 1) {
-      device = state.devices.find((d) => d.dongle_id === dongleId);
-    }
-    if (!device && state.device && state.device.dongle_id === dongleId) {
-      device = state.device;
-    }
-
-    // tear down existing webrtc connection
-    if (state.dongleId && state.dongleId !== dongleId) {
-      webrtcConnectionManager.disconnect();
-    }
-
-    dispatch({
-      type: Types.ACTION_SELECT_DEVICE,
-      dongleId,
-    });
-
-    dispatch(pushTimelineRange(null, null, null, false));
-    if ((device && !device.shared) || state.profile?.superuser) {
-      dispatch(primeFetchSubscription(dongleId, device));
-      dispatch(fetchDeviceOnline(dongleId));
-    }
-
-    if (fetchRoutes) {
-      dispatch(checkLastRoutesData());
-    }
-
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
-  };
+export const selectDevice = (dongleId) => (dispatch, getState) => {
+  const pathname = buildURL({ page: 'dashboard', dongleId });
+  if (currentPathname(getState()) !== pathname) dispatch(push(pathname));
 }
 
 export const primeNav = (nav) => (dispatch, getState) => {

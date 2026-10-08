@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -154,7 +154,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -165,13 +165,6 @@ class ExplorerApp extends Component {
     }
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
-    }
-
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
     }
   }
 
@@ -282,7 +275,6 @@ const stateToProps = (state) => ({
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
 });

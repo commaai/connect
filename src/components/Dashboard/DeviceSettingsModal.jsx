@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -14,7 +15,8 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { buildURL } from '../../url';
+import { updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -225,10 +227,8 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
+    const pathname = buildURL({ page: 'prime', dongleId: this.props.dongleId });
+    this.props.dispatch(push(pathname));
     this.props.onClose();
   }
 

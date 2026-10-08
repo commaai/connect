@@ -1,23 +1,46 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { parseURL, buildURL } from '../url';
-import { checkRoutesData, selectDevice, pushTimelineRange } from './index';
+import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice, pushTimelineRange } from './index';
 import { ACTION_APPLY_DESTINATION } from './types';
 import { api } from '../api/backend';
+import { webrtcConnectionManager } from '../utils/webrtc';
 
 export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
   const state = getState();
   const parsed = parseURL(pathname);
-  const destination = { ...parsed, dongleId: parsed.dongleId ?? state.dongleId };
+
+  let selectedDongleId = parsed.dongleId ?? state.dongleId;
+  if (!selectedDongleId && state.devices?.length) {
+    const remembered = window.localStorage.getItem('selectedDongleId');
+    const device = state.devices.find((device) => device.dongle_id === remembered) || state.devices[0];
+    selectedDongleId = device.dongle_id;
+  }
+
+  const destination = { ...parsed, dongleId: selectedDongleId };
   const { page, dongleId, logId, range } = destination;
   const deviceChanged = state.dongleId !== dongleId;
   const isCurrent = () => getState().router.location.pathname === pathname;
 
-  if (deviceChanged) dispatch(selectDevice(dongleId, false, false));
+  if (deviceChanged && state.dongleId) webrtcConnectionManager.disconnect();
 
   dispatch({
     type: ACTION_APPLY_DESTINATION,
     destination,
   });
+
+  if (deviceChanged) {
+    window.localStorage.setItem('selectedDongleId', dongleId);
+    dispatch(pushTimelineRange(null, null, null, false));
+
+    const device = getState().device;
+    if ((device && !device.shared) || state.profile?.superuser) {
+      dispatch(primeFetchSubscription(dongleId, device));
+      dispatch(fetchDeviceOnline(dongleId));
+    }
+    if (!device && state.devices && api.auth.isAuthenticated()) {
+      dispatch(fetchSharedDevice(dongleId));
+    }
+  }
 
   const isDrive = page === 'drive';
   if (deviceChanged || isDrive || state.selectedRouteId) {
@@ -26,7 +49,9 @@ export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
     dispatch(pushTimelineRange(routeId, zoom?.start ?? null, zoom?.end ?? null, false));
   }
 
-  if (dongleId && (deviceChanged || isDrive)) {
+  if (deviceChanged) {
+    dispatch(checkLastRoutesData());
+  } else if (dongleId && isDrive) {
     dispatch(checkRoutesData());
   }
 
