@@ -348,6 +348,7 @@ export default function reducer(_state, action) {
         state.files = null;
       }
 
+      const previous = state.selectedRouteId === action.log_id ? state.zoom : null;
       state.selectedRouteId = action.log_id;
       state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
       if (action.log_id) {
@@ -355,19 +356,24 @@ export default function reducer(_state, action) {
           state.zoom = {
             start: action.start,
             end: action.end,
-            previous: state.zoom,
+            previous,
           };
         } else {
           state.zoom = state.currentRoute ? {
             start: 0,
             end: state.currentRoute.duration,
-            previous: state.zoom,
+            previous,
           } : null;
           state.loop = null;
         }
       } else {
         state.zoom = null;
         state.loop = null;
+      }
+      // Returning to the previous range should pop the zoom stack, not grow it.
+      if (state.zoom && previous?.previous
+        && state.zoom.start === previous.previous.start && state.zoom.end === previous.previous.end) {
+        state.zoom = previous.previous;
       }
       break;
     }
@@ -409,17 +415,22 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
+    case Types.ACTION_ROUTES_METADATA: {
       // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+      const loadedRoutes = action.routes.map((route) => {
+        const existingRoute = (state.routes || state.lastRoutes)?.find((r) => r.fullname === route.fullname);
         return {
           ...existingRoute,
           ...route,
         }
       });
-      state.routesMeta = {
+      if (action.routeId) {
+        const fetched = new Set(loadedRoutes.map((r) => r.fullname));
+        state.routes = [...(state.routes || []).filter((r) => !fetched.has(r.fullname)), ...loadedRoutes];
+      } else {
+        state.routes = loadedRoutes;
+      }
+      if (!action.routeId) state.routesMeta = {
         dongleId: action.dongleId,
         start: action.start,
         end: action.end,
@@ -446,6 +457,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }

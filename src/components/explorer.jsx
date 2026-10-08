@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav, navigateModal } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -24,6 +24,11 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import UploadQueue from './Files/UploadQueue';
+import TimeSelect from './TimeSelect';
+import { parseLocation } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -198,12 +203,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, profile, route, modalDevice,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = route.page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -243,12 +248,28 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
+              { route.page === 'invalid'
+                ? <div className="p-8"><Typography>Page not found.</Typography><Button onClick={() => dispatch(selectDevice(dongleId))}>Go to dashboard</Button></div>
+                : referralsOpen
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
+            <DeviceSettingsModal
+              isOpen={route.modal === 'settings'}
+              unpairOpen={route.modal === 'unpair'}
+              dongleId={route.modalDongleId}
+              onClose={() => dispatch(navigateModal())}
+            />
+            {modalDevice && <UploadQueue
+              open={route.modal === 'uploads'}
+              update={route.modal === 'uploads'}
+              device={modalDevice}
+              onClose={() => dispatch(navigateModal())}
+            />}
+            {route.modal === 'filter' && <TimeSelect onClose={() => dispatch(navigateModal())} />}
+            <AddDevice />
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
@@ -275,16 +296,22 @@ class ExplorerApp extends Component {
   }
 }
 
-const stateToProps = (state) => ({
-  zoom: state.zoom,
-  pathname: state.router.location.pathname,
-  dongleId: state.dongleId,
-  devices: state.devices,
-  currentRoute: state.currentRoute,
-  selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
-  profile: state.profile,
-});
+const stateToProps = (state) => {
+  const route = parseLocation(state.router.location);
+  return {
+    route,
+    modalDevice: state.devices?.find((d) => d.dongle_id === route.modalDongleId)
+      || (state.device?.dongle_id === route.modalDongleId ? state.device : null),
+    zoom: state.zoom,
+    pathname: state.router.location.pathname,
+    dongleId: state.dongleId,
+    devices: state.devices,
+    currentRoute: state.currentRoute,
+    selectedRouteId: state.selectedRouteId,
+    limit: state.limit,
+    bodyTeleopOpen: state.streamNav,
+    profile: state.profile,
+  };
+};
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

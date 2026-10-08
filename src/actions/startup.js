@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/react';
+import { replace } from 'connected-react-router';
+import { deviceUrl } from '../url';
 
 import { api } from '../api/backend';
 
@@ -58,10 +60,12 @@ export default function init() {
       if (!state.dongleId) {
         const allowPathChange = state.router.location.pathname === '/';
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
+        const dongleId = devices.some((d) => d.dongle_id === selectedDongleId) ? selectedDongleId : devices[0].dongle_id;
+        if (allowPathChange) {
+          // Choosing the initial dashboard retains a cold-linked modal/query.
+          dispatch(replace({ ...state.router.location, pathname: deviceUrl(dongleId) }));
         } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+          dispatch(selectDevice(dongleId, false));
         }
       }
       const dongleId = getState().dongleId;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parseLocation, modalUrl, deviceUrl } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -25,8 +25,8 @@ describe('URL pathname helpers', () => {
 
   it.each([
     [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
+    [`/${DONGLE}/0/20/ignored`, null],
+    [`/${DONGLE}/${LOG}/10/20`, null],
     [`/${DONGLE}/10`, null],
     ['/auth/code/provider', null],
   ])('getZoom(%s)', (pathname, expected) => {
@@ -67,5 +67,36 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/prime`, false],
   ])('getStreamNav(%s)', (pathname, expected) => {
     expect(getStreamNav(pathname)).toBe(expected);
+  });
+});
+
+
+describe('location grammar', () => {
+  it.each(['-1/20', '20/10', '10/10', 'NaN/20', '0/Infinity', '1e2/200', '0/20/extra'])('rejects invalid drive range %s', (bounds) => {
+    expect(parseLocation({ pathname: `/${DONGLE}/${LOG}/${bounds}` }).page).toBe('invalid');
+  });
+  it('rejects identifiers with extra characters', () => {
+    expect(getDongleID(`/prefix${DONGLE}`)).toBeNull();
+    expect(getRouteId(`/${DONGLE}/${LOG}suffix`)).toBeNull();
+  });
+  it('round trips fractional seconds and a zero start', () => {
+    const pathname = deviceUrl(DONGLE, 'drive', LOG, 0, 1.234);
+    expect(parseLocation({ pathname }).zoom).toEqual({ start: 0, end: 1234 });
+  });
+  it('recognizes demo drives at initial entry', () => {
+    expect(parseLocation({ pathname: `/demo/${LOG}` })).toMatchObject({ dongleId: 'deadbeefdeadbeef', routeId: LOG });
+  });
+  it('opens a different device settings overlay without changing the drive', () => {
+    expect(parseLocation({ pathname: `/${DONGLE}/${LOG}/0/20`, search: '?modal=settings&device=1111bbbb1111bbbb' })).toMatchObject({
+      page: 'drive', dongleId: DONGLE, routeId: LOG, zoom: { start: 0, end: 20000 }, modal: 'settings', modalDongleId: '1111bbbb1111bbbb',
+    });
+  });
+  it('preserves other query arguments and the hash when closing a modal', () => {
+    expect(modalUrl({ pathname: `/${DONGLE}`, search: '?r=test&modal=settings&device=1111bbbb1111bbbb', hash: '#anchor' })).toBe(`/${DONGLE}?r=test#anchor`);
+  });
+  it('ignores unknown modals and invalid modal devices', () => {
+    expect(parseLocation({ search: '?modal=unknown' }).modal).toBeNull();
+    expect(parseLocation({ search: '?modal=settings&device=invalid' }).modal).toBeNull();
+    expect(parseLocation({ search: '?modal=pair' }).modal).toBe('pair');
   });
 });

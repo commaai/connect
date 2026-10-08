@@ -16,6 +16,38 @@ API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
 `VITE_USERADMIN_URL_ROOT`. Docker Compose accepts the same variables.
 
+### Navigation
+
+`src/url.js` defines the URL grammar and builders. `parseLocation()` is shared by
+initial state, authentication gating, history synchronization, and modal rendering.
+`src/actions/history.js` applies every location change (PUSH, POP, REPLACE) to Redux;
+navigation actions request a URL rather than updating a second copy of page state.
+Only changing the device or drive/range resets their dependent state. Query-only
+modal transitions retain loaded routes, the dashboard filter, and playback.
+
+| URL | View |
+| --- | --- |
+| `/` | Last selected device, or pairing introduction |
+| `/demo` | Demo device dashboard |
+| `/:dongle` | Device dashboard |
+| `/:dongle/prime` | Prime |
+| `/:dongle/stream` | Livestream / teleoperation |
+| `/:dongle/:route` | Whole drive |
+| `/:dongle/:route/:start/:end` | Drive range, in seconds (including zero/fractions) |
+| `/referrals` | Referrals |
+| `?modal=settings&device=:dongle` | Device settings over the current page |
+| `?modal=unpair&device=:dongle` | Unpair confirmation (opening does not unpair) |
+| `?modal=uploads&device=:dongle` | Upload queue |
+| `?modal=pair` | QR pairing |
+| `?modal=filter` | Dashboard date filter |
+| `?modal=prime-cancel` | Prime cancellation confirmation |
+| `?modal=prime-plan` | Prime plan switch confirmation |
+
+Modal `device` defaults to the device in the path. Legacy absolute timestamp
+ranges are resolved and replaced with drive URLs; stale lookups cannot redirect
+newer navigation. Add pages and modal names in `src/url.js`, then wire their state
+or rendering in the history middleware or Explorer respectively.
+
 ## Contributing
 
 * Use best practices
