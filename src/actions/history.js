@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
 import { parseUrl } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, goToRange } from './index';
 import { api } from '../api/backend';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
@@ -17,7 +17,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     const url = parseUrl(location.pathname, location.search);
     const pathDongleId = url.dongleId;
     if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+      dispatch(selectDevice(pathDongleId, false));
     }
 
     if (url.legacyRange) {
@@ -28,7 +28,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
           const log_id = routesData[0].fullname.split('|')[1]; 
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
 
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
+          dispatch(goToRange(log_id, 0, duration));
         }
       }).catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);
@@ -38,7 +38,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
 
     if (url.logId || state.selectedRouteId) {
       const { range } = url;
-      dispatch(pushTimelineRange(url.logId, range ? range.start * 1000 : null, range ? range.end * 1000 : null, false));
+      dispatch(pushTimelineRange(url.logId, range ? range.start * 1000 : null, range ? range.end * 1000 : null));
     }
 
     if (pathDongleId && pathDongleId !== state.dongleId) {
@@ -52,7 +52,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
 
     const pathStreamNav = url.page === 'stream';
     if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
+      dispatch(streamNav(pathStreamNav));
     }
   } else {
     next(action);

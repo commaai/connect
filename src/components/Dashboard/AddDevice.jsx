@@ -5,7 +5,7 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { selectDevice, updateDevices, analyticsEvent, openModal, closeModal } from '../../actions';
+import { goToDevice, updateDevices, analyticsEvent, openModal, closeModal } from '../../actions';
 import { parseUrl } from '../../url';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
@@ -311,7 +311,7 @@ class AddDevice extends Component {
 
     this.props.dispatch(closeModal());
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      this.props.dispatch(goToDevice(pairDongleId));
     }
   }
 

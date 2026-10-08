@@ -14,7 +14,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice, openModal } from '../../actions';
+import { goToPrime, selectDevice, updateDevice, openModal } from '../../actions';
 import { parseUrl } from '../../url';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
@@ -226,9 +226,9 @@ class DeviceSettingsModal extends Component {
 
   onPrimeSettings() {
     if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
+      this.props.dispatch(selectDevice(this.props.dongleId));
     }
-    this.props.dispatch(primeNav(true));
+    this.props.dispatch(goToPrime(true));
     this.props.onClose();
   }
 
