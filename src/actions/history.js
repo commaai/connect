@@ -1,9 +1,10 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { parseURL, buildURL } from '../url';
-import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice, pushTimelineRange } from './index';
+import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice } from './index';
 import { ACTION_APPLY_DESTINATION } from './types';
 import { api } from '../api/backend';
 import { webrtcConnectionManager } from '../utils/webrtc';
+import { resetPlayback, selectLoop } from '../timeline/playback';
 
 export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
   const state = getState();
@@ -17,7 +18,7 @@ export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
   }
 
   const destination = { ...parsed, dongleId: selectedDongleId };
-  const { page, dongleId, logId, range } = destination;
+  const { page, dongleId, range } = destination;
   const deviceChanged = state.dongleId !== dongleId;
   const isCurrent = () => getState().router.location.pathname === pathname;
 
@@ -28,9 +29,21 @@ export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
     destination,
   });
 
+  const updated = getState();
+  if (state.zoom !== updated.zoom || state.selectedRouteId !== updated.selectedRouteId) {
+    const { start, end } = updated.zoom || {};
+
+    if (!updated.loop || !updated.loop.startTime || !updated.loop.duration
+      || updated.loop.startTime < start
+      || updated.loop.startTime + updated.loop.duration > end
+      || updated.loop.duration < end - start) {
+      dispatch(resetPlayback());
+      dispatch(selectLoop(start, end));
+    }
+  }
+
   if (deviceChanged) {
     window.localStorage.setItem('selectedDongleId', dongleId);
-    dispatch(pushTimelineRange(null, null, null, false));
 
     const device = getState().device;
     if ((device && !device.shared) || state.profile?.superuser) {
@@ -43,12 +56,6 @@ export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
   }
 
   const isDrive = page === 'drive';
-  if (deviceChanged || isDrive || state.selectedRouteId) {
-    const routeId = isDrive ? logId : null;
-    const zoom = isDrive ? range : null;
-    dispatch(pushTimelineRange(routeId, zoom?.start ?? null, zoom?.end ?? null, false));
-  }
-
   if (deviceChanged) {
     dispatch(checkLastRoutesData());
   } else if (dongleId && isDrive) {
@@ -74,12 +81,6 @@ export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
   next(action); // must be first, otherwise breaks history
 
   if (action.type === LOCATION_CHANGE) {
-    const { location, action: historyAction } = action.payload;
-    const page = parseURL(location.pathname).page;
-    const pagePush = historyAction === 'PUSH' && ['dashboard', 'prime', 'stream'].includes(page);
-
-    if (pagePush || ['POP', 'REPLACE'].includes(historyAction)) {
-      dispatch(syncStateFromURL(location.pathname));
-    }
+    dispatch(syncStateFromURL(action.payload.location.pathname));
   }
 };

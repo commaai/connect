@@ -30,8 +30,8 @@ export default function reducer(_state, action) {
   let deviceIndex = null;
   switch (action.type) {
     case Types.ACTION_APPLY_DESTINATION: {
-      const { page, dongleId = null } = action.destination;
-
+      const { page, dongleId = null, logId, range } = action.destination;
+      // device changed
       const deviceChanged = state.dongleId !== dongleId;
       if (deviceChanged) {
         state.device = state.devices?.find((device) => device.dongle_id === dongleId) ?? null;
@@ -46,8 +46,40 @@ export default function reducer(_state, action) {
         state.limit = 0;
       }
 
-      if (page === 'prime' && !state.primeNav) state.zoom = null;
+      // route changed
+      const routeId = page === 'drive' ? logId : null;
+      const routeChanged = deviceChanged || state.selectedRouteId !== routeId;
+      const currentRoute = routeChanged
+        ? state.routes?.find((route) => route.log_id === routeId) || null
+        : state.currentRoute;
 
+      // zoom changed
+      const start = routeId ? range?.start ?? 0 : null;
+      const end = routeId ? range?.end ?? currentRoute?.duration ?? null : null;
+      const zoom = start !== null && end !== null ? { start, end } : null;
+      const zoomChanged = state.zoom?.start !== zoom?.start || state.zoom?.end !== zoom?.end;
+
+      if (routeChanged || zoomChanged) {
+        const previous = routeChanged ? null : state.zoom?.previous;
+        const restorePrevious = zoom && previous && previous.start === zoom.start && previous.end === zoom.end;
+
+        if (routeChanged || !state.zoom || !zoom || start === 0
+          || start < state.zoom.start || end > state.zoom.end) {
+          state.files = null;
+        }
+
+        if (restorePrevious) {
+          state.zoom = previous;
+        } else {
+          state.zoom = zoom ? { ...zoom, previous: routeChanged ? null : state.zoom } : null;
+        }
+
+        if (routeChanged || !range) state.loop = null;
+      }
+
+      // apply selected drive and page
+      state.selectedRouteId = routeId;
+      state.currentRoute = currentRoute;
       state.dongleId = dongleId;
       state.primeNav = page === 'prime';
       state.streamNav = page === 'stream';
@@ -314,42 +346,6 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
-        state.files = null;
-      }
-
-      state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
-        }
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    }
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),

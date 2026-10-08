@@ -4,8 +4,7 @@ import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
 
 import * as Types from './types';
-import { resetPlayback, selectLoop } from '../timeline/playback';
-import {hasRoutesData } from '../timeline/segments';
+import { hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { hardNavigate } from '../utils/navigation';
 import { buildURL } from '../url';
@@ -142,61 +141,24 @@ export function checkLastRoutesData() {
   };
 }
 
-function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
-    dispatch(resetPlayback());
-    dispatch(selectLoop(start, end));
-  }
-
-  if (allowPathChange) {
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
-    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-    const desiredPath = buildURL({
-      page: log_id ? 'drive' : 'dashboard',
-      dongleId: state.dongleId,
-      logId: log_id,
-      range: wholeDrive ? null : { start, end },
-    });
-
-    if (currentPathname(state) !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
-  }
+export const popTimelineRange = (log_id) => (dispatch, getState) => {
+  const previous = getState().zoom?.previous;
+  if (previous) dispatch(pushTimelineRange(log_id, previous.start, previous.end));
 }
 
-export function popTimelineRange(log_id, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (state.zoom.previous) {
-      dispatch({
-        type: Types.TIMELINE_POP_SELECTION,
-      });
+export const pushTimelineRange = (log_id, start, end) => (dispatch, getState) => {
+  const state = getState();
+  const route = state.routes?.find((candidate) => candidate.log_id === log_id);
+  const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+  const pathname = buildURL({
+    page: log_id ? 'drive' : 'dashboard',
+    dongleId: state.dongleId,
+    logId: log_id,
+    range: wholeDrive ? null : { start, end },
+  });
 
-      const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
-    }
-  };
+  if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
-
-export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
-      dispatch({
-        type: Types.TIMELINE_PUSH_SELECTION,
-        log_id,
-        start,
-        end,
-      });
-    }
-
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
-  };
-
-}
-
 
 export function primeGetSubscription(dongleId, subscription) {
   return {

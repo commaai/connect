@@ -1,11 +1,13 @@
 const dongleIdRegex = /^[a-f0-9]{16}$/;
 const logIdRegex = /^[a-f0-9-]{20}$/;
 const digitsRegex = /^\d+$/;
+const secondsRegex = /^\d+(?:\.\d{1,3})?$/;
 
 const parseDriveRange = (start, end, legacy = false) => {
-  if (!digitsRegex.test(start) || !digitsRegex.test(end)) return null;
-  const startMillis = Number(start) * (legacy ? 1 : 1000);
-  const endMillis = Number(end) * (legacy ? 1 : 1000);
+  const regex = legacy ? digitsRegex : secondsRegex;
+  if (!regex.test(start) || !regex.test(end)) return null;
+  const startMillis = legacy ? Number(start) : Math.round(Number(start) * 1000);
+  const endMillis = legacy ? Number(end) : Math.round(Number(end) * 1000);
   if (!Number.isSafeInteger(startMillis) || !Number.isSafeInteger(endMillis) || endMillis <= startMillis) return null;
   return { start: startMillis, end: endMillis };
 }
@@ -43,7 +45,7 @@ export const buildURL = (destination) => {
   if (page === 'drive') {
     path.push(logId);
     if (range?.start != null && range?.end != null) {
-      path.push(Math.floor(range.start / 1000), Math.floor(range.end / 1000));
+      path.push(range.start / 1000, range.end / 1000);
     }
   }
 

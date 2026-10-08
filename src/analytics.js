@@ -106,19 +106,6 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.TIMELINE_PUSH_SELECTION:
-      if (!prevState.zoom && state.zoom) {
-        params = {
-          ...params,
-          start: state.zoom.start,
-          end: state.zoom.end,
-        };
-        attachRelTime(params, 'start', true, 'h');
-        attachRelTime(params, 'end', true, 'h');
-        gtag('event', 'select_zoom', params);
-      }
-      return;
-
     case Types.ACTION_STARTUP_DATA:
       gtag('set', {
         user_id: state.profile?.user_id,
@@ -143,6 +130,17 @@ function logAction(action, prevState, state) {
       return;
 
     case Types.ACTION_APPLY_DESTINATION:
+      if (!prevState.zoom && state.zoom) {
+        params = {
+          ...params,
+          start: state.zoom.start,
+          end: state.zoom.end,
+        };
+        attachRelTime(params, 'start', true, 'h');
+        attachRelTime(params, 'end', true, 'h');
+        gtag('event', 'select_zoom', params);
+      }
+
       if (prevState.dongleId === state.dongleId) return;
       gtag('event', 'select_device', {
         ...params,
