@@ -4,9 +4,10 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { navigate } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
+import { urlFor } from '../../url';
 
 import Media from './Media';
 import Timeline from '../Timeline';
@@ -14,21 +15,17 @@ import Timeline from '../Timeline';
 class DriveView extends Component {
   constructor(props) {
     super(props);
+    this.zoomOut = this.zoomOut.bind(this);
     this.close = this.close.bind(this);
   }
 
-  onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
+  zoomOut() {
+    const { dongleId, currentRoute } = this.props;
+    this.props.dispatch(navigate(urlFor({ dongleId, logId: currentRoute.log_id })));
   }
 
   close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(navigate(urlFor({ dongleId: this.props.dongleId })));
   }
 
   render() {
@@ -42,8 +39,7 @@ class DriveView extends Component {
       );
     }
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const wholeRouteSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -58,9 +54,9 @@ class DriveView extends Component {
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
+                onClick={ this.zoomOut }
                 aria-label="Go Back"
-                disabled={ backButtonDisabled }
+                disabled={ wholeRouteSelected }
               >
                 <ArrowBackBold />
               </IconButton>
@@ -78,7 +74,7 @@ class DriveView extends Component {
               <IconButton
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={ urlFor({ dongleId }) }
               >
                 <CloseBold />
               </IconButton>

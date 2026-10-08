@@ -278,6 +278,43 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
+  test('settings URL opens the device settings', async () => {
+    await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByText(FIRST, { selector: '[class*=caption]' })).toBeVisible();
+  });
+
+  test('settings open from the device list and follow browser history', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    const alpha = (await screen.findByText('Alpha')).closest('a');
+    fireEvent.click(within(alpha).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 500))); // past the drawer's exit transition
+    expect(screen.getByText('Zulu')).toBeVisible(); // the drawer stays open behind
+
+    fireEvent.click(screen.getByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+  });
+
+  test('referrals keep the selected device for the way back', async () => {
+    const { history, store } = await renderApp('/referrals', { selected: SECOND });
+    expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
+    expect(store.getState().dongleId).toBe(SECOND);
+    fireEvent.click(screen.getByRole('button', { name: 'referrals' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+  });
+
   test('device browser history restores exact dashboards', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
