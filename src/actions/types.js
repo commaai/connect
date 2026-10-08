@@ -22,13 +22,13 @@ export const ACTION_STREAM_NAV = 'ACTION_STREAM_NAV';
 export const ACTION_PRIME_SUBSCRIPTION = 'ACTION_PRIME_SUBSCRIPTION';
 export const ACTION_PRIME_SUBSCRIBE_INFO = 'ACTION_PRIME_SUBSCRIBE_INFO';
 
-// playback
+// playback (driven by the video element, see timeline/playback.js)
 export const ACTION_SEEK = 'ACTION_SEEK';
 export const ACTION_PAUSE = 'ACTION_PAUSE';
 export const ACTION_PLAY = 'ACTION_PLAY';
 export const ACTION_LOOP = 'ACTION_LOOP';
 export const ACTION_BUFFER_VIDEO = 'ACTION_BUFFER_VIDEO';
-export const ACTION_RESET = 'ACTION_RESET';
+export const ACTION_PLAYBACK_RATE = 'ACTION_PLAYBACK_RATE';
 
 // segments
 export const ACTION_ROUTES_METADATA = 'ACTION_ROUTES_METADATA';

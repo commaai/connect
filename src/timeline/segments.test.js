@@ -1,5 +1,8 @@
 import { hasRoutesData } from './segments';
 import { getSegmentNumber } from '../utils';
+// the default-offset path of getSegmentNumber reads the playhead from the
+// playback controller, which needs a registered store
+import '../store';
 
 export const SEGMENT_LENGTH = 1000 * 60;
 

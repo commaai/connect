@@ -320,6 +320,8 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
     return request.continue();
   }
 
+  // the base renderer (pre-PR code) loads hls.js from a CDN through
+  // react-player; serve it a stub so base captures keep working
   if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/hls.js@')) {
     return request.respond({
       status: 200,

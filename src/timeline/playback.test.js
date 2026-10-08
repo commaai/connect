@@ -1,133 +1,239 @@
-import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+// The playback controller is tested against a real store and a simulated
+// video element: element events drive the store, and user intent calls
+// (play, pause, seek, setSpeed, applyLoop) drive the element.
 
-const makeDefaultStruct = function makeDefaultStruct() {
-  return {
-    desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
-    offset: 0, // in miliseconds from the start
-    startTime: Date.now(), // millisecond timestamp in which play began
+class FakeVideo extends EventTarget {
+  constructor() {
+    super();
+    this.currentTime = 0;
+    this.duration = 60; // seconds
+    this.paused = true;
+    this.readyState = 1; // HAVE_METADATA, so seeks write currentTime directly
+    this._playbackRate = 1;
+  }
 
-    isBuffering: true,
-  };
-};
+  set playbackRate(rate) {
+    // real elements fire ratechange when the rate changes
+    if (rate !== this._playbackRate) {
+      this._playbackRate = rate;
+      this.dispatchEvent(new Event('ratechange'));
+    }
+  }
 
-// make Date.now super stable for tests
-let mostRecentNow = Date.now();
-const oldNow = Date.now;
-Date.now = function now() {
-  return mostRecentNow;
-};
-function newNow() {
-  mostRecentNow = oldNow();
-  return mostRecentNow;
+  get playbackRate() {
+    return this._playbackRate;
+  }
+
+  play() {
+    if (this.paused) {
+      this.paused = false;
+      this.dispatchEvent(new Event('play'));
+    }
+    return Promise.resolve();
+  }
+
+  pause() {
+    if (!this.paused) {
+      this.paused = true;
+      this.dispatchEvent(new Event('pause'));
+    }
+  }
+
+  emit(name) {
+    this.dispatchEvent(new Event(name));
+  }
+
+  // advance the element to a position and report it, as a playing element does
+  tick(seconds) {
+    this.currentTime = seconds;
+    this.emit('timeupdate');
+  }
+}
+
+// each test gets a fresh controller and a fresh store, since the controller
+// reads its loop, route, and playback state from the store it is tied to
+async function createPlayback() {
+  vi.resetModules();
+  const { default: store } = await import('../store'); // registers itself with the controller
+  const playback = await import('./playback');
+  return { playback, store };
 }
 
 describe('playback', () => {
   it('has playback controls', async () => {
-    newNow();
-    let state = makeDefaultStruct();
+    const { playback, store } = await createPlayback();
+    const video = new FakeVideo();
+    playback.attachVideo(video);
 
-    // should do nothing
-    state = reducer(state, pause());
-    expect(state.desiredPlaySpeed).toEqual(0);
+    expect(store.getState().playback).toMatchObject({ speed: 1, playing: false, buffering: true });
 
-    // start playing, should set start time and such
-    let playTime = newNow();
-    state = reducer(state, play());
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(1);
+    playback.applyLoop(10_000, 20_000);
+    expect(store.getState().loop).toEqual({ startTime: 10_000, duration: 10_000 });
+    expect(video.currentTime).toBe(10);
+    expect(store.getState().playback.playing).toBe(true);
+    expect(video.paused).toBe(false);
 
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset
-    let ellapsed = newNow() - playTime;
-    state = reducer(state, pause());
+    playback.pause();
+    expect(store.getState().playback.playing).toBe(false);
+    expect(video.paused).toBe(true);
 
-    expect(state.offset).toEqual(ellapsed);
+    playback.play();
+    expect(store.getState().playback.playing).toBe(true);
 
-    // start playing, should set start time and such
-    playTime = newNow();
-    state = reducer(state, play(0.5));
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset, playback speed 1/2
-    ellapsed += (newNow() - playTime) / 2;
-    expect(currentOffset(state)).toEqual(ellapsed);
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // seek!
-    newNow();
-    state = reducer(state, seek(123));
-    expect(state.offset).toEqual(123);
-    expect(state.startTime).toEqual(Date.now());
-    expect(currentOffset(state)).toEqual(123);
+    playback.setSpeed(2);
+    expect(store.getState().playback.speed).toBe(2);
+    expect(video.playbackRate).toBe(2);
   });
 
-  it('should clamp loop when seeked after loop end time', () => {
-    newNow();
-    let state = makeDefaultStruct();
+  it('clamps seeks to the loop', async () => {
+    const { playback } = await createPlayback();
+    const video = new FakeVideo();
+    playback.attachVideo(video);
 
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
-
-    // seek past loop end boundary a
-    state = reducer(state, seek(3000));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(2000);
+    playback.applyLoop(10_000, 20_000);
+    playback.pause();
+    playback.seek(50_000);
+    expect(video.currentTime).toBe(20);
+    // paused at the loop end, the playhead reads the end, not the wrapped start
+    expect(Math.round(playback.getPlayheadMs())).toBe(20_000);
+    playback.seek(0);
+    expect(video.currentTime).toBe(10);
   });
 
-  it('should clamp loop when seeked before loop start time', () => {
-    newNow();
-    let state = makeDefaultStruct();
+  it('interpolates the playhead between element timeupdates', async () => {
+    const { playback, store } = await createPlayback();
+    const video = new FakeVideo();
+    playback.attachVideo(video);
 
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
+    let clock = 0;
+    const nowSpy = vi.spyOn(performance, 'now').mockImplementation(() => clock);
 
-    // seek past loop end boundary a
-    state = reducer(state, seek(0));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(1000);
+    playback.applyLoop(0, 60_000);
+    video.emit('playing'); // playback has started; the spinner clears
+    video.tick(5);
+    clock = 100;
+    expect(playback.getPlayheadMs()).toBe(5_100);
+    video.tick(5.2);
+    clock = 200;
+    expect(playback.getPlayheadMs()).toBe(5_300);
+
+    // buffering freezes the playhead with the element
+    video.emit('waiting');
+    expect(store.getState().playback.buffering).toBe(true);
+    clock = 300;
+    expect(playback.getPlayheadMs()).toBe(5_300);
+
+    video.emit('playing');
+    expect(store.getState().playback.buffering).toBe(false);
+    video.tick(5.5);
+    clock = 400;
+    expect(playback.getPlayheadMs()).toBe(5_600);
+
+    // pausing freezes the playhead as well
+    playback.pause();
+    clock = 500;
+    expect(playback.getPlayheadMs()).toBe(5_500);
+
+    nowSpy.mockRestore();
   });
 
-  it('should buffer video and data', async () => {
-    newNow();
-    let state = makeDefaultStruct();
+  it('wraps the element at the loop end', async () => {
+    const { playback } = await createPlayback();
+    const video = new FakeVideo();
+    playback.attachVideo(video);
 
-    state = reducer(state, play());
-    expect(state.desiredPlaySpeed).toEqual(1);
+    playback.applyLoop(0, 2_000);
+    video.tick(2.5);
+    expect(video.currentTime).toBe(0);
+    expect(playback.getPlayheadMs()).toBeLessThan(2_000);
+  });
 
-    // claim the video is buffering
-    state = reducer(state, bufferVideo(true));
-    expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBufferingVideo).toEqual(true);
+  it('wraps the element when it ends inside a loop', async () => {
+    const { playback } = await createPlayback();
+    const video = new FakeVideo();
+    playback.attachVideo(video);
 
-    state = reducer(state, play(0.5));
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
+    playback.applyLoop(0, 60_000);
+    video.currentTime = 60;
+    video.emit('ended');
+    expect(video.currentTime).toBe(0);
+    expect(video.paused).toBe(false);
+  });
 
-    expect(state.desiredPlaySpeed).toEqual(0.5);
+  it('keeps advancing without an element, as the map-only view does', async () => {
+    const { playback, store } = await createPlayback();
+    const video = new FakeVideo();
+    playback.attachVideo(video);
 
-    state = reducer(state, play(2));
-    state = reducer(state, bufferVideo(false));
-    expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBufferingVideo).toEqual(false);
+    let clock = 0;
+    const nowSpy = vi.spyOn(performance, 'now').mockImplementation(() => clock);
 
-    expect(state.desiredPlaySpeed).toEqual(2);
+    playback.applyLoop(0, 60_000);
+    video.tick(5);
+    video.emit('playing'); // clears the initial buffering state
+    playback.detachVideo();
+    expect(store.getState().playback.buffering).toBe(false);
+
+    clock = 100;
+    expect(playback.getPlayheadMs()).toBe(5_100);
+
+    playback.setSpeed(2);
+    clock = 200;
+    expect(playback.getPlayheadMs()).toBe(5_300);
+
+    playback.pause();
+    clock = 300;
+    expect(playback.getPlayheadMs()).toBe(5_300);
+
+    nowSpy.mockRestore();
+  });
+
+  it('maps the video start offset into the route timeline', async () => {
+    const { playback, store } = await createPlayback();
+    const { ACTION_ROUTES_METADATA, TIMELINE_PUSH_SELECTION } = await import('../actions/types');
+    const video = new FakeVideo();
+    playback.attachVideo(video);
+
+    // the stream starts at the first road camera frame, 2s into the route
+    const route = {
+      fullname: 'dongle|log', log_id: 'log', duration: 60_000,
+      start_time_utc_millis: 0, end_time_utc_millis: 60_000, videoStartOffset: 2_000,
+    };
+    store.dispatch({ type: ACTION_ROUTES_METADATA, dongleId: 'dongle', start: 0, end: 60_000, routes: [route] });
+    store.dispatch({ type: TIMELINE_PUSH_SELECTION, log_id: 'log', start: 0, end: 60_000 });
+
+    playback.applyLoop(0, 60_000);
+    expect(video.currentTime).toBe(0);
+    video.tick(1);
+    expect(playback.getPlayheadMs()).toBe(3_000);
+
+    // a loop covering the route start begins at the first frame
+    video.tick(58);
+    expect(video.currentTime).toBe(0);
+  });
+
+  it('stops playback when the element errors', async () => {
+    const { playback, store } = await createPlayback();
+    const video = new FakeVideo();
+    playback.attachVideo(video);
+
+    playback.applyLoop(0, 60_000);
+    video.tick(5);
+    video.emit('error');
+
+    expect(store.getState().playback.playing).toBe(false);
+    expect(store.getState().playback.buffering).toBe(false);
+    expect(playback.getPlayheadMs()).toBe(5_000);
+  });
+
+  it('reports the playhead from the loop or zoom before anything plays', async () => {
+    const { playback, store } = await createPlayback();
+    const { TIMELINE_PUSH_SELECTION } = await import('../actions/types');
+
+    store.dispatch({ type: TIMELINE_PUSH_SELECTION, log_id: 'log', start: 10_000, end: 20_000 });
+    expect(playback.getPlayheadMs()).toBe(10_000);
+
+    store.dispatch({ type: TIMELINE_PUSH_SELECTION, log_id: null, start: null, end: null });
+    expect(playback.getPlayheadMs()).toBe(0);
   });
 });

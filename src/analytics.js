@@ -5,6 +5,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
 import { getDongleID, getZoom } from './url';
+import { getPlayheadMs } from './timeline/playback';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
@@ -52,12 +53,12 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
   }
 }
 
-function getVideoPercent(state, offset) {
+function getVideoPercent(state, offsetMs) {
   const { zoom } = state;
-  if (!offset) {
-    offset = state.offset;
+  if (!zoom) {
+    return undefined;
   }
-  return (offset - (zoom.start)) / (zoom.end - zoom.start);
+  return (offsetMs - zoom.start) / (zoom.end - zoom.start);
 }
 
 function logAction(action, prevState, state) {
@@ -190,10 +191,10 @@ function logAction(action, prevState, state) {
 
     case Types.ACTION_SEEK:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, action.offset);
         gtag('event', 'video_seek', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playback.speed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -202,10 +203,10 @@ function logAction(action, prevState, state) {
 
     case Types.ACTION_PAUSE:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, getPlayheadMs());
         gtag('event', 'video_pause', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playback.speed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -214,10 +215,10 @@ function logAction(action, prevState, state) {
 
     case Types.ACTION_PLAY:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, getPlayheadMs());
         gtag('event', 'video_play', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playback.speed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });

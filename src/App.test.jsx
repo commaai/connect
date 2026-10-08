@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { setStore } from './timeline/playback';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -38,20 +39,6 @@ vi.mock('react-map-gl', () => ({
   Marker: ({ children }) => children,
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
-}));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
@@ -131,6 +118,7 @@ async function renderApp(pathname, options = {}) {
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
   const store = createAppStore(history, createInitialState(history.location.pathname));
+  setStore(store); // the playback controller dispatches into the app's store
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -158,6 +146,10 @@ describe('whole-app behavior', () => {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
     });
+    // jsdom does not implement media playback; stub the methods the
+    // playback controller calls on the drive video element
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', { configurable: true, value: vi.fn(() => Promise.resolve()) });
+    Object.defineProperty(HTMLMediaElement.prototype, 'pause', { configurable: true, value: vi.fn() });
   });
   afterEach(() => {
     localStorage.clear();

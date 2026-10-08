@@ -161,10 +161,10 @@ class ExplorerApp extends Component {
     }
 
     if (!prevProps.zoom && zoom) {
-      this.props.dispatch(play());
+      play();
     }
     if (prevProps.zoom && !zoom) {
-      this.props.dispatch(pause());
+      pause();
     }
 
     // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet

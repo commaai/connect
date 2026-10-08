@@ -10,8 +10,7 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
-import { seek } from '../../timeline/playback';
+import { getPlayheadMs, seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -213,7 +212,7 @@ class Timeline extends Component {
     const { dragging } = this.state;
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(ev);
-      this.props.dispatch(seek(this.percentToOffset(percent)));
+      seek(this.percentToOffset(percent));
     }
   }
 
@@ -267,9 +266,9 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
+      const offset = getPlayheadMs();
       if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
+        seek(startOffset);
       }
       const { dispatch } = this.props;
       const startTime = startOffset;
@@ -297,11 +296,7 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
+    const offset = Math.floor(getPlayheadMs());
     const percent = this.offsetToPercent(offset);
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
