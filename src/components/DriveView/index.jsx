@@ -45,7 +45,7 @@ class DriveView extends Component {
             <div className="w-12" />
             <div className="flex flex-col items-center gap-1 text-white text-lg font-medium">
               {currentRoute.demo_title ? (
-                <div className="w-fit rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                <div className="w-fit rounded-full bg-white/10 px-2.5 py-1 text-center text-xs font-semibold uppercase tracking-wide text-white/80">
                   {currentRoute.demo_title}
                 </div>
               ) : null}
