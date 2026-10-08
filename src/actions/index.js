@@ -193,6 +193,27 @@ export function popTimelineRange(log_id, allowPathChange = true) {
   };
 }
 
+// Shows the drive and range named by the URL. Only a different drive restarts playback.
+export function selectRoute(logId, range) {
+  return (dispatch, getState) => {
+    const { selectedRouteId, zoom, currentRoute } = getState();
+    const start = range?.start ?? null;
+    const end = range?.end ?? null;
+    const sameRange = range
+      ? zoom?.start === start && zoom?.end === end
+      : !zoom || (zoom.start === 0 && zoom.end === currentRoute?.duration);
+    if (logId === selectedRouteId && sameRange) {
+      return;
+    }
+
+    dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: logId, start, end });
+    if (logId !== selectedRouteId) {
+      dispatch(resetPlayback());
+    }
+    dispatch(selectLoop(start, end));
+  };
+}
+
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();

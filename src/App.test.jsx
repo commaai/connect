@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -278,15 +278,26 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
-  test('device browser history restores exact dashboards', async () => {
+  test('device links and browser history show the device in the URL', async () => {
     const { history } = await renderApp(`/${FIRST}`);
-    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
     act(() => history.push(`/${SECOND}`));
-    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    expect(await screen.findByRole('heading', { name: 'Alpha' })).toBeVisible();
     act(() => history.goBack());
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
     act(() => history.goForward());
-    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    expect(await screen.findByRole('heading', { name: 'Alpha' })).toBeVisible();
+  });
+
+  test('leaving referrals from a drive shows the dashboard its URL names', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'referrals' }));
+    expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'referrals' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
+    expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument();
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
