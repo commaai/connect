@@ -47,7 +47,7 @@ class DriveVideo extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    this.updateVideoSource(null);
+    this.updateVideoSource();
   }
 
   componentDidUpdate(prevProps) {
@@ -57,7 +57,7 @@ class DriveVideo extends Component {
       || prevRoute?.share_exp !== currentRoute?.share_exp
       || prevRoute?.share_sig !== currentRoute?.share_sig;
     if (routeChanged) {
-      this.updateVideoSource(prevProps);
+      this.updateVideoSource();
       return;
     }
 
@@ -107,15 +107,13 @@ class DriveVideo extends Component {
     this.seekIssued = false;
   }
 
-  updateVideoSource(prevProps) {
-    if (prevProps && prevProps.currentRoute?.fullname === this.props.currentRoute?.fullname
-      && prevProps?.currentRoute?.share_exp === this.props.currentRoute?.share_exp
-      && prevProps?.currentRoute?.share_sig === this.props.currentRoute?.share_sig) return;
+  updateVideoSource() {
     this.removeAudioListener();
     const { currentRoute, dispatch, onAudioStatusChange } = this.props;
     const src = currentRoute
       ? api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig)
       : '';
+    this.resumeAfterSeek = false;
     this.requestVideoSeek();
     this.setState({ src, playerReady: false, videoError: null, retryCount: 0 });
     if (onAudioStatusChange) onAudioStatusChange(false);
@@ -156,6 +154,7 @@ class DriveVideo extends Component {
     if (this.props.isBufferingVideo) this.props.dispatch(bufferVideo(false));
     if (this.resumeAfterSeek) {
       this.resumeAfterSeek = false;
+      if (this.props.desiredPlaySpeed === 0) return;
       const media = this.videoPlayer.current?.getInternalPlayer();
       try {
         const result = media?.play?.();
@@ -247,7 +246,8 @@ class DriveVideo extends Component {
   }
 
   onVideoPause(token) {
-    if (this.isCurrentPlayer(token) && this.props.desiredPlaySpeed !== 0) {
+    const media = this.videoPlayer.current?.getInternalPlayer();
+    if (this.isCurrentPlayer(token) && !media?.ended && this.props.desiredPlaySpeed !== 0) {
       this.props.dispatch(pause());
       if (this.props.isBufferingVideo) this.props.dispatch(bufferVideo(false));
     }
@@ -292,6 +292,7 @@ class DriveVideo extends Component {
   retryVideo(token) {
     if (!this.isCurrentPlayer(token)) return;
     this.removeAudioListener();
+    this.resumeAfterSeek = false;
     this.requestVideoSeek();
     this.props.dispatch(bufferVideo(true));
     this.setState(prevState => ({
