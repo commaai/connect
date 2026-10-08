@@ -128,7 +128,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
 };
 
 const stateToProps = (state) => ({
-  pathname: state.router.location.pathname,
+  pathname: state.router.location.pathname + (state.router.location.search || ''),
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));

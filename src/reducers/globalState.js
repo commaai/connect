@@ -1,5 +1,6 @@
+import { findRoute } from '../routing/selectors';
 import * as Types from '../actions/types';
-import { emptyDevice } from '../utils';
+import { emptyDevice } from '../utils/deviceDefaults';
 import { getDefaultFilter } from '../utils/filter';
 
 const eventsMap = {};
@@ -53,7 +54,11 @@ export default function reducer(_state, action) {
       state.profile = action.profile;
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_SELECT_DEVICE: {
+      if (state.dongleId === action.dongleId) return _state;
+      const keys = ['filter', 'routes', 'routesMeta', 'lastRoutes', 'files', 'subscription', 'subscribeInfo', 'limit', 'filesUploading', 'filesUploadingMeta'];
+      const cache = { ...state.deviceCache };
+      if (state.dongleId) cache[state.dongleId] = Object.fromEntries(keys.map((key) => [key, state[key]]));
       state = {
         ...state,
         filter: getDefaultFilter(),
@@ -63,6 +68,8 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
+        filesUploading: {},
+        filesUploadingMeta: { dongleId: null, fetchedAt: null },
         limit: 0,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
@@ -82,7 +89,9 @@ export default function reducer(_state, action) {
         state.lastRoutes = null;
         state.currentRoute = null;
       }
+      state = { ...state, ...cache[action.dongleId], deviceCache: cache, currentRoute: null, selectedRouteId: null, zoom: null, loop: null };
       break;
+    }
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
@@ -344,7 +353,7 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
+      if (state.selectedRouteId !== action.log_id) {
         state.files = null;
       }
 
@@ -409,23 +418,31 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
+    case Types.ACTION_ROUTES_METADATA: {
+      if (action.dongleId !== state.dongleId) return _state;
       // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
+      const fetched = action.routes.map((route) => {
         const existingRoute = state.lastRoutes ?
           state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
         return {
+          ...state.routeEntities?.[route.fullname],
           ...existingRoute,
           ...route,
         }
       });
-      state.routesMeta = {
-        dongleId: action.dongleId,
-        start: action.start,
-        end: action.end,
-      };
+      state.routeEntities = { ...state.routeEntities, ...Object.fromEntries(fetched.map(r => [r.fullname, r])) };
+      // A deep-link fetch must not replace an already-loaded dashboard list.
+      if (!action.selectedRouteId || !state.routes) {
+        state.routes = fetched;
+        state.routesMeta = {
+          dongleId: action.dongleId,
+          start: action.start,
+          end: action.end,
+          selectedRouteId: action.selectedRouteId || null,
+        };
+      }
       if (!state.currentRoute && state.selectedRouteId) {
-        const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
+        const curr = findRoute(state, state.selectedRouteId);
         if (curr) {
           state.currentRoute = {
             ...curr,
@@ -446,9 +463,13 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }
 
+  if (state.currentRoute && state.currentRoute !== _state.currentRoute) {
+    state.routeEntities = { ...state.routeEntities, [state.currentRoute.fullname]: state.currentRoute };
+  }
   return state;
 }

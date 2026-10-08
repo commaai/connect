@@ -1,3 +1,4 @@
+import { openDialog, closeDialog } from '../../routing/actions';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
@@ -208,7 +209,6 @@ class Media extends Component {
       downloadMenu: null,
       clipMenu: null,
       moreInfoMenu: null,
-      uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
@@ -609,7 +609,7 @@ class Media extends Component {
                 className={classes.mediaOption}
                 style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
                 aria-haspopup="true"
-                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
+                onClick={(ev) => deviceIsOnline(device) && this.props.dispatch(openDialog('clip'))}
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
@@ -637,7 +637,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, clipMenu, moreInfoMenu, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -669,10 +669,10 @@ class Media extends Component {
     return (
       <>
         <ClipMenu
-          open={Boolean(alwaysOpen || clipMenu)}
+          open={Boolean(alwaysOpen || this.props.dialog === 'clip')}
           dongleId={this.props.dongleId}
           anchorEl={clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          onClose={() => this.props.dispatch(closeDialog())}
           route={currentRoute}
           routes={this.props.routes}
           zoom={this.props.zoom}
@@ -747,7 +747,7 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+              onClick={ files ? () => this.props.dispatch(openDialog('uploads')) : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -823,9 +823,9 @@ class Media extends Component {
           ] }
         </Menu>
         <UploadQueue
-          open={ uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
-          update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
+          open={ this.props.dialog === 'uploads' }
+          onClose={ () => this.props.dispatch(closeDialog()) }
+          update={ Boolean(moreInfoMenu || this.props.dialog === 'uploads' || downloadMenu) }
           store={ this.props.store }
           device={ device }
         />
@@ -920,6 +920,7 @@ class Media extends Component {
 }
 
 const stateToProps = (state) => ({
+  dialog: state.route?.dialog,
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,

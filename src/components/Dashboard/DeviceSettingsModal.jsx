@@ -1,3 +1,5 @@
+import { openDialog, closeDialog, navigate } from '../../routing/actions';
+import { routePanelStyle } from '../../routing/panel';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
@@ -14,23 +16,14 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 
 const styles = (theme) => ({
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
-    maxWidth: '90%',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
-    outline: 'none',
-  },
+  modal: routePanelStyle,
   modalUnpair: {
     width: theme.spacing.unit * 45,
     maxWidth: '80%',
@@ -120,7 +113,6 @@ const initialState = {
   loadingUnpair: false,
   error: null,
   unpairError: null,
-  uploadModal: false,
 };
 
 class DeviceSettingsModal extends Component {
@@ -141,8 +133,10 @@ class DeviceSettingsModal extends Component {
     this.closeUnpair = this.closeUnpair.bind(this);
   }
 
+  componentDidMount() { this.componentDidUpdate({}); }
+
   componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
+    if (prevProps.dongleId !== this.props.dongleId || (!prevProps.device && this.props.device)) {
       const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
       this.setState({
         ...initialState,
@@ -225,11 +219,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
-    this.props.onClose();
+    this.props.dispatch(navigate({ page: 'prime', dongleId: this.props.dongleId }));
   }
 
   async unpairDevice() {
@@ -262,7 +252,13 @@ class DeviceSettingsModal extends Component {
     const { classes, device } = this.props;
     const commacare = device?.commacare;
     if (!device) {
-      return null;
+      return <Modal open={Boolean(this.props.isOpen)} onClose={this.props.onClose}>
+        <Paper className={classes.modal}>
+          <Typography variant="title">Device settings</Typography>
+          <Typography style={{ margin: '20px 0' }}>{this.props.devicesLoaded ? 'This device is unavailable. Check that you have access to it.' : 'Loading your device…'}</Typography>
+          <Button onClick={this.props.onClose}>Close</Button>
+        </Paper>
+      </Modal>;
     }
 
     return (
@@ -299,7 +295,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.props.dispatch(openDialog('uploads')) }
               >
                 Uploads
               </Button>
@@ -425,9 +421,9 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          open={ this.props.uploadModal }
+          update={ this.props.uploadModal }
+          onClose={ () => this.props.dispatch(closeDialog()) }
           device={ device }
         />
       </>
@@ -436,9 +432,11 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = (state.devices || []).find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
+    uploadModal: state.route?.dialog === 'uploads' && state.route?.page !== 'drive',
+    devicesLoaded: state.devices !== null,
     subscription: state.subscription,
     device,
     globalDongleId: state.dongleId,

@@ -1,3 +1,5 @@
+import { openDialog } from '../../routing/actions';
+import { serializeUrl } from '../../routing/routes';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
@@ -14,7 +16,7 @@ import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
+
 
 const styles = (theme) => ({
   deviceList: {
@@ -88,25 +90,18 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
 
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
+    this.props.dispatch(openDialog('settings', dongleId));
   }
 
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
-  }
 
   async onVisible() {
     const { dispatch } = this.props;
@@ -130,7 +125,7 @@ class DeviceList extends Component {
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
         onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
+        href={serializeUrl({ dongleId: device.dongle_id })}
       >
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
@@ -158,7 +153,6 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -202,11 +196,6 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }

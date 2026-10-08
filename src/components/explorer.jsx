@@ -1,7 +1,11 @@
+import { openDialog, closeDialog, navigate } from '../routing/actions';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import { routePanelStyle } from '../routing/panel';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -37,17 +41,7 @@ const styles = (theme) => ({
     flexDirection: 'column',
     flex: 1,
   },
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
-    maxWidth: '90%',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
-    outline: 'none',
-    '& p': { marginTop: 10 },
-  },
+  modal: routePanelStyle,
   closeButton: {
     marginTop: 10,
     float: 'right',
@@ -111,6 +105,7 @@ class ExplorerApp extends Component {
       console.error(err);
     }
     if (pairToken && !pairLoading && !pairError && !pairDongleId) {
+      if (this.props.route.dialog !== 'pair') this.props.dispatch(openDialog('pair'));
       this.setState({ pairLoading: true });
 
       try {
@@ -177,6 +172,7 @@ class ExplorerApp extends Component {
 
   async closePair() {
     const { pairDongleId } = this.state;
+    this.props.dispatch(closeDialog());
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
@@ -198,12 +194,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, profile, route,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = route.page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -243,16 +239,33 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+              { route.page === 'not-found'
+                ? (
+                  <div className="mx-auto my-16 max-w-lg rounded-3xl border border-white/10 bg-white/5 p-10 text-center">
+                    <Typography variant="title">This link doesn’t lead to a page</Typography>
+                    <Typography style={{ marginTop: 16, opacity: 0.65 }}>
+                      The address may be incomplete or the drive range may be invalid.
+                    </Typography>
+                    <Button style={{ marginTop: 24 }} onClick={() => dispatch(navigate({ dongleId }))}>
+                      Back to your drives
+                    </Button>
+                  </div>
+                )
+                : referralsOpen
+                ? <Referrals profile={profile} onBack={() => dispatch(navigate({ dongleId }))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
+                : (route.page === 'drive' ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
-            <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+          </>
+        ) }
+            <DeviceSettingsModal isOpen={route.dialog === 'settings'} dongleId={route.dialogDeviceId} onClose={() => dispatch(closeDialog())} />
+            {route.dialog === 'add-device' && <AddDevice dialogOnly />}
+            <Modal open={ route.dialog === 'pair' } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
+                {!pairLoading && !pairError && !pairDongleId && <Typography>Scan the QR code on your device to begin pairing.</Typography>}
                 <hr />
                 { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
                 { pairDongleId
@@ -268,14 +281,13 @@ class ExplorerApp extends Component {
                 </Button>
               </Paper>
             </Modal>
-          </>
-        ) }
       </div>
     );
   }
 }
 
 const stateToProps = (state) => ({
+  route: state.route,
   zoom: state.zoom,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,

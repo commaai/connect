@@ -1,71 +1,28 @@
 import { describe, expect, it } from 'vitest';
-
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
-
-const DONGLE = '0000aaaa0000aaaa';
-const LOG = '2026-08-06--12-00-00';
-
-describe('URL pathname helpers', () => {
+import { parseUrl, serializeUrl } from './routing/routes';
+const D = '0000aaaa0000aaaa';
+const R = '2026-08-06--12-00-00';
+describe('URL contract', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
+    ['/', 'dashboard'], [`/${D}`, 'dashboard'], [`/${D}/drive/${R}`, 'drive'],
+    [`/${D}/prime`, 'prime'], [`/${D}/stream`, 'stream'], ['/referrals', 'referrals'], ['/demo', 'demo'], ['/auth/callback', 'auth'],
+  ])('parses %s', (url, page) => expect(parseUrl(url).page).toBe(page));
+  it.each(['settings', 'add-device', 'pair', 'clip', 'uploads'])('round trips %s over a drive', dialog => {
+    const route = parseUrl(`/${D}/drive/${R}/0/20?dialog=${dialog}`);
+    expect(route.dialog).toBe(dialog);
+    expect(parseUrl(serializeUrl(route))).toEqual(route);
   });
-
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
+  it.each([`/${D}/drive/${R}/NaN/20`, `/${D}/drive/${R}/20/10`, `/${D}/drive/${R}/0/Infinity`, `/${D}/prime/extra`, `/x${D}`, `/${D}/garbage`, `/${D}/0/20/extra`])('rejects malformed %s', url => expect(parseUrl(url).page).toBe('not-found'));
+  it('keeps legacy drive links and timestamp lookups unambiguous', () => {
+    expect(parseUrl(`/${D}/${R}/0/20`)).toMatchObject({ page: 'drive', range: { start: 0, end: 20000 }, legacyRange: null });
+    expect(parseUrl(`/${D}/1000/2000`).legacyRange).toEqual({ start: 1000, end: 2000 });
   });
-
-  it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
+  it('opens the device clip library from the dashboard', () => {
+    expect(parseUrl('/' + D + '?dialog=clips').dialog).toBe('clips');
   });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+  it('accepts standalone settings and pairing aliases', () => {
+    expect(parseUrl(`/${D}/settings`).dialog).toBe('settings');
+    expect(parseUrl('/devices/add').dialog).toBe('add-device');
+    expect(parseUrl('/devices/pair').dialog).toBe('pair');
   });
 });

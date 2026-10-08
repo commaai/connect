@@ -1,3 +1,4 @@
+import { createInitialState } from './initialState';
 import * as Redux from 'redux';
 import { connectRouter, routerMiddleware } from 'connected-react-router';
 import thunk from 'redux-thunk';
@@ -13,7 +14,7 @@ export const history = createBrowserHistory();
 export function createAppStore(appHistory, preloadedState) {
   return Redux.createStore(
     connectRouter(appHistory)(rootReducer),
-    preloadedState,
+    preloadedState || createInitialState(appHistory.location),
     composeEnhancers(Redux.applyMiddleware(
       thunk,
       onHistoryMiddleware,
