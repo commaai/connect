@@ -6,6 +6,7 @@ import { createMemoryHistory } from 'history';
 import DriveVideo from '.';
 import { createAppStore } from '../../store';
 import * as Types from '../../actions/types';
+import { currentOffset } from '../../timeline';
 import { play, resetPlayback, seek, selectLoop } from '../../timeline/playback';
 
 const hls = vi.hoisted(() => ({ instances: [], load: null }));
@@ -56,7 +57,7 @@ describe('DriveVideo', () => {
   });
 
   it('says the drive has no video when the playlist is missing, and retries on request', async () => {
-    renderPlayer();
+    const store = renderPlayer();
     await screen.findByRole('status');
     await act(async () => {});
     const [player] = hls.instances;
@@ -66,6 +67,27 @@ describe('DriveVideo', () => {
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Try again' })));
     expect(screen.queryByRole('alert')).toBeNull();
     expect(hls.instances).toHaveLength(2);
+    expect(store.getState().desiredPlaySpeed).toBeGreaterThan(0);
+  });
+
+  it('pauses on a video error, and Play loads the video again where it stopped', async () => {
+    let now = 1000000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const store = renderPlayer();
+    await act(async () => {});
+    store.dispatch(seek(60000));
+    act(() => hls.instances[0].handlers.hlsError('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Check your network connection');
+    // nothing plays, so the time stops where the video stopped
+    expect(store.getState().desiredPlaySpeed).toEqual(0);
+    now += 5000;
+    expect(currentOffset()).toEqual(60000);
+
+    await act(async () => store.dispatch(play(1)));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(hls.instances).toHaveLength(2);
+    expect(hls.instances[1].config.startPosition).toEqual(60);
+    vi.restoreAllMocks();
   });
 
   it('names a missing segment, ignores errors hls.js recovers from, and retries in another segment', async () => {

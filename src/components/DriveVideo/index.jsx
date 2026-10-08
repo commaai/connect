@@ -41,11 +41,13 @@ class DriveVideo extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { currentRoute, offset } = this.props;
-    // a missing segment: seeking to another segment tries again from there
-    const movedAfterError = this.state.error === NOT_UPLOADED
+    const { currentRoute, desiredPlaySpeed, offset } = this.props;
+    const { error } = this.state;
+    // Play after an error, or a seek into another segment after a missing one, tries again
+    const movedAfterError = error === NOT_UPLOADED
       && getSegmentNumber(currentRoute, offset) !== getSegmentNumber(currentRoute, this.failedAt);
-    if ((currentRoute && prevProps.currentRoute?.fullname !== currentRoute.fullname) || movedAfterError) {
+    const playedAfterError = error && desiredPlaySpeed && !prevProps.desiredPlaySpeed;
+    if ((currentRoute && prevProps.currentRoute?.fullname !== currentRoute.fullname) || movedAfterError || playedAfterError) {
       this.load();
     }
   }
@@ -118,10 +120,10 @@ class DriveVideo extends Component {
     return offset;
   }
 
-  // The wall clock keeps the map and timeline moving without video.
+  // Nothing plays without video: pause where it stopped, so the controls do not claim playback.
   fail(error) {
-    // the hand-back moves offset; only a later seek should retry
     this.failedAt = this.unload();
+    this.props.dispatch(pause());
     this.setState({ buffering: false, error });
   }
 
@@ -265,7 +267,7 @@ class DriveVideo extends Component {
             <button
               type="button"
               className="min-h-11 rounded-full border border-white/30 px-5 text-sm hover:bg-white/10"
-              onClick={this.load}
+              onClick={this.togglePlay}
             >
               Try again
             </button>
