@@ -1,61 +1,82 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, push, replace } from 'connected-react-router';
+import { parseUrl, deviceUrl, driveUrl, settingsUrl } from '../url';
+import { checkLastRoutesData, checkRoutesData, selectDevice, selectRoute } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
-  }
+// The URL decides what is on screen. Components navigate by changing it, and
+// every location change, including the first one, is applied to state here.
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
+export function navigate(url) {
+  return (dispatch, getState) => {
+    const { pathname, search } = getState().router.location;
+    if (url !== `${pathname}${search}`) {
+      dispatch(push(url));
+    }
+  };
+}
+
+export function showSettings(dongleId) {
+  return (dispatch, getState) => {
+    dispatch(navigate(settingsUrl(getState().router.location, dongleId)));
+  };
+}
+
+// old links point at a time range instead of a drive, so find the drive and go there instead
+function openLegacyRange(dongleId, { start, end }) {
+  return async (dispatch) => {
+    try {
+      const routesData = await api.routes.getRoutesSegments(dongleId, start, end);
+      if (routesData && routesData.length > 0) {
+        const logId = routesData[0].fullname.split('|')[1];
+        dispatch(replace(driveUrl(dongleId, logId)));
+      }
+    } catch (err) {
+      console.error('Error fetching routes data for log ID conversion', err);
+    }
+  };
+}
+
+// Make state match the URL. Whatever the URL doesn't change is kept.
+export function applyUrl(location) {
+  return (dispatch, getState) => {
+    const url = parseUrl(location);
     const state = getState();
 
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+    if (url.page === 'home') {
+      // before a device is selected, init() applies the URL again
+      if (state.dongleId) {
+        dispatch(replace(deviceUrl(state.dongleId)));
+      }
+      return;
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
+    const deviceChanged = url.dongleId && url.dongleId !== state.dongleId;
+    const routeChanged = url.logId !== state.selectedRouteId;
+    if (deviceChanged) {
+      dispatch(selectDevice(url.dongleId));
     }
+    dispatch(selectRoute(url.logId, url.zoom));
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
+    if (deviceChanged) {
+      dispatch(checkLastRoutesData());
+    } else if (routeChanged) {
       dispatch(checkRoutesData());
     }
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
+    if (url.legacyRange) {
+      dispatch(openLegacyRange(url.dongleId, url.legacyRange));
     }
+  };
+}
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
+  if (!action) {
+    return undefined;
   }
+
+  const result = next(action); // the router state has to update first
+  if (action?.type === LOCATION_CHANGE) {
+    dispatch(applyUrl(action.payload.location));
+  }
+  return result;
 };

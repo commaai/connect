@@ -303,4 +303,51 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('drive back button zooms out to the whole drive', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(store.getState().zoom).toEqual({ start: 0, end: 60000 });
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
+  });
+
+  test('closing a linked drive loads the dashboard drive list', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('settings URL opens over a drive and closing keeps the drive playing', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20?settings=${SECOND}`);
+    const dialog = (await screen.findByText('Device settings')).closest('[role="document"]');
+    expect(within(dialog).getByText(SECOND)).toBeVisible();
+    expect(within(dialog).getByDisplayValue('Alpha')).toBeVisible();
+    const { routes, loop } = store.getState();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`);
+    expect(history.location.search).toBe('');
+    expect(store.getState()).toMatchObject({ routes, loop, dongleId: FIRST, selectedRouteId: LOG });
+
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('signed-out viewers keep the linked drive after closing it', async () => {
+    await renderApp(`/${FIRST}/${LOG}`, { authenticated: false });
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock route start')).toBeVisible();
+    expect(mocks.requests.some(({ url }) => new URL(url).searchParams.has('start'))).toBe(false);
+    expect(mocks.hardNavigate).not.toHaveBeenCalled();
+  });
+
+  test('settings URL stays closed for a device you do not own', async () => {
+    await renderApp(`/${SHARED}?settings=${SHARED}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
 });

@@ -4,6 +4,8 @@ import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
 import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { applyUrl } from './history';
+import { currentUrl } from '../url';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -56,13 +58,11 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
+        // pages without a device in the URL use the last selected one, or the first
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
-        }
+        const found = devices.some((d) => d.dongle_id === selectedDongleId);
+        dispatch(selectDevice(found ? selectedDongleId : devices[0].dongle_id));
+        dispatch(checkLastRoutesData());
       }
       const dongleId = getState().dongleId;
       const device = devices.find((dev) => dev.dongle_id === dongleId);
@@ -78,5 +78,10 @@ export default function init() {
       profile,
       devices,
     });
+
+    // `/` waits for a device to be selected before redirecting to it
+    if (currentUrl(getState()).page === 'home') {
+      dispatch(applyUrl(getState().router.location));
+    }
   };
 }
