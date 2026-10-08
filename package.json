@@ -9,6 +9,7 @@
     "serve": "vite preview",
     "lint": "oxlint src",
     "test": "vitest run",
+    "test:playback": "bun add --no-save --trust puppeteer@24.16.0 && node scripts/test-playback.mjs",
     "test:watch": "vitest",
     "test-coverage": "vitest run --coverage"
   },

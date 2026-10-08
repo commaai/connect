@@ -23,10 +23,30 @@ jobs:
       - name: Run unit tests
         run: bun run test
 
+  playback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Test real HLS playback and recovery
+        env:
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: bun run test:playback
+      - name: Upload playback failure details
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playback-failure
+          path: test-results/playback
+          retention-days: 7
+
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [test]
+    needs: [test, playback]
     if: github.repository == 'commaai/connect' && github.ref == 'refs/heads/master'
     permissions:
       packages: write

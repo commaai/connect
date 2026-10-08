@@ -300,6 +300,55 @@ describe('DriveVideo', () => {
     expect(store.getState().desiredPlaySpeed).toBe(2);
   });
 
+  it('keeps a pause made while a new route starts, even when the route\'s own play event arrives after it', async () => {
+    const { store, video, m, fire, ready, hls } = await setup({ desiredPlaySpeed: 0, offset: 7000, seekId: 1 });
+    ready();
+    expect(m.paused).toBe(true);
+    // Selecting another route resets playback to play (as pushTimelineRange does).
+    act(() => {
+      store.dispatch({ type: 'PATCH', patch: { currentRoute: routeB } });
+      store.dispatch(selectLoop(0, 60000));
+      store.dispatch(resetPlayback());
+    });
+    expect(hls().src).toContain('route-b');
+    expect(m.plays).toBe(1);
+    expect(m.paused).toBe(false);
+    act(() => {
+      // The user pauses before React delivers it, and only then does the queued play event run.
+      store.dispatch(pause());
+      video.dispatchEvent(new Event('play'));
+      expect(store.getState().desiredPlaySpeed).toBe(0);
+    });
+    expect(m.paused).toBe(true);
+    ready();
+    expect(m.paused).toBe(true);
+    expect(m.plays).toBe(1);
+    expect(store.getState()).toMatchObject({ desiredPlaySpeed: 0, offset: 0 });
+
+    // A play from outside the app (e.g. lock screen) on the new route is still followed.
+    m.paused = false;
+    fire('play');
+    expect(store.getState().desiredPlaySpeed).toBe(1);
+  });
+
+  it('keeps a pause that follows a gesture play before the gesture\'s play event arrives', async () => {
+    const { store, video, m, ready } = await setup({ desiredPlaySpeed: 0 });
+    ready();
+    act(() => {
+      // The controls play inside the click, then record it.
+      playVideo(2);
+      store.dispatch(play(2));
+    });
+    expect(m.paused).toBe(false);
+    act(() => {
+      store.dispatch(pause());
+      video.dispatchEvent(new Event('play'));
+      expect(store.getState().desiredPlaySpeed).toBe(0);
+    });
+    expect(m.paused).toBe(true);
+    expect(m.playbackRate).toBe(2);
+  });
+
   it('shows paused after an interruption before metadata, so a single tap resumes', async () => {
     const rejects = [];
     const { store, m, fire, dispatch, ready } = await setup({}, { prepare: (s) => { s.playResult = pendingPlay(rejects); } });
@@ -515,7 +564,8 @@ describe('DriveVideo', () => {
     expect(screen.getByText('Unable to load video')).toBeInTheDocument();
     expect(hls().recoverMediaError).toHaveBeenCalledTimes(2);
     expect(hlsMock.instances).toHaveLength(1);
-    expect(store.getState()).toMatchObject({ offset: 42000, desiredPlaySpeed: 2 });
+    expect(m.paused).toBe(true);
+    expect(store.getState()).toMatchObject({ offset: 42000, desiredPlaySpeed: 0 });
   });
 
   it('offers Retry as soon as hls.js gives up on the network, and Retry resumes at the position and speed', async () => {
@@ -532,9 +582,14 @@ describe('DriveVideo', () => {
     expect(hls().destroyed).toBe(true);
     expect(hlsMock.instances).toHaveLength(1);
     expect(offset(store)).toBe(42000);
+    expect(m.paused).toBe(true);
+    expect(store.getState().desiredPlaySpeed).toBe(0);
 
-    m.paused = true;
-    fireEvent.click(screen.getByText('Retry'));
+    act(() => {
+      screen.getByText('Retry').click();
+      expect(m.paused).toBe(false); // inside the click, before React re-renders
+      expect(m.playbackRate).toBe(2);
+    });
     expect(hlsMock.instances).toHaveLength(2);
     expect(hls().config.startPosition).toBe(42);
     expect(m.paused).toBe(false);
@@ -544,6 +599,155 @@ describe('DriveVideo', () => {
     expect(m.seeks.at(-1)).toBe(42);
     seeked();
     expect(screen.queryByText('Retry')).toBeNull();
+    expect(hlsMock.instances).toHaveLength(2);
+  });
+
+  it('pauses on a terminal failure, and Play reloads once at the position and speed inside the gesture', async () => {
+    const { store, video, m, ready, seeked, progress, dispatch, hls } = await setup();
+    ready();
+    dispatch(play(2));
+    progress(42);
+    const old = hls();
+    old.emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+    expect(m.paused).toBe(true);
+    expect(offset(store)).toBe(42000);
+    expect(spinner()).toBeNull();
+
+    const { plays } = m;
+    act(() => {
+      playVideo(2);
+      // Asserted before the store hears of the play, so the request is part of the gesture.
+      expect(hlsMock.instances).toHaveLength(2);
+      expect(m.plays).toBe(plays + 1);
+      expect(m.paused).toBe(false);
+      expect(m.playbackRate).toBe(2);
+      store.dispatch(play(2));
+    });
+    expect(hlsMock.instances).toHaveLength(2);
+    expect(hls().media).toBe(video);
+    expect(hls().config.startPosition).toBe(42);
+    expect(hls().destroyed).toBe(false);
+    expect(screen.queryByText('Retry')).toBeNull();
+    expect(store.getState().desiredPlaySpeed).toBe(2);
+    m.currentTime = 0; // a fresh source starts from zero
+    ready();
+    expect(m.seeks.at(-1)).toBe(42);
+    seeked();
+    expect(offset(store)).toBe(42000);
+    expect(m.plays).toBe(plays + 1);
+    expect(hlsMock.instances).toHaveLength(2);
+  });
+
+  it('reloads a failed source at a seek made while it had no source', async () => {
+    const { store, m, ready, seeked, progress, dispatch, hls } = await setup();
+    ready();
+    dispatch(play(2));
+    progress(42);
+    hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    dispatch(seek(51000));
+    expect(hlsMock.instances).toHaveLength(1);
+    expect(m.seeks).toEqual([]);
+    expect(offset(store)).toBe(51000);
+
+    act(() => { playVideo(2); store.dispatch(play(2)); });
+    expect(hlsMock.instances).toHaveLength(2);
+    expect(hls().config.startPosition).toBe(51);
+    m.currentTime = 0;
+    ready();
+    expect(m.seeks).toEqual([51]);
+    seeked();
+    expect(store.getState()).toMatchObject({ offset: 51000, desiredPlaySpeed: 2 });
+  });
+
+  it('reloads a failed source on a play command that does not come through the gesture bridge', async () => {
+    const { store, m, ready, progress, dispatch, hls } = await setup();
+    ready();
+    dispatch(play(2));
+    progress(42);
+    hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    dispatch(play(4));
+    expect(hlsMock.instances).toHaveLength(2);
+    expect(hls().config.startPosition).toBe(42);
+    expect(m.paused).toBe(false);
+    expect(m.playbackRate).toBe(4);
+    expect(store.getState().desiredPlaySpeed).toBe(4);
+    expect(screen.queryByText('Retry')).toBeNull();
+  });
+
+  it('keeps a source that failed while paused paused on Retry', async () => {
+    const { store, m, ready, seeked, hls } = await setup({ desiredPlaySpeed: 0, offset: 20000, seekId: 1 });
+    ready();
+    seeked();
+    hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    const { plays } = m;
+    fireEvent.click(screen.getByText('Retry'));
+    expect(hlsMock.instances).toHaveLength(2);
+    expect(hls().config.startPosition).toBe(20);
+    m.currentTime = 0;
+    ready();
+    expect(m.seeks.at(-1)).toBe(20);
+    expect(m.paused).toBe(true);
+    expect(m.plays).toBe(plays);
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+  });
+
+  it('keeps the reloaded source safe from the failed source\'s late events and promises', async () => {
+    const rejects = [];
+    const { store, m, ready, hls } = await setup({}, { prepare: (s) => { s.playResult = pendingPlay(rejects); } });
+    await waitFor(() => expect(rejects).toHaveLength(1));
+    ready();
+    const old = hls();
+    old.emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+
+    m.playResult = null;
+    act(() => { playVideo(1); store.dispatch(play(1)); });
+    const current = hls();
+    expect(current).not.toBe(old);
+    await act(async () => rejects[0](abortError()));
+    old.emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    expect(current.destroyed).toBe(false);
+    expect(screen.queryByText(/Unable to load/)).toBeNull();
+    expect(store.getState().desiredPlaySpeed).toBe(1);
+    expect(m.paused).toBe(false);
+  });
+
+  it('clears a failure on a route change and does not carry the failed route\'s resume intent', async () => {
+    const { store, m, ready, progress, dispatch, hls } = await setup();
+    ready();
+    progress(42);
+    hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+
+    act(() => {
+      store.dispatch({ type: 'PATCH', patch: { currentRoute: routeB } });
+      store.dispatch(resetPlayback());
+    });
+    expect(screen.queryByText(/Unable to load/)).toBeNull();
+    expect(hlsMock.instances).toHaveLength(2);
+    expect(hls().src).toContain('route-b');
+    expect(hls().config.startPosition).toBe(0);
+    expect(offset(store)).toBe(0);
+
+    dispatch(pause());
+    hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    fireEvent.click(screen.getByText('Retry'));
+    expect(hlsMock.instances).toHaveLength(3);
+    expect(hls().src).toContain('route-b');
+    expect(m.paused).toBe(true);
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+  });
+
+  it('shows paused, not playing without a source, when a source cannot be played at all', async () => {
+    const unsupported = Object.assign(() => { hlsMock.supported = false; }, { native: true });
+    const { store, m } = await setup({}, { prepare: unsupported });
+    await screen.findByText('Unable to load video');
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+    act(() => { playVideo(1); store.dispatch(play(1)); });
+    expect(screen.getByText('Unable to load video')).toBeInTheDocument();
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+    expect(m.plays).toBe(0);
   });
 
   it('reports a missing upload only when hls.js saw a 404', async () => {
@@ -623,14 +827,19 @@ describe('DriveVideo', () => {
       ready();
       expect(onAudio).toHaveBeenLastCalledWith(true);
 
+      expect(m.paused).toBe(false);
       video.setAttribute('src', 'stale');
       m.error = { code: 4 };
       fire('error');
       expect(screen.getByText('Unable to load video')).toBeInTheDocument();
       expect(video.getAttribute('src')).toBe('stale');
+      expect(m.paused).toBe(true);
 
       m.error = null;
-      fireEvent.click(screen.getByText('Retry'));
+      act(() => {
+        screen.getByText('Retry').click();
+        expect(m.paused).toBe(false); // inside the click, before React re-renders
+      });
       expect(video.getAttribute('src')).toContain('route-a/qcamera.m3u8');
     });
 
@@ -664,6 +873,40 @@ describe('DriveVideo', () => {
       fire('error');
       expect(screen.getByText('Unable to load video. Check network connection.')).toBeInTheDocument();
       expect(video.getAttribute('src')).toBe('stale');
+    });
+
+    it('pauses on a native network error, and Play reloads in place inside the gesture', async () => {
+      const { store, video, m, fire, dispatch, ready, seeked, progress } = await setup({}, { prepare });
+      ready();
+      dispatch(play(2));
+      progress(42);
+      video.setAttribute('src', 'stale');
+      m.error = { code: 2 };
+      fire('error');
+      expect(m.paused).toBe(true);
+      expect(store.getState().desiredPlaySpeed).toBe(0);
+      expect(offset(store)).toBe(42000);
+      expect(spinner()).toBeNull();
+
+      const { plays } = m;
+      act(() => {
+        playVideo(2);
+        // Asserted before the store hears of the play, so the request is part of the gesture.
+        expect(video.getAttribute('src')).toContain('route-a/qcamera.m3u8');
+        expect(m.plays).toBe(plays + 1);
+        expect(m.paused).toBe(false);
+        expect(m.playbackRate).toBe(2);
+        store.dispatch(play(2));
+      });
+      expect(screen.queryByText(/Unable to load/)).toBeNull();
+      // The fake element keeps its old state across a source change, which a browser resets.
+      Object.assign(m, { error: null, readyState: 0, currentTime: 0 });
+      ready();
+      expect(m.seeks.at(-1)).toBe(42);
+      seeked();
+      expect(store.getState()).toMatchObject({ offset: 42000, desiredPlaySpeed: 2 });
+      expect(m.plays).toBe(plays + 1);
+      expect(hlsMock.instances).toHaveLength(0);
     });
   });
 

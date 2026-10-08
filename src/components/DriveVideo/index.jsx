@@ -80,16 +80,28 @@ class DriveVideo extends Component {
     this.pending = null; // route offset to seek to once metadata is available
     this.unanchoredSeek = null; // explicit seek target taken before the route's video start was known
     this.speed = props.desiredPlaySpeed || 1;
+    this.resumeOnRetry = false; // whether playback was requested when the source failed
     this.hasAudio = false;
     this.readOffset = this.readOffset.bind(this);
-    this.retry = () => this.load(this.position());
+    this.retry = () => {
+      const resume = this.resumeOnRetry;
+      this.load(this.position());
+      if (resume) {
+        this.startPlayback(this.speed);
+        this.props.dispatch(play(this.speed));
+      }
+    };
   }
 
   componentDidMount() {
     const video = this.videoRef.current;
     // Controls call these inside the click so iOS treats play and unmute as user initiated.
     this.unregisterClock = registerPlaybackClock(this.readOffset, {
-      play: (speed) => { this.speed = speed; this.startPlayback(speed); },
+      play: (speed) => {
+        this.speed = speed;
+        if (this.failed()) this.load(this.position());
+        this.startPlayback(speed);
+      },
       setMuted: (muted) => { video.muted = muted; },
     });
     this.componentDidUpdate({});
@@ -107,7 +119,11 @@ class DriveVideo extends Component {
         this.unanchoredSeek = currentRoute?.videoStartOffset == null ? this.pending : null;
         this.applyPending();
       }
-      if (desiredPlaySpeed !== prevProps.desiredPlaySpeed) this.syncPlayback();
+      if (desiredPlaySpeed !== prevProps.desiredPlaySpeed) {
+        // A play command after a failure reloads the source, e.g. when the overlay is hidden.
+        if (desiredPlaySpeed > 0 && this.failed()) this.load(this.position());
+        else this.syncPlayback();
+      }
     }
     // A seek applied before the video start was known assumed it was 0. When it arrives, repeat the
     // seek once if it targeted the range start (or a time before the first frame) so a deep-linked
@@ -207,9 +223,11 @@ class DriveVideo extends Component {
     on('timeupdate', () => { this.checkLoop(); this.report(); });
     on('seeked', () => this.report());
     on('playing', () => { session.raf ||= requestAnimationFrame(tick); });
-    // Lock screen, headset and system controls drive the element directly.
+    // Lock screen, headset and system controls drive the element directly. A play event while the
+    // delivered props still request play is this player's own (queued) play; if the store has since
+    // paused, that newer pause is still on its way to componentDidUpdate and must win.
     on('play', () => this.withStore((state, dispatch) => {
-      if (!video.paused && state.desiredPlaySpeed === 0) dispatch(play(this.speed));
+      if (!video.paused && state.desiredPlaySpeed === 0 && !(this.props.desiredPlaySpeed > 0)) dispatch(play(this.speed));
     }));
     on('pause', () => {
       this.report();
@@ -249,7 +267,13 @@ class DriveVideo extends Component {
     const attach = (HlsClass) => {
       if (this.session !== session) return;
       if (HlsClass?.isSupported()) {
-        const hls = new HlsClass({ maxBufferLength: 40, startPosition: toMediaTime(this.pending ?? 0, route) });
+        const hls = new HlsClass({
+          maxBufferLength: 40,
+          startPosition: toMediaTime(this.pending ?? 0, route),
+          // Route streams have no ads. Interstitial scheduling can replay from a queued 'play'
+          // after the user paused; keep playback decisions in this player.
+          enableInterstitialPlayback: false,
+        });
         session.hls = hls;
         hls.on(HlsClass.Events.ERROR, (_event, data) => {
           // hls.js retries errors itself and reports them fatal only once its retries are exhausted.
@@ -299,9 +323,20 @@ class DriveVideo extends Component {
     session.hls.recoverMediaError();
   }
 
+  /** Whether the source failed and nothing has been reloaded since. */
+  failed() {
+    return !this.session && Boolean(this.state.error);
+  }
+
   fail(error) {
     this.report();
     this.release();
+    // Nothing can play without a source, so the controls show paused until the next play or Retry.
+    this.videoRef.current.pause();
+    this.withStore((state, dispatch) => {
+      this.resumeOnRetry = state.desiredPlaySpeed > 0;
+      if (this.resumeOnRetry) dispatch(pause());
+    });
     this.setState({ error });
     this.updateBuffering();
   }
