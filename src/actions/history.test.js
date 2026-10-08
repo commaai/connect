@@ -17,7 +17,8 @@ vi.mock('../api', () => ({
 }));
 vi.mock('./index', () => ({
   selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
-  checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
+  popTimelineRange: vi.fn(),
+  checkRoutesData: vi.fn(), checkLastRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
@@ -40,7 +41,7 @@ function location(pathname, action = 'POP') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
+  for (const name of ['selectDevice', 'pushTimelineRange', 'popTimelineRange', 'checkRoutesData', 'checkLastRoutesData', 'primeNav', 'streamNav']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
@@ -60,13 +61,38 @@ describe('history middleware', () => {
     expect(actions.selectDevice).not.toHaveBeenCalled();
   });
 
+  it('reconciles arbitrary PUSH navigation through the route parser', () => {
+    const { store, invoke } = create(baseState);
+    invoke(location(`/${OTHER}/${LOG}/10/20?modal=upload-queue`, 'PUSH'));
+    expect(actions.selectDevice).toHaveBeenCalledWith(OTHER, false, false);
+    expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 10000, 20000, false);
+    expect(actions.checkLastRoutesData).toHaveBeenCalledOnce();
+    expect(store.dispatch).toHaveBeenCalled();
+  });
+
+  it('applies modal query changes without resetting the current route', () => {
+    const state = {
+      ...baseState,
+      router: { location: { pathname: `/${DONGLE}`, search: '' } },
+      routeModal: null,
+      routeModalDeviceId: null,
+    };
+    const { store, invoke } = create(state);
+    invoke(location(`/${DONGLE}?modal=date-filter`, 'PUSH'));
+    expect(store.dispatch).toHaveBeenCalledWith({
+      type: 'ACTION_ROUTE_MODAL', modal: 'date-filter', deviceId: DONGLE,
+    });
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+    expect(actions.selectDevice).not.toHaveBeenCalled();
+  });
+
   it.each(['POP', 'REPLACE'])('selects a changed device for %s and refreshes routes', (historyAction) => {
     const { store, next, invoke } = create(baseState);
     const action = location(`/${OTHER}`, historyAction);
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
     expect(actions.selectDevice).toHaveBeenCalledWith(OTHER, false, false);
-    expect(actions.checkRoutesData).toHaveBeenCalledOnce();
+    expect(actions.checkLastRoutesData).toHaveBeenCalledOnce();
     expect(store.dispatch).toHaveBeenCalledWith({ action: 'selectDevice', args: [OTHER, false, false] });
   });
 
@@ -88,11 +114,24 @@ describe('history middleware', () => {
     expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
   });
 
+  it('pops the zoom stack when history returns to its previous range', () => {
+    const state = {
+      ...baseState,
+      selectedRouteId: LOG,
+      routes: [{ log_id: LOG, duration: 60000 }],
+      zoom: { start: 10000, end: 20000, previous: { start: 0, end: 60000 } },
+    };
+    const { invoke } = create(state);
+    invoke(location(`/${DONGLE}/${LOG}`));
+    expect(actions.popTimelineRange).toHaveBeenCalledWith(LOG, false);
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+  });
+
   it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
     const { invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
+    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, true));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
@@ -121,11 +160,11 @@ describe('history middleware', () => {
   ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
     const entering = create();
     entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(true, false);
 
     vi.clearAllMocks();
     const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
     leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(false, false);
   });
 });
