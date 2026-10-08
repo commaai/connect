@@ -264,6 +264,76 @@ describe('DriveVideo player lifecycle', () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ACTION_PAUSE' }));
   });
 
+  it('automatically retries a transient HLS network failure on reconnect at 4x', () => {
+    const { video, media, callbacks, changeProps, playerElement, dispatch } = playerFixture();
+    video.componentDidMount();
+    try {
+      changeProps({ offset: 42000, seekRevision: 1, desiredPlaySpeed: 4 });
+      const oldPlayer = callbacks();
+      const oldKey = playerElement().key;
+      oldPlayer.onError('hlsError', { fatal: true, type: 'networkError' });
+      expect(video.state.videoError).toBeTruthy();
+      expect(callbacks().playing).toBe(false);
+
+      window.dispatchEvent(new Event('online'));
+      expect(video.state.videoError).toBeNull();
+      expect(playerElement().key).not.toBe(oldKey);
+      expect(callbacks().playbackRate).toBe(4);
+      expect(callbacks().playing).toBe(true);
+      expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: ACTION_BUFFER_VIDEO, buffering: true }));
+
+      media.time = 0;
+      callbacks().onReady(media);
+      expect(media.seekTo).toHaveBeenLastCalledWith(42, 'seconds');
+      oldPlayer.onError('hlsError', { fatal: true, type: 'networkError' });
+      expect(video.state.videoError).toBeNull();
+    } finally {
+      video.componentWillUnmount();
+    }
+  });
+
+  it('restores the video on reconnect but preserves intentional pause', () => {
+    const { video, callbacks, changeProps } = playerFixture();
+    changeProps({ offset: 8000, seekRevision: 1, desiredPlaySpeed: 0 });
+    callbacks().onError('hlsError', { fatal: true, type: 'networkError' });
+    video.onReconnect();
+    expect(video.state.videoError).toBeNull();
+    expect(callbacks().playing).toBe(false);
+    expect(video.props.offset).toBe(8000);
+  });
+
+  it('never auto-retries permanent HTTP errors on reconnect', () => {
+    for (const code of [401, 403, 404]) {
+      const { video, callbacks, playerElement } = playerFixture();
+      const originalKey = playerElement().key;
+      callbacks().onError('hlsError', { fatal: true, type: 'networkError', response: { code } });
+      expect(video.state.videoError).toBeTruthy();
+      video.onReconnect();
+      expect(video.state.videoError).toBeTruthy();
+      expect(playerElement().key).toBe(originalKey);
+    }
+  });
+
+  it('cancels pending reconnect recovery on route changes, manual retry and unmount', () => {
+    const { video, callbacks, changeProps, playerElement } = playerFixture();
+    callbacks().onError('hlsError', { fatal: true, type: 'networkError' });
+    changeProps({ currentRoute: route('route-B') });
+    const routeKey = playerElement().key;
+    video.onReconnect();
+    expect(playerElement().key).toBe(routeKey);
+
+    callbacks().onError('hlsError', { fatal: true, type: 'networkError' });
+    video.retryVideo();
+    const retriedKey = playerElement().key;
+    video.onReconnect();
+    expect(playerElement().key).toBe(retriedKey);
+
+    callbacks().onError('hlsError', { fatal: true, type: 'networkError' });
+    video.componentWillUnmount();
+    video.onReconnect();
+    expect(playerElement().key).toBe(retriedKey);
+  });
+
   it('ignores stale ended events from previous players', () => {
     const { callbacks, changeProps, dispatch } = playerFixture();
     const oldEnded = callbacks().onEnded;

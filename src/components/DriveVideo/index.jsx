@@ -14,6 +14,13 @@ import { isIos } from '../../utils/browser.js';
 
 const SEEK_TOLERANCE_SECONDS = 1;
 
+// Only connectivity-related failures should be retried when the browser comes back online.
+const isTransientNetworkStatus = (code) => {
+  if (code == null) return true;
+  const status = Number(code);
+  return status === 0 || status === 408 || status === 429 || status >= 500;
+};
+
 const sourceForRoute = (route) => route
   ? api.video.getQcameraStreamUrl(route.fullname, route.share_exp, route.share_sig)
   : '';
@@ -55,6 +62,8 @@ export class DriveVideo extends Component {
     this.onPlayerReady = this.onPlayerReady.bind(this);
     this.onPlayerSeek = this.onPlayerSeek.bind(this);
     this.onPlayerEnded = this.onPlayerEnded.bind(this);
+    this.onReconnect = this.onReconnect.bind(this);
+    this.recoverOnReconnect = false;
     this.appliedSeekRevision = null;
     this.pendingSeek = null;
     this.reseekedRevision = null;
@@ -69,6 +78,10 @@ export class DriveVideo extends Component {
       retryGeneration: 0,
       restartingLoop: false,
     };
+  }
+
+  componentDidMount() {
+    window.addEventListener('online', this.onReconnect);
   }
 
   componentDidUpdate(prevProps) {
@@ -94,6 +107,7 @@ export class DriveVideo extends Component {
   }
 
   resetPlayer() {
+    this.recoverOnReconnect = false;
     this.ready = false;
     this.pendingSeek = null;
     this.appliedSeekRevision = null;
@@ -101,6 +115,12 @@ export class DriveVideo extends Component {
     if (this.audioHls && this.audioHandler) this.audioHls.off('hlsBufferCodecs', this.audioHandler);
     this.audioHls = null;
     this.audioHandler = null;
+  }
+
+  onReconnect() {
+    if (!this.unmounted && this.recoverOnReconnect && this.state.videoError && this.props.currentRoute) {
+      this.retryVideo();
+    }
   }
 
   retryVideo() {
@@ -158,6 +178,7 @@ export class DriveVideo extends Component {
   }
 
   componentWillUnmount() {
+    window.removeEventListener('online', this.onReconnect);
     this.unmounted = true;
     this.resetPlayer();
   }
@@ -226,6 +247,7 @@ export class DriveVideo extends Component {
    */
   onHlsError(e) {
     if (!e || e.fatal === false) return;
+    this.recoverOnReconnect = e.type === 'networkError' && isTransientNetworkStatus(e.response?.code);
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
 
@@ -269,11 +291,13 @@ export class DriveVideo extends Component {
     dispatch(bufferVideo(true));
 
     if (e.type === 'networkError') {
+      this.recoverOnReconnect = isTransientNetworkStatus(e.response?.code);
       console.error('Network error', { e, data });
       this.setState({ videoError: 'Unable to load video. Check network connection.' });
       return;
     }
 
+    this.recoverOnReconnect = false;
     const videoError = e.response?.code === 404
       ? 'This video segment has not uploaded yet or has been deleted.'
       : (e.response?.text || 'Unable to load video');
