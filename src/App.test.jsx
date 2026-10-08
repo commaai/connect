@@ -43,6 +43,8 @@ vi.mock('react-map-gl', () => ({
 HTMLMediaElement.prototype.play = vi.fn(async () => undefined);
 HTMLMediaElement.prototype.pause = vi.fn();
 HTMLMediaElement.prototype.load = vi.fn();
+// jsdom's audioTracks is a plain array; browsers have an AudioTrackList or none
+Object.defineProperty(HTMLMediaElement.prototype, 'audioTracks', { configurable: true, get: () => undefined });
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
 const FIRST = 'aaaaaaaaaaaaaaaa';
