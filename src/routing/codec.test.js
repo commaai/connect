@@ -151,3 +151,25 @@ describe('return targets and analytics', () => {
     expect(anonymizedPath(parse(url))).toBe(expected);
   });
 });
+
+describe('edge cases', () => {
+  it('rejects an auth path with an unexpected suffix', () => {
+    expect(parseLocation({ pathname: '/auth/unrecognized/extra' }).base.view).toBe(VIEWS.INVALID);
+    expect(parseLocation({ pathname: '/auth//' }).base.view).toBe(VIEWS.INVALID);
+  });
+
+  it('rejects an auth callback with a duplicated code', () => {
+    const location = parseLocation({ pathname: '/auth/', search: '?code=first&code=second&provider=h' });
+    expect(location.base.view).toBe(VIEWS.INVALID);
+  });
+
+  it('round-trips a zero start and repeated extension arguments in order', () => {
+    const input = { pathname: `/${D}/${LOG}/0/20`, search: '?x=1&x=2', hash: '#keep' };
+    expect(buildUrl(parseLocation(input))).toBe(`/${D}/${LOG}/0/20?x=1&x=2#keep`);
+  });
+
+  it('refuses to build a legacy range whose end precedes its start', () => {
+    const legacy = { view: VIEWS.LEGACY_RANGE, dongleId: D, legacyRange: { start: 4, end: 3 } };
+    expect(() => buildUrl({ base: legacy })).toThrow('invalid legacy range');
+  });
+});

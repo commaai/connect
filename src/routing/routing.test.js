@@ -357,6 +357,36 @@ describe('request identity', () => {
 });
 
 describe('commands', () => {
+  it('a login return keeps the other commands it arrived with', async () => {
+    const target = `/${A}/${LOG}/0/20`;
+    const app = await start(`/?r=${encodeURIComponent(target)}&pair=combine-token`);
+    await settle();
+    expect(app.history.location.pathname).toBe(target);
+    expect(localforage.items.get('pairToken')).toBe('combine-token');
+    expect(app.store.getState().pairRequests).toBe(1);
+  });
+
+  it('a removed return command cannot rewrite a newer query-only location', async () => {
+    const app = await start(`/${A}/${LOG}/0/20`);
+    app.history.push(`/${A}/${LOG}/0/20?r=${encodeURIComponent(`/${B}`)}`);
+    app.history.push(`/${A}/${LOG}/0/20?newer=keep#anchor`);
+    await settle();
+    await settle();
+    expect(app.history.location.pathname).toBe(`/${A}/${LOG}/0/20`);
+    expect(app.history.location.search).toBe('?newer=keep');
+    expect(app.history.location.hash).toBe('#anchor');
+  });
+
+  it('/ falls back to the first device in sorted order', async () => {
+    api.listDevices.mockResolvedValue([
+      { dongle_id: A, is_owner: true, alias: 'Zulu' },
+      { dongle_id: B, is_owner: true, alias: 'Alpha' },
+    ]);
+    const app = await start('/');
+    expect(app.store.getState().devices[0].dongle_id).toBe(B);
+    expect(app.history.location.pathname).toBe(`/${B}`);
+  });
+
   it('consumes the Stripe result, removes it from the URL and still loads the page', async () => {
     const { history, store } = await start(`/${A}/prime?stripe_success=1&ci=1`);
     await settle();
