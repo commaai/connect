@@ -130,3 +130,14 @@ it('late canplay does not erase a terminal error before Retry', async () => {
   video.dispatchEvent(new Event('canplay')); video.dispatchEvent(new Event('playing'));
   expect(onStatus.mock.lastCall[0].error).toContain('not uploaded'); source.destroy();
 });
+it('bounds native network reloads and explains unsupported sources', () => {
+  const video = media(true); const onStatus = vi.fn();
+  const source = attachSource(video, { src: 'clip', onStatus });
+  source.reportError({ code: 2 }); source.reportError({ code: 2 });
+  expect(video.load).toHaveBeenCalledTimes(2);
+  expect(onStatus.mock.lastCall[0].error).toContain('Unable to load');
+  source.destroy();
+  const unsupported = attachSource(media(true), { src: 'clip', onStatus });
+  unsupported.reportError({ code: 4 });
+  expect(onStatus.mock.lastCall[0].error).toContain('not supported'); unsupported.destroy();
+});

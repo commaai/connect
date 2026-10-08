@@ -2,7 +2,7 @@ import { parseQcameraPlaylist } from '../../timeline/videoTime';
 
 const MISSING_VIDEO = 'This video segment has not uploaded yet or has been deleted.';
 
-export function attachSource(video, { src, onStatus, onManifest, onAudio, onTimeline, fetchPlaylist = fetch, loadHls = () => import('hls.js') }) {
+export function attachSource(video, { src, onStatus = () => {}, onManifest, onAudio, onTimeline, fetchPlaylist = fetch, loadHls = () => import('hls.js') }) {
   let alive = true;
   let generation = 0;
   let hls;
@@ -10,12 +10,13 @@ export function attachSource(video, { src, onStatus, onManifest, onAudio, onTime
   let mediaRetries = 0;
   let timeout;
   let playlistRequest;
+  let initialLoad = true;
   let status = { loading: Boolean(src), error: null, blocked: false };
   const report = patch => {
     if (!alive) return;
     status = { ...status, ...patch };
     if (!status.loading || status.error || status.blocked) { clearTimeout(timeout); timeout = null; }
-    if (!timeout && status.loading && !status.error && !status.blocked) {
+    if (!timeout && initialLoad && status.loading && !status.error && !status.blocked) {
       timeout = setTimeout(() => {
         playlistRequest?.abort();
         hls?.stopLoad();
@@ -32,6 +33,7 @@ export function attachSource(video, { src, onStatus, onManifest, onAudio, onTime
   const waiting = () => { if (!status.error && !status.blocked) report({ loading: true }); };
   const ready = event => {
     if (status.error || (status.blocked && event.type !== 'playing')) return;
+    if (event.type === 'playing') { initialLoad = false; clearTimeout(timeout); timeout = null; }
     if (video.audioTracks) onAudio?.(video.audioTracks.length > 0);
     report({ loading: false, error: null, blocked: false });
   };
@@ -45,6 +47,13 @@ export function attachSource(video, { src, onStatus, onManifest, onAudio, onTime
     if (status.error) return;
     // Native media errors have no fatal flag. hls.js informational events do.
     if (error?.fatal === false) return;
+    if (error?.code === 2 && !hls && networkRetries < 1) {
+      networkRetries += 1;
+      report({ loading: true, error: null, blocked: false });
+      video.load();
+      return;
+    }
+    if (error?.code === 4 && !hls) { fail('This video format or source is not supported by the browser.'); return; }
     if (error?.code === 3 && !hls && mediaRetries < 1) {
       mediaRetries += 1;
       report({ loading: true, error: null, blocked: false });
@@ -77,6 +86,7 @@ export function attachSource(video, { src, onStatus, onManifest, onAudio, onTime
     hls = null;
     networkRetries = 0;
     mediaRetries = 0;
+    initialLoad = true;
     report({ loading: Boolean(src), error: null, blocked: false });
     if (!src) { fail('No video is available for this drive.'); return; }
     if (onTimeline) {
@@ -87,12 +97,10 @@ export function attachSource(video, { src, onStatus, onManifest, onAudio, onTime
         const entries = parseQcameraPlaylist(await response.text());
         if (alive && visit === generation && !request.signal.aborted) {
           onTimeline(entries);
-          if (!entries) fail('Video timing is unavailable. Retry to try again.');
         }
-      }).catch(error => {
+      }).catch(() => {
         if (alive && visit === generation && !request.signal.aborted) {
           onTimeline(null);
-          fail(error.message === '404' ? MISSING_VIDEO : 'Unable to read video timing. Retry to try again.');
         }
       });
     }
