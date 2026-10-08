@@ -262,6 +262,19 @@ describe('DriveVideo media events', () => {
     expect(player.state.videoError).toContain('try again');
   });
 
+  it('accepts a seek that hls.js completes just past a gap between fragments', () => {
+    const { player, props, media } = fixture();
+    player.props = { ...props, offset: 9000, seekRevision: 1 };
+    player.componentDidUpdate(props);
+    expect(player.pendingSeek).toBe(true);
+    // Fragments start ~21ms after their nominal time; hls.js skips the hole.
+    media.currentTime = 8.100291;
+    media.dispatchEvent(new Event('seeked'));
+    expect(media.currentTime).toBe(8.100291);
+    expect(player.state.videoError).toBeNull();
+    expect(props.dispatch).toHaveBeenCalledWith({ type: Types.ACTION_BUFFER_VIDEO, buffering: false });
+  });
+
   it('does not re-seek or reset pending commands when native canplay reports ready again', () => {
     const { player, props, media, wrapper } = fixture();
     media.currentTime = 6;

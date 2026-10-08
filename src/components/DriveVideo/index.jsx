@@ -119,10 +119,11 @@ export class DriveVideo extends Component {
 
   onSeeked = () => {
     if (!this.media || this.media.seeking) return;
-    if (this.pendingSeek && Math.abs(this.media.currentTime - this.seekTarget) > 0.1) {
+    if (this.pendingSeek && Math.abs(this.media.currentTime - this.seekTarget) > 0.5) {
       // Native HLS can finish its startup seek at zero after accepting our
       // target. Reapply the latest command instead of waiting for an event
-      // that may never arrive; keep failures bounded and recoverable.
+      // that may never arrive; keep failures bounded and recoverable. Smaller
+      // differences are hls.js skipping a gap between fragments, not a miss.
       this.seekAttempts += 1;
       if (this.seekAttempts <= 3) this.seekMedia(true);
       else this.onError(new Error('Seek did not complete'), null, this.props.currentRoute.fullname, this.state.retry);

@@ -50,6 +50,11 @@ async function openPlayer(page, options = {}) {
 async function state(page) {
   return JSON.parse(await page.getByTestId('playback-state').textContent());
 }
+// Redux can satisfy offset and buffering assertions while the video has
+// failed, so recovery is judged from the element itself.
+async function video(page) {
+  return page.locator('video').evaluate((media) => ({ time: media.currentTime * 1000, paused: media.paused }));
+}
 async function playing(page) {
   // Autoplay may be denied by the engine. Resume through the real controls.
   await expect(page.locator('video')).toHaveJSProperty('readyState', 4, { timeout: 20000 });
@@ -102,9 +107,10 @@ test('a missing manifest shows a retry action and recovers at the selected posit
   await page.getByRole('button', { name: 'Select 8–12 second clip' }).click();
   failed = false;
   await page.getByRole('button', { name: 'Retry video' }).click();
-  await expect.poll(async () => (await state(page)).offset, { timeout: 20000 }).toBeGreaterThanOrEqual(8000);
-  await expect.poll(async () => (await state(page)).buffering).toBe(false);
+  await expect.poll(async () => (await video(page)).time, { timeout: 20000 }).toBeGreaterThan(8500);
+  expect((await video(page)).paused).toBe(false);
   await expect(page.getByRole('button', { name: 'Retry video' })).toHaveCount(0);
+  await expect.poll(async () => (await state(page)).buffering).toBe(false);
 });
 
 test('a missing media fragment cannot advance the map clock and retry restores playback', async ({ page }) => {
