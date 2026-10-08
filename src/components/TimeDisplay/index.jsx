@@ -23,15 +23,18 @@ const timerSteps = [
   8,
 ];
 
+const FULL_SIZE_MIN_WIDTH = 360;
+const fit = (px) => `min(${px}px, ${+((px * 100) / FULL_SIZE_MIN_WIDTH).toFixed(3)}cqw)`;
+
 const styles = (theme) => ({
   base: {
     display: 'flex',
     alignItems: 'center',
     backgroundColor: theme.palette.grey[999],
-    height: '4rem',
-    borderRadius: '2rem',
-    padding: '0.5rem',
-    width: '25rem',
+    height: fit(64),
+    borderRadius: fit(32),
+    padding: fit(theme.spacing.unit),
+    width: 400,
     maxWidth: '100%',
     margin: '0 auto',
     opacity: 0,
@@ -42,17 +45,20 @@ const styles = (theme) => ({
       pointerEvents: 'auto',
     },
     '&.isThin': {
-      height: '3.125rem',
+      height: fit(50),
       paddingBottom: 0,
       paddingTop: 0,
     },
   },
   desiredPlaySpeedContainer: {
-    marginRight: '0.5rem',
+    marginRight: fit(theme.spacing.unit * 1),
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    minWidth: '2.5rem',
+    minWidth: fit(40),
+  },
+  desiredPlaySpeed: {
+    fontSize: fit(14),
   },
   icon: {
     width: '98%',
@@ -70,12 +76,16 @@ const styles = (theme) => ({
     },
   },
   iconButton: {
-    width: '2.5rem',
-    height: '2.5rem',
+    width: fit(40),
+    height: fit(40),
+  },
+  pauseButton: {
+    width: fit(48),
+    height: fit(48),
   },
   tinyArrowIcon: {
-    width: '0.75rem',
-    height: '0.75rem',
+    width: fit(12),
+    height: fit(12),
     color: theme.palette.grey[500],
     '&[disabled]': {
       visibility: 'hidden',
@@ -88,8 +98,8 @@ const styles = (theme) => ({
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
   },
   currentTime: {
-    margin: '0 0.5rem',
-    fontSize: '0.9375rem',
+    margin: `0 ${fit(theme.spacing.unit * 1)}`,
+    fontSize: fit(15),
     fontWeight: 500,
     display: 'block',
     flexGrow: 1,
@@ -265,7 +275,7 @@ class TimeDisplay extends Component {
             >
               <UpArrow className={classes.tinyArrowIcon} />
             </IconButton>
-            <Typography variant="body2" align="center">
+            <Typography variant="body2" align="center" className={classes.desiredPlaySpeed}>
               {desiredPlaySpeed}
               ×
             </Typography>
@@ -297,6 +307,7 @@ class TimeDisplay extends Component {
         </div>
         <div className={ classes.leftBorderBox }>
           <IconButton
+            className={ classes.pauseButton }
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >

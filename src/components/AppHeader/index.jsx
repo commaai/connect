@@ -47,18 +47,18 @@ const styles = () => ({
     margin: '0px 28px',
   },
   logoText: {
-    fontSize: '1.25rem',
+    fontSize: 20,
     fontWeight: 800,
   },
   accountIcon: {
     color: Colors.white30,
-    height: '2.125rem',
-    width: '2.125rem',
+    height: 34,
+    width: 34,
   },
   giftIcon: {
     color: Colors.white30,
-    height: '1.75rem',
-    width: '1.75rem',
+    height: 28,
+    width: 28,
   },
   giftButton: {
     position: 'relative',

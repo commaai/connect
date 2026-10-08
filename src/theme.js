@@ -12,17 +12,6 @@ const theme = createMuiTheme({
         textTransform: 'none',
       },
     },
-    MuiIconButton: {
-      root: {
-        width: '3rem',
-        height: '3rem',
-      },
-    },
-    MuiSvgIcon: {
-      root: {
-        fontSize: '1.5rem',
-      },
-    },
     MuiPaper: {
       root: {
         backgroundColor: '#30373B',
