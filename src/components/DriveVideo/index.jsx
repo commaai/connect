@@ -62,9 +62,20 @@ function usePlaybackError(src) {
   return { error: ERROR_MESSAGES[errorKind], handleError };
 }
 
+function loopContainsVideo(video, route, loopStart, loopDuration) {
+  if (!loopDuration) {
+    return false;
+  }
+  const loopEnd = loopStart + loopDuration;
+  const videoStartMs = toRouteMs(route, 0);
+  const videoEndMs = toRouteMs(route, video.duration);
+  return loopEnd > videoStartMs && loopStart < videoEndMs;
+}
+
 function useLoopWrap(route, loopStart, loopDuration) {
   const wrapPastLoopEnd = useCallback((videoSeconds) => {
-    if (!loopDuration) {
+    const video = getVideo();
+    if (!loopContainsVideo(video, route, loopStart, loopDuration)) {
       return;
     }
 
@@ -74,15 +85,15 @@ function useLoopWrap(route, loopStart, loopDuration) {
       return;
     }
 
-    seekToRouteMs(getVideo(), route, loopStart);
+    seekToRouteMs(video, route, loopStart);
   }, [route, loopStart, loopDuration]);
 
   const replayLoop = useCallback(() => {
-    if (!loopDuration) {
+    const video = getVideo();
+    if (!loopContainsVideo(video, route, loopStart, loopDuration)) {
       return;
     }
 
-    const video = getVideo();
     seekToRouteMs(video, route, loopStart);
     playIgnoringInterruptions(video);
   }, [route, loopStart, loopDuration]);
