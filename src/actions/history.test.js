@@ -29,9 +29,16 @@ const baseState = {
 };
 
 function create(state = baseState) {
-  const store = { getState: vi.fn(() => state), dispatch: vi.fn() };
-  const next = vi.fn();
-  const invoke = (action) => onHistoryMiddleware(store)(next)(action);
+  let currentState = state;
+  const store = { getState: vi.fn(() => currentState), dispatch: vi.fn() };
+  const next = vi.fn((action) => {
+    if (action.type === LOCATION_CHANGE) {
+      currentState = { ...currentState, router: { ...currentState.router, location: action.payload.location } };
+    }
+    return action;
+  });
+  const middleware = onHistoryMiddleware(store)(next);
+  const invoke = (action) => middleware(action);
   return { store, next, invoke };
 }
 
@@ -80,10 +87,29 @@ describe('history middleware', () => {
     const { store, invoke } = create(state);
     invoke(location(`/${DONGLE}?modal=date-filter`, 'PUSH'));
     expect(store.dispatch).toHaveBeenCalledWith({
-      type: 'ACTION_ROUTE_MODAL', modal: 'date-filter', deviceId: DONGLE,
+      type: 'ACTION_ROUTE_MODAL', modal: 'date-filter', deviceId: DONGLE, clip: null,
     });
     expect(actions.pushTimelineRange).not.toHaveBeenCalled();
     expect(actions.selectDevice).not.toHaveBeenCalled();
+  });
+
+  it('updates only route clip modal state when the clip query changes', () => {
+    const state = {
+      ...baseState,
+      router: { location: { pathname: `/${DONGLE}/${LOG}`, search: '?modal=clips' } },
+      routeModal: 'clips',
+      routeModalDeviceId: DONGLE,
+      routeModalClip: null,
+    };
+    const { store, invoke } = create(state);
+    invoke({
+      type: LOCATION_CHANGE,
+      payload: { action: 'PUSH', location: { pathname: `/${DONGLE}/${LOG}`, search: '?modal=clip-viewer&clip=drive.mp4' } },
+    });
+    expect(store.dispatch).toHaveBeenCalledWith({
+      type: 'ACTION_ROUTE_MODAL', modal: 'clip-viewer', deviceId: DONGLE, clip: 'drive.mp4',
+    });
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
   });
 
   it.each(['POP', 'REPLACE'])('selects a changed device for %s and refreshes routes', (historyAction) => {
@@ -100,6 +126,19 @@ describe('history middleware', () => {
     const { store, invoke } = create();
     invoke(location(`/${DONGLE}`));
     expect(store.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('reconciles the first cold location but ignores identical later notifications', () => {
+    const state = {
+      ...baseState,
+      router: { location: { pathname: `/${DONGLE}/${LOG}`, search: '' } },
+    };
+    const { invoke } = create(state);
+    const action = location(`/${DONGLE}/${LOG}`, 'PUSH');
+    invoke(action);
+    invoke(action);
+    expect(actions.pushTimelineRange).toHaveBeenCalledOnce();
+    expect(actions.checkRoutesData).toHaveBeenCalledOnce();
   });
 
   it('enters a log range', () => {
@@ -133,6 +172,22 @@ describe('history middleware', () => {
     invoke(location(`/${DONGLE}/1000/2000`));
     await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, true));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
+  });
+
+  it('keeps legacy conversion active when only the query changes', async () => {
+    let resolveLookup;
+    const lookup = new Promise((resolve) => { resolveLookup = resolve; });
+    Drives.getRoutesSegments.mockReturnValue(lookup);
+    const { invoke } = create();
+    const pathname = `/${DONGLE}/1000/2000`;
+    invoke(location(pathname, 'PUSH'));
+    invoke({
+      type: LOCATION_CHANGE,
+      payload: { action: 'PUSH', location: { pathname, search: '?modal=date-filter' } },
+    });
+    resolveLookup([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
+    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, true));
+    expect(Drives.getRoutesSegments).toHaveBeenCalledOnce();
   });
 
   it.each([null, []])('keeps a legacy range unchanged for an empty lookup (%j)', async (routes) => {
