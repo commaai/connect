@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { push, replace } from 'connected-react-router';
+
+import { navigate, selectDevice, selectTimeFilter } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -9,45 +10,64 @@ vi.mock('../timeline/playback', () => ({
 }));
 
 vi.mock('connected-react-router', async () => {
-  const originalModule = await vi.importActual('connected-react-router');
+  const actual = await vi.importActual('connected-react-router');
   return {
-    __esModule: true,
-    ...originalModule,
-    push: vi.fn(),
+    ...actual,
+    push: vi.fn((href) => ({ type: 'push', href })),
+    replace: vi.fn((href) => ({ type: 'replace', href })),
   };
 });
 
-describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+const DONGLE = 'statedongle000000';
+
+function run(action, state) {
+  const dispatch = (next) => (typeof next === 'function' ? next(dispatch, () => state) : next);
+  action(dispatch, () => state);
+}
+
+describe('navigate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+  it('does nothing when the URL is already showing', () => {
+    run(navigate(`/${DONGLE}?from=1&to=2`), {
+      router: { location: { pathname: `/${DONGLE}`, search: '?from=1&to=2' } },
+    });
+    expect(push).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
-    expect(push).toHaveBeenCalledWith(expected);
+  it('pushes, or replaces when asked', () => {
+    run(navigate(`/${DONGLE}/prime`), {
+      router: { location: { pathname: `/${DONGLE}`, search: '' } },
+    });
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}/prime`);
+
+    run(navigate(`/${DONGLE}/log`, true), {
+      router: { location: { pathname: `/${DONGLE}`, search: '' } },
+    });
+    expect(replace).toHaveBeenCalledWith(`/${DONGLE}/log`);
+  });
+
+  it('keeps the dashboard range when staying on a device and drops it when switching', () => {
+    run(selectDevice(DONGLE), {
+      dongleId: DONGLE,
+      router: { location: { pathname: `/${DONGLE}/log`, search: '?from=1&to=2&settings=abc' } },
+    });
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}?from=1&to=2`);
+
+    run(selectDevice('otherdevice00000'), {
+      dongleId: DONGLE,
+      router: { location: { pathname: `/${DONGLE}`, search: '?from=1&to=2' } },
+    });
+    expect(push).toHaveBeenCalledWith('/otherdevice00000');
+  });
+
+  it('writes a filter and closes the picker in the same URL', () => {
+    run(selectTimeFilter(10, 20), {
+      router: { location: { pathname: `/${DONGLE}`, search: '?filter=1&pair=abc' } },
+    });
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}?pair=abc&from=10&to=20`);
   });
 });

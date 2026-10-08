@@ -14,7 +14,8 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { navigate, updateDevice } from '../../actions';
+import { editUrl, parseUrl, primeUrl, visibleSettings, withFilter } from '../../url';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -120,7 +121,6 @@ const initialState = {
   loadingUnpair: false,
   error: null,
   unpairError: null,
-  uploadModal: false,
 };
 
 class DeviceSettingsModal extends Component {
@@ -139,16 +139,21 @@ class DeviceSettingsModal extends Component {
     this.shareDevice = this.shareDevice.bind(this);
     this.unpairDevice = this.unpairDevice.bind(this);
     this.closeUnpair = this.closeUnpair.bind(this);
+    this.close = this.close.bind(this);
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
+    if (prevProps.device?.dongle_id !== this.props.device?.dongle_id) {
       this.setState({
         ...initialState,
-        deviceAlias: alias,
+        deviceAlias: this.props.device?.alias || '',
       });
     }
+  }
+
+  close() {
+    const { dispatch, location } = this.props;
+    dispatch(navigate(editUrl(location.pathname, location.search, { settings: null, uploads: null })));
   }
 
   handleAliasChange(e) {
@@ -206,7 +211,7 @@ class DeviceSettingsModal extends Component {
       hasShared: false,
     });
     try {
-      await api.devices.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
+      await api.devices.grantDeviceReadPermission(this.props.device.dongle_id, this.state.shareEmail.trim());
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',
@@ -225,11 +230,8 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
-    this.props.onClose();
+    const { dispatch, device, location } = this.props;
+    dispatch(navigate(withFilter(location, primeUrl(device.dongle_id))));
   }
 
   async unpairDevice() {
@@ -270,8 +272,8 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
-          onClose={this.props.onClose}
+          open={Boolean(device)}
+          onClose={this.close}
         >
           <Paper className={classes.modal}>
             <div className={ classes.titleContainer }>
@@ -299,7 +301,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.props.dispatch(navigate(editUrl(this.props.location.pathname, this.props.location.search, { uploads: '1' }))) }
               >
                 Uploads
               </Button>
@@ -353,7 +355,7 @@ class DeviceSettingsModal extends Component {
               </div>
             </div>
             <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+              <Button variant="contained" className={ classes.cancelButton } onClick={this.close}>
                 Close
               </Button>
             </div>
@@ -425,9 +427,9 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          open={ Boolean(device && this.props.uploads) }
+          update={ Boolean(device && this.props.uploads) }
+          onClose={ () => this.props.dispatch(navigate(editUrl(this.props.location.pathname, this.props.location.search, { uploads: null }))) }
           device={ device }
         />
       </>
@@ -435,13 +437,13 @@ class DeviceSettingsModal extends Component {
   }
 }
 
-const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
-    || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
+const stateToProps = (state) => {
+  const location = state.router.location;
+  const view = parseUrl(location.pathname, location.search);
   return {
-    subscription: state.subscription,
-    device,
-    globalDongleId: state.dongleId,
+    device: visibleSettings(view, state),
+    location,
+    uploads: view.uploads,
   };
 };
 

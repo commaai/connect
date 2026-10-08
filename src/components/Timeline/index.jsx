@@ -8,7 +8,8 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { navigate } from '../../actions';
+import { driveUrl, withFilter } from '../../url';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
@@ -267,15 +268,21 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
+      // A range that rounds to an empty span of seconds cannot be a URL.
+      // Falling through would turn it into the whole drive.
+      const startSeconds = Math.floor(startOffset / 1000);
+      const endSeconds = Math.ceil(endOffset / 1000);
+      if (endSeconds <= startSeconds) {
+        return;
+      }
       const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      const { dispatch, location } = this.props;
+      const range = { start: startOffset, end: endOffset };
+      const zoom = range.start === 0 && range.end === route.duration ? null : range;
+      dispatch(navigate(withFilter(location, driveUrl(route.dongle_id, route.log_id, zoom))));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
@@ -460,6 +467,7 @@ class Timeline extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   loop: state.loop,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

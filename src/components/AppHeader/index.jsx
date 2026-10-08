@@ -1,13 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
-
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, AppBar } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import { selectDevice } from '../../actions';
+import { navigate, selectDevice } from '../../actions';
+import { deviceUrl, withFilter } from '../../url';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
@@ -79,7 +78,7 @@ const styles = () => ({
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
+  forwardRef, handleDrawerStateChanged, dongleId, pathname, location,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
@@ -100,14 +99,15 @@ const AppHeader = ({
 
   const openReferrals = useCallback(() => {
     if (pathname === '/referrals') return;
-    dispatch(push('/referrals'));
-  }, [dispatch, pathname]);
+    dispatch(navigate(withFilter(location, '/referrals')));
+  }, [dispatch, location, pathname]);
 
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
-  }, [dispatch, dongleId, pathname]);
+    const next = pathname === '/referrals' ? deviceUrl(dongleId) : '/referrals';
+    dispatch(navigate(withFilter(location, next)));
+  }, [dispatch, dongleId, location, pathname]);
 
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
@@ -187,8 +187,8 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   filter: state.filter,
   profile: state.profile,
-  primeNav: state.primeNav,
   pathname: state.router.location.pathname,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

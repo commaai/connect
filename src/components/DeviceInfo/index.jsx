@@ -7,7 +7,8 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
-import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { analyticsEvent, fetchDeviceNotCar, navigate } from '../../actions';
+import { primeUrl, streamUrl, withFilter } from '../../url';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
@@ -170,7 +171,8 @@ class DeviceInfo extends Component {
   }
 
   openBodyTeleop() {
-    this.props.dispatch(streamNav(true));
+    const { dispatch, dongleId, location } = this.props;
+    dispatch(navigate(withFilter(location, streamUrl(dongleId))));
   }
 
   componentDidMount() {
@@ -323,7 +325,9 @@ class DeviceInfo extends Component {
         <div className={`${classes.container} px-4`}>
           <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1 flex-wrap`}>
             <div className={`flex flex-row gap-4 items-center shrink-0`}>
-              {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
+              {commacare && (
+                <CommacareBadge onClick={() => this.props.dispatch(navigate(withFilter(this.props.location, primeUrl(this.props.dongleId))))} />
+              )}
               <Typography variant="title">{truncateName(deviceNamePretty(device))}</Typography>
             </div>
             { this.renderButtons() }
@@ -517,6 +521,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));

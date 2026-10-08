@@ -5,7 +5,8 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
+import { analyticsEvent, navigate, selectDevice, updateDevices } from '../../actions';
+import { editUrl, parseUrl } from '../../url';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
@@ -101,7 +102,6 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -133,8 +133,18 @@ class AddDevice extends Component {
     this.componentDidUpdate({}, {});
   }
 
-  async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+  async componentDidUpdate(prevProps = {}) {
+    if (prevProps.addOpen && !this.props.addOpen) {
+      this.stopScanning();
+      if (this.stream) {
+        this.stream.getTracks().forEach((track) => track.stop());
+        this.stream = null;
+      }
+      this.detector = null;
+    }
+
+    const modalOpen = this.props.addOpen;
+    const { pairLoading, pairError, pairDongleId } = this.state;
     let { hasCamera } = this.state;
 
     // Check for camera availability
@@ -290,16 +300,19 @@ class AddDevice extends Component {
     }
     this.detector = null;
 
-    if (pairDongleId && this.props.devices.length === 0) {
+    if (pairDongleId && !(this.props.devices || []).length) {
       this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
       window.location = `${window.location.origin}/${pairDongleId}`;
       return;
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
+      return;
     }
+    const { dispatch, location } = this.props;
+    dispatch(navigate(editUrl(location.pathname, location.search, { add: null })));
   }
 
   async onQrRead({ data: result }) {
@@ -370,12 +383,13 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    const { dispatch, location } = this.props;
+    dispatch(navigate(editUrl(location.pathname, location.search, { add: '1' })));
   }
 
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes, buttonText, buttonStyle, buttonIcon, addOpen: modalOpen } = this.props;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
@@ -442,9 +456,14 @@ class AddDevice extends Component {
   }
 }
 
-const stateToProps = (state) => ({
-  profile: state.profile,
-  devices: state.devices,
-});
+const stateToProps = (state) => {
+  const location = state.router.location;
+  return {
+    profile: state.profile,
+    devices: state.devices,
+    addOpen: parseUrl(location.pathname, location.search).add,
+    location,
+  };
+};
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));

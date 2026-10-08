@@ -10,7 +10,8 @@ import { billing as Billing } from '../../api';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
 import { ErrorOutline, InfoOutline, KeyboardBackspaceIcon, PriorityHighIcon } from '../../icons';
-import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
+import { analyticsEvent, navigate, primeGetSubscription } from '../../actions';
+import { deviceUrl, withFilter } from '../../url';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 import { otherPrimePlan, primePlanName } from './primePlans';
 
@@ -392,7 +393,7 @@ export class PrimeManage extends Component {
   }
 
   render() {
-    const { dispatch, dongleId, subscription, classes, device } = this.props;
+    const { dispatch, dongleId, subscription, classes, device, location } = this.props;
     const { windowWidth, stripeStatus } = this.state;
     const commacare = device?.commacare;
 
@@ -424,7 +425,7 @@ export class PrimeManage extends Component {
       <>
         <div className={classes.primeBox}>
           <div className={classes.primeContainer} style={{ padding: `8px ${containerPadding}px` }}>
-            <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false))}>
+            <IconButton aria-label="Go Back" onClick={() => dispatch(navigate(withFilter(location, deviceUrl(dongleId))))}>
               <KeyboardBackspaceIcon />
             </IconButton>
           </div>
@@ -741,6 +742,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
   subscription: state.subscription,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

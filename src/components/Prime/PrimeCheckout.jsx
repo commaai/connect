@@ -8,7 +8,8 @@ import { deviceNamePretty } from '../../utils';
 import { billing as Billing } from '../../api';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
-import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions';
+import { analyticsEvent, navigate, primeFetchSubscription } from '../../actions';
+import { deviceUrl, withFilter } from '../../url';
 import { CheckIcon, ErrorOutline, InfoOutline, KeyboardBackspaceIcon } from '../../icons';
 import CommacareIcon from '../../icons/commacare.png';
 import { COMMACARE_URL } from '../CommacareBadge';
@@ -326,7 +327,7 @@ class PrimeCheckout extends Component {
   }
 
   render() {
-    const { classes, dispatch, device, subscribeInfo } = this.props;
+    const { classes, dispatch, device, subscribeInfo, dongleId, location } = this.props;
     const { windowWidth, windowHeight, error, loadingCheckout, selectedPlan } = this.state;
 
     let chargeText = null;
@@ -375,7 +376,7 @@ class PrimeCheckout extends Component {
     return (
       <div className={ classes.primeBox } style={ containerPadding }>
         <div className={ classes.primeHeader }>
-          <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false)) }>
+          <IconButton aria-label="Go Back" onClick={() => dispatch(navigate(withFilter(location, deviceUrl(dongleId))))}>
             <KeyboardBackspaceIcon />
           </IconButton>
           <div className={ classes.headerDevice }>
@@ -515,6 +516,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
   subscribeInfo: state.subscribeInfo,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));

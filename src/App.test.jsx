@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState(history.location.pathname, history.location.search));
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -302,5 +302,121 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('a zero start second round-trips', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/0/20`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/20`);
+    expect(store.getState().zoom).toEqual({ start: 0, end: 20000 });
+  });
+
+  test('settings over a cold drive keep that drive across close and back', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}?settings=${FIRST}`);
+    // The settings dialog hides the drive from the accessibility tree. The drive is still mounted.
+    expect(await screen.findByRole('slider', { name: 'Drive timeline', hidden: true })).toBeInTheDocument();
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    const { routes } = store.getState();
+    expect(store.getState().selectedRouteId).toBe(LOG);
+    expect(routes.map((route) => route.log_id)).toEqual([LOG]);
+    const close = screen.getAllByRole('button', { name: 'Close' }).find((el) => el.textContent.trim() === 'Close');
+    fireEvent.click(close);
+    await waitFor(() => expect(history.location.search).not.toContain('settings'));
+    expect(store.getState().routes).toBe(routes);
+    expect(store.getState().selectedRouteId).toBe(LOG);
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(store.getState().routes).toBe(routes);
+  });
+
+  test('settings can name a device other than the one on screen', async () => {
+    const { store } = await renderApp(`/${FIRST}?settings=${SECOND}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    const title = await screen.findByText('Device settings');
+    expect(title.parentElement).toHaveTextContent(SECOND);
+    expect(store.getState().dongleId).toBe(FIRST);
+  });
+
+  test('settings for a device the viewer does not own stay closed', async () => {
+    const shared = { alias: 'Shared', dongle_id: SHARED, device_type: 'threex', is_owner: false, prime: false, shared: true };
+    await renderApp(`/${FIRST}?settings=${SHARED}`, { devices: [...devices, shared] });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('pairing opens from the URL', async () => {
+    await renderApp(`/${FIRST}?add=1`);
+    expect(await screen.findByText('Pair device')).toBeVisible();
+  });
+
+  test('the date filter is a URL, and save writes the range', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    await waitFor(() => expect(history.location.search).toContain('filter=1'));
+    expect(screen.getByText('Start date:')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).not.toContain('filter'));
+    act(() => history.goBack());
+    expect(await screen.findByText('Start date:')).toBeVisible();
+
+    const [startInput, endInput] = screen.getAllByDisplayValue(/^\d{4}-\d{2}-\d{2}$/);
+    fireEvent.change(startInput, { target: { value: '2020-01-02' } });
+    fireEvent.change(endInput, { target: { value: '2020-03-04' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const from = new Date(2020, 0, 2).setHours(0, 0, 0, 0);
+    const to = new Date(2020, 2, 4).setHours(23, 59, 59, 999);
+    await waitFor(() => {
+      const params = new URLSearchParams(history.location.search);
+      expect(params.get('filter')).toBeNull();
+      expect(params.get('from')).toBe(String(from));
+      expect(params.get('to')).toBe(String(to));
+    });
+    expect(screen.queryByText('Start date:')).not.toBeInTheDocument();
+  });
+
+  test('changing the filter keeps the open drive', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    const routes = store.getState().routes;
+    act(() => history.push(`/${FIRST}/${LOG}?from=1&to=2`));
+    await waitFor(() => expect(store.getState().filter).toEqual({ start: 1, end: 2 }));
+    expect(store.getState().routes).toBe(routes);
+    expect(store.getState().selectedRouteId).toBe(LOG);
+    expect(store.getState().routesMeta).toEqual({ dongleId: null, start: null, end: null });
+  });
+
+  test('closing a cold drive loads the dashboard list', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Mock route start')).not.toBeInTheDocument();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+  });
+
+  test('a legacy link replaces itself so back returns to the device', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/${START}/${START + 60_000}`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('a drive on another device fetches that drive, then one page of the list', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    mocks.requests = [];
+    act(() => history.push(`/${SECOND}/${LOG}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    const during = mocks.requests.filter(({ url }) => url.includes('routes_segments'));
+    expect(during.length).toBeGreaterThan(0);
+    expect(during.every(({ url }) => new URL(url).searchParams.has('route_str'))).toBe(true);
+    mocks.requests = [];
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    const listed = mocks.requests.find(({ url }) => url.includes('routes_segments') && !url.includes('route_str'));
+    expect(new URL(listed.url).searchParams.get('limit')).toBe('5');
   });
 });

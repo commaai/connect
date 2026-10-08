@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, checkLastRoutesData, navigate, focusDevice, fetchSharedDevice } from '.';
+import { deviceUrl } from '../url';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -56,12 +57,15 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
+        const known = selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId);
+        const dongleId = known ? selectedDongleId : devices[0].dongle_id;
+        // `/` becomes the device URL. /demo, /referrals, and anything else
+        // keep their path and just remember which device is open.
+        if (state.router.location.pathname === '/') {
+          dispatch(navigate(deviceUrl(dongleId)));
         } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+          dispatch(focusDevice(dongleId));
         }
       }
       const dongleId = getState().dongleId;

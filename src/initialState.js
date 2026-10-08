@@ -1,9 +1,10 @@
-import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { applyView } from './applyUrl';
+import { parseUrl } from './url';
 import { getDefaultFilter } from './utils/filter';
 
-export function createInitialState(pathname = window.location.pathname) {
-  return {
-    dongleId: getDongleID(pathname),
+export function createInitialState(pathname = window.location.pathname, search = window.location.search) {
+  const state = {
+    dongleId: null,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
@@ -22,8 +23,6 @@ export function createInitialState(pathname = window.location.pathname) {
     profile: null,
     devices: null,
 
-    primeNav: getPrimeNav(pathname),
-    streamNav: getStreamNav(pathname),
     subscription: null,
     subscribeInfo: null,
 
@@ -35,11 +34,15 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: getRouteZoom(pathname),
+    zoom: null,
     loop: null,
-    selectedRouteId: getRouteId(pathname),
+    selectedRouteId: null,
     limit: 0,
   };
+
+  // The first paint matches the URL before the router has emitted anything.
+  const { patch } = applyView(state, parseUrl(pathname, search || ''));
+  return { ...state, ...patch };
 }
 
 export default createInitialState();
