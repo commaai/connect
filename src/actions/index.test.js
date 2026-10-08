@@ -1,11 +1,13 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { navigate, selectRoute } from './index';
+import { resetPlayback, selectLoop } from '../timeline/playback';
+import * as Types from './types';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
+  resetPlayback: vi.fn(() => 'resetPlayback'),
+  selectLoop: vi.fn(() => 'selectLoop'),
 }));
 
 vi.mock('connected-react-router', async () => {
@@ -13,41 +15,51 @@ vi.mock('connected-react-router', async () => {
   return {
     __esModule: true,
     ...originalModule,
-    push: vi.fn(),
+    push: vi.fn((url) => ({ push: url })),
   };
 });
 
-describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+const route = { log_id: 'log', duration: 60000 };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('navigate', () => {
+  it('pushes a new URL', () => {
+    const dispatch = vi.fn();
+    navigate('/dongle/prime')(dispatch, () => ({ router: { location: { pathname: '/dongle' } } }));
+    expect(dispatch).toHaveBeenCalledWith(push('/dongle/prime'));
   });
 
-  it('should push history state when editing zoom', () => {
+  it('does not push the current URL again', () => {
     const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
+    navigate('/dongle')(dispatch, () => ({ router: { location: { pathname: '/dongle' } } }));
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+});
 
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+describe('selectRoute', () => {
+  it.each([
+    ['the whole drive', 'log', null, { start: 0, end: 60000 }],
+    ['a zoom', 'log', { start: 10000, end: 20000 }, { start: 10000, end: 20000 }],
+    ['a drive that is not loaded yet', 'other', null, null],
+    ['no drive', null, null, null],
+  ])('selects %s and restarts playback', (_name, logId, zoom, expected) => {
+    const dispatch = vi.fn();
+    selectRoute(logId, zoom)(dispatch, () => ({ routes: [route], selectedRouteId: 'previous', zoom: null }));
+    expect(dispatch.mock.calls).toEqual([
+      [{ type: Types.ACTION_SELECT_ROUTE, logId, zoom: expected }],
+      ['resetPlayback'],
+      ['selectLoop'],
+    ]);
+    expect(selectLoop).toHaveBeenCalledWith(expected?.start, expected?.end);
   });
 
-  it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
+  it('keeps playing when nothing changes', () => {
     const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
-    expect(push).toHaveBeenCalledWith(expected);
+    selectRoute('log')(dispatch, () => ({ routes: [route], selectedRouteId: 'log', zoom: { start: 0, end: 60000 } }));
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(resetPlayback).not.toHaveBeenCalled();
   });
 });

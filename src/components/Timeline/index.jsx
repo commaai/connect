@@ -8,11 +8,12 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { navigate } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
+import { driveUrl } from '../../url';
 
 const styles = () => ({
   base: {
@@ -271,11 +272,8 @@ class Timeline extends Component {
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      const zoom = { start: startOffset, end: endOffset };
+      this.props.dispatch(navigate(driveUrl(route.dongle_id, route.log_id, zoom)));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

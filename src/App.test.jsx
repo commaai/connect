@@ -108,7 +108,7 @@ async function mockFetch(input, init = {}) {
     const routeStr = url.searchParams.get('route_str');
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
-    return json([makeRoute(dongleId)]);
+    return json(options.allRoutes ? [makeRoute(dongleId), makeRoute(dongleId, LOG)] : [makeRoute(dongleId)]);
   }
   if (url.pathname.endsWith('/location')) return json({ error: 'no_segments_uploaded' });
   if (url.pathname.endsWith('/stats')) return json(null);
@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -251,6 +251,7 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.length).toBe(1); // replaced, so browser back doesn't redirect again
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
@@ -302,5 +303,43 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('drive back button zooms out to the whole drive after browser history', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    act(() => history.push(`/${FIRST}/${LOG}/12/18`));
+    act(() => history.goBack());
+    fireEvent.click(await screen.findByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
+  });
+
+  test('closing a drive opened by URL shows the whole drive list', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`, { allRoutes: true });
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.getByText('Mock route start')).toBeVisible();
+  });
+
+  test('settings URL opens device settings and browser history restores it', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('device settings button and Prime settings navigate by URL', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    const device = (await screen.findAllByRole('link')).find((link) => link.getAttribute('href') === `/${SECOND}`);
+    fireEvent.click(within(device).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
   });
 });

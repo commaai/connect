@@ -14,8 +14,9 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { navigate, updateDevice } from '../../actions';
 import Colors from '../../colors';
+import { primeUrl } from '../../url';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
@@ -129,6 +130,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -143,10 +145,9 @@ class DeviceSettingsModal extends Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.dongleId !== this.props.dongleId) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
       this.setState({
         ...initialState,
-        deviceAlias: alias,
+        deviceAlias: this.props.device?.alias || '',
       });
     }
   }
@@ -225,11 +226,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
-    this.props.onClose();
+    this.props.dispatch(navigate(primeUrl(this.props.dongleId)));
   }
 
   async unpairDevice() {
@@ -259,9 +256,9 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, profile } = this.props;
     const commacare = device?.commacare;
-    if (!device) {
+    if (!device || !(device.is_owner || profile?.superuser)) {
       return null;
     }
 
@@ -441,7 +438,7 @@ const stateToProps = (state, ownProps) => {
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
+    profile: state.profile,
   };
 };
 
