@@ -66,14 +66,15 @@ function loopContainsVideo(video, videoStartOffset, loopStart, loopDuration) {
   return loopEnd > videoStartMs && loopStart < videoEndMs;
 }
 
-function useLoopWrap(videoStartOffset, loopStart, loopDuration) {
+function useLoopBounds(videoStartOffset, loopStart, loopDuration) {
   const handleFrame = useCallback((videoSeconds) => {
     const video = getVideo();
     if (!loopContainsVideo(video, videoStartOffset, loopStart, loopDuration)) return;
 
+    const routeMs = toRouteMs(videoStartOffset, videoSeconds);
     const loopEnd = loopStart + loopDuration;
-    const isPastLoopEnd = toRouteMs(videoStartOffset, videoSeconds) >= loopEnd;
-    if (!isPastLoopEnd) return;
+    const isOutsideLoop = routeMs < loopStart || routeMs >= loopEnd;
+    if (!isOutsideLoop) return;
 
     seekToRouteMs(video, videoStartOffset, loopStart);
   }, [videoStartOffset, loopStart, loopDuration]);
@@ -97,7 +98,7 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
 
   const buffering = useVideoBuffering();
   const { error, handleError } = usePlaybackError(src);
-  useLoopWrap(videoStartOffset, loopStart, loopDuration);
+  useLoopBounds(videoStartOffset, loopStart, loopDuration);
 
   useImperativeHandle(ref, () => ({
     restart() {

@@ -41,7 +41,9 @@ vi.mock('react-map-gl', () => ({
 }));
 vi.mock('hls.js', () => ({
   default: class {
-    attachMedia() {}
+    attachMedia(media) {
+      this.media = media;
+    }
     destroy() {}
     loadSource() {}
     off() {}

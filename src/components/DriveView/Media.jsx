@@ -561,7 +561,6 @@ class Media extends Component {
                 route={currentRoute}
                 loop={loop}
                 onHasAudioChange={this.handleHasAudioChange}
-                onLoadedMetadata={this.restartPlayback}
               />
             </div>
             {isMapReplacingVideo && (

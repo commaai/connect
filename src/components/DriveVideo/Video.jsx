@@ -60,27 +60,35 @@ function useHlsErrors(hls, onError) {
   useEffect(() => {
     if (!hls) return undefined;
 
+    const video = hls.media;
     let hasTriedRecovery = false;
-    const handleError = (_, data) => {
+    const recoverOrReport = (error) => {
+      const canRecover = error.kind === 'media' && !hasTriedRecovery;
+      if (!canRecover) return onError?.(error);
+      hasTriedRecovery = true;
+      hls.recoverMediaError();
+    };
+
+    const handleHlsError = (_, data) => {
       const kind = hlsErrorKind(data);
       const isReportable = data.fatal || kind === 'not-found';
       if (!isReportable) return;
-      const canRecover = data.fatal && kind === 'media' && !hasTriedRecovery;
-      if (canRecover) {
-        hasTriedRecovery = true;
-        hls.recoverMediaError();
-        return;
-      }
-      onError?.({ kind, cause: data });
+      recoverOrReport({ kind, cause: data });
     };
+    const handleMediaError = () => recoverOrReport({ kind: mediaErrorKind(video.error), cause: video.error });
 
-    hls.on(HLS_ERROR, handleError);
-    return () => hls.off(HLS_ERROR, handleError);
+    hls.on(HLS_ERROR, handleHlsError);
+    video.addEventListener('error', handleMediaError);
+    return () => {
+      hls.off(HLS_ERROR, handleHlsError);
+      video.removeEventListener('error', handleMediaError);
+    };
   }, [hls, onError]);
 }
 
-function useVideoErrors(video, onError) {
+function useNativeVideoErrors(video, onError) {
   const handleError = useCallback(() => {
+    if (!playsHlsNatively()) return;
     onError?.({ kind: mediaErrorKind(video.error), cause: video.error });
   }, [video, onError]);
 
@@ -131,7 +139,7 @@ export default function Video({ src, startPosition, onError, onHasAudioChange, .
   const video = useVideo();
   const hls = useHls(video, src, startPosition, onError);
   useHlsErrors(hls, onError);
-  useVideoErrors(video, onError);
+  useNativeVideoErrors(video, onError);
   useAudioTrackDetection(video, onHasAudioChange);
   useHlsAudioDetection(hls, onHasAudioChange);
 
