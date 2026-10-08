@@ -53,35 +53,70 @@ export default function reducer(_state, action) {
       state.profile = action.profile;
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
-      state = {
-        ...state,
-        filter: getDefaultFilter(),
-        dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
-        subscription: null,
-        subscribeInfo: null,
-        files: null,
-        limit: 0,
-      };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
-      if (state.devices) {
-        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
-        if (!state.device || state.device.dongle_id !== action.dongleId) {
-          state.device = newDevice;
-        }
-      }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
-        state.routesMeta = {
-          dongleId: null,
-          start: null,
-          end: null,
-        };
+    case Types.ACTION_APPLY_DESTINATION: {
+      const { dongleId, page, drive } = action.destination;
+      const deviceChanged = state.dongleId !== dongleId;
+      const prevLoopStart = state.loop?.startTime ?? null;
+      const prevLoopDuration = state.loop?.duration ?? null;
+      state.dongleId = dongleId;
+      state.deviceNotFound = false;
+      state.primeNav = page === 'prime';
+      state.streamNav = page === 'stream';
+      state.settingsNav = page === 'settings';
+      state.referralsNav = page === 'referrals';
+      if (deviceChanged) {
+        state.device = state.devices?.find((device) => device.dongle_id === dongleId) || null;
+        state.subscription = null;
+        state.subscribeInfo = null;
+        state.files = null;
         state.routes = null;
         state.lastRoutes = null;
-        state.currentRoute = null;
+        state.limit = 0;
+        state.routesMeta = { dongleId: null, start: null, end: null };
+        state.filter = getDefaultFilter();
       }
+
+      if (!state.zoom || drive?.start == null || drive.start < state.zoom.start
+        || drive.end > state.zoom.end) {
+        state.files = null;
+      }
+
+      // state.urlRange mirrors what the URL describes; state.zoom is the
+      // resolved millisecond range and keeps its drill history in .previous.
+      state.urlRange = drive ? { logId: drive.logId, start: drive.start, end: drive.end } : null;
+      state.selectedRouteId = drive?.logId ?? null;
+      const route = drive && state.routes?.find((candidate) => candidate.log_id === drive.logId);
+      state.currentRoute = route || null;
+      if (!drive) {
+        state.zoom = null;
+        state.loop = null;
+      } else if (drive.start != null && drive.end != null) {
+        const drillsDown = state.zoom && drive.start >= state.zoom.start && drive.end <= state.zoom.end;
+        state.zoom = {
+          start: drive.start,
+          end: drive.end,
+          previous: drillsDown ? state.zoom : (route ? { start: 0, end: route.duration } : null),
+        };
+        state.loop = { startTime: drive.start, duration: drive.end - drive.start };
+      } else {
+        state.zoom = route ? { start: 0, end: route.duration } : null;
+        state.loop = route ? { startTime: 0, duration: route.duration } : null;
+      }
+
+      const newLoopStart = state.loop?.startTime ?? null;
+      const newLoopDuration = state.loop?.duration ?? null;
+      if (state.loop && (prevLoopStart !== newLoopStart || prevLoopDuration !== newLoopDuration)) {
+        // the URL moved playback to a new range; restart it at the range start
+        state.desiredPlaySpeed = 1;
+        state.isBufferingVideo = true;
+        state.offset = newLoopStart;
+        state.startTime = Date.now();
+      }
+      break;
+    }
+    case Types.ACTION_DEVICE_NOT_FOUND:
+      state.deviceNotFound = true;
+      state.device = null;
       break;
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
@@ -144,7 +179,7 @@ export default function reducer(_state, action) {
         state.devices.unshift(updatedDevice);
       }
 
-      if (isSelected) {
+      if (isSelected || state.dongleId === action.device.dongle_id) {
         state.device = updatedDevice;
       }
 
@@ -223,11 +258,6 @@ export default function reducer(_state, action) {
       }
       break;
     }
-    case Types.ACTION_UPDATE_SHARED_DEVICE:
-      if (action.dongleId === state.dongleId) {
-        state.device = populateFetchedAt(action.device);
-      }
-      break;
     case Types.ACTION_UPDATE_DEVICE_ONLINE:
       state = {
         ...state,
@@ -300,21 +330,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -335,42 +350,6 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
-        state.files = null;
-      }
-
-      state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
-        }
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    }
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),

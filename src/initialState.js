@@ -1,9 +1,10 @@
-import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
 import { getDefaultFilter } from './utils/filter';
 
-export function createInitialState(pathname = window.location.pathname) {
+// The initial state is intentionally blank: syncStateFromUrl applies whatever
+// the current URL describes on boot, like any other location change.
+export function createInitialState() {
   return {
-    dongleId: getDongleID(pathname),
+    dongleId: null,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
@@ -18,12 +19,17 @@ export function createInitialState(pathname = window.location.pathname) {
     },
     currentRoute: null,
     lastRoutes: null,
+    urlRange: null,
+    selectedRouteId: null,
 
     profile: null,
     devices: null,
+    deviceNotFound: false,
 
-    primeNav: getPrimeNav(pathname),
-    streamNav: getStreamNav(pathname),
+    primeNav: false,
+    streamNav: false,
+    settingsNav: false,
+    referralsNav: false,
     subscription: null,
     subscribeInfo: null,
 
@@ -35,9 +41,8 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: getRouteZoom(pathname),
+    zoom: null,
     loop: null,
-    selectedRouteId: getRouteId(pathname),
     limit: 0,
   };
 }
