@@ -14,6 +14,7 @@ export function reducer(_state, action) {
       state = {
         ...state,
         offset: action.offset,
+        seekSequence: (state.seekSequence || 0) + 1,
         startTime: Date.now(),
       };
 
@@ -24,6 +25,13 @@ export function reducer(_state, action) {
           state.offset = loopOffset + state.loop.duration;
         }
       }
+      break;
+    case Types.ACTION_VIDEO_TIME:
+      state = {
+        ...state,
+        offset: action.offset,
+        startTime: Date.now(),
+      };
       break;
     case Types.ACTION_PAUSE:
       state = {
@@ -67,6 +75,7 @@ export function reducer(_state, action) {
         desiredPlaySpeed: 1,
         isBufferingVideo: true,
         offset: 0,
+        seekSequence: (state.seekSequence || 0) + 1,
         startTime: Date.now(),
       };
       break;
@@ -109,6 +118,14 @@ export function reducer(_state, action) {
 export function seek(offset) {
   return {
     type: Types.ACTION_SEEK,
+    offset,
+  };
+}
+
+// Record the time reported by the media element without treating it as a seek command.
+export function videoTime(offset) {
+  return {
+    type: Types.ACTION_VIDEO_TIME,
     offset,
   };
 }
