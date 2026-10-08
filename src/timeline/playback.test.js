@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { applyPendingSeek, currentOffset, seekTo, setVideo, setVideoFailed } from '.';
+import { applyPendingSeek, currentOffset, seekTo, setVideo, setVideoFailed, setVideoSegments, toVideoTime } from '.';
 import { pause, play, reducer, seek, videoState } from './playback';
 import * as Types from '../actions/types';
 
@@ -56,6 +56,16 @@ describe('playback clock', () => {
     video.readyState = HAVE_METADATA;
     applyPendingSeek();
     expect(video.currentTime).toEqual(30);
+  });
+
+  it('skips the drive time of segments missing from the video', () => {
+    setVideoSegments([{ number: 0, start: 0 }, { number: 1, start: 60 }, { number: 3, start: 120 }, { number: 4, start: 180 }]);
+    setVideo(makeVideo({ currentTime: 130 }));
+    expect(currentOffset(state)).toEqual(190500);
+    expect(toVideoTime(190500, state)).toEqual(130);
+    expect(toVideoTime(30500, state)).toEqual(30);
+    // an offset in the missing segment shows the video that follows it
+    expect(toVideoTime(150500, state)).toEqual(120);
   });
 });
 

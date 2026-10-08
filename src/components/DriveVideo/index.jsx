@@ -6,7 +6,7 @@ import { api } from '../../api/backend';
 
 import Colors from '../../colors';
 import { ErrorOutline, Pause, PlayArrow } from '../../icons';
-import { applyPendingSeek, currentOffset, seekTo, setVideo, setVideoFailed, toVideoTime } from '../../timeline';
+import { applyPendingSeek, currentOffset, seekTo, setVideo, setVideoFailed, setVideoSegments, toVideoTime } from '../../timeline';
 import { pause, play, seek, videoState } from '../../timeline/playback';
 
 const NOT_UPLOADED_ERROR = 'This video segment has not uploaded yet or has been deleted.';
@@ -100,6 +100,7 @@ class RouteVideo extends Component {
     this.mediaErrorRecovered = false;
     this.setState({ error: null });
     setVideoFailed(false);
+    setVideoSegments([]);
     onAudioStatusChange?.(false);
     // the video has no metadata now, so the clock holds this offset until it loads
     seekTo(startOffset);
@@ -115,6 +116,9 @@ class RouteVideo extends Component {
       if (Hls?.isSupported()) {
         this.hls = new Hls({ maxBufferLength: 40, startPosition: toVideoTime(currentOffset()) });
         this.hls.on(Hls.Events.BUFFER_CODECS, (_event, data) => onAudioStatusChange?.(Boolean(data.audio)));
+        this.hls.on(Hls.Events.LEVEL_LOADED, (_event, { details }) => setVideoSegments(
+          details.fragments.map((frag) => ({ number: Number(frag.title), start: frag.start })),
+        ));
         this.hls.on(Hls.Events.ERROR, this.onHlsError);
         this.hls.loadSource(src);
         this.hls.attachMedia(video);
@@ -150,10 +154,11 @@ class RouteVideo extends Component {
     if (!zoom || video.paused || currentOffset() < zoom.end) {
       return;
     }
-    if (toVideoTime(zoom.end) > 0) {
+    if (toVideoTime(zoom.end) > toVideoTime(zoom.start)) {
       seekTo(zoom.start);
     } else {
-      // the range ends before the first camera frame, so it has no video to loop
+      // the range ends before the first camera frame or lies in a missing
+      // segment, so it has no video to loop
       video.pause();
     }
   }

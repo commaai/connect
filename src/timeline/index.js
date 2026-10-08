@@ -12,6 +12,12 @@ let pendingOffset = null; // a seek waiting for the video to load its metadata
 // a video that failed has no playhead to follow, so until it loads again the
 // playhead runs on this clock, and a drive without video still plays on the map
 let clock = null; // { offset, time, speed }, speed 0 while paused
+// qcamera.m3u8 titles each segment with its segment number. A segment missing
+// from it shows as a jump in the numbers, and there the video skips a minute
+// of the drive. From video time `start` (s) on, `skipped` ms have been skipped
+let gaps = [];
+
+const SEGMENT_LENGTH = 60 * 1000;
 
 function videoStartOffset(state) {
   return state.currentRoute?.videoStartOffset || 0;
@@ -26,7 +32,21 @@ export function setVideo(element) {
   if (!element) {
     pendingOffset = null;
     clock = null;
+    gaps = [];
   }
+}
+
+// the playlist's segments in order, each with its segment number and start in video time
+export function setVideoSegments(segments) {
+  gaps = [];
+  let skippedBefore = 0;
+  segments.forEach(({ number, start }, index) => {
+    const skipped = (number - index) * SEGMENT_LENGTH;
+    if (skipped > skippedBefore) {
+      gaps.push({ start, skipped });
+      skippedBefore = skipped;
+    }
+  });
 }
 
 // the clock starts paused where the failed video stopped
@@ -68,13 +88,30 @@ export function currentOffset(state = store.getState()) {
       : offset;
   }
   if (pendingOffset === null && canSeek()) {
-    return (video.currentTime * 1000) + videoStartOffset(state);
+    const time = video.currentTime;
+    let skipped = 0;
+    for (const gap of gaps) {
+      if (gap.start <= time) {
+        skipped = gap.skipped;
+      }
+    }
+    return (time * 1000) + skipped + videoStartOffset(state);
   }
   return pendingOffset ?? state.zoom?.start ?? 0;
 }
 
 export function toVideoTime(offset, state = store.getState()) {
-  return Math.max(0, (offset - videoStartOffset(state)) / 1000);
+  const driveTime = offset - videoStartOffset(state);
+  let time = driveTime;
+  for (const gap of gaps) {
+    if (driveTime < (gap.start * 1000) + gap.skipped) {
+      // an offset in a missing segment shows the video that follows it
+      time = Math.min(time, gap.start * 1000);
+      break;
+    }
+    time = driveTime - gap.skipped;
+  }
+  return Math.max(0, time / 1000);
 }
 
 // Moves the playhead to an offset within the selected range. Until the video
