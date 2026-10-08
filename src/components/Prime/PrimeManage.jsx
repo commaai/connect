@@ -255,12 +255,13 @@ export class PrimeManage extends Component {
     const { subscription } = this.props;
     const { stripeStatus } = this.state;
 
-    if (prevProps.routeModal !== this.props.routeModal) {
+    if (prevProps.routeModal !== this.props.routeModal || (!prevProps.subscription && subscription)) {
       this.setState({
         planSwitchTarget: this.props.routeModal === 'prime-switch' && subscription
           ? otherPrimePlan(subscription.plan) : null,
         planSwitchStatus: 'confirm',
         planSwitchMessage: null,
+        error: null,
       });
     }
 
@@ -283,7 +284,6 @@ export class PrimeManage extends Component {
 
   closePrimeModal() {
     this.props.dispatch(push(routeModalUrl(this.props.routeLocation, null)));
-    this.setState({ planSwitchStatus: 'confirm', planSwitchMessage: null, planSwitchTarget: null });
   }
 
   cancelPrime() {
@@ -538,15 +538,7 @@ export class PrimeManage extends Component {
                       <Button
                         className={classes.buttons}
                         style={buttonSmallStyle}
-                        onClick={() => {
-                          this.setState({
-                          planSwitchStatus: 'confirm',
-                          planSwitchMessage: null,
-                          planSwitchTarget: otherPrimePlan(subscription.plan),
-                          error: null,
-                          });
-                          dispatch(push(routeModalUrl(this.props.routeLocation, 'prime-switch')));
-                        }}
+                        onClick={() => dispatch(push(routeModalUrl(this.props.routeLocation, 'prime-switch')))}
                         disabled={this.state.switchingPlan}
                       >
                         {this.state.switchingPlan
