@@ -1,7 +1,6 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
 
 export function reducer(_state, action) {
   let state = { ..._state };
@@ -31,20 +30,10 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_PAUSE:
-      state = {
-        ...state,
-        offset: currentOffset(state),
-        desiredPlaySpeed: 0,
-      };
+      state.desiredPlaySpeed = 0;
       break;
     case Types.ACTION_PLAY:
-      if (action.speed !== state.desiredPlaySpeed) {
-        state = {
-          ...state,
-          offset: currentOffset(state),
-          desiredPlaySpeed: action.speed,
-        };
-      }
+      state.desiredPlaySpeed = action.speed;
       break;
     case Types.ACTION_LOOP:
       if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
@@ -57,11 +46,7 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_BUFFER_VIDEO:
-      state = {
-        ...state,
-        isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
-      };
+      state.isBufferingVideo = action.buffering;
       break;
     case Types.ACTION_RESET:
       state = {

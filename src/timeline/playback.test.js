@@ -15,6 +15,13 @@ describe('media-owned playback', () => {
     expect(state.desiredPlaySpeed).toBe(0);
   });
 
+  it('leaves the position to the media when pausing, playing or buffering', () => {
+    const state = { ...initial(), offset: null, loop: { startTime: 5000, duration: 1000 } };
+    for (const action of [pause(), play(2), bufferVideo(false)]) {
+      expect(reducer(state, action)).toMatchObject({ offset: null, seekRevision: 0 });
+    }
+  });
+
   it('separates rapid explicit seeks from observations and rejects stale updates', () => {
     let state = reducer(initial(), seek(1000));
     state = reducer(state, seek(5000));
