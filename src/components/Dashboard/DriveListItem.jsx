@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
 import { pushTimelineRange } from '../../actions';
+import { buildPath } from '../../url';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
@@ -84,7 +85,7 @@ const DriveListItem = (props) => {
   }, [drive, dispatch, isVisible, el]);
 
   const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
+    () => dispatch(pushTimelineRange(drive.log_id)),
   );
 
   const small = windowWidth < 580;
@@ -119,7 +120,7 @@ const DriveListItem = (props) => {
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
+      href={buildPath({ view: 'drive', dongleId: drive.dongle_id, logId: drive.log_id })}
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>

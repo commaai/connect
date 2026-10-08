@@ -1,66 +1,133 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+// The URL grammar of connect.
+//
+// Every screen is described by a route:
+//
+//   { view, dongleId, logId, range, settings }
+//
+//   view      one of the keys of ROUTES
+//   dongleId  device in the path, or null (keep the current selection)
+//   logId     drive in the path, or null
+//   range     { start, end } in ms, or null. Relative to the drive for 'drive',
+//             absolute UTC for 'legacyRange'.
+//   settings  device whose settings modal is open (?settings=), or null
+//
+// parseLocation() and buildPath() are inverses. Nothing else reads or writes paths.
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const PARAMS = {
+  dongleId: /^[a-f0-9]{16}$/,
+  logId: /^[a-f0-9-]{20}$/,
+  start: /^\d+$/,
+  end: /^\d+$/,
+};
 
-  if (!dongleIdRegex.test(parts[0])) {
+// view -> path templates. Templates never overlap, so their order does not matter.
+const ROUTES = {
+  dashboard: ['/', '/:dongleId'],
+  referrals: ['/referrals'],
+  prime: ['/:dongleId/prime'],
+  stream: ['/:dongleId/stream'],
+  drive: ['/:dongleId/:logId', '/:dongleId/:logId/:start/:end'],
+  legacyRange: ['/:dongleId/:start/:end'], // old links: absolute ms, resolved to a drive on arrival
+};
+
+// milliseconds per URL range unit
+const RANGE_UNIT = { drive: 1000, legacyRange: 1 };
+
+const segments = (path) => path.split('/').filter(Boolean);
+
+function matchTemplate(template, parts) {
+  const names = segments(template);
+  if (names.length !== parts.length) {
     return null;
   }
 
-  return parts[0] || null;
+  const params = {};
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
+    if (name.startsWith(':')) {
+      const key = name.slice(1);
+      if (!PARAMS[key].test(parts[i])) {
+        return null;
+      }
+      params[key] = parts[i];
+    } else if (name !== parts[i]) {
+      return null;
+    }
+  }
+  return params;
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
+function toRoute(view, params) {
+  const unit = RANGE_UNIT[view];
+  return {
+    view,
+    dongleId: params.dongleId ?? null,
+    logId: params.logId ?? null,
+    range: params.start ? { start: Number(params.start) * unit, end: Number(params.end) * unit } : null,
+  };
 }
 
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
+function toParams({ view, dongleId, logId, range }) {
+  const params = { dongleId, logId };
+  if (range) {
+    const unit = RANGE_UNIT[view];
+    const start = Math.floor(range.start / unit);
+    params.start = start;
+    params.end = Math.max(Math.floor(range.end / unit), start + 1); // never collapse to an empty range
   }
-  return null;
+  return params;
 }
 
-export function getRouteZoom(pathname) {
-  const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+function matchPath(parts) {
+  for (const [view, templates] of Object.entries(ROUTES)) {
+    for (const template of templates) {
+      const params = matchTemplate(template, parts);
+      if (params) {
+        return toRoute(view, params);
+      }
+    }
   }
-  return null;
+  // unknown paths show the dashboard of the device they start with, if any
+  return toRoute('dashboard', PARAMS.dongleId.test(parts[0]) ? { dongleId: parts[0] } : {});
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
-  }
-  return false;
+export function parseLocation({ pathname, search = '' }) {
+  const route = matchPath(segments(pathname));
+  const settings = new URLSearchParams(search).get('settings');
+  return { ...route, settings: settings && PARAMS.dongleId.test(settings) ? settings : null };
 }
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const paramNames = (template) => segments(template)
+  .filter((name) => name.startsWith(':'))
+  .map((name) => name.slice(1));
 
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
+export function buildPath(route) {
+  const params = toParams(route);
+
+  // the most specific template whose parameters the route provides
+  const candidates = ROUTES[route.view]
+    .filter((candidate) => paramNames(candidate).every((key) => params[key] != null));
+  if (!candidates.length) {
+    throw new Error(`incomplete ${route.view} route: ${JSON.stringify(route)}`);
   }
-  return false;
+  const template = candidates
+    .reduce((best, candidate) => (paramNames(candidate).length > paramNames(best).length ? candidate : best));
+
+  const path = `/${segments(template)
+    .map((name) => (name.startsWith(':') ? params[name.slice(1)] : name))
+    .join('/')}`;
+  return route.settings ? `${path}?settings=${route.settings}` : path;
+}
+
+// The route of the current location. Memoized on the location object, so
+// connected components see the same route until the URL actually changes.
+let lastLocation = null;
+let lastRoute = null;
+export function selectRoute(state) {
+  const { location } = state.router;
+  if (location !== lastLocation) {
+    lastLocation = location;
+    lastRoute = parseLocation(location);
+  }
+  return lastRoute;
 }

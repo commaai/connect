@@ -303,4 +303,56 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('the drive back button zooms out to the whole drive after browser history', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${RECENT_LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}/10/50`));
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}/20/30`));
+    act(() => history.goBack());
+    expect(store.getState().zoom).toEqual({ start: 10000, end: 50000 });
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    expect(store.getState().zoom).toEqual({ start: 0, end: 60000 });
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
+  });
+
+  test('device settings open by URL, over the current page', async () => {
+    const { history } = await renderApp(`/${FIRST}?settings=${SECOND}`);
+    const title = await screen.findByText('Device settings');
+    expect(within(title.parentElement).getByText(SECOND)).toBeVisible();
+    fireEvent.click(within(title.closest('[role="dialog"], .MuiPaper-root') || document.body).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('Prime settings from the modal opens that device\'s Prime page', async () => {
+    const { history, store } = await renderApp(`/${FIRST}?settings=${SECOND}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    expect(history.location.search).toBe('');
+    expect(store.getState().dongleId).toBe(SECOND);
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
+
+  test('the device list settings button writes the URL without switching devices', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    await screen.findByText('Mock recent route start');
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    const row = (await screen.findAllByText(FIRST)).map((el) => el.closest('a')).find(Boolean);
+    fireEvent.click(within(row).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(history.location.search).toBe(`?settings=${FIRST}`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(store.getState().dongleId).toBe(FIRST);
+  });
+
+  test.each([['an unknown device', 'dddddddddddddddd'], ['a shared device', SHARED]])('settings for %s stay closed', async (_name, dongleId) => {
+    await renderApp(`/${FIRST}?settings=${dongleId}`);
+    await screen.findByText('Mock recent route start');
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
 });

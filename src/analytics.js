@@ -4,25 +4,20 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseLocation } from './url';
 import { deviceIsOnline } from './utils';
 
+// The path with identifying parameters replaced by placeholders.
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
+  const { dongleId, range } = parseLocation({ pathname });
+  const parts = pathname.split('/').filter(Boolean);
   if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+    parts[0] = '<dongleId>';
   }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  if (range) {
+    parts.splice(-2, 2, '<zoomStart>', '<zoomEnd>');
   }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
+  return parts.length ? `/${parts.join('/')}` : '';
 }
 
 const clusterMap = {
