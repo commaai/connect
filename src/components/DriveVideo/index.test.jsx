@@ -86,6 +86,88 @@ describe('DriveVideo player lifecycle', () => {
     callbacks().onProgress();
     expect(video.pendingSeek).toBeNull();
   });
+  it('does not publish a decoder reset when buffering starts late', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    changeProps({ offset: 55000, seekRevision: 1 });
+    media.time = 55;
+    callbacks().onSeek(55);
+    dispatch.mockClear();
+
+    // The decoder resets BEFORE onBuffer, so bufferingAtSeconds is already zero.
+    media.time = 0;
+    callbacks().onBuffer();
+    callbacks().onBufferEnd();
+
+    expect(media.seekTo).toHaveBeenLastCalledWith(55, 'seconds');
+    expect(video.pendingSeek).toEqual({ revision: 1, target: 55 });
+    expect(dispatch.mock.calls.some(
+      ([action]) => action.type === ACTION_VIDEO_PROGRESS && action.offset === 0,
+    )).toBe(false);
+  });
+
+  it('uses actual accepted media time even when Redux props lag behind', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    changeProps({ offset: 55000, seekRevision: 1 });
+    media.time = 55;
+    callbacks().onSeek(55);
+
+    media.time = 55.5;
+    callbacks().onProgress(); // Redux props deliberately remain at offset 55000.
+    expect(video.lastAcceptedSeconds).toBe(55.5);
+    dispatch.mockClear();
+
+    media.time = 0;
+    callbacks().onBuffer();
+    callbacks().onBufferEnd();
+
+    expect(media.seekTo).toHaveBeenLastCalledWith(55.5, 'seconds');
+    expect(video.pendingSeek).toEqual({ revision: 1, target: 55.5 });
+    expect(dispatch.mock.calls.some(
+      ([action]) => action.type === ACTION_VIDEO_PROGRESS && action.offset === 0,
+    )).toBe(false);
+  });
+
+  it('accepts intentional backward seeks instead of restoring an old playback position', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    changeProps({ offset: 55000, seekRevision: 1 });
+    media.time = 55;
+    callbacks().onSeek(55);
+    expect(video.lastAcceptedSeconds).toBe(55);
+
+    changeProps({ offset: 20000, seekRevision: 2 });
+    expect(video.lastAcceptedSeconds).toBeNull();
+    media.time = 20;
+    dispatch.mockClear();
+    callbacks().onSeek(20);
+
+    expect(video.pendingSeek).toBeNull();
+    expect(media.seekTo).toHaveBeenLastCalledWith(20, 'seconds');
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: ACTION_VIDEO_PROGRESS, offset: 20000, seekRevision: 2,
+    }));
+  });
+
+  it('ignores unsolicited decoder rewinds even without a buffer event', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    changeProps({ offset: 55000, seekRevision: 1 });
+    media.time = 55;
+    callbacks().onSeek(55);
+    dispatch.mockClear();
+
+    media.time = 0;
+    callbacks().onProgress();
+
+    expect(media.seekTo).toHaveBeenLastCalledWith(55, 'seconds');
+    expect(video.pendingSeek).toEqual({ revision: 1, target: 55 });
+    expect(dispatch.mock.calls.some(
+      ([action]) => action.type === ACTION_VIDEO_PROGRESS && action.offset === 0,
+    )).toBe(false);
+  });
+
   it('does not report an unavailable video from an older seek completion', () => {
     const { video, media, callbacks, changeProps, dispatch } = playerFixture();
 
@@ -648,4 +730,49 @@ describe('DriveVideo player lifecycle', () => {
     expect(callbacks().playing).toBe(false);
     expect(callbacks().playbackRate).toBe(4);
   });
+  it('does not accept an unsolicited clock reset while buffering', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    changeProps({ offset: 55000, seekRevision: 1 });
+    media.time = 55;
+    callbacks().onSeek(55);
+    dispatch.mockClear();
+
+    callbacks().onBuffer();
+    media.time = 0;
+    callbacks().onProgress();
+
+    expect(video.pendingSeek).toEqual({ revision: 1, target: 55 });
+    expect(dispatch.mock.calls.some(
+      ([action]) => action.type === ACTION_VIDEO_PROGRESS && action.offset === 0,
+    )).toBe(false);
+  });
+
+  it('restores playback position after buffer-end reports a decoder reset', () => {
+    const { video, media, callbacks, changeProps, dispatch } = playerFixture();
+
+    changeProps({ offset: 55000, seekRevision: 1 });
+    media.time = 55;
+    callbacks().onSeek(55);
+    dispatch.mockClear();
+
+    callbacks().onBuffer();
+    media.time = 0;
+    callbacks().onBufferEnd();
+
+    expect(media.seekTo).toHaveBeenLastCalledWith(55, 'seconds');
+    expect(video.pendingSeek).toEqual({ revision: 1, target: 55 });
+    expect(dispatch.mock.calls.some(
+      ([action]) => action.type === ACTION_VIDEO_PROGRESS && action.offset === 0,
+    )).toBe(false);
+
+    media.time = 55;
+    callbacks().onSeek(55);
+
+    expect(video.pendingSeek).toBeNull();
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: ACTION_VIDEO_PROGRESS, offset: 55000, seekRevision: 1,
+    }));
+  });
+
 });

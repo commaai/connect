@@ -13,6 +13,7 @@ import { seek, pause, bufferVideo, videoProgress } from '../../timeline/playback
 import { isIos } from '../../utils/browser.js';
 
 const SEEK_TOLERANCE_SECONDS = 1;
+const UNEXPECTED_REWIND_SECONDS = 1;
 
 // Only connectivity-related failures should be retried when the browser comes back online.
 const isTransientNetworkStatus = (code) => {
@@ -63,14 +64,16 @@ export class DriveVideo extends Component {
     this.onPlayerSeek = this.onPlayerSeek.bind(this);
     this.onPlayerEnded = this.onPlayerEnded.bind(this);
     this.onReconnect = this.onReconnect.bind(this);
+    this.retryVideo = this.retryVideo.bind(this);
     this.recoverOnReconnect = false;
     this.appliedSeekRevision = null;
     this.pendingSeek = null;
     this.reseekedRevision = null;
     this.bufferingAtSeconds = null;
+    // Last position actually observed from the active decoder, never derived from Redux.
+    this.lastAcceptedSeconds = null;
     this.ready = false;
     this.unmounted = false;
-    this.retryVideo = this.retryVideo.bind(this);
     this.lastPlaybackRate = props.desiredPlaySpeed > 0 ? props.desiredPlaySpeed : 1;
     this.videoPlayer = React.createRef();
 
@@ -118,6 +121,7 @@ export class DriveVideo extends Component {
     this.appliedSeekRevision = null;
     this.reseekedRevision = null;
     this.bufferingAtSeconds = null;
+    this.lastAcceptedSeconds = null;
     if (this.audioHls && this.audioHandler) this.audioHls.off('hlsBufferCodecs', this.audioHandler);
     this.audioHls = null;
     this.audioHandler = null;
@@ -153,6 +157,8 @@ export class DriveVideo extends Component {
   onVideoBufferEnd(key) {
     if (!this.isCurrentPlayer(key) || this.state.videoError) return;
 
+    // Paused media may have a stationary clock after buffer end. Do not
+    // discard the independently tracked last-good position during this event.
     this.bufferingAtSeconds = null;
     this.onVideoProgress(key);
   }
@@ -168,6 +174,10 @@ export class DriveVideo extends Component {
 
     const revision = this.props.seekRevision;
     const target = this.currentVideoTime(this.props.offset ?? 0);
+    // An explicit seek (including backwards/loop seeks) supersedes any
+    // previous decoder observations and pending recovery.
+    this.bufferingAtSeconds = null;
+    this.lastAcceptedSeconds = null;
     this.appliedSeekRevision = revision;
     this.pendingSeek = { revision, target };
     this.reseekedRevision = null;
@@ -187,6 +197,10 @@ export class DriveVideo extends Component {
       const tracks = player.getInternalPlayer()?.audioTracks;
       if (tracks && onAudioStatusChange) {
         if (this.nativeAudioTracks !== tracks) {
+          if (this.nativeAudioTracks && this.nativeAudioHandler) {
+            this.nativeAudioTracks.removeEventListener?.('addtrack', this.nativeAudioHandler);
+            this.nativeAudioTracks.removeEventListener?.('removetrack', this.nativeAudioHandler);
+          }
           this.nativeAudioTracks = tracks;
           this.nativeAudioHandler = () => {
             if (this.isCurrentPlayer(key)) onAudioStatusChange(tracks.length > 0);
@@ -273,8 +287,23 @@ export class DriveVideo extends Component {
     const mediaSeconds = player.getCurrentTime();
     if (!Number.isFinite(mediaSeconds) || !this.acknowledgeSeek(mediaSeconds)) return;
 
+    // Decoder resets may happen before onBuffer fires, so use the last
+    // accepted media clock rather than a snapshot taken during onBuffer.
+    // Explicit seek revisions clear this snapshot in applyPendingSeek().
+    if (this.lastAcceptedSeconds !== null
+      && mediaSeconds < this.lastAcceptedSeconds - UNEXPECTED_REWIND_SECONDS) {
+      const target = this.lastAcceptedSeconds;
+      this.pendingSeek = { revision: this.props.seekRevision, target };
+      this.reseekedRevision = null;
+      this.bufferingAtSeconds = null;
+      this.props.dispatch(bufferVideo(true));
+      player.seekTo(target, 'seconds');
+      return;
+    }
+
     if (this.bufferingAtSeconds !== null) {
-      if (Math.abs(mediaSeconds - this.bufferingAtSeconds) < 0.01) return;
+      // The buffer-end callback handles a paused or stationary clock.
+      if (mediaSeconds <= this.bufferingAtSeconds + 0.01) return;
       this.bufferingAtSeconds = null;
     }
 
@@ -284,6 +313,7 @@ export class DriveVideo extends Component {
       dispatch(seek(loop.startTime));
       return;
     }
+    this.lastAcceptedSeconds = mediaSeconds;
     dispatch(videoProgress(routeOffset, seekRevision));
   }
 
