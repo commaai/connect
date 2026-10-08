@@ -20,6 +20,7 @@ import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { selectLocation } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -198,12 +199,13 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, page, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = page === 'referrals';
+    const bodyTeleopOpen = page === 'stream';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -244,10 +246,10 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(dongleId ? selectDevice(dongleId) : push('/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
+                : (page === 'drive' ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -278,12 +280,11 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  page: selectLocation(state).page,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
-  selectedRouteId: state.selectedRouteId,
   limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
   profile: state.profile,
 });
 

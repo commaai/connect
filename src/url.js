@@ -1,66 +1,64 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+const dongleIdRegex = /^[a-f0-9]{16}$/;
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const logIdRegex = /^[a-f0-9-]{20}$/;
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
-  }
+const secondsRegex = /^\d+$/;
 
-  return parts[0] || null;
-}
+const DEVICE_PAGES = ['prime', 'stream'];
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+export function parseLocation(pathname) {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const [dongleId, second, start, end] = parts;
+
+  if (parts.length === 1 && dongleId === 'referrals') {
+    return { page: 'referrals' };
   }
-  return null;
+
+  if (!dongleIdRegex.test(dongleId)) {
+    return { page: 'home' };
+  }
+
+  if (parts.length === 2 && DEVICE_PAGES.includes(second)) {
+    return { page: second, dongleId };
+  }
+
+  if (logIdRegex.test(second)) {
+    if (parts.length === 2) {
+      return { page: 'drive', dongleId, logId: second, start: null, end: null };
+    }
+
+    const isRange = parts.length === 4 && secondsRegex.test(start) && secondsRegex.test(end) && Number(start) < Number(end);
+
+    if (isRange) {
+      return { page: 'drive', dongleId, logId: second, start: Number(start) * 1000, end: Number(end) * 1000 };
+    }
+  }
+
+  return { page: 'dash', dongleId };
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+export function buildUrl(location) {
+  const { page, dongleId, logId, start, end } = location;
 
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+  if (page === 'home') {
+    return '/';
   }
-  return false;
+
+  if (page === 'referrals') {
+    return '/referrals';
+  }
+
+  if (page === 'dash') {
+    return `/${dongleId}`;
+  }
+
+  if (page === 'drive') {
+    const range = start === null ? '' : `/${Math.floor(start / 1000)}/${Math.floor(end / 1000)}`;
+
+    return `/${dongleId}/${logId}${range}`;
+  }
+
+  return `/${dongleId}/${page}`;
 }
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
-}
+export const selectLocation = (state) => parseLocation(state.router.location.pathname);

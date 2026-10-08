@@ -1,61 +1,68 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
-import { api } from '../api/backend';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
+import { buildUrl, parseLocation } from '../url';
+import { nextTimeline } from '../timeline/zoom';
+import { loadDevice, selectTimeline } from './index';
+
+function fallbackDongleId(devices) {
+  const stored = window.localStorage.getItem('selectedDongleId');
+
+  return devices?.some((d) => d.dongle_id === stored) ? stored : devices?.[0]?.dongle_id ?? null;
+}
+
+function canonicalUrl(location, state, devices) {
+  const devicesLoaded = state.devices !== null;
+
+  if (location.page === 'home') {
+    const dongleId = devicesLoaded ? fallbackDongleId(devices) : null;
+
+    return dongleId ? buildUrl({ page: 'dash', dongleId }) : state.router.location.pathname;
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
+  return buildUrl(location);
+}
+
+export function syncLocation(devicesInApiOrder) {
+  return (dispatch, getState) => {
     const state = getState();
+    const deviceOrder = devicesInApiOrder ?? state.devices;
+    const { pathname, search, hash } = state.router.location;
+    const location = parseLocation(pathname);
 
-    next(action); // must be first, otherwise breaks history
+    const url = canonicalUrl(location, state, deviceOrder);
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+    if (url !== pathname) {
+      dispatch(replace({ pathname: url, search, hash }));
+
+      return;
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
+    const logId = location.page === 'drive' ? location.logId : null;
+    const start = logId ? location.start : null;
+    const end = logId ? location.end : null;
 
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
+    if (nextTimeline(state, logId, start, end)) {
+      dispatch(selectTimeline(logId, start, end));
     }
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
+    const dongleId = location.dongleId ?? state.dongleId ?? (state.devices ? fallbackDongleId(deviceOrder) : null);
 
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
+    if (dongleId && dongleId !== state.dongleId) {
+      dispatch(loadDevice(dongleId));
     }
+  };
+}
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
+  if (!action) {
+    return undefined;
   }
+
+  const result = next(action);
+
+  if (action.type === LOCATION_CHANGE) {
+    dispatch(syncLocation());
+  }
+
+  return result;
 };

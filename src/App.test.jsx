@@ -247,16 +247,10 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
   });
 
-  test('legacy timestamp URL converts after a successful lookup', async () => {
+  test('legacy timestamp URL opens the device dashboard', async () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
-    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
-  });
-
-  test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
-    const pathname = `/${FIRST}/${START}/${START + 60_000}`;
-    const { history } = await renderApp(pathname, options);
-    await waitFor(() => expect(history.location.pathname).toBe(pathname));
+    expect(await screen.findByText('Mock route start')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
   });
 
   test('Prime close and browser history restore its view', async () => {

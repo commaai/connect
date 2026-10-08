@@ -79,7 +79,7 @@ const styles = () => ({
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
+  forwardRef, handleDrawerStateChanged, dongleId, pathname,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
@@ -106,7 +106,7 @@ const AppHeader = ({
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
+    dispatch(pathname === '/referrals' ? selectDevice(dongleId) : push('/referrals'));
   }, [dispatch, dongleId, pathname]);
 
   const toggleDrawer = useCallback(() => {
@@ -187,7 +187,6 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   filter: state.filter,
   profile: state.profile,
-  primeNav: state.primeNav,
   pathname: state.router.location.pathname,
 });
 
