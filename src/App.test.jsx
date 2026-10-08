@@ -241,6 +241,21 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
   });
 
+  test('closing a cold-opened drive loads the drive list', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('navigating to a drive outside the drive list loads it', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(store.getState().currentRoute.log_id).toBe(LOG);
+  });
+
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
@@ -276,6 +291,44 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+  });
+
+  test('settings close and browser history restore its dialog', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('settings opens over a drive and closes back to it', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20`, { selected: FIRST });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click(within((await screen.findByText(FIRST)).closest('a')).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(history.location.search).toBe('?dialog=settings'));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(store.getState()).toMatchObject({ selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
+  });
+
+  test('settings URL stays closed for a shared device', async () => {
+    await renderApp(`/${SHARED}?dialog=settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('device settings button opens that device by URL', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    const second = (await screen.findByText(SECOND)).closest('a');
+    fireEvent.click(within(second).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(`${history.location.pathname}${history.location.search}`).toBe(`/${SECOND}?dialog=settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(store.getState().dongleId).toBe(SECOND);
   });
 
   test('device browser history restores exact dashboards', async () => {

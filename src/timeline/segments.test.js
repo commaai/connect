@@ -96,4 +96,19 @@ describe('segments', () => {
       dongleId: 'asdfasdf',
     })).toBe(true);
   });
+
+  it.each([
+    ['a drive list containing the selected drive', 'log', null, ['log'], true],
+    ['a drive list missing the selected drive', 'log', null, ['other'], false],
+    ['a single-drive fetch for the selected drive', 'log', 'log', [], true],
+    ['a single-drive fetch once nothing is selected', null, 'log', ['log'], false],
+  ])('checks routes against %s', (_name, selectedRouteId, logId, logIds, expected) => {
+    expect(hasRoutesData({
+      dongleId: 'asdfasdf',
+      selectedRouteId,
+      filter: { start: 0, end: 30 },
+      routesMeta: { dongleId: 'asdfasdf', logId, start: 0, end: 30 },
+      routes: logIds.map((log_id) => ({ log_id })),
+    })).toBe(expected);
+  });
 });

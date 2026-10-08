@@ -1,61 +1,51 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { driveUrl, parseUrl, urlFor } from '../url';
+import { checkLastRoutesData, selectRoute, setDevice } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
-  }
+// Old links address a drive by timestamps; swap them for the drive's own URL.
+function resolveLegacyRange(pathname, dongleId, { start, end }) {
+  return (dispatch, getState) => {
+    api.routes.getRoutesSegments(dongleId, start, end).then((routesData) => {
+      if (routesData && routesData.length > 0 && getState().router.location.pathname === pathname) {
+        const logId = routesData[0].fullname.split('|')[1];
+        dispatch(replace(urlFor({ dongleId, logId })));
+      }
+    }).catch((err) => {
+      console.error('Error fetching routes data for log ID conversion', err);
+    });
+  };
+}
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
+// Updates whatever state the URL disagrees with, so navigating reuses everything else.
+export function syncStateToUrl(pathname) {
+  return (dispatch, getState) => {
+    const url = parseUrl(pathname);
+
+    const deviceChanged = url.dongleId && url.dongleId !== getState().dongleId;
+    if (deviceChanged) {
+      dispatch(setDevice(url.dongleId));
+    }
+
+    if (url.legacyRange) {
+      dispatch(resolveLegacyRange(pathname, url.dongleId, url.legacyRange));
+    }
+
     const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+    if (driveUrl(state, state.selectedRouteId, state.zoom) !== driveUrl(state, url.logId, url.zoom)) {
+      dispatch(selectRoute(url.logId, url.zoom));
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
+    if (deviceChanged) {
+      dispatch(checkLastRoutesData());
     }
+  };
+}
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
+  const result = next(action);
+  if (action.type === LOCATION_CHANGE) {
+    dispatch(syncStateToUrl(action.payload.location.pathname));
   }
+  return result;
 };

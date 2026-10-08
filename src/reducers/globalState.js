@@ -58,8 +58,6 @@ export default function reducer(_state, action) {
         ...state,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
@@ -75,6 +73,7 @@ export default function reducer(_state, action) {
       if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
         state.routesMeta = {
           dongleId: null,
+          logId: null,
           start: null,
           end: null,
         };
@@ -93,6 +92,7 @@ export default function reducer(_state, action) {
         },
         routesMeta: {
           dongleId: null,
+          logId: null,
           start: null,
           end: null,
         },
@@ -300,21 +300,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -421,6 +406,7 @@ export default function reducer(_state, action) {
       });
       state.routesMeta = {
         dongleId: action.dongleId,
+        logId: action.logId,
         start: action.start,
         end: action.end,
       };

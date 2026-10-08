@@ -19,6 +19,15 @@ export function hasRoutesData(state) {
     console.debug('Bad dongle id');
     return false;
   }
+  if (state.selectedRouteId) {
+    // a selected drive is loaded once it's in the list or was fetched by itself
+    return state.routesMeta.logId === state.selectedRouteId
+      || state.routes.some((route) => route.log_id === state.selectedRouteId);
+  }
+  if (state.routesMeta.logId) {
+    console.debug('Single drive, not a drive list');
+    return false;
+  }
   const fetchRange = state.filter;
   if (fetchRange.start < state.routesMeta.start) {
     console.debug('Bad start offset');

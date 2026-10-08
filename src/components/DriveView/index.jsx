@@ -7,6 +7,7 @@ import { IconButton, Typography } from '@material-ui/core';
 import { popTimelineRange, pushTimelineRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
+import { urlFor } from '../../url';
 
 import Media from './Media';
 import Timeline from '../Timeline';
@@ -32,12 +33,12 @@ class DriveView extends Component {
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dongleId, zoom, currentRoute, routes, routeMissing } = this.props;
 
     if (!currentRoute) {
       return (
         <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+          <Typography>{routeMissing ? 'Route does not exist.' : 'Loading...'}</Typography>
         </div>
       );
     }
@@ -78,7 +79,7 @@ class DriveView extends Component {
               <IconButton
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={ urlFor({ dongleId }) }
               >
                 <CloseBold />
               </IconButton>
@@ -101,6 +102,7 @@ const stateToProps = (state) => ({
   routes: state.routes,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
+  routeMissing: Boolean(state.selectedRouteId) && state.routesMeta.logId === state.selectedRouteId,
 });
 
 export default connect(stateToProps)(DriveView);

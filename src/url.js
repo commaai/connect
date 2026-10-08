@@ -1,66 +1,86 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+import { matchPath } from 'react-router-dom';
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+export const PAGES = {
+  PRIME: 'prime',
+  STREAM: 'stream',
+  REFERRALS: 'referrals',
+};
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
-  }
+export const DIALOGS = {
+  SETTINGS: 'settings',
+};
 
-  return parts[0] || null;
+const DONGLE_ID = ':dongleId([a-f0-9]{16})';
+const LOG_ID = ':logId([a-f0-9-]{20})';
+const DEVICE_PAGE = `:page(${PAGES.PRIME}|${PAGES.STREAM})`;
+
+// Every page the app understands; dialogs open over any page with ?dialog=.
+// Drive zooms are in seconds, legacy ranges in milliseconds.
+const ROUTES = [
+  `/:page(${PAGES.REFERRALS})`,
+  `/${DONGLE_ID}`,
+  `/${DONGLE_ID}/${DEVICE_PAGE}`,
+  `/${DONGLE_ID}/${LOG_ID}`,
+  `/${DONGLE_ID}/${LOG_ID}/:start(\\d+)/:end(\\d+)`,
+  `/${DONGLE_ID}/:legacyStart(\\d+)/:legacyEnd(\\d+)`,
+];
+
+function range(start, end, scale) {
+  return start === undefined ? null : { start: Number(start) * scale, end: Number(end) * scale };
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
+export function parseUrl(pathname, search = '') {
+  const match = ROUTES.map((path) => matchPath(pathname, { path, exact: true, sensitive: true })).find(Boolean);
+  const params = match?.params ?? matchPath(pathname, { path: `/${DONGLE_ID}`, sensitive: true })?.params ?? {};
+  const dialog = new URLSearchParams(search).get('dialog');
+
+  return {
+    dongleId: params.dongleId ?? null,
+    page: params.page ?? null,
+    logId: params.logId ?? null,
+    zoom: range(params.start, params.end, 1000),
+    legacyRange: range(params.legacyStart, params.legacyEnd, 1),
+    dialog: Object.values(DIALOGS).includes(dialog) ? dialog : null,
+  };
 }
 
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
+export function urlFor({ dongleId = null, page = null, logId = null, zoom = null }) {
+  if (page === PAGES.REFERRALS) {
+    return '/referrals';
   }
-  return null;
+
+  const parts = dongleId ? [dongleId] : [];
+  if (page) {
+    parts.push(page);
+  } else if (logId) {
+    parts.push(logId);
+    if (zoom) {
+      parts.push(Math.floor(zoom.start / 1000), Math.floor(zoom.end / 1000));
+    }
+  }
+  return `/${parts.join('/')}`;
 }
 
-export function getRouteZoom(pathname) {
-  const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
-  }
-  return null;
+export function dialogUrl(pathname, dialog) {
+  return dialog ? `${pathname}?dialog=${dialog}` : pathname;
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
-  }
-  return false;
+// URL of a drive selection; a zoom spanning the whole drive is left out.
+export function driveUrl({ dongleId, routes }, logId, zoom) {
+  const route = routes?.find((candidate) => candidate.log_id === logId);
+  const wholeDrive = zoom?.start == null || zoom?.end == null || (zoom.start === 0 && zoom.end === route?.duration);
+  return urlFor({ dongleId, logId, zoom: wholeDrive ? null : zoom });
 }
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+let lastLocation = null;
+let lastUrl = null;
 
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
+// Parsed URL of the router location, recomputed only when the location changes.
+export function selectUrl(state) {
+  const { location } = state.router;
+  if (location !== lastLocation) {
+    lastLocation = location;
+    lastUrl = parseUrl(location.pathname, location.search);
   }
-  return false;
+  return lastUrl;
 }
