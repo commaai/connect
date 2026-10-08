@@ -1,4 +1,4 @@
-import { replace } from 'connected-react-router';
+import { goBack, push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -234,12 +234,25 @@ export function loadDevice(dongleId) {
 /** Sends a dashboard URL without a device, like / or /demo, to the last device used, or the first listed. */
 export function openDefaultDevice(listed) {
   return (dispatch, getState) => {
-    const { page, devices } = getState();
+    const { page, modal, devices } = getState();
     const candidates = listed || devices;
     if (page !== 'dashboard' || !candidates?.length) return;
     const stored = window.localStorage.getItem('selectedDongleId');
     const dongleId = candidates.some((d) => d.dongle_id === stored) ? stored : candidates[0].dongle_id;
-    dispatch(replace(urlFor({ dongleId })));
+    dispatch(replace(urlFor({ dongleId, modal })));
+  };
+}
+
+/** Opens a modal over the dashboard of a device, the current one by default. */
+export function openModal(modal, dongleId) {
+  return (dispatch, getState) => dispatch(push(urlFor({ dongleId: dongleId || getState().dongleId, modal })));
+}
+
+/** Closes the modal by going back to where it was opened from, or to its page if it was linked to directly. */
+export function closeModal() {
+  return (dispatch, getState) => {
+    const { action, location } = getState().router;
+    dispatch(action === 'PUSH' ? goBack() : replace(location.pathname));
   };
 }
 

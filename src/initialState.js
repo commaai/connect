@@ -1,11 +1,12 @@
 import { getDefaultFilter } from './utils/filter';
 
-// The URL fields (dongleId, page, selectedRouteId, zoom) are filled in by the first
+// The URL fields (dongleId, page, modal, selectedRouteId, zoom) are filled in by the first
 // LOCATION_CHANGE, which the router dispatches as soon as it mounts.
 export function createInitialState() {
   return {
     dongleId: null,
     page: null,
+    modal: null,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data

@@ -7,19 +7,29 @@ const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
 const route = { log_id: LOG, duration: 60000 };
 
-const go = (state, pathname) => locationReducer(state, { type: LOCATION_CHANGE, payload: { location: { pathname } } });
+const go = (state, url) => {
+  const [pathname, search = ''] = url.split('?');
+  return locationReducer(state, { type: LOCATION_CHANGE, payload: { location: { pathname, search: search && `?${search}` } } });
+};
 
 const loaded = () => go({ dongleId: null, devices: [{ dongle_id: DONGLE }] }, `/${DONGLE}`);
 
 describe('location reducer', () => {
   it('selects the device from the URL', () => {
-    expect(loaded()).toMatchObject({ page: 'dashboard', dongleId: DONGLE, device: { dongle_id: DONGLE }, routes: null });
+    expect(loaded()).toMatchObject({ page: 'dashboard', modal: null, dongleId: DONGLE, device: { dongle_id: DONGLE }, routes: null });
   });
 
   it('keeps everything loaded when only the page changes', () => {
     const before = { ...loaded(), routes: [route], files: {} };
     const after = go(before, `/${DONGLE}/prime`);
     expect(after.page).toBe('prime');
+    for (const key of ['routes', 'files', 'device', 'filter', 'loop']) expect(after[key]).toBe(before[key]);
+  });
+
+  it('keeps everything loaded when only the modal changes', () => {
+    const before = { ...loaded(), routes: [route], files: {} };
+    const after = go(before, `/${DONGLE}?modal=settings`);
+    expect(after.modal).toBe('settings');
     for (const key of ['routes', 'files', 'device', 'filter', 'loop']) expect(after[key]).toBe(before[key]);
   });
 
@@ -56,7 +66,7 @@ describe('location reducer', () => {
 
   it('leaves playback alone when the drive and zoom are unchanged', () => {
     const drive = go({ ...loaded(), routes: [route] }, `/${DONGLE}/${LOG}/10/50`);
-    const again = go({ ...drive, offset: 1234 }, `/${DONGLE}/${LOG}/10/50`);
+    const again = go({ ...drive, offset: 1234 }, `/${DONGLE}/${LOG}/10/50?modal=filter`);
     expect(again.zoom).toBe(drive.zoom);
     expect(again.offset).toBe(1234);
   });

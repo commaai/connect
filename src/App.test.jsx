@@ -322,4 +322,24 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     expect(routeRequests()).toBe(before);
   });
+
+  test('a modal opened in the app has a URL and closes back through history', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Filter' }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=filter'));
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.index).toBe(0);
+    act(() => history.goForward());
+    expect(await screen.findByText('Start date:')).toBeVisible();
+  });
+
+  test('a modal linked to directly closes onto its page', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(`${history.location.pathname}${history.location.search}`).toBe(`/${FIRST}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
 });

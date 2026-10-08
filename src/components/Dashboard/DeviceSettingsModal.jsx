@@ -131,6 +131,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias,
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -144,11 +145,11 @@ class DeviceSettingsModal extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
+    const { device } = this.props;
+    if (prevProps.device?.dongle_id !== device?.dongle_id) {
       this.setState({
         ...initialState,
-        deviceAlias: alias,
+        deviceAlias: device?.alias,
       });
     }
   }
@@ -208,7 +209,7 @@ class DeviceSettingsModal extends Component {
       hasShared: false,
     });
     try {
-      await api.devices.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
+      await api.devices.grantDeviceReadPermission(this.props.device.dongle_id, this.state.shareEmail.trim());
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',
@@ -227,8 +228,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    this.props.dispatch(push(urlFor({ dongleId: this.props.dongleId, page: 'prime' })));
-    this.props.onClose();
+    this.props.dispatch(push(urlFor({ dongleId: this.props.device.dongle_id, page: 'prime' })));
   }
 
   async unpairDevice() {
@@ -269,7 +269,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
+          open
           onClose={this.props.onClose}
         >
           <Paper className={classes.modal}>
@@ -434,13 +434,9 @@ class DeviceSettingsModal extends Component {
   }
 }
 
-const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
-    || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
-  return {
-    subscription: state.subscription,
-    device,
-  };
-};
+const stateToProps = (state) => ({
+  subscription: state.subscription,
+  device: state.device,
+});
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));

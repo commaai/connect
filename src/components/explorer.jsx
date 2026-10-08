@@ -10,11 +10,13 @@ import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
+import AddDevice from './Dashboard/AddDevice';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, updateDevices } from '../actions';
+import { analyticsEvent, closeModal, updateDevices } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
@@ -24,6 +26,13 @@ import { urlFor } from '../url';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import TimeSelect from './TimeSelect';
+
+const MODALS = {
+  filter: TimeSelect,
+  pair: AddDevice,
+  settings: DeviceSettingsModal,
+};
 
 const styles = (theme) => ({
   app: {
@@ -82,10 +91,15 @@ class ExplorerApp extends Component {
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+    this.closeModal = this.closeModal.bind(this);
   }
 
   closeBodyTeleop() {
     this.props.dispatch(push(urlFor({ dongleId: this.props.dongleId })));
+  }
+
+  closeModal() {
+    this.props.dispatch(closeModal());
   }
 
   async componentDidMount() {
@@ -182,11 +196,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, devices, dongleId, page, profile,
+      classes, devices, dongleId, page, modal, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
+    const UrlModal = devices && MODALS[modal];
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -231,6 +246,7 @@ class ExplorerApp extends Component {
                 ? <NoDeviceUpsell />
                 : (page === 'drive' ? <DriveView /> : <Dashboard />)}
             </div>
+            { UrlModal && <UrlModal onClose={ this.closeModal } /> }
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
@@ -261,6 +277,7 @@ const stateToProps = (state) => ({
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
   page: state.page,
+  modal: state.modal,
   devices: state.devices,
   profile: state.profile,
 });

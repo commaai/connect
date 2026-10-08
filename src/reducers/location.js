@@ -56,8 +56,8 @@ export default function locationReducer(state, action) {
   if (action.type !== LOCATION_CHANGE) return state;
 
   // a URL without a device, like /referrals, keeps the current one
-  const { page, dongleId = state.dongleId, logId = null, zoom = null } = parseLocation(action.payload.location);
-  const next = { ...state, page };
+  const { page, modal, dongleId = state.dongleId, logId = null, zoom = null } = parseLocation(action.payload.location);
+  const next = { ...state, page, modal };
   if (dongleId !== state.dongleId) Object.assign(next, deviceState(state, dongleId));
   return Object.assign(next, driveState(next, logId, zoom));
 }
