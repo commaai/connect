@@ -264,6 +264,7 @@ class ExplorerApp extends Component {
             <IosPwaPopup />
             {dialog === DIALOGS.ADD_DEVICE && <AddDevice dialogOnly />}
             <DeviceSettingsModal
+              key={ dialogDevice }
               isOpen={ Boolean(dialogDevice) }
               dongleId={ dialogDevice }
               onClose={ this.closeDialog }

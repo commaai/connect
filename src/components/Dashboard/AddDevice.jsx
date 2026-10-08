@@ -241,6 +241,7 @@ class AddDevice extends Component {
 
     try {
       const results = await this.detector.detect(this.videoRef);
+      if (!this.scanning) return;
       if (results.length > 0) {
         this.onQrRead({ data: results[0].rawValue });
         return; // Stop scanning after detection
@@ -249,7 +250,7 @@ class AddDevice extends Component {
       // Ignore detection errors, just keep scanning
     }
 
-    this.scanFrameId = requestAnimationFrame(this.scanFrame);
+    if (this.scanning) this.scanFrameId = requestAnimationFrame(this.scanFrame);
   }
 
   startScanning() {
@@ -399,10 +400,10 @@ class AddDevice extends Component {
           { buttonText }
           { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
         </Button>}
-        {dialogOnly && <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
-          <Paper className={ classes.modal }>
+        {dialogOnly && <Modal open={ modalOpen } onClose={ this.modalClose }>
+          <Paper className={ classes.modal } role="dialog" aria-labelledby="add-device-title">
             <div className={ classes.titleContainer }>
-              <Typography variant="title">Pair device</Typography>
+              <Typography variant="title" id="add-device-title">Pair device</Typography>
               <Typography variant="caption">
                 scan QR code
               </Typography>

@@ -31,7 +31,7 @@ class DriveView extends Component {
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes, routeMissing } = this.props;
+    const { dongleId, zoom, currentRoute, routeMissing } = this.props;
 
     if (!currentRoute) {
       return (
@@ -41,8 +41,7 @@ class DriveView extends Component {
       );
     }
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = currentRouteBoundsSelected;
+    const isWholeDrive = zoom.start === 0 && zoom.end === currentRoute.duration;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -59,7 +58,7 @@ class DriveView extends Component {
               <IconButton
                 onClick={ () => this.onBack(currentRoute) }
                 aria-label="Go Back"
-                disabled={ backButtonDisabled }
+                disabled={ isWholeDrive }
               >
                 <ArrowBackBold />
               </IconButton>
@@ -85,9 +84,7 @@ class DriveView extends Component {
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
           <div className='px-3 pb-3 md:px-8 md:pb-8'>
-            {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
-              : <Media />}
+            <Media />
           </div>
         </div>
       </div>
@@ -97,7 +94,6 @@ class DriveView extends Component {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  routes: state.routes,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
   routeMissing: Boolean(state.selectedRouteId) && state.missingRouteId === state.selectedRouteId,

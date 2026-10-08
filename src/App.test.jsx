@@ -1,10 +1,12 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
+import { BarcodeDetector } from 'barcode-detector/ponyfill';
 
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { api } from './api/backend';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -162,6 +164,7 @@ describe('whole-app behavior', () => {
     });
   });
   afterEach(() => {
+    vi.restoreAllMocks();
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
@@ -297,7 +300,7 @@ describe('whole-app behavior', () => {
 
   test('settings close and browser history restore its dialog', async () => {
     const { history } = await renderApp(`/${FIRST}?dialog=settings`);
-    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(await screen.findByRole('dialog', { name: 'Device settings' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.search).toBe(''));
     expect(history.location.pathname).toBe(`/${FIRST}`);
@@ -321,6 +324,49 @@ describe('whole-app behavior', () => {
     await renderApp(`/${SHARED}?dialog=settings`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('a pending settings request cannot put its error on another device', async () => {
+    let rejectShare;
+    const share = vi.spyOn(api.devices, 'grantDeviceReadPermission').mockImplementation(() => new Promise((resolve, reject) => { rejectShare = reject; }));
+    const { history } = await renderApp(`/${FIRST}?dialog=settings`);
+    const email = await screen.findByLabelText('Share by email or user id');
+    fireEvent.change(email, { target: { value: 'friend@example.com' } });
+    fireEvent.keyPress(email, { key: 'Enter', charCode: 13 });
+    expect(share).toHaveBeenCalledWith(FIRST, 'friend@example.com');
+    act(() => history.push(`/${FIRST}?dialog=settings&device=${SECOND}`));
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Alpha');
+    await act(async () => rejectShare({ resp: { status: 404 } }));
+    expect(screen.queryByText('could not find user')).not.toBeInTheDocument();
+  });
+
+  test('browser Back stops the camera and ignores an unfinished QR detection', async () => {
+    const originalMediaDevices = navigator.mediaDevices;
+    const stop = vi.fn();
+    let finishDetection;
+    vi.spyOn(BarcodeDetector.prototype, 'detect').mockImplementation(() => new Promise((resolve) => { finishDetection = resolve; }));
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((type) => type === '2d'
+      ? { clearRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {} } : null);
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: async () => [{ kind: 'videoinput' }],
+      getUserMedia: async () => ({ getTracks: () => [{ stop }] }),
+    } });
+    try {
+      const { history } = await renderApp(`/${FIRST}`);
+      act(() => history.push(`/${FIRST}?dialog=add-device`));
+      expect(await screen.findByRole('dialog', { name: 'Pair device' })).toBeVisible();
+      await waitFor(() => expect(finishDetection).toBeTypeOf('function'));
+      act(() => history.goBack());
+      expect(stop).toHaveBeenCalledOnce();
+      const capture = vi.spyOn(await import('@sentry/react'), 'captureMessage');
+      await act(async () => finishDetection([{ rawValue: 'ignored-after-close' }]));
+      expect(capture).not.toHaveBeenCalled();
+      expect(screen.queryByRole('heading', { name: 'Pair device' })).not.toBeInTheDocument();
+    } finally {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: originalMediaDevices });
+    }
   });
 
   test('device settings button opens that device by URL', async () => {
