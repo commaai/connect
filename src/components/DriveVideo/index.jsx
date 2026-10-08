@@ -52,6 +52,7 @@ class RouteVideo extends Component {
 
   componentDidMount() {
     setVideo(this.video.current);
+    this.video.current.audioTracks?.addEventListener('addtrack', this.onAddAudioTrack);
     this.load(this.props.zoom?.start ?? 0);
   }
 
@@ -68,6 +69,7 @@ class RouteVideo extends Component {
 
   componentWillUnmount() {
     this.loads += 1;
+    this.video.current.audioTracks?.removeEventListener('addtrack', this.onAddAudioTrack);
     this.unload();
     setVideo(null);
   }
@@ -125,10 +127,14 @@ class RouteVideo extends Component {
 
   onLoadedMetadata = () => {
     applyPendingSeek();
-    if (!this.hls) {
-      this.props.onAudioStatusChange?.(Boolean(this.video.current.audioTracks?.length));
-    }
     this.syncState();
+  };
+
+  // native HLS reports its audio as a track on the element; hls.js reports it through BUFFER_CODECS
+  onAddAudioTrack = () => {
+    if (!this.hls) {
+      this.props.onAudioStatusChange?.(true);
+    }
   };
 
   onTimeUpdate = () => {
