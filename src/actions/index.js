@@ -2,6 +2,7 @@ import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
+import { urlFor } from '../routes';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
@@ -143,19 +144,7 @@ export function checkLastRoutesData() {
 }
 
 export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
+  return urlFor({ dongleId, logId: log_id, zoom: start && end ? { start, end } : null, isPrime: prime });
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
@@ -348,7 +337,7 @@ export function streamNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      const desiredPath = urlFor({ dongleId: state.dongleId, isStream: nav });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }
