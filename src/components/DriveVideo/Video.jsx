@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import hlsWorkerUrl from 'hls.js/dist/hls.worker.js?url';
 
 import { setVideo } from '../../timeline/video';
 import { useVideo, useVideoEvent } from '../../hooks/video';
 import { playsHlsNatively } from '../../utils/browser.js';
 
-const HLS_CONFIG = { maxBufferLength: 40 };
+const HLS_CONFIG = { maxBufferLength: 40, workerPath: hlsWorkerUrl };
 const HLS_ERROR = 'hlsError';
 const HLS_BUFFER_CODECS = 'hlsBufferCodecs';
 
