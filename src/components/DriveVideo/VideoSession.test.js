@@ -9,9 +9,11 @@ vi.mock('hls.js', () => ({ default: class {
   static isSupported = vi.fn(() => true);
   static Events = { ERROR: 'error' };
   static ErrorTypes = { MEDIA_ERROR: 'mediaError' };
+  static DefaultConfig = { fragLoadPolicy: { default: {} } };
   on = vi.fn((_name, callback) => { this.error = callback; });
   loadSource = vi.fn(); attachMedia = vi.fn(); destroy = vi.fn();
   recoverMediaError = vi.fn(); startLoad = vi.fn();
+  constructor(config) { this.config = config; this.levels = [{}]; }
 } }));
 
 let video, store, session, detach, onError;
@@ -209,4 +211,78 @@ it('restarts a failed HLS request on seek even if metadata is temporarily unavai
   video.readyState = 1;
   event('loadedmetadata');
   expect(video.currentTime).toBe(30);
+});
+
+it('keeps the actual media position when the first-frame offset arrives late', () => {
+  session.load('https://example.com/route.m3u8');
+  video.currentTime = 12;
+  event('timeupdate');
+  store.dispatch({ type: Types.ACTION_UPDATE_ROUTE_EVENTS, fullname: 'route', events: [
+    { type: 'event', data: { event_type: 'first_road_camera_frame' }, route_offset_millis: 3000 },
+  ] });
+  expect(video.currentTime).toBe(12);
+  expect(store.getState().offset).toBe(15000);
+});
+
+it('starts HLS loading at the requested position before metadata is available', () => {
+  video.readyState = 0;
+  store.dispatch(seek(30000));
+  video.canPlayType.mockReturnValue('');
+  session.load('https://example.com/route.m3u8');
+  expect(session.hls.config.startPosition).toBe(30);
+  expect(session.hls.config.fragLoadPolicy.default.errorRetry.maxNumRetry).toBe(2);
+  store.dispatch(seek(45000));
+  expect(session.hls.startLoad).toHaveBeenCalledWith(45);
+});
+
+it('reloads a failed manifest when seeking instead of restarting nonexistent levels', () => {
+  video.canPlayType.mockReturnValue('');
+  session.load('https://example.com/route.m3u8');
+  session.hls.levels = [];
+  session.hls.error('error', { fatal: true, response: { code: 503 } });
+  session.hls.loadSource.mockClear();
+  store.dispatch(seek(30000));
+  expect(session.hls.loadSource).toHaveBeenCalledWith('https://example.com/route.m3u8');
+  expect(session.hls.startLoad).toHaveBeenCalledWith(30);
+});
+
+it('does not treat a stale pause notification as a pause of a playing element', () => {
+  store.dispatch(play());
+  event('pause');
+  expect(store.getState().desiredPlaySpeed).toBe(1);
+});
+
+it('keeps terminal errors visible when stale metadata and canplay events arrive', () => {
+  video.canPlayType.mockReturnValue('');
+  session.load('https://example.com/route.m3u8');
+  session.hls.error('error', { fatal: true, response: { code: 404 } });
+  onError.mockClear();
+  event('loadedmetadata'); event('seeked'); event('canplay');
+  expect(session.failed).toBe(true);
+  expect(store.getState().isBufferingVideo).toBe(false);
+  expect(video.play).not.toHaveBeenCalled();
+  expect(onError).not.toHaveBeenCalled();
+});
+
+it('reloads native HLS after a terminal error when the user seeks', () => {
+  session.load('https://example.com/route.m3u8');
+  Hls.isSupported.mockReturnValueOnce(false);
+  event('error');
+  video.removeAttribute('src');
+  video.readyState = 0;
+  store.dispatch(seek(30000));
+  expect(video.src).toBe('https://example.com/route.m3u8');
+  expect(store.getState().isBufferingVideo).toBe(true);
+  expect(session.pending).toBe(30000);
+});
+
+it('retries from the requested position when play follows a terminal error', () => {
+  video.canPlayType.mockReturnValue('');
+  session.load('https://example.com/route.m3u8');
+  store.dispatch(seek(30000));
+  session.hls.error('error', { fatal: true, response: { code: 503 } });
+  store.dispatch(play());
+  expect(session.hls.startLoad).toHaveBeenCalledWith(30);
+  expect(session.failed).toBe(false);
+  expect(video.play).toHaveBeenCalled();
 });

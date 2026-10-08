@@ -4,6 +4,14 @@ Run `bun install --frozen-lockfile`, `bun run test`, `bun run lint`, and
 `bun run build:development`. Run tests separately from the build: the app
 integration tests have a five-second timeout and can time out under contention.
 
+Run `bun run test:playback` with FFmpeg installed (or `FFMPEG_PATH` pointing to
+its executable). Set `PUPPETEER_EXECUTABLE_PATH` to an installed Chrome if
+Puppeteer's downloaded browser is unavailable. This decodes generated H.264/AAC
+through the actual player and Redux middleware, checking audio, repeated paused
+seeks, late metadata, map switching, speed, range looping, offline recovery,
+native-to-HLS fallback, missing/empty manifests, and unavailable segments.
+It does not validate Safari's native HLS or real microphone recordings.
+
 Start `bun start` and open `/demo`. The **Normal playback** route uses the public
 demo drive without modifying its metadata. Other routes exercise missing logs,
 GPS, thumbnails, and unavailable video. Demo routes share the public drive's

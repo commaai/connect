@@ -13,8 +13,16 @@ export default class VideoSession {
       this.listeners[name] = handler;
       video.addEventListener(name, handler);
     };
-    listen('loadedmetadata', () => { this.seek(this.pending ?? this.state.offset); this.resume(); });
-    listen('canplay', () => { this.report({ isBufferingVideo: false }); this.resume(); });
+    listen('loadedmetadata', () => {
+      if (this.failed) return;
+      this.seek(this.pending ?? this.state.offset);
+      this.resume();
+    });
+    listen('canplay', () => {
+      if (this.failed) return;
+      this.report({ isBufferingVideo: false });
+      this.resume();
+    });
     listen('playing', () => {
       this.failed = false;
       this.onError(null);
@@ -22,6 +30,7 @@ export default class VideoSession {
       this.tick();
     });
     listen('pause', () => {
+      if (!video.paused) return;
       this.stopTick();
       if (!video.ended && !this.recovering && !this.failed) this.report({
         desiredPlaySpeed: 0, isBufferingVideo: false,
@@ -32,6 +41,7 @@ export default class VideoSession {
       listen(event, () => { this.stopTick(); this.report({ isBufferingVideo: true }); });
     }
     listen('seeked', () => {
+      if (this.failed) return;
       this.pending = null;
       this.seek(this.offset());
       this.report({ isBufferingVideo: video.readyState < 2 });
@@ -78,12 +88,15 @@ export default class VideoSession {
     this.state = state;
     this.fullname = state.currentRoute.fullname;
     if (action.type === Types.ACTION_SEEK || action.type === Types.ACTION_RESET
-      || previous?.loop !== state.loop
-      || previous?.currentRoute.videoStartOffset !== state.currentRoute.videoStartOffset) {
+      || previous?.loop !== state.loop) {
       this.seek(state.offset ?? state.loop?.startTime ?? state.zoom?.start ?? 0);
+    } else if (previous?.currentRoute.videoStartOffset !== state.currentRoute.videoStartOffset) {
+      // Metadata translates the media clock; it must not rewind a playing video.
+      this.seek(this.pending ?? this.offset());
     }
     if (action.type === Types.ACTION_PLAY || action.type === Types.ACTION_RESET) {
-      if (this.offset() >= this.bounds().end) this.seek(this.bounds().start);
+      if (this.failed) this.seek(state.offset);
+      else if (this.offset() >= this.bounds().end) this.seek(this.bounds().start);
       this.resume();
     } else if (action.type === Types.ACTION_SEEK) {
       this.resume();
@@ -98,11 +111,15 @@ export default class VideoSession {
     const { start, end, origin } = this.bounds();
     if (end <= start) { this.fail('There is no video in this selection.'); return; }
     const target = (Math.max(start, Math.min(end, offset)) - origin) / 1000;
-    if (this.failed) {
+    const retry = this.failed;
+    if (retry) {
       this.failed = false;
       this.onError(null);
-      this.hls?.startLoad(target);
+      this.report({ isBufferingVideo: true });
+      if (this.hls?.levels.length === 0) this.hls.loadSource(this.url);
+      else if (!this.hls) this.video.src = this.url;
     }
+    if (retry || this.video.readyState < 1) this.hls?.startLoad(target);
     if (this.video.readyState < 1) return;
     if (Math.abs(this.video.currentTime - target) > 0.001) {
       this.video.currentTime = target;
@@ -174,7 +191,16 @@ export default class VideoSession {
     this.playAttempt = (this.playAttempt ?? 0) + 1;
     this.failed = false;
     this.onError(null);
-    this.hls = new Hls({ maxBufferLength: 40, backBufferLength: 60 });
+    const { start, end, origin } = this.bounds();
+    const startPosition = (Math.max(start, Math.min(end, this.pending ?? this.state.offset ?? start)) - origin) / 1000;
+    this.hls = new Hls({
+      startPosition, maxBufferLength: 40, backBufferLength: 60,
+      // Bound failed segment retries so missing footage offers a usable retry.
+      fragLoadPolicy: { default: {
+        ...Hls.DefaultConfig.fragLoadPolicy.default,
+        errorRetry: { maxNumRetry: 2, retryDelayMs: 500, maxRetryDelayMs: 1000 },
+      } },
+    });
     this.hls.on(Hls.Events.ERROR, (_event, data) => {
       if (this.destroyed) return;
       if (data.type === Hls.ErrorTypes.MEDIA_ERROR && data.fatal && !this.recovered) {

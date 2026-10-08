@@ -23,6 +23,21 @@ jobs:
       - name: Run unit tests
         run: bun run test
 
+  playback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Install media fixture encoder
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Decode video and audio through the real player
+        env:
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: bun run test:playback
+
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 1

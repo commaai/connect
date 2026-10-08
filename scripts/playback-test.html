@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Playback regression fixture</title>
+<style>body { margin: 24px; background: #1d2225; color: white; } #root { max-width: 640px; } button { margin: 6px; padding: 8px; }</style>
+<div id="root"></div>
+<button id="play">Play</button><button id="pause">Pause</button>
+<button id="seek">Seek</button><button id="speed">2x</button>
+<button id="unmute">Unmute</button><button id="map">Map</button>
+<button id="loop">Loop</button><button id="whole">Whole route</button>
+<output id="position"></output>
+<script type="module">
+  import React from 'react';
+  import { createRoot } from 'react-dom/client';
+  import { Provider } from 'react-redux';
+  import { createStore, applyMiddleware } from 'redux';
+  import DriveVideo from '/src/components/DriveVideo/index.jsx';
+  import rootReducer from '/src/reducers/index.js';
+  import { api } from '/src/api/backend.js';
+  import { playbackMiddleware, pause, play, seek, selectLoop } from '/src/timeline/playback.js';
+
+  const profile = new URLSearchParams(location.search).get('profile') ?? 'normal';
+  const nativeCanPlayType = HTMLMediaElement.prototype.canPlayType;
+  HTMLMediaElement.prototype.canPlayType = function (type) {
+    if (type === 'application/vnd.apple.mpegurl') return profile === 'fallback' ? 'probably' : '';
+    return nativeCanPlayType.call(this, type);
+  };
+  Object.defineProperty(api, 'video', { value: {
+    getQcameraStreamUrl: (fullname) => `/__media/${fullname}/stream.m3u8`,
+  } });
+  const store = createStore(rootReducer, {
+    offset: 0, desiredPlaySpeed: 1, playbackRate: 1, isBufferingVideo: true,
+    currentRoute: { fullname: profile, duration: 120000, videoStartOffset: 0 },
+    loop: null, zoom: { start: 0, end: 120000 },
+  }, applyMiddleware(playbackMiddleware));
+  const root = createRoot(document.getElementById('root'));
+  let hidden = false;
+  const render = () => root.render(React.createElement(Provider, { store }, React.createElement(DriveVideo, { hidden })));
+  render();
+  window.playback = {
+    store, target: 0,
+    get video() { return document.querySelector('video'); },
+  };
+  document.getElementById('play').onclick = () => store.dispatch(play(store.getState().playbackRate));
+  document.getElementById('pause').onclick = () => store.dispatch(pause());
+  document.getElementById('seek').onclick = () => store.dispatch(seek(window.playback.target));
+  document.getElementById('speed').onclick = () => store.dispatch(play(2));
+  document.getElementById('unmute').onclick = () => { window.playback.video.muted = false; };
+  document.getElementById('map').onclick = () => { hidden = !hidden; render(); };
+  document.getElementById('loop').onclick = () => store.dispatch(selectLoop(2000, 4000));
+  document.getElementById('whole').onclick = () => store.dispatch(selectLoop(null, null));
+  store.subscribe(() => { document.getElementById('position').value = store.getState().offset; });
+</script>
+</html>
