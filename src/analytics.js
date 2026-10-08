@@ -4,25 +4,15 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseLocation } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
+  const route = parseLocation(pathname);
+  if (route.page === 'drive') return `/<dongleId>/<routeId>${route.zoom ? '/<zoomStart>/<zoomEnd>' : ''}`;
+  if (route.page === 'legacy') return '/<dongleId>/<zoomStart>/<zoomEnd>';
+  if (route.dongleId) return pathname.replace(route.dongleId, '<dongleId>');
+  return route.page === 'notFound' ? '/not-found' : pathname.replace(/\/$/, '');
 }
 
 const clusterMap = {
@@ -100,11 +90,16 @@ function logAction(action, prevState, state) {
 
   // eslint-disable-next-line default-case
   switch (action.type) {
-    case LOCATION_CHANGE:
+    case LOCATION_CHANGE: {
+      const previous = prevState.router?.location;
+      const current = action.payload.location;
+      if (previous?.pathname === current.pathname
+        && (previous.search !== current.search || previous.hash !== current.hash)) return;
       gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(action.payload.location.pathname),
+        page_location: getPageViewEventLocation(current.pathname),
       });
       return;
+    }
 
     case Types.TIMELINE_PUSH_SELECTION:
       if (!prevState.zoom && state.zoom) {

@@ -12,6 +12,7 @@ import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions'
 import { CheckIcon, ErrorOutline, InfoOutline, KeyboardBackspaceIcon } from '../../icons';
 import CommacareIcon from '../../icons/commacare.png';
 import { COMMACARE_URL } from '../CommacareBadge';
+import { hardNavigate } from '../../utils/navigation';
 
 const styles = () => ({
   linkHighlight: {
@@ -230,7 +231,7 @@ const styles = () => ({
   },
 });
 
-class PrimeCheckout extends Component {
+export class PrimeCheckout extends Component {
   constructor(props) {
     super(props);
 
@@ -245,10 +246,12 @@ class PrimeCheckout extends Component {
     this.gotoCheckout = this.gotoCheckout.bind(this);
     this.trialClaimable = this.trialClaimable.bind(this);
     this.dataPlanAvailable = this.dataPlanAvailable.bind(this);
+    this.checkoutRequest = 0;
   }
 
   componentDidMount() {
     const { dispatch, dongleId, device } = this.props;
+    this.mounted = true;
     this.unsubscribeWindowSize = subscribeWindowSize(({ width, height }) => {
       this.setState({ windowWidth: width, windowHeight: height });
     });
@@ -259,11 +262,17 @@ class PrimeCheckout extends Component {
   }
 
   componentWillUnmount() {
+    this.mounted = false;
+    this.checkoutRequest += 1;
     this.unsubscribeWindowSize?.();
   }
 
   componentDidUpdate(prevProps) {
     const { stripeCancelled, subscribeInfo } = this.props;
+    if (prevProps.location !== this.props.location || prevProps.dongleId !== this.props.dongleId) {
+      this.checkoutRequest += 1;
+      if (this.state.loadingCheckout) this.setState({ loadingCheckout: false });
+    }
     if (!prevProps.stripeCancelled && stripeCancelled) {
       this.setState({ error: 'Checkout cancelled' });
     }
@@ -275,8 +284,12 @@ class PrimeCheckout extends Component {
   }
 
   async gotoCheckout() {
-    const { dispatch, dongleId, subscribeInfo } = this.props;
-    this.setState({ loadingCheckout: true });
+    const { dispatch, dongleId, subscribeInfo, location } = this.props;
+    this.checkoutRequest += 1;
+    const request = this.checkoutRequest;
+    const isCurrent = () => this.mounted && request === this.checkoutRequest
+      && dongleId === this.props.dongleId && location === this.props.location;
+    this.setState({ error: null, loadingCheckout: true });
     try {
       const { selectedPlan: plan } = this.state;
       const simId = plan === 'data' ? subscribeInfo.sim_id : undefined;
@@ -285,12 +298,14 @@ class PrimeCheckout extends Component {
         simId,
         plan,
       );
+      if (!isCurrent()) return;
       dispatch(analyticsEvent('prime_checkout', { plan }));
-      window.location = resp.url;
+      hardNavigate(resp.url);
     } catch (err) {
-      // TODO show error messages
+      if (!isCurrent()) return;
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
+      this.setState({ loadingCheckout: false, error: 'Unable to start checkout. Please try again.' });
     }
   }
 
@@ -512,6 +527,7 @@ class PrimeCheckout extends Component {
 }
 
 const stateToProps = (state) => ({
+  location: state.router.location,
   dongleId: state.dongleId,
   device: state.device,
   subscribeInfo: state.subscribeInfo,

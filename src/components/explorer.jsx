@@ -14,7 +14,8 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav, fetchSharedDevice } from '../actions';
+import { navigate } from '../actions/navigation';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -24,6 +25,8 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import RoutedModals from './RoutedModals';
+import { parseLocation, pathForState, safeReturnTo } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -99,7 +102,7 @@ class ExplorerApp extends Component {
 
     const q = new URLSearchParams(window.location.search);
     if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
+      this.props.dispatch(replace(safeReturnTo(q.get('r'))));
     }
 
     this.props.dispatch(init());
@@ -153,8 +156,8 @@ class ExplorerApp extends Component {
     this.unsubscribeWindowSize?.();
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+  componentDidUpdate(prevProps) {
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -165,13 +168,6 @@ class ExplorerApp extends Component {
     }
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
-    }
-
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
     }
   }
 
@@ -198,12 +194,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, devices, dispatch, dongleId, bodyTeleopOpen, page, profile, navigationError, deviceError, pathname, search, location,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -224,13 +220,13 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
-        { bodyTeleopOpen ? (
-          <BodyTeleop onClose={ this.closeBodyTeleop } />
+        { bodyTeleopOpen && !deviceError ? (
+          <BodyTeleop key={dongleId} onClose={ this.closeBodyTeleop } />
         ) : (
           <>
             <AppHeader
               drawerIsOpen={ drawerIsOpen }
-              viewingRoute={ Boolean(currentRoute) }
+              viewingRoute={ page === 'drive' }
               showDrawerButton={ !isLarge }
               handleDrawerStateChanged={this.handleDrawerStateChanged}
               forwardRef={ this.updateHeaderRef }
@@ -243,11 +239,36 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
+              { page === 'notFound'
+                ? <div className="p-8"><Typography variant="title">Page not found</Typography><Button onClick={() => dispatch(push('/'))}>Go to your devices</Button></div>
+                : deviceError
+                ? (
+                  <div className="p-8">
+                    <Typography>{deviceError}</Typography>
+                    <Button onClick={() => dispatch(fetchSharedDevice(dongleId))}>Try again</Button>
+                    <Button onClick={() => dispatch(navigate('/'))}>Go to your devices</Button>
+                  </div>
+                )
+                : page === 'legacy' || navigationError
+                ? (
+                  <div className="p-8">
+                    <Typography>{navigationError || 'Loading drive…'}</Typography>
+                    {navigationError && page === 'drive' && parseLocation(location).zoom && (
+                      <Button onClick={() => dispatch(navigate({
+                        ...location,
+                        pathname: pathForState({ ...parseLocation(location), modal: null, clip: null, zoom: null }),
+                        state: { ...location.state, zoomPrevious: null },
+                      }, true))}>View full drive</Button>
+                    )}
+                    {navigationError && <Button href={`${pathname}${search}`}>Try again</Button>}
+                    {navigationError && <Button onClick={() => dispatch(selectDevice(dongleId))}>Go to your drives</Button>}
+                  </div>
+                )
+                : referralsOpen
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
+                : (page === 'drive' ? <DriveView /> : <Dashboard key={dongleId} />)}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -270,20 +291,23 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        <RoutedModals />
       </div>
     );
   }
 }
 
 const stateToProps = (state) => ({
+  location: state.router.location,
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  search: state.router.location.search,
+  navigationError: state.navigationError,
+  deviceError: ['device', 'prime', 'stream'].includes(parseLocation(state.router.location).page) ? state.deviceError : null,
   dongleId: state.dongleId,
   devices: state.devices,
-  currentRoute: state.currentRoute,
-  selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
+  bodyTeleopOpen: parseLocation(state.router.location).page === 'stream',
+  page: parseLocation(state.router.location).page,
   profile: state.profile,
 });
 

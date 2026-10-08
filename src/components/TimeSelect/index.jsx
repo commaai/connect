@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 
 import { Button, Modal, Paper, Typography, withStyles } from '@material-ui/core';
@@ -39,6 +39,11 @@ const TimeSelect = ({ classes, onClose, filter, dispatch }) => {
   const [start, setStart] = useState(formatDate(new Date(filter.start)));
   const [end, setEnd] = useState(formatDate(new Date(filter.end)));
 
+  useEffect(() => {
+    setStart(formatDate(new Date(filter.start)));
+    setEnd(formatDate(new Date(filter.end)));
+  }, [filter.start, filter.end]);
+
   const changeStart = (event) => {
     if (event.target.value) {
       setStart(event.target.value);
@@ -59,7 +64,6 @@ const TimeSelect = ({ classes, onClose, filter, dispatch }) => {
       parseDate(start).setHours(0, 0, 0, 0),
       parseDate(end).setHours(23, 59, 59, 999),
     ));
-    onClose();
   };
 
   const max = new Date();

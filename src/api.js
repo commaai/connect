@@ -149,7 +149,7 @@ export const devices = {
     }
     throw new Error(`Could not fetch device location: ${JSON.stringify(location)}`);
   },
-  fetchDevice: (dongleId) => request.get(`v1.1/devices/${dongleId}/`),
+  fetchDevice: (dongleId) => request.request('GET', `v1.1/devices/${dongleId}/`, undefined, true, true, true),
   pilotPair: (pair_token) => request.postForm('v2/pilotpair/', { pair_token }),
   fetchDeviceStats: (dongleId) => request.get(`v1.1/devices/${dongleId}/stats`),
   unpair: (dongleId) => request.post(`v1/devices/${dongleId}/unpair`),

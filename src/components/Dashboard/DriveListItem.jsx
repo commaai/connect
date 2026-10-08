@@ -11,6 +11,7 @@ import { useWindowWidth } from '../../hooks/window';
 import { RightArrow } from '../../icons';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
+import { pathForState, selectLocation } from '../../url';
 import Timeline from '../Timeline';
 
 const styles = () => ({
@@ -57,7 +58,7 @@ const DriveListItem = (props) => {
   const el = useRef();
   const [isVisible, setVisible] = useState(false);
   const windowWidth = useWindowWidth();
-  const { classes, dispatch, drive } = props;
+  const { classes, dispatch, drive, dateFilter } = props;
 
   useEffect(() => {
     const onScroll = () => {
@@ -84,7 +85,7 @@ const DriveListItem = (props) => {
   }, [drive, dispatch, isVisible, el]);
 
   const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
+    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration)),
   );
 
   const small = windowWidth < 580;
@@ -119,7 +120,7 @@ const DriveListItem = (props) => {
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
+      href={pathForState({ page: 'drive', dongleId: drive.dongle_id, selectedRouteId: drive.log_id, filter: dateFilter })}
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
@@ -161,4 +162,4 @@ const DriveListItem = (props) => {
   );
 };
 
-export default connect(() => ({}))(withStyles(styles)(DriveListItem));
+export default connect((state) => ({ dateFilter: selectLocation(state).filter }))(withStyles(styles)(DriveListItem));

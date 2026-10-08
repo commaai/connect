@@ -11,6 +11,9 @@ import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
 import { ErrorOutline, InfoOutline, KeyboardBackspaceIcon, PriorityHighIcon } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
+import { openModal, closeModal } from '../../actions/navigation';
+import { parseLocation } from '../../url';
+import { hardNavigate } from '../../utils/navigation';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 import { otherPrimePlan, primePlanName } from './primePlans';
 
@@ -224,12 +227,10 @@ export class PrimeManage extends Component {
     this.state = {
       error: null,
       cancelError: null,
-      cancelModal: false,
       canceling: false,
-      planSwitchModal: false,
       planSwitchStatus: 'confirm',
       planSwitchMessage: null,
-      planSwitchTarget: null,
+      planSwitchTarget: props.plan || (props.subscription ? otherPrimePlan(props.subscription.plan) : null),
       switchingPlan: false,
       stripeStatus: null,
       windowWidth: window.innerWidth,
@@ -240,6 +241,8 @@ export class PrimeManage extends Component {
     this.gotoUpdate = this.gotoUpdate.bind(this);
     this.switchPlan = this.switchPlan.bind(this);
     this.fetchSubscription = this.fetchSubscription.bind(this);
+    this.closePlanSwitch = this.closePlanSwitch.bind(this);
+    this.portalRequest = 0;
   }
 
   componentDidMount() {
@@ -253,6 +256,22 @@ export class PrimeManage extends Component {
   componentDidUpdate(prevProps, prevState) {
     const { subscription } = this.props;
     const { stripeStatus } = this.state;
+    if (prevProps.location !== this.props.location || prevProps.dongleId !== this.props.dongleId) {
+      this.portalRequest += 1;
+    }
+
+    if (this.props.modal === 'prime-switch' && subscription?.user_id
+      && (prevProps.modal !== this.props.modal || prevProps.plan !== this.props.plan || !prevProps.subscription?.user_id)) {
+      this.setState({
+        planSwitchStatus: 'confirm',
+        planSwitchMessage: null,
+        planSwitchTarget: this.props.plan || otherPrimePlan(subscription.plan),
+        error: null,
+      });
+    }
+    if (this.props.modal === 'prime-cancel' && prevProps.modal !== this.props.modal) {
+      this.setState({ cancelError: null, cancelSuccess: null });
+    }
 
     if (!prevProps.stripeSuccess && this.props.stripeSuccess) {
       this.setState({
@@ -268,7 +287,12 @@ export class PrimeManage extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    this.portalRequest += 1;
     this.unsubscribeWindowSize?.();
+  }
+
+  closePlanSwitch() {
+    if (!this.state.switchingPlan) this.props.dispatch(closeModal());
   }
 
   cancelPrime() {
@@ -290,11 +314,17 @@ export class PrimeManage extends Component {
   }
 
   async gotoUpdate() {
+    const { dongleId, location } = this.props;
+    this.portalRequest += 1;
+    const request = this.portalRequest;
+    const isCurrent = () => this.mounted && request === this.portalRequest
+      && dongleId === this.props.dongleId && location === this.props.location;
     this.props.dispatch(analyticsEvent('prime_stripe_update', { plan: this.props.subscription.plan }));
     try {
-      const resp = await Billing.getStripePortal(this.props.dongleId);
-      window.location = resp.url;
+      const resp = await Billing.getStripePortal(dongleId);
+      if (isCurrent()) hardNavigate(resp.url);
     } catch (err) {
+      if (!isCurrent()) return;
       // TODO show error messages
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
@@ -392,7 +422,7 @@ export class PrimeManage extends Component {
   }
 
   render() {
-    const { dispatch, dongleId, subscription, classes, device } = this.props;
+    const { dispatch, dongleId, subscription, classes, device, modal } = this.props;
     const { windowWidth, stripeStatus } = this.state;
     const commacare = device?.commacare;
 
@@ -523,13 +553,7 @@ export class PrimeManage extends Component {
                       <Button
                         className={classes.buttons}
                         style={buttonSmallStyle}
-                        onClick={() => this.setState({
-                          planSwitchModal: true,
-                          planSwitchStatus: 'confirm',
-                          planSwitchMessage: null,
-                          planSwitchTarget: otherPrimePlan(subscription.plan),
-                          error: null,
-                        })}
+                        onClick={() => dispatch(openModal('prime-switch', null, otherPrimePlan(subscription.plan)))}
                         disabled={this.state.switchingPlan}
                       >
                         {this.state.switchingPlan
@@ -542,7 +566,7 @@ export class PrimeManage extends Component {
                       <Button
                         className={`${classes.buttons} ${classes.cancelButton} primeCancel`}
                         style={buttonSmallStyle}
-                        onClick={() => this.setState({ cancelModal: true })}
+                        onClick={() => dispatch(openModal('prime-cancel'))}
                         disabled={Boolean(!hasPrimeSub)}
                       >
                         Cancel subscription
@@ -578,17 +602,8 @@ export class PrimeManage extends Component {
           </div>
         </div>
         <Modal
-          open={this.state.planSwitchModal}
-          onClose={() => {
-            if (!this.state.switchingPlan) {
-              this.setState({
-                planSwitchModal: false,
-                planSwitchStatus: 'confirm',
-                planSwitchMessage: null,
-                planSwitchTarget: null,
-              });
-            }
-          }}
+          open={modal === 'prime-switch'}
+          onClose={this.closePlanSwitch}
         >
           <Paper className="absolute left-1/2 top-[40%] w-[400px] max-w-[90%] -translate-x-1/2 -translate-y-1/2 p-4">
             {this.state.planSwitchStatus === 'success'
@@ -609,12 +624,7 @@ export class PrimeManage extends Component {
                     <Button
                       variant="contained"
                       className={classes.closeButton}
-                      onClick={() => this.setState({
-                        planSwitchModal: false,
-                        planSwitchStatus: 'confirm',
-                        planSwitchMessage: null,
-                        planSwitchTarget: null,
-                      })}
+                      onClick={this.closePlanSwitch}
                     >
                       Done
                     </Button>
@@ -663,12 +673,7 @@ export class PrimeManage extends Component {
                 <Button
                   variant="contained"
                   className={classes.closeButton}
-                  onClick={() => this.setState({
-                    planSwitchModal: false,
-                    planSwitchStatus: 'confirm',
-                    planSwitchMessage: null,
-                    planSwitchTarget: null,
-                  })}
+                  onClick={this.closePlanSwitch}
                   disabled={this.state.switchingPlan}
                 >
                   Cancel
@@ -678,8 +683,8 @@ export class PrimeManage extends Component {
           </Paper>
         </Modal>
         <Modal
-          open={this.state.cancelModal}
-          onClose={() => this.setState({ cancelModal: false })}
+          open={modal === 'prime-cancel'}
+          onClose={() => dispatch(closeModal())}
         >
           <Paper className={classes.modal}>
             <Typography variant="title">Cancel prime subscription</Typography>
@@ -726,7 +731,7 @@ export class PrimeManage extends Component {
             <Button
               variant="contained"
               className={`${classes.closeButton} primeModalClose`}
-              onClick={() => this.setState({ cancelModal: false })}
+              onClick={() => dispatch(closeModal())}
             >
               Close
             </Button>
@@ -738,6 +743,9 @@ export class PrimeManage extends Component {
 }
 
 const stateToProps = (state) => ({
+  location: state.router.location,
+  modal: parseLocation(state.router.location).modal,
+  plan: parseLocation(state.router.location).plan,
   dongleId: state.dongleId,
   device: state.device,
   subscription: state.subscription,

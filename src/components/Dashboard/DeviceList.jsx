@@ -8,13 +8,15 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
+import { openModal } from '../../actions/navigation';
+import { withModal, pathForState, parseLocation } from '../../url';
+import { customFilter } from '../../utils/filter';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
 
 const styles = (theme) => ({
   deviceList: {
@@ -25,7 +27,7 @@ const styles = (theme) => ({
     alignItems: 'center',
     display: 'flex',
     justifyContent: 'space-between',
-    padding: '16px 32px',
+    padding: '0 32px',
     '&.isSelected': {
       backgroundColor: 'rgba(0, 0, 0, 0.25)',
     },
@@ -51,6 +53,9 @@ const styles = (theme) => ({
   deviceInfo: {
     display: 'flex',
     alignItems: 'center',
+    flex: 1,
+    padding: '16px 0',
+    textDecoration: 'none',
   },
   deviceName: {
     display: 'flex',
@@ -88,24 +93,13 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
-  handleOpenedSettingsModal(dongleId, ev) {
-    ev.stopPropagation();
-    ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+  handleOpenedSettingsModal(dongleId) {
+    this.props.dispatch(openModal('settings', dongleId));
   }
 
   async onVisible() {
@@ -122,17 +116,20 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
+    const { classes, filter: currentFilter, handleDeviceSelected, location, profile, selectedDevice } = this.props;
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
+    const filter = selectedDevice === device.dongle_id ? (parseLocation(location).filter || customFilter(currentFilter)) : null;
     return (
-      <a
+      <div
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
       >
-        <div className={classes.deviceInfo}>
+        <a
+          className={classes.deviceInfo}
+          onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
+          href={pathForState({ page: 'device', dongleId: device.dongle_id, filter })}
+        >
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
           <div className={ classes.deviceName }>
             <Typography className={classes.deviceAlias}>
@@ -142,23 +139,25 @@ class DeviceList extends Component {
               { device.dongle_id }
             </Typography>
           </div>
-        </div>
+        </a>
         { (device.is_owner || (profile && profile.superuser))
           && (
           <IconButton
+            component="a"
+            role="link"
             className={classes.settingsButton}
             aria-label="device settings"
-            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
+            href={withModal(location, 'settings', device.dongle_id)}
+            onClick={ filterRegularClick(() => this.handleOpenedSettingsModal(device.dongle_id)) }
           >
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
           )}
-      </a>
+      </div>
     );
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -167,7 +166,7 @@ class DeviceList extends Component {
     }
 
     const found = devices.some((d) => d.dongle_id === dongleId);
-    if (!found && device && dongleId === device.dongle_id) {
+    if (!found && dongleId && device && dongleId === device.dongle_id) {
       devices = [{
         ...device,
         alias: emptyDevice.alias,
@@ -202,11 +201,6 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }
@@ -216,6 +210,8 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  location: state.router.location,
+  filter: state.filter,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

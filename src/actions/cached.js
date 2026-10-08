@@ -48,6 +48,7 @@ async function getCacheDB() {
         if (!db.objectStoreNames.contains(store)) {
           console.log('cannot find store in indexedDB', store);
           resolve(null);
+          return;
         }
       }
       cacheDB = db;
@@ -102,7 +103,7 @@ async function expireCacheItems(store) {
 
 async function getCacheItem(store, key, version = undefined) {
   if (!hasExpired) {
-    setTimeout(() => expireCacheItems(store), 5000); // TODO: better expire time
+    setTimeout(() => expireCacheItems(store).catch(console.error), 5000); // TODO: better expire time
     hasExpired = true;
   }
 
@@ -259,157 +260,91 @@ function parseEvents(route, driveEvents) {
   return res;
 }
 
+function cachedRoute(state, route) {
+  const cached = state.routeCache?.[route.log_id || route.fullname.split('|')[1]];
+  return (cached?.fullname === route.fullname ? cached : null)
+    || (state.currentRoute?.fullname === route.fullname ? state.currentRoute : null)
+    || state.routes?.find((item) => item.fullname === route.fullname);
+}
+
+// These maps own only in-flight work. Loaded data lives in Redux/IndexedDB;
+// a failed request must not leave future visits waiting on an abandoned promise.
+function sharedRequest(requests, key, load) {
+  if (!requests[key]) {
+    requests[key] = Promise.resolve().then(load).catch((error) => {
+      console.error(error);
+      return null;
+    }).finally(() => { delete requests[key]; });
+  }
+  return requests[key];
+}
+
+async function readCache(store, key, version) {
+  try {
+    return await getCacheItem(store, key, version);
+  } catch (error) {
+    // Browser storage is optional; a broken cache must not prevent a network read.
+    console.error(error);
+    return null;
+  }
+}
+
+function writeCache(store, key, data, version) {
+  setCacheItem(store, key, Math.floor(Date.now() / 1000) + (86400 * 14), data, version).catch(console.error);
+}
+
+async function fetchSegments(route, asset, local) {
+  return Promise.all(Array.from({ length: route.maxqlog + 1 }, async (_, segment) => {
+    const url = new URL(api.routeAssets[asset](route, segment));
+    if (local) url.hostname = 'chffrprivate.azureedge.local';
+    const response = await fetch(url, { method: 'GET' });
+    if (response.status === 404) return []; // This segment has not been uploaded.
+    if (!response.ok) throw new Error(`Unable to load ${asset}: HTTP ${response.status}`);
+    return response.json();
+  }));
+}
+
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes) {
-      return;
-    }
+    const loaded = cachedRoute(getState(), route);
+    if (!loaded || loaded.events) return;
 
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.events) {
-          return;
-        }
-        break;
+    const events = await sharedRequest(eventsRequests, route.fullname, async () => {
+      if (!USE_LOCAL_EVENTS_DATA) {
+        const cached = await readCache('events', route.fullname, route.maxqlog);
+        if (cached !== null) return cached;
       }
-    }
-
-    // already requesting
-    if (eventsRequests[route.fullname] !== undefined) {
-      const driveEvents = await eventsRequests[route.fullname];
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-        fullname: route.fullname,
-        events: driveEvents,
-      });
-      return;
-    }
-
-    let resolveEvents;
-    eventsRequests[route.fullname] = new Promise((resolve) => { resolveEvents = resolve; });
-
-    if (!USE_LOCAL_EVENTS_DATA) {
-      // in cache?
-      const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog);
-      if (cacheEvents !== null) {
-        dispatch({
-          type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-          fullname: route.fullname,
-          events: cacheEvents,
-        });
-        resolveEvents(cacheEvents);
-        return;
-      }
-    }
-
-    let driveEvents;
-    const promises = [];
-    for (let i = 0; i <= route.maxqlog; i++) {
-      promises.push((async (j) => {
-        const url = new URL(api.routeAssets.events(route, j));
-        if (USE_LOCAL_EVENTS_DATA) {
-          url.hostname = 'chffrprivate.azureedge.local';
-        }
-        const resp = await fetch(url, { method: 'GET' });
-        if (!resp.ok) {
-          return [];
-        }
-        const events = await resp.json();
-        return events;
-      })(i));
-    }
-
-    try {
-      driveEvents = [].concat(...(await Promise.all(promises)));
-    } catch (err) {
-      console.error(err);
-      return;
-    }
-
-    driveEvents = parseEvents(route, driveEvents);
-
-    dispatch({
-      type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-      fullname: route.fullname,
-      events: driveEvents,
+      const segments = await fetchSegments(route, 'events', USE_LOCAL_EVENTS_DATA);
+      const result = parseEvents(route, segments.flat());
+      if (!USE_LOCAL_EVENTS_DATA) writeCache('events', route.fullname, result, route.maxqlog);
+      return result;
     });
-    resolveEvents(driveEvents);
-    if (!USE_LOCAL_EVENTS_DATA) {
-      setCacheItem('events', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveEvents, route.maxqlog);
-    }
+    if (events === null) return;
+    dispatch({ type: Types.ACTION_UPDATE_ROUTE_EVENTS, fullname: route.fullname, events });
   };
 }
 
 export function fetchCoord(route, coord, locationKey) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes || (!coord[0] && !coord[1])) {
-      return;
-    }
+    const loaded = cachedRoute(getState(), route);
+    if (!loaded || loaded[locationKey] || (!coord[0] && !coord[1])) return;
 
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r[locationKey]) {
-          return;
-        }
-        break;
-      }
-    }
-
-    // round for better caching
-    coord[0] = Math.round(coord[0] * 1000) / 1000;
-    coord[1] = Math.round(coord[1] * 1000) / 1000;
-
-    // already requesting
-    const cacheKey = JSON.stringify(coord);
-    if (coordsRequests[cacheKey] !== undefined) {
-      const location = await coordsRequests[cacheKey];
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE_LOCATION,
-        fullname: route.fullname,
-        locationKey,
-        location,
-      });
-      return;
-    }
-
-    let resolveLocation;
-    coordsRequests[cacheKey] = new Promise((resolve) => { resolveLocation = resolve; });
-
-    // in cache?
-    const cacheCoords = await getCacheItem('coords', coord);
-    if (cacheCoords !== null) {
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE_LOCATION,
-        fullname: route.fullname,
-        locationKey,
-        location: cacheCoords,
-      });
-      resolveLocation(cacheCoords);
-      return;
-    }
-
-    const location = await reverseLookup(coord);
-    if (!location) {
-      return;
-    }
-
-    dispatch({
-      type: Types.ACTION_UPDATE_ROUTE_LOCATION,
-      fullname: route.fullname,
-      locationKey,
-      location,
+    const rounded = coord.map((value) => Math.round(value * 1000) / 1000);
+    const location = await sharedRequest(coordsRequests, JSON.stringify(rounded), async () => {
+      const cached = await readCache('coords', rounded);
+      if (cached !== null) return cached;
+      const result = await reverseLookup(rounded);
+      if (!result) return null;
+      writeCache('coords', rounded, result);
+      return result;
     });
-    resolveLocation(location);
-    setCacheItem('coords', coord, Math.floor(Date.now() / 1000) + (86400 * 14), location);
+    if (location === null) return;
+    dispatch({ type: Types.ACTION_UPDATE_ROUTE_LOCATION, fullname: route.fullname, locationKey, location });
   };
 }
 
 export function fetchLocations(route) {
-  return (dispatch, getState) => {
+  return (dispatch) => {
     dispatch(fetchCoord(route, [route.start_lng, route.start_lat], 'startLocation'));
     dispatch(fetchCoord(route, [route.end_lng, route.end_lat], 'endLocation'));
   };
@@ -417,95 +352,20 @@ export function fetchLocations(route) {
 
 export function fetchDriveCoords(route) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes) {
-      return;
-    }
+    const loaded = cachedRoute(getState(), route);
+    if (!loaded || loaded.driveCoords) return;
 
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.driveCoords) {
-          return;
-        }
-        break;
+    const driveCoords = await sharedRequest(driveCoordsRequests, route.fullname, async () => {
+      if (!USE_LOCAL_COORDS_DATA) {
+        const cached = await readCache('driveCoords', route.fullname, route.maxqlog);
+        if (cached !== null) return cached;
       }
-    }
-
-    // already requesting
-    if (driveCoordsRequests[route.fullname] !== undefined) {
-      const driveCoords = await driveCoordsRequests[route.fullname];
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE,
-        fullname: route.fullname,
-        route: {
-          driveCoords,
-        },
-      });
-      return;
-    }
-
-    let resolveDriveCoords;
-    driveCoordsRequests[route.fullname] = new Promise((resolve) => { resolveDriveCoords = resolve; });
-
-    if (!USE_LOCAL_COORDS_DATA) {
-      // in cache?
-      const cacheDriveCoords = await getCacheItem('driveCoords', route.fullname, route.maxqlog);
-      if (cacheDriveCoords !== null) {
-        dispatch({
-          type: Types.ACTION_UPDATE_ROUTE,
-          fullname: route.fullname,
-          route: {
-            driveCoords: cacheDriveCoords,
-          },
-        });
-        resolveDriveCoords(cacheDriveCoords);
-        return;
-      }
-    }
-
-    const promises = [];
-    for (let i = 0; i <= route.maxqlog; i++) {
-      promises.push((async (j) => {
-        const url = new URL(api.routeAssets.coords(route, j));
-        if (USE_LOCAL_COORDS_DATA) {
-          url.hostname = 'chffrprivate.azureedge.local';
-        }
-        const resp = await fetch(url, { method: 'GET' });
-        if (!resp.ok) {
-          return [];
-        }
-        const events = await resp.json();
-        return events;
-      })(i));
-    }
-
-    let driveCoords;
-    try {
-      driveCoords = await Promise.all(promises);
-    } catch (err) {
-      console.error(err);
-      return;
-    }
-
-    driveCoords = driveCoords.reduce((prev, curr) => ({
-      ...prev,
-      ...curr.reduce((p, cs) => {
-        p[cs.t] = [cs.lng, cs.lat];
-        return p;
-      }, {}),
-    }), {});
-
-    dispatch({
-      type: Types.ACTION_UPDATE_ROUTE,
-      fullname: route.fullname,
-      route: {
-        driveCoords,
-      },
+      const segments = await fetchSegments(route, 'coords', USE_LOCAL_COORDS_DATA);
+      const result = Object.fromEntries(segments.flat().map(({ t, lng, lat }) => [t, [lng, lat]]));
+      if (!USE_LOCAL_COORDS_DATA) writeCache('driveCoords', route.fullname, result, route.maxqlog);
+      return result;
     });
-    resolveDriveCoords(driveCoords);
-    if (!USE_LOCAL_COORDS_DATA) {
-      setCacheItem('driveCoords', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveCoords, route.maxqlog);
-    }
+    if (driveCoords === null) return;
+    dispatch({ type: Types.ACTION_UPDATE_ROUTE, fullname: route.fullname, route: { driveCoords } });
   };
 }

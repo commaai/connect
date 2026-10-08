@@ -16,6 +16,9 @@ API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
 `VITE_USERADMIN_URL_ROOT`. Docker Compose accepts the same variables.
 
+See [Navigation](docs/navigation.md) for supported URLs, state ownership, and
+how to add pages or dialogs.
+
 ## Contributing
 
 * Use best practices

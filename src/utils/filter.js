@@ -8,3 +8,8 @@ export function getDefaultFilter() {
     end
   };
 }
+
+export function customFilter(filter) {
+  const defaults = getDefaultFilter();
+  return filter && (filter.start !== defaults.start || filter.end !== defaults.end) ? filter : null;
+}

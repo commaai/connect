@@ -1,15 +1,15 @@
 import React, { Component, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
-import { Route, Switch, Redirect } from 'react-router-dom';
+import { Route, Redirect } from 'react-router-dom';
 import { ConnectedRouter } from 'connected-react-router';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
 
-import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
+import MyCommaAuth, { storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
+import { parseLocation, safeReturnTo } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -54,7 +54,7 @@ class App extends Component {
     initBackend();
 
     if (window.location) {
-      if (window.location.pathname === AuthConfig.AUTH_PATH) {
+      if (parseLocation(window.location).page === 'auth') {
         try {
           const authParams = new URLSearchParams(window.location.search);
           const provider = authParams.get('provider');
@@ -78,10 +78,9 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { pathname } = window.location;
-      const teleopDongleId = getDongleID(pathname);
-      if (teleopDongleId && getStreamNav(pathname)) {
-        webrtcConnectionManager.reconnect(teleopDongleId);
+      const route = parseLocation(window.location);
+      if (route.page === 'stream') {
+        webrtcConnectionManager.reconnect(route.dongleId);
       }
 
       fetchTurnCredentials().catch((err) => {
@@ -99,29 +98,7 @@ class App extends Component {
       url = sessionStorage.getItem('redirectURL');
       sessionStorage.removeItem('redirectURL');
     }
-    return url;
-  }
-
-  authRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to={this.redirectLink()} />
-        </Route>
-        <Route path="/" component={Explorer} />
-      </Switch>
-    );
-  }
-
-  anonymousRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to="/" />
-        </Route>
-        <Route path="/" component={AnonymousLanding} />
-      </Switch>
-    );
+    return safeReturnTo(url);
   }
 
   render() {
@@ -130,11 +107,14 @@ class App extends Component {
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
     let content = (
       <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+        <Route render={({ location }) => {
+          const { page } = parseLocation(location);
+          if (page === 'auth') return <Redirect to={api.auth.isAuthenticated() ? this.redirectLink() : '/'} />;
+          const publicPage = ['drive', 'legacy', 'notFound'].includes(page);
+          return api.auth.isAuthenticated() || publicPage ? <Explorer /> : <AnonymousLanding />;
+        }} />
       </Suspense>
     );
 

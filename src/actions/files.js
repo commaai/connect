@@ -21,6 +21,8 @@ const MAX_RETRIES = 5;
 const HIGH_PRIORITY = 0;
 
 let uploadQueueTimeout = null;
+let uploadQueueGeneration = 0;
+let uploadQueueDongleId = null;
 let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
@@ -97,40 +99,50 @@ export function updateFiles(files) {
 }
 
 export function fetchFiles(routeName, nocache = false) {
-  return async (dispatch) => {
+  return async (dispatch, getState) => {
     let files;
     try {
       files = await api.routes.getRouteFiles(routeName, nocache);
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
-      return;
+      return { error: 'Unable to load files. Try again.' };
     }
 
+    if (!files || typeof files !== 'object' || Array.isArray(files) || files.error) {
+      return { error: 'Unable to load files. Try again.' };
+    }
     const dongleId = routeName.split('|')[0];
-    const urlName = routeName.replace('|', '/');
-    const urls = Object
-      .keys(FILE_NAMES)
-      .filter((type) => files[type])
-      .flatMap((type) => files[type].map((file) => ([type, file])))
-      .reduce((state, [type, file]) => {
-        const segmentNum = parseInt(file.split(urlName)[1].split('/')[1], 10);
-        const fileName = `${routeName}--${segmentNum}/${type}`;
-        state[fileName] = {
-          url: file,
-        };
-        return state;
-      }, {});
+    const urls = {};
+    for (const type of Object.keys(FILE_NAMES)) {
+      if (!Array.isArray(files[type])) continue;
+      for (const file of files[type]) {
+        if (typeof file !== 'string') continue;
+        let asset;
+        try {
+          asset = new URL(file);
+        } catch {
+          continue;
+        }
+        if (!['https:', 'http:'].includes(asset.protocol)) continue;
+        const parts = asset.pathname.split('/');
+        const segment = parts[parts.length - 2];
+        if (!parts[parts.length - 1] || !/^\d+$/.test(segment) || !Number.isSafeInteger(Number(segment))) continue;
+        // Demo routes retain public asset URLs with a different route name.
+        // The asset path determines its segment; Redux keys use the requested route.
+        urls[`${routeName}--${Number(segment)}/${type}`] = { url: file };
+      }
+    }
 
-    dispatch({
-      type: Types.ACTION_FILES_URLS,
-      dongleId,
-      urls,
-    });
+    if (getState().dongleId !== dongleId) return { urls };
+    dispatch({ type: Types.ACTION_FILES_URLS, dongleId, urls });
+    return { urls };
   };
 }
 
 export function cancelFetchUploadQueue() {
+  uploadQueueGeneration += 1;
+  uploadQueueDongleId = null;
   if (uploadQueueTimeout) {
     if (uploadQueueTimeout !== true) {
       clearTimeout(uploadQueueTimeout);
@@ -141,9 +153,10 @@ export function cancelFetchUploadQueue() {
 
 export function fetchUploadQueue(dongleId) {
   return async (dispatch, getState) => {
-    if (uploadQueueTimeout) {
-      return;
-    }
+    if (uploadQueueTimeout && uploadQueueDongleId === dongleId) return;
+    if (uploadQueueDongleId !== dongleId) cancelFetchUploadQueue();
+    const generation = uploadQueueGeneration;
+    uploadQueueDongleId = dongleId;
     uploadQueueTimeout = true;
 
     dispatch(fetchDeviceNetworkStatus(dongleId));
@@ -154,7 +167,8 @@ export function fetchUploadQueue(dongleId) {
       id: 0,
     };
     const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
-    if (!uploadQueue || !uploadQueue.result) {
+    if (generation !== uploadQueueGeneration || uploadQueueDongleId !== dongleId) return;
+    if (!Array.isArray(uploadQueue?.result)) {
       if (uploadQueue && uploadQueue.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
       }
@@ -163,17 +177,27 @@ export function fetchUploadQueue(dongleId) {
     }
     dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
 
-    const prevFilesUploading = getState().filesUploading || {};
+    const prevFilesUploading = getState().filesUploadingMeta?.dongleId === dongleId
+      ? { ...getState().filesUploading } : {};
     const device = getDeviceFromState(getState(), dongleId);
     const uploadingFiles = {};
     const newCurrentUploading = {};
     uploadQueue.result.forEach((uploading) => {
-      const urlParts = uploading.url.split('?')[0].split('/');
+      if (!uploading || typeof uploading.url !== 'string' || uploading.id == null) return;
+      let url;
+      try {
+        url = new URL(uploading.url);
+      } catch {
+        return;
+      }
+      if (!['https:', 'http:'].includes(url.protocol)) return;
+      const urlParts = url.pathname.split('/');
       const filename = urlParts[urlParts.length - 1];
       const segNum = urlParts[urlParts.length - 2];
       const datetime = urlParts[urlParts.length - 3];
       const dongle = urlParts[urlParts.length - 4];
-      const type = Object.entries(FILE_NAMES).find((e) => e[1].includes(filename))[0];
+      const type = Object.keys(FILE_NAMES).find((name) => FILE_NAMES[name].includes(filename));
+      if (!type || dongle !== dongleId || !datetime || !/^\d+$/.test(segNum)) return;
       const fileName = `${dongle}|${datetime}--${segNum}/${type}`;
       const waitingWifi = Boolean(deviceOnCellular(device) && uploading.allow_cellular === false);
       uploadingFiles[fileName] = {
@@ -201,12 +225,14 @@ export function fetchUploadQueue(dongleId) {
       uploading: newCurrentUploading,
       files: uploadingFiles,
     });
-    if (uploadQueueTimeout === true && uploadQueue.result.length) {
-      cancelFetchUploadQueue();
+    if (generation !== uploadQueueGeneration || uploadQueueDongleId !== dongleId) return;
+    if (Object.keys(newCurrentUploading).length) {
       uploadQueueTimeout = setTimeout(() => {
         uploadQueueTimeout = null;
         dispatch(fetchUploadQueue(dongleId));
       }, 2000);
+    } else {
+      uploadQueueTimeout = null;
     }
   };
 }
@@ -310,7 +336,7 @@ export function doUpload(dongleId, paths, urls) {
 }
 
 export function fetchAthenaQueue(dongleId) {
-  return async (dispatch) => {
+  return async (dispatch, getState) => {
     let queue;
     try {
       queue = await api.devices.getAthenaQueue(dongleId);
@@ -320,20 +346,23 @@ export function fetchAthenaQueue(dongleId) {
       return;
     }
 
+    if (!Array.isArray(queue) || getState().dongleId !== dongleId) return;
     const newUploading = {};
+    const addQueuedFile = (path) => {
+      if (typeof path !== 'string') return;
+      const [segment, filename] = path.split('/');
+      if (!segment || !Object.values(FILE_NAMES).some((names) => names.includes(filename))) return;
+      newUploading[pathToFileName(dongleId, path)] = { progress: 0, current: false };
+    };
     for (const q of queue) {
-      if (!q.method || !q.expiry || q.expiry < Math.floor(Date.now() / 1000)) {
+      if (!q?.method || !Number.isFinite(Number(q.expiry)) || q.expiry < Math.floor(Date.now() / 1000)) {
         continue;
       }
 
       if (q.method === 'uploadFileToUrl') {
-        const fileName = pathToFileName(dongleId, q.params[0]);
-        newUploading[fileName] = { progress: 0, current: false };
-      } else if (q.method === 'uploadFilesToUrls') {
-        for (const { fn } of q.params.files_data) {
-          const fileName = pathToFileName(dongleId, fn);
-          newUploading[fileName] = { progress: 0, current: false };
-        }
+        addQueuedFile(q.params?.[0]);
+      } else if (q.method === 'uploadFilesToUrls' && Array.isArray(q.params?.files_data)) {
+        for (const file of q.params.files_data) addQueuedFile(file?.fn);
       }
     }
     dispatch(updateFiles(newUploading));

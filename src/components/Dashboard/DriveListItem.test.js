@@ -7,6 +7,7 @@ import DriveListItem from './DriveListItem';
 
 const defaultState = {
   start: Date.now(),
+  router: { location: { pathname: '/1d3dc3e03047b0c7', search: '?from=1000&to=2000' } },
 };
 
 vi.mock('../Timeline', () => ({ default: () => null }));
@@ -34,5 +35,6 @@ describe('drive list items', () => {
       },
     }));
     expect(screen.getByRole('link')).toHaveClass('DriveEntry');
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/1d3dc3e03047b0c7/000000dd--455f14369d?from=1000&to=2000');
   });
 });

@@ -1,19 +1,23 @@
-import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
 
 import * as Types from './types';
-import { resetPlayback, selectLoop } from '../timeline/playback';
+import { parseLocation, pathForState, withFilter, withModal } from '../url';
+import { navigate } from './navigation';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { customFilter } from '../utils/filter';
 
-let routesRequest = null;
-let routesRequestPromise = null;
+const routesRequests = new WeakMap();
+const sharedDeviceRequests = new WeakMap();
 const LIMIT_INCREMENT = 5
-const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
+const currentUrl = (state) => {
+  const { pathname, search = '', hash = '' } = state.router?.location || window.location;
+  return `${pathname}${search}${hash}`;
+};
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -25,45 +29,45 @@ export function checkRoutesData() {
       // already has metadata, don't bother
       return;
     }
-    if (routesRequest && routesRequest.dongleId === state.dongleId) {
-      // there is already an pending request
-      return routesRequestPromise;
+    const { dongleId, selectedRouteId, limit: fetchLimit, filter: fetchRange } = state;
+    const deviceSession = state.deviceSession ?? 0;
+    const isDeviceSession = (current) => current.dongleId === dongleId
+      && (current.deviceSession ?? 0) === deviceSession;
+    let pending = routesRequests.get(getState);
+    if (!pending) {
+      pending = new Map();
+      routesRequests.set(getState, pending);
     }
-    console.debug('We need to update the segment metadata...');
-    const { dongleId, limit: fetchLimit } = state;
-    const fetchRange = state.filter;
+    const isCurrentRequest = (current) => {
+      const page = parseLocation(current.router.location).page;
+      return isDeviceSession(current) && current.selectedRouteId === selectedRouteId
+        && (selectedRouteId ? page === 'drive' : ['home', 'demo', 'device'].includes(page)
+          && current.filter.start === fetchRange.start && current.filter.end === fetchRange.end
+          && current.limit === fetchLimit);
+    };
+    const key = JSON.stringify(selectedRouteId
+      ? [deviceSession, dongleId, selectedRouteId]
+      : [deviceSession, dongleId, null, fetchRange.start, fetchRange.end, fetchLimit]);
+    if (pending.has(key)) return pending.get(key);
+    const request = selectedRouteId
+      ? api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${selectedRouteId}`)
+      : api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit);
 
-    // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.selectedRouteId) {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
-        dongleId,
-      };
-    } else {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit),
-        dongleId,
-      };
-    }
-
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    const promise = request.then((routesData) => {
       state = getState();
-      const currentRange = state.filter;
-      if (currentRange.start !== fetchRange.start
-        || currentRange.end !== fetchRange.end
-        || state.limit !== fetchLimit
-        || state.dongleId !== dongleId) {
-        routesRequest = null;
-        dispatch(checkRoutesData());
-        return;
-      }
-      if (routesData && routesData.length === 0
-        && !api.auth.isAuthenticated()) {
-        routesRequest = null;
-        hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
+      if (!isDeviceSession(state)) return;
+      if (!selectedRouteId && (state.filter.start !== fetchRange.start
+        || state.filter.end !== fetchRange.end || state.limit !== fetchLimit)) return;
+      if (!Array.isArray(routesData)) throw new Error('Route lookup failed');
+      if (!routesData.length && !api.auth.isAuthenticated()
+        && isCurrentRequest(state)) {
+        hardNavigate(`/?r=${encodeURIComponent(currentUrl(state))}`);
         return;
       }
 
+      if (isCurrentRequest(state) && state.navigationError) {
+        dispatch({ type: Types.ACTION_NAVIGATION_ERROR, error: null });
+      }
       const routes = routesData.map((r) => {
         let startTime = r.segment_start_times[0];
         let endTime = r.segment_end_times[r.segment_end_times.length - 1];
@@ -98,21 +102,24 @@ export function checkRoutesData() {
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
+        selectedRouteId,
         start: fetchRange.start,
         end: fetchRange.end,
         routes,
       });
 
-      routesRequest = null;
-
-      return routes
+      return routes;
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
-    });
+      const current = getState();
+      if (isCurrentRequest(current)) {
+        dispatch({ type: Types.ACTION_NAVIGATION_ERROR, error: 'Unable to load drives. Please try again.' });
+      }
+    }).finally(() => pending.delete(key));
 
-    return routesRequestPromise
+    pending.set(key, promise);
+    return promise;
   };
 }
 
@@ -142,75 +149,39 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
-}
-
-function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
-    dispatch(resetPlayback());
-    dispatch(selectLoop(start, end));
-  }
-
-  if (allowPathChange) {
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
+// User actions describe a destination. The history middleware alone applies it.
+export function pushTimelineRange(log_id, start, end) {
+  return (dispatch, getState) => {
+    const state = getState();
+    const route = state.routeCache?.[log_id] || state.routes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
-
-    if (currentPathname(state) !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
-  }
-}
-
-export function popTimelineRange(log_id, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (state.zoom.previous) {
-      dispatch({
-        type: Types.TIMELINE_POP_SELECTION,
-      });
-
-      const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
-    }
+    const zoom = log_id && !wholeDrive ? { start: Math.round(start), end: Math.round(end) } : null;
+    if (zoom && zoom.end <= zoom.start) return;
+    const pathname = pathForState({
+      page: log_id ? 'drive' : 'device', dongleId: state.dongleId,
+      selectedRouteId: log_id, zoom,
+    });
+    const previous = log_id === state.selectedRouteId ? state.zoom : null;
+    const filter = parseLocation(state.router?.location).filter || customFilter(state.filter);
+    dispatch(navigate({ pathname, ...(filter ? { search: `?from=${filter.start}&to=${filter.end}` } : {}), state: { zoomPrevious: previous } }));
   };
 }
 
-export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
+export function popTimelineRange(log_id) {
   return (dispatch, getState) => {
     const state = getState();
-
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
-      dispatch({
-        type: Types.TIMELINE_PUSH_SELECTION,
-        log_id,
-        start,
-        end,
-      });
-    }
-
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    const zoom = state.zoom?.previous;
+    if (!zoom) return;
+    const route = state.currentRoute;
+    const wholeDrive = zoom.start === 0 && zoom.end === route?.duration;
+    const filter = parseLocation(state.router?.location).filter || customFilter(state.filter);
+    dispatch(navigate({
+      pathname: pathForState({ page: 'drive', dongleId: state.dongleId, selectedRouteId: log_id, zoom: wholeDrive ? null : zoom }),
+      ...(filter ? { search: `?from=${filter.start}&to=${filter.end}` } : {}),
+      state: { zoomPrevious: zoom.previous || null },
+    }));
   };
-
 }
-
 
 export function primeGetSubscription(dongleId, subscription) {
   return {
@@ -224,14 +195,14 @@ export function primeFetchSubscription(dongleId, device, profile) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if (!device && state.device && state.device === dongleId) {
+    if (!device && state.device && state.device.dongle_id === dongleId) {
       device = state.device;
     }
     if (!profile && state.profile) {
       profile = state.profile;
     }
 
-    if (device && (device.is_owner || profile.superuser)) {
+    if (device && (device.is_owner || profile?.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
           dispatch(primeGetSubscription(dongleId, subscription));
@@ -268,108 +239,84 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
+export function selectDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();
-    let device;
-    if (state.devices && state.devices.length > 1) {
-      device = state.devices.find((d) => d.dongle_id === dongleId);
-    }
-    if (!device && state.device && state.device.dongle_id === dongleId) {
-      device = state.device;
-    }
+    const filter = state.dongleId === dongleId
+      ? parseLocation(state.router?.location).filter || customFilter(state.filter) : null;
+    dispatch(navigate(pathForState({ page: 'device', dongleId, filter })));
+  };
+}
 
-    // tear down existing webrtc connection
-    if (state.dongleId && state.dongleId !== dongleId) {
-      webrtcConnectionManager.disconnect();
-    }
-
-    dispatch({
-      type: Types.ACTION_SELECT_DEVICE,
-      dongleId,
-    });
-
-    dispatch(pushTimelineRange(null, null, null, false));
-    if ((device && !device.shared) || state.profile?.superuser) {
+// Data selection is separate from navigation, including startup on /referrals.
+export function loadDevice(dongleId) {
+  return (dispatch, getState) => {
+    const state = getState();
+    if (state.dongleId === dongleId) return;
+    if (state.dongleId) webrtcConnectionManager.disconnect();
+    dispatch({ type: Types.ACTION_SELECT_DEVICE, dongleId });
+    const device = state.devices?.find((candidate) => candidate.dongle_id === dongleId);
+    if (device) {
       dispatch(primeFetchSubscription(dongleId, device));
-      dispatch(fetchDeviceOnline(dongleId));
-    }
-
-    if (fetchRoutes) {
-      dispatch(checkLastRoutesData());
-    }
-
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
+      if (!device.shared || state.profile?.superuser) dispatch(fetchDeviceOnline(dongleId));
+    } else if (dongleId) {
+      dispatch(fetchSharedDevice(dongleId));
     }
   };
 }
 
-export function primeNav(nav, allowPathChange = true) {
+export function primeNav(nav) {
   return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.primeNav !== nav) {
-      dispatch({
-        type: Types.ACTION_PRIME_NAV,
-        primeNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
+    const { dongleId } = getState();
+    if (dongleId) dispatch(navigate(pathForState({ page: nav ? 'prime' : 'device', dongleId })));
   };
 }
 
-export function streamNav(nav, allowPathChange = true) {
+export function streamNav(nav) {
   return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.streamNav !== nav) {
-      dispatch({
-        type: Types.ACTION_STREAM_NAV,
-        streamNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
+    const { dongleId } = getState();
+    if (dongleId) dispatch(navigate(pathForState({ page: nav ? 'stream' : 'device', dongleId })));
   };
 }
 
 export function fetchSharedDevice(dongleId) {
-  return async (dispatch) => {
+  return async (dispatch, getState) => {
+    const state = getState();
+    if (state.dongleId !== dongleId) return;
+    const deviceSession = state.deviceSession ?? 0;
+    const request = {};
+    sharedDeviceRequests.set(getState, request);
+    const isCurrentRequest = () => {
+      const current = getState();
+      return current.dongleId === dongleId && (current.deviceSession ?? 0) === deviceSession
+        && sharedDeviceRequests.get(getState) === request;
+    };
     try {
       const resp = await api.devices.fetchDevice(dongleId);
+      if (!isCurrentRequest()) return;
+      if (!resp || typeof resp !== 'object' || Array.isArray(resp) || resp.dongle_id !== dongleId) {
+        throw new Error('Device lookup failed');
+      }
+      dispatch({ type: Types.ACTION_DEVICE_ERROR, dongleId, error: null });
       dispatch({
         type: Types.ACTION_UPDATE_SHARED_DEVICE,
         dongleId,
         device: resp,
       });
+      dispatch(primeFetchSubscription(dongleId, resp));
     } catch (err) {
-      if (!err.resp || err.resp.status !== 403) {
+      if (!isCurrentRequest()) return;
+      const status = err?.resp?.status;
+      const error = status === 404 ? 'Device not found.'
+        : status === 403 ? 'You do not have access to this device.'
+          : 'Unable to load device. Please try again.';
+      dispatch({ type: Types.ACTION_DEVICE_ERROR, dongleId, error });
+      if (status !== 403) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'action_fetch_shared_device' });
       }
+    } finally {
+      if (sharedDeviceRequests.get(getState) === request) sharedDeviceRequests.delete(getState);
     }
   };
 }
@@ -486,18 +433,9 @@ export function updateDevice(device) {
 
 export function selectTimeFilter(start, end) {
   return (dispatch, getState) => {
-    dispatch({
-      type: Types.ACTION_SELECT_TIME_FILTER,
-      start,
-      end,
-    });
-
-    dispatch({
-      type: Types.ACTION_UPDATE_ROUTE_LIMIT,
-      limit: LIMIT_INCREMENT,
-    })
-
-    dispatch(checkRoutesData());
+    const location = getState().router.location;
+    if (!['home', 'demo', 'device'].includes(parseLocation(location).page)) return;
+    dispatch(navigate(withFilter(withModal(location, null), { start, end }), true));
   };
 }
 
