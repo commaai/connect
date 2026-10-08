@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Button, CircularProgress, Typography } from '@material-ui/core';
 
 import Colors from '../../colors';
@@ -110,14 +110,29 @@ function useLoopBounds(videoStartOffset, loopStart, loopDuration) {
   useVideoEvent('ended', handleEnded);
 }
 
+function useStartPosition(startPosition) {
+  const previousStartRef = useRef(startPosition);
+
+  useEffect(() => {
+    const previousStart = previousStartRef.current;
+    previousStartRef.current = startPosition;
+    const video = getVideo();
+    const isStillAtPreviousStart = video?.currentTime === previousStart;
+    if (!isStillAtPreviousStart) return;
+    video.currentTime = startPosition;
+  }, [startPosition]);
+}
+
 const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }, ref) {
   const videoStartOffset = route?.videoStartOffset;
   const loopStart = loop?.startTime;
   const loopDuration = loop?.duration;
+  const startPosition = toVideoSeconds(videoStartOffset, loopStart ?? 0);
 
   const buffering = useVideoBuffering();
   const { error, retry, handleError } = usePlaybackError(src);
   useLoopBounds(videoStartOffset, loopStart, loopDuration);
+  useStartPosition(startPosition);
 
   useImperativeHandle(ref, () => ({
     restart() {
@@ -135,7 +150,7 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
       <div className="w-full h-full">
         <Video
           src={src}
-          startPosition={toVideoSeconds(videoStartOffset, loopStart ?? 0)}
+          startPosition={startPosition}
           onError={handleError}
           autoPlay
           muted
