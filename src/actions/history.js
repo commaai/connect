@@ -5,7 +5,8 @@ import { checkLastRoutesData, checkRoutesData, primeNav, streamNav, selectDevice
 import { api } from '../api/backend';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => {
-  let currentLocationKey = null;
+  let lastReconciledKey = null;
+  let activePathname = null;
 
   return (next) => async (action) => {
     if (!action) return;
@@ -13,14 +14,19 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => {
 
     const { location } = action.payload;
     const locationKey = `${location.pathname}${location.search || ''}`;
-    currentLocationKey = locationKey;
+    const isDuplicate = locationKey === lastReconciledKey;
+    lastReconciledKey = locationKey;
+    activePathname = location.pathname;
     const state = getState();
     const path = parseRoute(locationKey);
     next(action);
 
-    if ((state.routeModal ?? null) !== path.modal || (state.routeModalDeviceId ?? null) !== path.modalDeviceId) {
-      dispatch({ type: Types.ACTION_ROUTE_MODAL, modal: path.modal, deviceId: path.modalDeviceId });
+    if ((state.routeModal ?? null) !== path.modal || (state.routeModalDeviceId ?? null) !== path.modalDeviceId
+      || (state.routeModalClip ?? null) !== path.routeModalClip) {
+      dispatch({ type: Types.ACTION_ROUTE_MODAL, modal: path.modal, deviceId: path.modalDeviceId, clip: path.routeModalClip });
     }
+
+    if (isDuplicate) return;
 
     if (state.router?.location?.pathname === location.pathname
       && (state.router?.location?.search || '') !== (location.search || '')) return;
@@ -32,7 +38,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => {
     if (path.legacyRange) {
       const { start, end } = path.legacyRange;
       api.routes.getRoutesSegments(path.dongleId, start, end).then((routesData) => {
-        if (currentLocationKey !== locationKey || !routesData?.length) return;
+        if (activePathname !== location.pathname || !routesData?.length) return;
         const logId = routesData[0].fullname.split('|')[1];
         const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
         if (!logId || !Number.isFinite(duration) || duration <= 0) return;
