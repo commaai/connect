@@ -12,6 +12,7 @@ import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import puppeteer from 'puppeteer';
 import { build, preview } from 'vite';
+import { isGalleryModalOpen } from './gallery-modal.mjs';
 
 const ROUTE_NAME = '5beb9b58bd12b691|0000010a--a51155e496';
 const [DONGLE_ID, LOG_ID] = ROUTE_NAME.split('|');
@@ -531,10 +532,7 @@ async function clickGalleryAction(page, action, label) {
 async function openGalleryModal(page, state, label) {
   for (const action of state.actions ?? []) await clickGalleryAction(page, action, label);
   if (!state.modalText) return;
-  await page.waitForFunction((expected) => {
-    return Array.from(document.querySelectorAll('[role="document"]'))
-      .some((element) => globalThis.galleryVisible(element) && element.textContent.includes(expected));
-  }, { timeout: 5000 }, state.modalText).catch((error) => {
+  await page.waitForFunction(isGalleryModalOpen, { timeout: 5000 }, state.modalText).catch((error) => {
     throw new Error(`${label}: modal containing ${JSON.stringify(state.modalText)} did not open`, { cause: error });
   });
 }
