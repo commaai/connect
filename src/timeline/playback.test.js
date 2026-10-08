@@ -1,11 +1,12 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, resetPlayback, seek, selectLoop, videoTime } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
     desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
     offset: 0, // in miliseconds from the start
+    seekSequence: 0,
     startTime: Date.now(), // millisecond timestamp in which play began
 
     isBuffering: true,
@@ -65,8 +66,26 @@ describe('playback', () => {
     newNow();
     state = reducer(state, seek(123));
     expect(state.offset).toEqual(123);
+    expect(state.seekSequence).toEqual(1);
     expect(state.startTime).toEqual(Date.now());
     expect(currentOffset(state)).toEqual(123);
+  });
+
+  it('records media time without creating a seek command', () => {
+    newNow();
+    const state = reducer(makeDefaultStruct(), videoTime(1234));
+
+    expect(state.offset).toEqual(1234);
+    expect(state.startTime).toEqual(Date.now());
+    expect(state.seekSequence).toEqual(0);
+  });
+
+  it('treats playback reset as a seek to the beginning', () => {
+    newNow();
+    const state = reducer(makeDefaultStruct(), resetPlayback());
+
+    expect(state.offset).toEqual(0);
+    expect(state.seekSequence).toEqual(1);
   });
 
   it('should clamp loop when seeked after loop end time', () => {
