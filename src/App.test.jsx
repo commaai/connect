@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import sourceRoute from './test-data/public-route.json';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -84,7 +85,7 @@ function json(body, status = 200) {
 }
 
 async function mockFetch(input, init = {}) {
-  const url = new URL(typeof input === 'string' ? input : input.url);
+  const url = new URL(input instanceof URL ? input.href : typeof input === 'string' ? input : input.url);
   mocks.requests.push({ method: init.method || 'GET', url: url.href });
   const options = mocks.options;
   const deviceList = options.devices ?? devices;
@@ -103,6 +104,7 @@ async function mockFetch(input, init = {}) {
   const segments = url.pathname.match(/^\/v1\/devices\/([a-f0-9]{16})\/routes_segments$/);
   if (segments) {
     const dongleId = segments[1];
+    if (options.sourceRoute) return json([options.sourceRoute]);
     if (options.failedRoutes && url.searchParams.has('start')) return json({}, 500);
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
@@ -245,6 +247,31 @@ describe('whole-app behavior', () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
     await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+  });
+
+  test('settings navigation keeps the mounted drive, loaded data and playback position', async () => {
+    const { store, history } = await renderApp(`/${sourceRoute.dongle_id}/${sourceRoute.fullname.split('|')[1]}/0/20`, { authenticated: false, sourceRoute });
+    const video = await screen.findByTestId('video-player');
+    const before = store.getState();
+    const requests = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    act(() => history.push({ ...history.location, search: '?modal=settings' }));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.change(screen.getByLabelText('Device name'), { target: { value: 'unsaved draft' } });
+    act(() => history.push({ ...history.location, search: '' }));
+    act(() => history.goBack());
+    expect(await screen.findByLabelText('Device name')).toHaveValue('unsaved draft');
+    const after = store.getState();
+    for (const key of ['currentRoute', 'routes', 'zoom', 'loop', 'files']) expect(after[key]).toBe(before[key]);
+    expect(after.offset).toBe(before.offset);
+    expect(screen.getByTestId('video-player')).toBe(video);
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requests);
+  });
+
+  test('signed-out navigation from a shared drive to a private dashboard shows login', async () => {
+    const { history } = await renderApp(`/${sourceRoute.dongle_id}/${sourceRoute.fullname.split('|')[1]}`, { authenticated: false, sourceRoute });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${sourceRoute.dongle_id}`));
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {

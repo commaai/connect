@@ -20,6 +20,8 @@ import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { navigationForState, safeReturnTo } from '../url';
+import NavigationModals from './NavigationModals';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -99,7 +101,7 @@ class ExplorerApp extends Component {
 
     const q = new URLSearchParams(window.location.search);
     if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
+      this.props.dispatch(replace(safeReturnTo(q.get('r'))));
     }
 
     this.props.dispatch(init());
@@ -198,12 +200,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, profile, navigation,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = navigation.page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -245,11 +247,14 @@ class ExplorerApp extends Component {
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                : navigation.page === 'not-found'
+                ? <Typography className="p-8">Page does not exist.</Typography>
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            <NavigationModals />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -277,6 +282,7 @@ class ExplorerApp extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
+  navigation: navigationForState(state),
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
   devices: state.devices,

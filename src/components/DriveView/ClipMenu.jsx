@@ -223,7 +223,7 @@ function cameraCoversRange(cameraRanges, camera, startTime, endTime) {
   return Boolean(cameraRanges?.[camera]?.available_ranges?.some(([start, end]) => start <= startTime && end >= endTime));
 }
 
-class ClipMenu extends Component {
+export class ClipMenu extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -237,6 +237,7 @@ class ClipMenu extends Component {
     this.poll = null;
     this.mounted = false;
     this.previewRequest = 0;
+    this.operationRequest = 0;
   }
 
   componentDidMount() {
@@ -249,20 +250,26 @@ class ClipMenu extends Component {
     const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
     const deviceChanged = this.props.dongleId !== prevProps.dongleId;
     const reconnected = this.props.deviceOnline && !prevProps.deviceOnline;
+    if (routeChanged || deviceChanged || (!this.props.open && prevProps.open)) {
+      this.operationRequest += 1;
+      this.stopPolling();
+      this.closeViewer();
+      this.setState({
+        deleteDialogOpen: false, deletingClip: null, deleting: false, creating: false, autoDownloadFilename: null,
+        ...(routeChanged || deviceChanged ? { clips: [], cameraRanges: null, downloadedClips: new Set(), filename: '', error: null } : {}),
+      });
+    }
     if ((opened || routeChanged || deviceChanged || reconnected) && this.props.open) this.loadClips();
     if (!this.props.deviceOnline && prevProps.deviceOnline) {
       this.stopPolling();
       this.setState({ loading: false });
-    }
-    if (!this.props.open && prevProps.open) {
-      this.stopPolling();
-      if (this.state.viewingClip) this.closeViewer();
     }
   }
 
   componentWillUnmount() {
     this.mounted = false;
     this.previewRequest += 1;
+    this.operationRequest += 1;
     this.stopPolling();
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
   }
@@ -275,6 +282,7 @@ class ClipMenu extends Component {
   async loadClips(showLoading = true) {
     const routeName = deviceRouteName(this.props.route);
     const { dongleId } = this.props;
+    const request = this.operationRequest;
     if (!this.props.deviceOnline) {
       this.setState({ clips: [], cameraRanges: null, loading: false, error: null });
       return;
@@ -282,14 +290,14 @@ class ClipMenu extends Component {
     if (showLoading) this.setState({ loading: true, error: null });
     try {
       const state = await clipDevice.getClipState(dongleId, routeName ? { route: this.props.route.fullname } : {});
-      if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
+      if (!this.mounted || request !== this.operationRequest || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
       const { clips } = state;
       const downloadedClips = new Set((await Promise.all(clips
         .filter(clip => clip.status === 'ready')
         .map(async clip => ([clip.filename, await clipDevice.hasClipBlob(dongleId, clip.filename, clip.requested_at)]))))
         .filter(([, downloaded]) => downloaded)
         .map(([filename]) => filename));
-      if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
+      if (!this.mounted || request !== this.operationRequest || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
       const cameraRanges = routeName ? state.cameras || {} : null;
       this.setState({ clips, downloadedClips, cameraRanges, loading: false }, () => {
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
@@ -300,13 +308,14 @@ class ClipMenu extends Component {
         this.poll = setTimeout(() => this.loadClips(false), POLL_INTERVAL);
       }
     } catch (err) {
-      if (this.mounted) this.setState({ loading: false, error: err.message || 'Could not reach the device' });
+      if (this.mounted && request === this.operationRequest) this.setState({ loading: false, error: err.message || 'Could not reach the device' });
     }
   }
 
   async createClip() {
     const { dongleId, route, zoom } = this.props;
     const { camera, bitrate, speedup, filename } = this.state;
+    const request = this.operationRequest;
     if (!route || !zoom || !this.props.deviceOnline || !validFilename(filename)) return;
     const generatedFilename = defaultFilename(dongleId, route, camera, zoom.start / 1000, zoom.end / 1000, speedup);
     const outputFilename = `${normalizeFilename(filename) || generatedFilename}.mp4`;
@@ -323,11 +332,11 @@ class ClipMenu extends Component {
           filename: outputFilename,
         },
       });
-      if (!this.mounted) return;
+      if (!this.mounted || request !== this.operationRequest) return;
       this.setState({ creating: false });
       await this.loadClips(false);
     } catch (err) {
-      if (this.mounted) this.setState({ creating: false, autoDownloadFilename: null, error: err.message || 'Could not create clip' });
+      if (this.mounted && request === this.operationRequest) this.setState({ creating: false, autoDownloadFilename: null, error: err.message || 'Could not create clip' });
     }
   }
 
@@ -341,28 +350,32 @@ class ClipMenu extends Component {
   }
 
   async removeClip(clip) {
+    const request = this.operationRequest;
+    const { dongleId } = this.props;
     if (!this.props.deviceOnline) return false;
     if (clip.filename === this.state.previewingClip) {
       this.previewRequest += 1;
       this.setState({ previewingClip: null, previewProgress: 0 });
     }
     try {
-      await clipDevice.deleteClip(this.props.dongleId, { filename: clip.filename });
+      await clipDevice.deleteClip(dongleId, { filename: clip.filename });
+      if (!this.mounted || request !== this.operationRequest) return false;
       if (clip.filename === this.state.autoDownloadFilename) this.setState({ autoDownloadFilename: null });
       if (this.mounted) await this.loadClips(false);
       return true;
     } catch (err) {
-      if (this.mounted) this.setState({ error: err.message || 'Could not remove clip' });
+      if (this.mounted && request === this.operationRequest) this.setState({ error: err.message || 'Could not remove clip' });
       return false;
     }
   }
 
   async confirmDelete() {
     const { deletingClip } = this.state;
+    const request = this.operationRequest;
     if (!deletingClip || this.state.deleting) return;
     this.setState({ deleting: true });
     const deleted = await this.removeClip(deletingClip);
-    if (this.mounted) this.setState({ deleteDialogOpen: !deleted, deleting: false });
+    if (this.mounted && request === this.operationRequest) this.setState({ deleteDialogOpen: !deleted, deleting: false });
   }
 
   async openViewer(clip) {
@@ -548,6 +561,8 @@ class ClipMenu extends Component {
         <Menu
           open={open}
           anchorEl={anchorEl}
+          anchorReference={anchorEl ? 'anchorEl' : 'anchorPosition'}
+          anchorPosition={{ top: Math.round(window.innerHeight / 2), left: Math.round(window.innerWidth / 2) }}
           onClose={onClose}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}

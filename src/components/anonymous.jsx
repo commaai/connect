@@ -1,4 +1,5 @@
 /* global AppleID */
+import { safeReturnTo } from '../url';
 import React, { useEffect } from 'react';
 import { connect } from 'react-redux';
 
@@ -52,7 +53,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
     if (typeof window.sessionStorage !== 'undefined') {
       const q = new URLSearchParams(window.location.search);
       const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
-      sessionStorage.setItem('redirectURL', redirectURL);
+      sessionStorage.setItem('redirectURL', safeReturnTo(redirectURL));
     }
 
     const handleSuccess = (data) => {

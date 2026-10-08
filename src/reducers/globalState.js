@@ -58,6 +58,9 @@ export default function reducer(_state, action) {
         ...state,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
+        selectedRouteId: null,
+        zoom: null,
+        loop: null,
         primeNav: false,
         streamNav: false,
         subscription: null,
@@ -335,36 +338,27 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
-        state.files = null;
-      }
-
+      const routeChanged = state.selectedRouteId !== action.log_id;
+      if (routeChanged) state.files = null;
       state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
+      if (routeChanged || !state.currentRoute) {
+        state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
+      }
       if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
-        }
+        const duration = state.currentRoute?.duration;
+        const validRange = action.start != null && action.end != null
+          && (duration == null || action.start < duration);
+        const start = validRange ? action.start : 0;
+        const end = validRange ? Math.min(action.end, duration ?? action.end) : duration;
+        if (end != null) {
+          state.zoom = { start, end };
+          // The predecessor is local to this history entry, never inferred from
+          // PUSH/POP direction or modal entries. Browser Forward restores it too.
+          if (action.previousZoom && Number.isFinite(action.previousZoom.start) && Number.isFinite(action.previousZoom.end)) {
+            state.zoom.previous = action.previousZoom;
+          }
+        } else state.zoom = null;
       } else {
         state.zoom = null;
         state.loop = null;
@@ -423,6 +417,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         start: action.start,
         end: action.end,
+        routeId: action.routeId ?? null,
       };
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
@@ -430,14 +425,16 @@ export default function reducer(_state, action) {
           state.currentRoute = {
             ...curr,
           };
-          if (!state.zoom) {
+          if (!state.zoom || state.zoom.start >= state.currentRoute.duration) {
             state.zoom = {
               start: 0,
               end: state.currentRoute.duration,
             };
+          } else if (state.zoom.end > state.currentRoute.duration) {
+            state.zoom = { ...state.zoom, end: state.currentRoute.duration };
           }
 
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
+          if (!state.loop || state.loop.startTime !== state.zoom.start || state.loop.duration !== state.zoom.end - state.zoom.start) {
             state.loop = {
               startTime: state.zoom.start,
               duration: state.zoom.end - state.zoom.start,

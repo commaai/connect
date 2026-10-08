@@ -23,6 +23,9 @@ API and useradmin URL roots can be overridden at build time with
 * Keep files small and clean
 * Use branches / pull requests to isolate work. Don't do work that can't be merged quickly, find ways to break it up
 
+Navigation ownership, supported URLs, modal behavior and extension instructions
+are documented in [docs/urls.md](docs/urls.md).
+
 ## Libraries Used
 There's a ton of them, but these are worth mentioning because they sort of affect everything.
 

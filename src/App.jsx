@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
+import { parseNavigation, safeReturnTo, getDongleID, getStreamNav } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -49,6 +49,8 @@ class App extends Component {
   }
 
   async componentDidMount() {
+    const appHistory = this.props.history || defaultHistory;
+    this.unlistenHistory = appHistory.listen(() => this.forceUpdate());
     // Select the API backend once during startup: /demo gets the demo backend,
     // everything else the real backend.
     initBackend();
@@ -93,13 +95,17 @@ class App extends Component {
     this.setState({ initialized: true });
   }
 
+  componentWillUnmount() {
+    this.unlistenHistory?.();
+  }
+
   redirectLink() {
     let url = '/';
     if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
       url = sessionStorage.getItem('redirectURL');
       sessionStorage.removeItem('redirectURL');
     }
-    return url;
+    return safeReturnTo(url);
   }
 
   authRoutes() {
@@ -130,8 +136,8 @@ class App extends Component {
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
+    const navigation = parseNavigation(history.location);
+    const showLogin = !api.auth.isAuthenticated() && !['drive', 'legacy'].includes(navigation.page);
     let content = (
       <Suspense fallback={<FullPageLoading />}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }

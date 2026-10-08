@@ -19,6 +19,11 @@ export function hasRoutesData(state) {
     console.debug('Bad dongle id');
     return false;
   }
+  if (state.selectedRouteId) {
+    return state.routes.some((route) => route.log_id === state.selectedRouteId);
+  }
+  // A cold drive lookup loaded one drive, not the dashboard's full time range.
+  if (state.routesMeta.routeId != null) return false;
   const fetchRange = state.filter;
   if (fetchRange.start < state.routesMeta.start) {
     console.debug('Bad start offset');
