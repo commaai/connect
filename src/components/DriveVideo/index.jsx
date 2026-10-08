@@ -69,7 +69,8 @@ class DriveVideo extends Component {
     // Safari 17+ (macOS, iPadOS, iOS) plays HLS natively, keeping AirPlay and the system audio
     // session; iPhones before iOS 17.1 have no MediaSource at all. Everything else gets hls.js.
     const native = !window.MediaSource || (window.ManagedMediaSource && video.canPlayType('application/vnd.apple.mpegurl'));
-    // native HLS stalls above 2x (iOS simulator: 4x and 8x spin even on a direct playbackRate write)
+    // native HLS stalls above 2x (iOS simulator: 4x and 8x spin even on a direct playbackRate write).
+    // No video is attached here, so the play() at the end of load() applies the capped rate.
     this.props.dispatch(setMaxPlaySpeed(native ? 2 : null));
     if (native) {
       setVideo(video);
@@ -223,8 +224,9 @@ class DriveVideo extends Component {
     return (
       // as wide as fits; on screens tall enough for video and controls together (desktop), short
       // enough that the controls below stay on screen (about 390 px of header, timeline and
-      // controls). Short screens (landscape phones) scroll anyway, so they get the full width.
-      <div className="relative w-full max-w-[964px] [@media(min-height:600px)]:w-[min(100%,calc((100dvh-390px)*1.593))] m-[0_auto] aspect-[1.593] overflow-hidden rounded-lg bg-black">
+      // controls). From 700 px up that still leaves the video about 490 px wide; shorter screens
+      // (landscape phones) scroll anyway, so they get the full width.
+      <div className="relative w-full max-w-[964px] [@media(min-height:700px)]:w-[min(100%,calc((100dvh-390px)*1.593))] m-[0_auto] aspect-[1.593] overflow-hidden rounded-lg bg-black">
         <video
           ref={this.video}
           className="w-full h-full object-contain cursor-pointer"
