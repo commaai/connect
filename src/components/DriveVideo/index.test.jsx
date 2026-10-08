@@ -146,3 +146,17 @@ test('unknown timing supplies null adapters and Retry retains last explicit targ
   screen.getByText('Retry').click();
   expect(initial.dispatch).toHaveBeenCalledWith({ type: 'ACTION_SEEK', offset: 10000 });
 });
+
+test('Retry keeps an in-flight explicit target instead of the old native position', () => {
+  const initial = { ...props(), seekOffset: 15000, currentRoute: { ...ROUTE,
+    segment_numbers: [0], segment_start_times: [0], segment_end_times: [60000] } };
+  render(<DriveVideo {...initial} />);
+  const video = screen.getByLabelText('Drive video');
+  video.currentTime = 10;
+  Object.defineProperty(video, 'seeking', { configurable: true, value: true });
+  act(() => mocks.sources[0].callbacks.onTimeline([{ number: 0, start: 0, duration: 60 }]));
+  initial.dispatch.mockClear();
+  act(() => mocks.sources[0].callbacks.onStatus({ error: 'Failed source', loading: false, blocked: false }));
+  screen.getByText('Retry').click();
+  expect(initial.dispatch).toHaveBeenCalledWith({ type: 'ACTION_SEEK', offset: 15000 });
+});

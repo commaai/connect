@@ -106,7 +106,9 @@ export class DriveVideo extends Component {
     if (!route || !this.transport) return;
     const mapping = createVideoMapping(route, this.entries);
     const seconds = this.video.current.currentTime;
-    const offset = mapping ? mediaToRoute(mapping, seconds) : this.props.seekOffset;
+    const observed = mapping && !this.video.current.seeking
+      && this.observedRevision === this.props.seekRevision;
+    const offset = observed ? mediaToRoute(mapping, seconds) : this.props.seekOffset;
     // Unknown timing cannot supply a guessed position. Retain the last command.
     this.changeSource(Number.isFinite(offset) ? offset : undefined);
   };
