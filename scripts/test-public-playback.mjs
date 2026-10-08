@@ -38,7 +38,7 @@ async function readState(page) {
     const video = document.querySelector('video');
     const route = store.getState().currentRoute;
     return { route: route?.fullname, routeDuration: route?.duration, videoStartOffset: route?.videoStartOffset,
-      mediaTime: video?.currentTime, mediaDuration: video?.duration, paused: video?.paused,
+      mediaTime: video?.currentTime, mediaDuration: video?.duration, paused: video?.paused, rate: video?.playbackRate,
       buffering: store.getState().isBufferingVideo, offset: currentOffset(),
       nativeAdvertised: Boolean(video?.canPlayType('application/vnd.apple.mpegurl')),
       transport: video?.currentSrc.startsWith('blob:') ? 'mse' : 'native',
@@ -97,6 +97,18 @@ try {
       assertClock(initial);
       assert(initial.routeDuration > 900000, 'This regression needs a real long route');
       receipts.push({ case: 'public long route decode', elapsedMs: Math.round(performance.now() - started), ...initial });
+      const transport = page.getByRole('group', { name: 'Playback transport' });
+      assert.deepEqual(await transport.getByRole('button').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label'))),
+        ['Jump back 10 seconds', 'Play', 'Jump forward 10 seconds']);
+      await page.getByRole('button', { name: 'Playback speed, current 1x' }).click();
+      assert((await readState(page)).paused, 'Public speed cycling must preserve pause');
+      await page.getByRole('button', { name: 'Play', exact: true }).click();
+      await page.waitForFunction((time) => {
+        const video = document.querySelector('video');
+        return video && !video.paused && video.playbackRate === 2 && video.currentTime > time + 0.2;
+      }, initial.mediaTime);
+      receipts.push({ case: 'public centered transport and remembered 2x rate', ...await readState(page) });
+      await page.getByRole('button', { name: 'Pause', exact: true }).click();
       for (const target of [59, 61, 800]) {
         const before = await readState(page);
         const started = performance.now();

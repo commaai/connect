@@ -42,6 +42,8 @@ const MISSING_DATA_CASES = [
     route(route, affectedSegment) {
       const bootTime = route.segment_start_times[0];
       if (affectedSegment !== undefined) {
+        if (!Number.isFinite(route.segment_start_times[affectedSegment])
+            || !Number.isFinite(route.segment_end_times[affectedSegment])) return;
         route.segment_start_times[affectedSegment] -= bootTime;
         route.segment_end_times[affectedSegment] -= bootTime;
       } else {

@@ -70,6 +70,37 @@ describe('timeline thumbnails', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
+  it('uses the time within each minute when choosing a sprite frame', () => {
+    [55000, 60000, 65000, 115000, 120000].forEach(offset => percentToOffsetMock.mockReturnValueOnce(offset));
+    render(React.createElement(Thumbnails, {
+      thumbnail: { width: 800, height: 100 },
+      percentToOffset: percentToOffsetMock,
+      currentRoute: { ...mockRoute, url: 'https://example.com/route' },
+    }));
+
+    const images = screen.getAllByRole('img');
+    expect(images.map(image => image.style.backgroundImage)).toEqual([
+      'url("https://example.com/route/0/sprite.jpg")',
+      'url("https://example.com/route/1/sprite.jpg")',
+      'url("https://example.com/route/1/sprite.jpg")',
+      'url("https://example.com/route/2/sprite.jpg")',
+    ]);
+    [-1760, 0, -1760, 0].forEach((position, index) => {
+      expect(parseFloat(images[index].style.backgroundPositionX)).toBeCloseTo(position);
+    });
+    expect(images[1].style.width).toBe('320px');
+  });
+
+  it.each([NaN, Infinity])('does not request a sprite before the route range is finite (%s)', offset => {
+    percentToOffsetMock.mockReturnValue(offset);
+    render(React.createElement(Thumbnails, {
+      thumbnail: thumbnailBounds,
+      percentToOffset: percentToOffsetMock,
+      currentRoute: mockRoute,
+    }));
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
   it('works when theres no blank at the end', () => {
     const route = {
       offset: 1600,

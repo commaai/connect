@@ -148,6 +148,31 @@ describe('route video playback', () => {
     expect(app.dispatch).toHaveBeenCalledWith(videoTime(ROUTE, 27000));
   });
 
+  it('shows the selected range position until a cold seek has produced its first frame', async () => {
+    const app = renderPlayer({ offset: null, seekRequest: { id: 1, offset: 27000 } });
+    const readOffset = mocks.attachClock.mock.calls[0][1];
+    expect(readOffset()).toBe(27000);
+    await hlsInstance();
+    ready(app.video);
+    expect(readOffset()).toBe(27000);
+    expect(app.dispatch).not.toHaveBeenCalledWith(videoTime(ROUTE, 27000));
+    state(app.video).seeking = false;
+    fireEvent.seeked(app.video);
+    expect(app.dispatch).toHaveBeenCalledWith(videoTime(ROUTE, 27000));
+  });
+
+  it('keeps loading feedback separate from immediate error and playback recovery', async () => {
+    const app = renderPlayer();
+    const video = app.video;
+    expect(screen.getByRole('status', { name: 'Loading video' })).toBeInTheDocument();
+    const hls = await hlsInstance();
+    hls.emit('error', { fatal: true, type: 'network', response: { code: 404 } });
+    expect(screen.queryByRole('status', { name: 'Loading video' })).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('has not uploaded yet or has been deleted');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
+    expect(screen.getByLabelText('Drive video')).toBe(video);
+  });
+
   it.each([['detaching', false], ['detaching', true], ['error', false], ['error', true]])(
     'keeps a cold range target through %s recovery (metadata ready: %s)', async (event, metadataReady) => {
       const app = renderPlayer({ offset: null, seekRequest: { id: 1, offset: 27000 } });

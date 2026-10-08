@@ -24,8 +24,16 @@ jobs:
         run: bun run test
 
   playback:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            browsers: chromium,webkit
+          - os: macos-latest
+            browsers: webkit
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -38,25 +46,34 @@ jobs:
       - name: Check playback scripts
         run: bun x --no-install oxlint -A all -D no-undef -D no-unused-vars scripts/generate-playback-fixtures.mjs scripts/test-playback.mjs scripts/test-public-playback.mjs
 
-      - name: Install playback tooling
+      - name: Install FFmpeg on Linux
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
+
+      - name: Install FFmpeg on macOS
+        if: runner.os == 'macOS'
+        run: command -v ffmpeg || brew install ffmpeg
+
+      - name: Install playback tooling
+        run: |
           bun add --no-save playwright@1.62.1
-          node node_modules/playwright/cli.js install --with-deps chromium webkit
+          node node_modules/playwright/cli.js install --with-deps ${{ matrix.os == 'ubuntu-latest' && 'chromium webkit' || 'webkit' }}
 
       - name: Test decoded playback without hardware
-        run: node scripts/test-playback.mjs
+        run: node scripts/test-playback.mjs --browser ${{ matrix.browsers }}
 
       - name: Save playback report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playback-report
+          name: playback-report-${{ matrix.os }}
           path: |
             test-results/playback-report.json
             test-results/playback-failure.png
             test-results/playback-preview.png
+            test-results/controls-*.png
           if-no-files-found: warn
 
   docker:

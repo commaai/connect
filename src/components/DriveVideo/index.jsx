@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
-import { Button, CircularProgress, Typography } from '@material-ui/core';
+import { Button, Typography } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { attachPlaybackClock, subscribePlaybackFrames } from '../../timeline';
 import { bufferVideo, pause, play, playbackBounds, videoTime } from '../../timeline/playback';
+import './style.css';
 
 const missingVideo = 'This video segment has not uploaded yet or has been deleted.';
 
@@ -42,7 +42,7 @@ export function RouteVideo(props) {
     let pendingSeek = unfinishedSeek.current ?? latest.current.offset ?? latest.current.seekRequest?.offset ?? 0;
     const nativeHls = !forceMse && Boolean(video.canPlayType('application/vnd.apple.mpegurl'));
     const origin = () => latest.current.currentRoute.videoStartOffset || 0;
-    const observed = () => latest.current.offset ?? origin();
+    const observed = () => latest.current.offset ?? latest.current.seekRequest?.offset ?? origin();
     const readOffset = () => pendingSeek !== null || unfinishedSeek.current !== null || video.seeking ? observed() : origin() + video.currentTime * 1000;
     const detachClock = attachPlaybackClock(currentRoute.fullname, readOffset);
     const buffering = (value) => {
@@ -275,14 +275,18 @@ export function RouteVideo(props) {
   }, [emptyRange, error, needsPlay, onPlaybackStatusChange]);
 
   return (
-    <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] bg-black">
-      <video ref={videoRef} playsInline muted={isMuted} preload="auto" aria-label="Drive video" className="h-full w-full" />
-      {(emptyRange || error || needsPlay || isBufferingVideo) && (
+    <div className="min-h-[200px] min-w-0 w-full relative max-w-[964px] m-[0_auto] aspect-[1.593] bg-black">
+      <video ref={videoRef} playsInline muted={isMuted} preload="auto" aria-label="Drive video" className="h-full w-full object-contain" />
+      {(emptyRange || error || needsPlay) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#16181AAA] p-4 text-center">
           {emptyRange ? <Typography role="status">No video is available in this selected range.</Typography>
             : error ? <><ErrorOutline /><Typography role="alert">{error}</Typography><Button variant="contained" onClick={() => setReload(value => value + 1)}>Retry</Button></>
-            : needsPlay ? <Button variant="contained" onClick={() => controller.current?.start()}>Play video</Button>
-              : <CircularProgress aria-label="Loading video" style={{ color: Colors.white }} thickness={4} size={50} />}
+            : <Button variant="contained" onClick={() => controller.current?.start()}>Play video</Button>}
+        </div>
+      )}
+      {isBufferingVideo && !emptyRange && !error && !needsPlay && (
+        <div role="status" aria-label="Loading video" className="drive-video-loading pointer-events-none absolute inset-0 flex items-center justify-center">
+          <img src="/images/comma-white.png" alt="" aria-hidden="true" className="drive-video-loading-comma" />
         </div>
       )}
     </div>

@@ -11,6 +11,7 @@ import { deviceSupportsClips } from '../../api/clips';
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import TimeDisplay from '../TimeDisplay';
+import Timeline from '../Timeline';
 import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
@@ -548,8 +549,8 @@ class Media extends Component {
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
-        <div className="flex flex-row gap-5">
-          <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} relative`}>
+        <div className={`grid ${showMapAlways ? 'grid-cols-[3fr_2fr]' : 'grid-cols-1'} gap-x-5 gap-y-4`}>
+          <div className="min-w-0 relative">
             <div
               className={inView === MediaType.MAP ? 'absolute inset-0 opacity-0 pointer-events-none' : ''}
               aria-hidden={inView === MediaType.MAP}
@@ -568,25 +569,28 @@ class Media extends Component {
             )}
           </div>
           {(inView === MediaType.VIDEO && showMapAlways) &&
-            <div className="w-[40%]">
+            <div className="min-w-0">
               <DriveMap />
             </div>
           }
-        </div>
-        {inView === MediaType.MAP && playbackStatus && (
-          <div role={playbackStatus.error ? 'alert' : 'status'} className="flex items-center gap-3 rounded-lg border border-white/10 bg-[#202528] px-4 py-3">
-            <InfoOutline style={{ color: Colors.white60, flexShrink: 0 }} />
-            <Typography variant="body2" className="flex-1">{playbackStatus.message}</Typography>
-            {playbackStatus.recover && <Button variant="outlined" size="small" onClick={playbackStatus.recover}>{playbackStatus.label}</Button>}
+          {inView === MediaType.MAP && playbackStatus && (
+            <div role={playbackStatus.error ? 'alert' : 'status'} className="flex items-center gap-3 rounded-lg border border-white/10 bg-[#202528] px-4 py-3">
+              <InfoOutline style={{ color: Colors.white60, flexShrink: 0 }} />
+              <Typography variant="body2" className="flex-1">{playbackStatus.message}</Typography>
+              {playbackStatus.recover && <Button variant="outlined" size="small" onClick={playbackStatus.recover}>{playbackStatus.label}</Button>}
+            </div>
+          )}
+          <div className="col-start-1 min-w-0 flex flex-col gap-4">
+            <div className="w-full max-w-[964px] mx-auto">
+              <Timeline route={this.props.currentRoute} thumbnailsVisible hasRuler />
+            </div>
+            <TimeDisplay
+              isThin
+              isMuted={isMuted}
+              hasAudio={hasAudio}
+              onMuteToggle={this.handleMuteToggle}
+            />
           </div>
-        )}
-        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
-          <TimeDisplay
-            isThin
-            isMuted={isMuted}
-            hasAudio={hasAudio}
-            onMuteToggle={this.handleMuteToggle}
-          />
         </div>
       </div>
     );
@@ -597,49 +601,56 @@ class Media extends Component {
     const { inView, clipsSupported } = this.state;
     return (
       <>
-        <div className="flex flex-wrap">
-          { !showMapAlways && (
-            <div className={classes.mediaOptions}>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-                onClick={() => this.setState({ inView: MediaType.VIDEO })}
-              >
-                <Typography className={classes.mediaOptionText}>Video</Typography>
+        <div className="@container">
+          <div className={`grid ${showMapAlways ? 'grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)_auto]'} items-center gap-x-2 gap-y-3`}>
+            {this.props.dateLabel && (
+              <div className="relative -top-0.5 col-start-2 row-start-1 min-w-0 flex justify-center text-center text-lg font-medium text-white">
+                <span className="shrink-0 whitespace-nowrap">{this.props.dateLabel}</span>
               </div>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                onClick={() => this.setState({ inView: MediaType.MAP })}
-              >
-                <Typography className={classes.mediaOptionText}>Map</Typography>
+            )}
+            { !showMapAlways && (
+              <div className={`${classes.mediaOptions} col-start-1 row-start-2 justify-self-start @[720px]:row-start-1`}>
+                <div
+                  className={classes.mediaOption}
+                  style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
+                  onClick={() => this.setState({ inView: MediaType.VIDEO })}
+                >
+                  <Typography className={classes.mediaOptionText}>Video</Typography>
+                </div>
+                <div
+                  className={classes.mediaOption}
+                  style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
+                  onClick={() => this.setState({ inView: MediaType.MAP })}
+                >
+                  <Typography className={classes.mediaOptionText}>Map</Typography>
+                </div>
               </div>
-            </div>
-          )}
-          <div className={`${classes.mediaOptions} ml-auto`}>
-            {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
+            )}
+            <div className={`${classes.mediaOptions} col-start-3 row-start-2 justify-self-end @[720px]:row-start-1`}>
+              {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
+                <div
+                  className={classes.mediaOption}
+                  style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
+                  aria-haspopup="true"
+                  onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
+                >
+                  <Typography className={classes.mediaOptionText}>Clip</Typography>
+                </div>
+              </Tooltip>}
               <div
                 className={classes.mediaOption}
-                style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
                 aria-haspopup="true"
-                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
+                onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }
               >
-                <Typography className={classes.mediaOptionText}>Clip</Typography>
+                <Typography className={classes.mediaOptionText}>Files</Typography>
               </div>
-            </Tooltip>}
-            <div
-              className={classes.mediaOption}
-              aria-haspopup="true"
-              onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }
-            >
-              <Typography className={classes.mediaOptionText}>Files</Typography>
-            </div>
-            <div
-              className={classes.mediaOption}
-              aria-haspopup="true"
-              onClick={ (ev) => this.setState({ moreInfoMenu: ev.target }) }
-            >
-              <Typography className={classes.mediaOptionText}>More info</Typography>
+              <div
+                className={classes.mediaOption}
+                aria-haspopup="true"
+                onClick={ (ev) => this.setState({ moreInfoMenu: ev.target }) }
+              >
+                <Typography className={classes.mediaOptionText}>More info</Typography>
+              </div>
             </div>
           </div>
         </div>

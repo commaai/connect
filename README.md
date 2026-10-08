@@ -37,6 +37,11 @@ are explicitly simulated before real decode; Chromium freeze/resume tests the
 desktop renderer. Physical iOS/Android audio and installed PWAs require separate
 device checks.
 
+The timeline supports wheel and two-finger pinch zoom without seeking. Click to
+seek, or focus the timeline and use `+`, `-`, and `0` to zoom and reset its view.
+Arrow keys seek by one second; Home/End seek to the visible range edges. The
+loading comma appears only after 500 ms of continuous buffering.
+
 Use `--browser chromium` or `--browser webkit` for one engine and `--headed` to
 watch. `--playwright` or `PLAYWRIGHT_MODULE` selects external browser tools;
 otherwise the script uses Playwright in this checkout. CI runs the same test and

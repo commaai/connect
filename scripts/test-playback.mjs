@@ -66,7 +66,7 @@ function fixtureRoute(origin, fixture) {
   };
 }
 
-async function startFixtureServer(directory, fixture) {
+async function startFixtureServer(directory, fixture, watch = false) {
   // Relative roots work in both a browser and the demo pass-through backend.
   const environment = { VITE_COMMA_URL_ROOT: '/__playback-api/', VITE_ATHENA_URL_ROOT: '/__playback-api/', VITE_BILLING_URL_ROOT: '/__playback-api/' };
   const saved = Object.fromEntries(Object.keys(environment).map((key) => [key, process.env[key]]));
@@ -102,7 +102,7 @@ async function startFixtureServer(directory, fixture) {
   };
   try {
     server = await createServer({
-    root, cacheDir: resolve(root, 'test-results/vite-playback-cache'), server: { host: '127.0.0.1', port, strictPort: true, hmr: false, watch: null },
+    root, cacheDir: resolve(root, 'test-results/vite-playback-cache'), server: { host: '127.0.0.1', port, strictPort: true, hmr: false, watch: watch ? {} : null },
     plugins: [{
       name: 'playback-fixture-server', enforce: 'pre',
       transform(code, id) {
@@ -222,9 +222,144 @@ async function waitForTime(page, seconds, tolerance = 0.25) {
 }
 
 async function setPaused(page, paused) {
-  const button = page.getByRole('button', { name: paused ? 'Pause' : 'Unpause', exact: true });
+  const button = page.getByRole('button', { name: paused ? 'Pause' : 'Play', exact: true });
   if (await button.count()) await button.click();
   await page.waitForFunction((expected) => document.querySelector('video')?.paused === expected, paused);
+}
+
+async function resizeSettled(page, width, height = width < 500 ? 844 : 1000) {
+  await page.setViewportSize({ width, height });
+  await page.getByText('Map', { exact: true }).waitFor({ state: width < 1536 ? 'visible' : 'hidden' });
+  const sidebar = width > 1080 ? Math.max(280, width * 0.2) : 0;
+  await page.waitForFunction((expected) => {
+    const area = document.querySelector('.DriveView')?.parentElement;
+    return area && Math.abs(Number.parseFloat(area.style.marginLeft || '0') - expected) < 1;
+  }, sidebar);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
+async function selectSpeed(page, rate) {
+  for (let attempt = 0; attempt < 7; attempt += 1) {
+    const speed = page.getByRole('button', { name: /Playback speed, current/ });
+    if (await speed.getAttribute('aria-label') === `Playback speed, current ${rate}x`) return;
+    await speed.click();
+  }
+  assert.equal(await page.getByRole('button', { name: /Playback speed, current/ }).getAttribute('aria-label'),
+    `Playback speed, current ${rate}x`, 'Rate cycling must reach every supported speed');
+}
+
+async function timelinePlacement(page) {
+  const geometry = await page.getByRole('group', { name: 'Playback transport' }).evaluate((transport) => {
+    const video = document.querySelector('video');
+    const media = video.closest('[inert]') ? document.querySelector('.mapboxgl-map') : video;
+    const timeline = document.querySelector('[aria-label="Drive timeline"]').closest('[role="presentation"]');
+    const box = (element) => {
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, bottom: rect.bottom };
+    };
+    return { mode: media === video ? 'video' : 'map', media: box(media), timeline: box(timeline), controls: box(transport.parentElement) };
+  });
+  assert(geometry.timeline.y >= geometry.media.bottom - 1 && geometry.timeline.bottom <= geometry.controls.y + 1,
+    `Timeline must sit between visible media and playback controls: ${JSON.stringify(geometry)}`);
+  assert(Math.abs(geometry.controls.x + geometry.controls.width / 2 - geometry.media.x - geometry.media.width / 2) < 1,
+    `Playback controls must align with visible media: ${JSON.stringify(geometry)}`);
+  if (geometry.mode === 'video') {
+    assert(Math.abs(geometry.timeline.x - geometry.media.x) < 1 && Math.abs(geometry.timeline.width - geometry.media.width) < 1,
+      `Thumbnail timeline must share the video width: ${JSON.stringify(geometry)}`);
+  }
+  return geometry;
+}
+
+async function datePlacement(page, width) {
+  const geometry = await page.evaluate(() => {
+    const container = [...document.querySelectorAll('[class~="@container"]')].find((element) => element.textContent.includes('Files'));
+    const row = container.firstElementChild;
+    const [date, ...groups] = row.children;
+    const box = (element) => {
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, right: rect.right, bottom: rect.bottom };
+    };
+    const rects = [];
+    const walker = document.createTreeWalker(date, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const range = document.createRange();
+      range.selectNodeContents(walker.currentNode);
+      rects.push(...[...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0));
+    }
+    return { row: box(row), text: date.innerText.replace(/\s+/g, ' ').trim(), fontSize: getComputedStyle(date).fontSize,
+      glyphs: { x: Math.min(...rects.map((rect) => rect.left)), right: Math.max(...rects.map((rect) => rect.right)),
+        y: Math.min(...rects.map((rect) => rect.top)), bottom: Math.max(...rects.map((rect) => rect.bottom)) },
+      groups: groups.map(box) };
+  });
+  const year = new Date().getUTCFullYear() === 2026 ? '' : ', 2026';
+  assert.equal(geometry.text, `${width >= 640 ? 'Sunday ' : ''}Feb 1${year} @ 12:00 - 12:00`, 'Preserve the original date wording');
+  assert.equal(geometry.fontSize, '18px', 'Keep the date text size');
+  const center = geometry.groups.length === 2
+    ? (geometry.groups[0].right + geometry.groups[1].x) / 2 : geometry.row.x + geometry.row.width / 2;
+  assert(Math.abs((geometry.glyphs.x + geometry.glyphs.right) / 2 - center) < 1,
+    `Date glyphs must be centered: ${JSON.stringify(geometry)}`);
+  for (const group of geometry.groups) {
+    const horizontalSeparation = geometry.glyphs.right <= group.x + 1 || geometry.glyphs.x >= group.right - 1;
+    const verticalSeparation = geometry.glyphs.bottom <= group.y + 1 || geometry.glyphs.y >= group.bottom - 1;
+    assert(horizontalSeparation || verticalSeparation, `Date text overlaps media options: ${JSON.stringify(geometry)}`);
+  }
+  return geometry;
+}
+
+async function verifyControlsLayout(page, browser, forceMse) {
+  const layouts = [];
+  await selectSpeed(page, 0.25); // Exercise the widest speed label in the smallest layout.
+  for (const width of [1600, 1280, 390, 320]) {
+    await resizeSettled(page, width);
+    const group = page.getByRole('group', { name: 'Playback transport' });
+    await group.scrollIntoViewIfNeeded();
+    // Window subscribers debounce resize; wait for the responsive container to settle.
+    await page.waitForFunction(() => {
+      const transport = document.querySelector('[aria-label="Playback transport"]');
+      return transport?.parentElement.getBoundingClientRect().width >= Math.min(innerWidth - 100, 300);
+    });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const layout = await group.evaluate((transport) => {
+      const bar = transport.parentElement;
+      const box = (element) => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, right: rect.right };
+      };
+      return { viewport: innerWidth, pageWidth: document.documentElement.scrollWidth, video: box(document.querySelector('video')),
+        bar: box(bar), transport: box(transport),
+        order: [...transport.querySelectorAll('button')].map((button) => button.getAttribute('aria-label')),
+        buttons: [...bar.querySelectorAll('button')].map((button) => ({ label: button.getAttribute('aria-label'),
+          ...box(button), contentWidth: button.scrollWidth, clientWidth: button.clientWidth })) };
+    });
+    assert.deepEqual(layout.order, ['Jump back 10 seconds', 'Play', 'Jump forward 10 seconds']);
+    assert(Math.abs(layout.bar.x + layout.bar.width / 2 - (layout.transport.x + layout.transport.width / 2)) < 1,
+      `Transport is not centered at ${width}px: ${JSON.stringify(layout)}`);
+    assert(Math.abs(layout.bar.y + layout.bar.height / 2 - (layout.transport.y + layout.transport.height / 2)) < 1,
+      `Transport is not vertically centered at ${width}px: ${JSON.stringify(layout)}`);
+    assert(layout.pageWidth <= layout.viewport + 1, `Page overflows at ${width}px: ${JSON.stringify(layout)}`);
+    for (const button of layout.buttons) {
+      assert(button.x >= layout.bar.x - 1 && button.right <= layout.bar.right + 1 && button.contentWidth <= button.clientWidth + 1,
+        `Control is clipped at ${width}px: ${JSON.stringify(button)}`);
+    }
+    const ordered = [...layout.buttons].sort((left, right) => left.x - right.x);
+    for (let index = 1; index < ordered.length; index += 1) {
+      assert(ordered[index - 1].right <= ordered[index].x + 1, `Controls overlap at ${width}px`);
+    }
+    const screenshot = `test-results/controls-${browser.browserType().name()}-${forceMse ? 'mse' : 'default'}-${width}.png`;
+    const placement = await timelinePlacement(page);
+    const date = await datePlacement(page, width);
+    await page.screenshot({ path: resolve(root, screenshot) });
+    layouts.push({ ...layout, placement, date, screenshot });
+  }
+  await selectSpeed(page, 1);
+  const speed = page.getByRole('button', { name: 'Playback speed, current 1x' });
+  await speed.focus();
+  await speed.press('Enter');
+  assert(await page.getByRole('button', { name: 'Playback speed, current 2x' }).isVisible(), 'Enter must cycle the numeric speed control');
+  assert((await snapshot(page)).paused, 'Changing speed while paused must not resume the video');
+  await selectSpeed(page, 1);
+  await resizeSettled(page, 1600);
+  measurements.push({ browser: browser.browserType().name(), transport: forceMse ? 'mse' : 'default', controls: layouts });
 }
 
 async function clickTimeline(page, seconds) {
@@ -310,6 +445,7 @@ async function normalPlayback(browser, origin, fixture, forceMse = false) {
     assert(Math.abs(paused.mediaTime - held.mediaTime) < 0.02 && Math.abs(paused.offset - held.offset) < 20, 'Paused video and dependent clock must remain fixed');
     assertAlignment(held, fixture);
     if (!forceMse) await page.screenshot({ path: resolve(root, 'test-results/playback-preview.png') });
+    await verifyControlsLayout(page, browser, forceMse);
 
     const seekStarted = performance.now();
     await clickTimeline(page, 7.25);
@@ -345,24 +481,22 @@ async function normalPlayback(browser, origin, fixture, forceMse = false) {
     assert(rates.every((rate) => rate === 1), `Audio drift correction changed rates: ${rates}`);
     assertAlignment(audio, fixture);
 
-    await page.setViewportSize({ width: 1200, height: 1000 });
+    await resizeSettled(page, 1200);
     await page.evaluate(() => { window.__playbackOriginalVideo = document.querySelector('video'); });
     await page.getByText('Map', { exact: true }).click();
     const beforeMap = await snapshot(page);
     await page.waitForFunction((time) => document.querySelector('video')?.currentTime > time + 0.4, beforeMap.mediaTime);
     assert(await page.evaluate(() => document.querySelector('video') === window.__playbackOriginalVideo), 'Switching to Map must retain the same media element');
+    await timelinePlacement(page);
     await page.getByText('Video', { exact: true }).click();
     await setPaused(page, true);
 
-    const ruler = page.getByRole('slider', { name: 'Drive timeline' });
-    const box = await ruler.boundingBox();
-    const range = await snapshot(page);
-    const x = (seconds) => box.x + box.width * (seconds * 1000 - range.zoom.start) / (range.zoom.end - range.zoom.start);
-    await page.mouse.move(x(2.5), box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(x(4.5), box.y + box.height / 2, { steps: 5 });
-    await page.mouse.up();
-    await page.waitForURL(/\/2\/4$/);
+    await page.goto(`${origin}/${DEMO_DONGLE}/${BASELINE_LOG}/2/4?playback=audio&ci=1`);
+    await page.waitForFunction(async () => {
+      const state = (await import('/src/store.js')).default.getState();
+      const video = document.querySelector('video');
+      return state.zoom?.start === 2000 && state.zoom.end === 4000 && video?.readyState >= 2 && !video.seeking;
+    });
     const eventsBeforeLoop = (await snapshot(page)).eventCount;
     await setPaused(page, false);
     await page.waitForFunction((count) => window.__playbackEvents.slice(count).filter((event) => event.name === 'seeked').length >= 2, eventsBeforeLoop, { timeout: 10000 });
@@ -372,8 +506,15 @@ async function normalPlayback(browser, origin, fixture, forceMse = false) {
     await page.goBack();
     await page.waitForFunction(() => !/\/2\/4$/.test(location.pathname));
     await page.goForward();
-    await page.waitForURL(/\/2\/4$/);
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForURL(/\/2\/4(?:\?|$)/);
+    await page.locator('video').waitFor({ state: 'attached' });
+    await setPaused(page, false);
+    await page.waitForFunction(() => {
+      const video = document.querySelector('video');
+      return video?.readyState >= 2 && !video.seeking;
+    });
+    await page.evaluate(() => { window.__playbackOriginalVideo = document.querySelector('video'); });
+    await resizeSettled(page, 390);
     await page.getByText('Map', { exact: true }).click();
     const mobileFrames = (await snapshot(page)).decoded;
     await page.waitForFunction((frames) => {
@@ -381,6 +522,7 @@ async function normalPlayback(browser, origin, fixture, forceMse = false) {
       return (video?.getVideoPlaybackQuality?.().totalVideoFrames || video?.webkitDecodedFrameCount || 0) > frames + 4;
     }, mobileFrames);
     assert(await page.evaluate(() => document.querySelector('video') === window.__playbackOriginalVideo), 'Mobile Map view must retain the media element');
+    await timelinePlacement(page);
     await page.getByText('Video', { exact: true }).click();
     const samples = [playing, held, afterSeek, audio, looped];
     measurements.push({ browser: browser.browserType().name(), transport: forceMse || playing.mediaSrc.startsWith('blob:') ? 'mse' : 'native',
@@ -388,7 +530,7 @@ async function normalPlayback(browser, origin, fixture, forceMse = false) {
       mediaClockErrorMs: Math.max(...samples.map((sample) => Math.abs(sample.offset - (sample.mediaTime * 1000 + fixture.videoStartOffset)))),
       reduxEventSnapshotErrorMs: Math.max(...samples.map((sample) => Math.abs(sample.storeOffset - (sample.mediaTime * 1000 + fixture.videoStartOffset)))),
       thumbnailPixels: sprite });
-    return ['real H.264 decode', 'video/map/timeline alignment', 'loaded thumbnail sprite', 'pause freeze', 'scrub and jump controls', 'stable unmuted AAC speed', 'Map retains video', 'loop and browser history', 'mobile Map playback'];
+    return ['real H.264 decode', 'video/map/timeline alignment', 'loaded thumbnail sprite', 'pause freeze', 'centered desktop/mobile transport', 'keyboard speed cycling while paused', 'scrub and jump controls', 'stable unmuted AAC speed', 'Map retains video', 'loop and browser history', 'mobile Map playback'];
   } catch (error) {
     console.error('Playback failure:', await snapshot(page));
     console.error('Recent media events:', await page.evaluate(() => window.__playbackEvents.slice(-15)));
@@ -503,12 +645,8 @@ async function coldEntryRoutesAndRates(browser, server, fixture, forceMse = fals
       await setPaused(page, true);
       await clickTimeline(page, 3);
       await waitForTime(page, 1.5);
-      const currentRate = (await snapshot(page)).rate;
-      const steps = [0.1, 0.25, 0.5, 1, 2, 4, 8];
-      const difference = steps.indexOf(rate) - steps.indexOf(currentRate);
-      for (let step = 0; step < Math.abs(difference); step += 1) {
-        await page.getByRole('button', { name: difference > 0 ? 'Increase play speed by 1 step' : 'Decrease play speed by 1 step' }).click();
-      }
+      await selectSpeed(page, rate);
+      assert((await snapshot(page)).paused, 'Choosing a speed must preserve pause');
       await setPaused(page, false);
       const before = await snapshot(page);
       await page.waitForFunction(({ time, rate }) => {
@@ -575,6 +713,69 @@ async function simulatedNativeFallback(browser, origin, fixture) {
   } finally { await context.close(); }
 }
 
+async function loadingDelay(browser, server, fixture, forceMse = false) {
+  const receipts = [];
+  for (const sustained of [false, true]) {
+    server.resetStall();
+    const { page, context } = await openFixture(browser, server.origin, 'stalled', forceMse);
+    try {
+      await page.waitForFunction(() => document.querySelector('video')?.currentTime > 0.5 && !document.querySelector('.drive-video-loading'));
+      await page.evaluate(() => {
+        window.__loadingSamples = [];
+        window.__sampleLoading = true;
+        const sample = () => {
+          if (!window.__sampleLoading) return;
+          const loader = document.querySelector('.drive-video-loading');
+          const video = document.querySelector('video');
+          window.__loadingSamples.push({ time: performance.now(), loading: Boolean(loader),
+            opacity: loader ? Number(getComputedStyle(loader).opacity) : 0,
+            ready: !video.seeking && video.readyState >= 2, mediaTime: video.currentTime });
+          requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
+      await clickTimeline(page, 9.5);
+      await page.waitForFunction(() => {
+        const video = document.querySelector('video');
+        const buffered = Array.from({ length: video.buffered.length }, (_, index) => [video.buffered.start(index), video.buffered.end(index)])
+          .some(([start, end]) => start <= 8 && end > 8);
+        return Math.abs(video.currentTime - 8) < 0.1 && (video.seeking || video.readyState < 2 || !buffered)
+          && document.querySelector('.drive-video-loading');
+      });
+      if (sustained) {
+        await page.waitForFunction(() => Number(getComputedStyle(document.querySelector('.drive-video-loading')).opacity) > 0.8);
+        await page.screenshot({ path: resolve(root, `test-results/loader-delay-${forceMse ? 'mse' : 'default'}.png`) });
+      } else await page.waitForTimeout(180);
+      server.releaseStall();
+      await page.waitForFunction(() => {
+        const video = document.querySelector('video');
+        return !video.seeking && video.currentTime > 8.15 && !document.querySelector('.drive-video-loading');
+      });
+      const samples = await page.evaluate(() => { window.__sampleLoading = false; return window.__loadingSamples; });
+      const loading = samples.filter((sample) => sample.loading);
+      assert(loading.length > 0, 'A real blocked fragment must produce buffering samples');
+      const first = loading[0].time;
+      const ready = samples.find((sample) => sample.time >= first && sample.ready && sample.mediaTime >= 7.9);
+      assert(ready, 'Released fragments must produce a decoded seek target');
+      const last = loading.at(-1).time;
+      const visible = loading.find((sample) => sample.opacity > 0.01);
+      assert(last <= ready.time + 100, 'Loading must disappear on decode, without a minimum display hold');
+      if (sustained) {
+        assert(visible && visible.time - first >= 480, 'A sustained loader must remain hidden for the first 500 ms');
+        assert(visible.time - first < 800, 'A sustained loader must become visible after its delay');
+      } else {
+        assert(last - first < 500, 'The short-stall fixture must complete before 500 ms');
+        assert(!visible, 'A real stall shorter than 500 ms must not visibly flash the comma');
+      }
+      receipts.push({ sustained, bufferingMs: Math.round(last - first), firstVisibleMs: visible ? Math.round(visible.time - first) : null,
+        hideAfterDecodeMs: Math.max(0, Math.round(last - ready.time)) });
+      assertAlignment(await snapshot(page), fixture, false);
+    } finally { server.releaseStall(); await context.close(); }
+  }
+  measurements.push({ browser: browser.browserType().name(), transport: forceMse ? 'mse' : 'default', loadingDelay: receipts });
+  return ['short network stall does not flash the comma', 'sustained loading appears after 500 ms without a display hold'];
+}
+
 async function stallOfflineAndReconnect(browser, server, fixture, forceMse = false) {
   server.resetStall();
   const { page, context } = await openFixture(browser, server.origin, 'stalled', forceMse);
@@ -586,7 +787,9 @@ async function stallOfflineAndReconnect(browser, server, fixture, forceMse = fal
     await clickTimeline(page, 9.5);
     await page.waitForFunction(async () => {
       const video = document.querySelector('video');
-      return video.seeking && Math.abs(video.currentTime - 8) < 0.1
+      const buffered = Array.from({ length: video.buffered.length }, (_, index) => [video.buffered.start(index), video.buffered.end(index)])
+        .some(([start, end]) => start <= 8 && end > 8);
+      return (video.seeking || video.readyState < 2 || !buffered) && Math.abs(video.currentTime - 8) < 0.1
         && (await import('/src/store.js')).default.getState().isBufferingVideo;
     });
     const stalled = await snapshot(page);
@@ -663,7 +866,7 @@ try {
   if (fixture.version !== 2) throw new Error('Regenerate updated fixture metadata');
 }
 catch { fixture = await generatePlaybackFixtures(config.directory, process.env.FFMPEG || 'ffmpeg'); }
-const server = await startFixtureServer(config.directory, fixture);
+const server = await startFixtureServer(config.directory, fixture, config.serve);
 if (config.serve) {
   console.log(`Local audio demo: ${server.origin}/demo?playback=audio`);
   console.log(`Other scenarios: ${fixture.scenarios.join(', ')} (set ?playback=...)`);
@@ -695,6 +898,7 @@ if (config.serve) {
           ...await gapAndMissingSegment(browser, server.origin, fixture),
           ...await coldEntryRoutesAndRates(browser, server, fixture),
           ...await policyAndLifecycle(browser, server.origin, fixture),
+          ...await loadingDelay(browser, server, fixture),
           ...await stallOfflineAndReconnect(browser, server, fixture),
           ...await mapErrorAndRetry(browser, server, fixture),
         ];
@@ -710,6 +914,7 @@ if (config.serve) {
             ...await gapAndMissingSegment(browser, server.origin, fixture, true),
             ...await coldEntryRoutesAndRates(browser, server, fixture, true),
             ...await policyAndLifecycle(browser, server.origin, fixture, true),
+            ...await loadingDelay(browser, server, fixture, true),
             ...await stallOfflineAndReconnect(browser, server, fixture, true),
             ...await mapErrorAndRetry(browser, server, fixture, true),
           ];

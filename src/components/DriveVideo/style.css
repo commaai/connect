@@ -1,0 +1,27 @@
+.drive-video-loading {
+  animation: fadein 160ms ease-out 500ms both;
+}
+
+.drive-video-loading-comma {
+  width: 32px;
+  height: 58px;
+  object-fit: contain;
+  transform-origin: 50% 75%;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .35));
+  animation: drive-video-comma 2.8s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+
+@keyframes drive-video-comma {
+  0%, 16%, 84%, 100% { transform: translateY(0) rotate(0); }
+  38% { transform: translateY(-2px) rotate(-6deg); }
+  58% { transform: translateY(-1px) rotate(3deg); }
+  72% { transform: translateY(0) rotate(-1deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drive-video-loading {
+    animation-duration: 1ms;
+    animation-timing-function: steps(1, end);
+  }
+  .drive-video-loading-comma { animation: none; }
+}

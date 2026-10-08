@@ -46,6 +46,12 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/${LOG}`, null],
     [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
     [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
+    [`/${DONGLE}/${LOG}/0/NaN`, null],
+    [`/${DONGLE}/${LOG}/0/Infinity`, null],
+    [`/${DONGLE}/${LOG}/0/1e308`, null],
+    [`/${DONGLE}/${LOG}/20/10`, null],
+    [`/${DONGLE}/${LOG}/10/10`, null],
+    [`/${DONGLE}/${LOG}/-1/10`, null],
     [`/${DONGLE}/10/20`, null],
   ])('getRouteZoom(%s)', (pathname, expected) => {
     expect(getRouteZoom(pathname)).toEqual(expected);
