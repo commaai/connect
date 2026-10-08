@@ -127,17 +127,56 @@ test('timeline gesture, speed, range reload and drive switch use real media', as
   const start = Number(new URL(rangeUrl).pathname.split('/').at(-2));
   await expect.poll(() => video.evaluate(element => element.currentTime)).toBeGreaterThanOrEqual(start);
   expect(await video.evaluate(element => element.currentTime)).toBeLessThan(start + 1.75);
+  const precise = await page.evaluate(() => history.state?.state?.connectZoom || history.state?.connectZoom);
+  expect(Number.isFinite(precise?.start)).toBe(true);
+  const restoredStart = precise.start / 1000;
+  // Measure native restoration, not playback elapsed during runner roundtrips.
+  await page.addInitScript(({ start }) => {
+    document.addEventListener('loadedmetadata', event => {
+      if (event.target instanceof HTMLVideoElement) document.querySelector('button[aria-label="Pause"]')?.click();
+    }, true);
+    document.addEventListener('seeked', event => {
+      const element = event.target;
+      if (!(element instanceof HTMLVideoElement) || element.getAttribute('aria-label') !== 'Drive video'
+        || window.rangeRestored || element.currentTime < start - 0.1) return;
+      window.rangeRestored = { time: element.currentTime, seeking: element.seeking };
+      element.pause();
+    }, true);
+  }, { start: restoredStart });
   await page.reload();
-  await expect.poll(() => video.evaluate(element => element.readyState)).toBeGreaterThan(1);
-  await video.evaluate(element => element.pause());
-  await expect.poll(() => video.evaluate(element => element.currentTime)).toBeGreaterThanOrEqual(start);
-  expect(await video.evaluate(element => element.currentTime)).toBeLessThan(start + 1.75);
+  await expect.poll(() => page.evaluate(() => window.rangeRestored)).toBeTruthy();
+  const restored = await page.evaluate(() => window.rangeRestored);
+  expect(restored.time).toBeCloseTo(restoredStart, 1);
+  expect(restored.seeking).toBe(false);
+  await expect.poll(() => video.evaluate(element => element.paused)).toBe(true);
+  const pausedTime = await video.evaluate(element => element.currentTime);
+  await page.waitForTimeout(400);
+  expect(await video.evaluate(element => element.currentTime)).toBeCloseTo(pausedTime, 1);
   expect(page.url()).toBe(rangeUrl);
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByText('Missing start/end GPS (1 segment)', { exact: true }).click();
   await expect.poll(() => video.evaluate(element => element.readyState)).toBeGreaterThan(1);
   await expect(page).toHaveURL(/00000000--0000000004/);
   await expect(page.locator('video[aria-label="Drive video"]')).toHaveCount(1);
+});
+
+test('fresh range URL restores its canonical start without precise history', async ({ page }) => {
+  await page.addInitScript(() => {
+    document.addEventListener('loadedmetadata', event => {
+      if (event.target instanceof HTMLVideoElement) document.querySelector('button[aria-label="Pause"]')?.click();
+    }, true);
+    document.addEventListener('seeked', event => {
+      const video = event.target;
+      if (!(video instanceof HTMLVideoElement) || video.currentTime < 3.9 || window.canonicalRestored) return;
+      window.canonicalRestored = { time: video.currentTime, seeking: video.seeking };
+    }, true);
+  });
+  await page.goto(`/demo/${LOG}/4/9`);
+  await expect.poll(() => page.evaluate(() => window.canonicalRestored)).toBeTruthy();
+  const restored = await page.evaluate(() => window.canonicalRestored);
+  expect(restored.time).toBeCloseTo(4, 1);
+  expect(restored.seeking).toBe(false);
+  expect(await page.getByLabel('Drive video').evaluate(video => video.paused)).toBe(true);
 });
 
 test('zero-start loop stays within its selected media range', async ({ page }) => {
