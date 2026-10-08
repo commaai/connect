@@ -55,7 +55,7 @@ describe('native media controller', () => {
     controller.update(command(3000, 2));
     video.currentTime = 2;
     video.seeking = false;
-    video.fire('seeked');
+    video.fire('timeupdate');
     expect(callbacks.onProgress).not.toHaveBeenCalled();
     video.currentTime = 3;
     video.fire('seeked');
@@ -187,4 +187,27 @@ it('sends transport commands synchronously per store and protects newer bindings
   expect(second.update).toHaveBeenLastCalledWith(expect.objectContaining({ seekOffset: 1, seekRevision: 1 }));
   store.dispatch(pause());
   expect(second.update).toHaveBeenLastCalledWith(expect.objectContaining({ speed: 0 }));
+});
+
+it('samples the real media clock on frames and cancels the frame on disposal', () => {
+  const video = new Video();
+  let callback;
+  video.requestVideoFrameCallback = vi.fn((fn) => { callback = fn; return 1; });
+  video.cancelVideoFrameCallback = vi.fn();
+  const onProgress = vi.fn();
+  const controller = createController(video, { onProgress });
+  controller.update(command(0));
+  onProgress.mockClear();
+  video.currentTime = 0.1;
+  callback(0);
+  expect(onProgress).toHaveBeenLastCalledWith(100, 1);
+  video.currentTime = 0.2;
+  callback(16);
+  expect(onProgress).toHaveBeenCalledOnce();
+  callback(40);
+  expect(onProgress).toHaveBeenLastCalledWith(200, 1);
+  controller.dispose();
+  expect(video.cancelVideoFrameCallback).toHaveBeenCalledWith(1);
+  callback(80);
+  expect(onProgress).toHaveBeenCalledTimes(2);
 });

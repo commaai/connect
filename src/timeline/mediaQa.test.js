@@ -242,7 +242,7 @@ describe('QA: mutation gaps', () => {
   });
 
   it('Q1-B-28 a seek that lands 5ms off is still reported as unsettled until seeked', () => {
-    const { video, callbacks, controller } = setup({ snap: 0.005 });
+    const { callbacks, controller } = setup({ snap: 0.005 });
     controller.update(cmd(10000));
     expect(callbacks.onProgress).not.toHaveBeenCalledWith(expect.anything(), 1);
   });

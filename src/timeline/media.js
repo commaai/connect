@@ -10,6 +10,7 @@ export function createController(video, callbacks = {}) {
   let playRequest = 0;
   let starting = false;
   let frame = null;
+  let lastFrameSample = -Infinity;
   const listeners = [];
   const emit = (name, ...args) => {
     if (!active) return;
@@ -21,7 +22,8 @@ export function createController(video, callbacks = {}) {
   const toMedia = (offset) => intent.toMedia ? intent.toMedia(offset) : (offset - intent.videoStartOffset) / 1000;
   const toRoute = (seconds) => intent.toRoute ? intent.toRoute(seconds) : seconds * 1000 + intent.videoStartOffset;
   const bounds = () => {
-    const start = Math.max(0, toMedia(intent.range?.start ?? intent.videoStartOffset));
+    const mappedStart = toMedia(intent.range?.start ?? intent.videoStartOffset);
+    const start = Number.isFinite(mappedStart) ? Math.min(video.duration, Math.max(0, mappedStart)) : NaN;
     const end = Math.min(Number.isFinite(video.duration) ? video.duration : Infinity,
       intent.range ? toMedia(intent.range.end) : Infinity);
     return { start, end };
@@ -91,11 +93,18 @@ export function createController(video, callbacks = {}) {
   listen('loadedmetadata', () => { seekPending(); resume(); });
   listen('durationchange', seekPending);
   listen('timeupdate', sample);
-  listen('seeked', () => { seekPending(); sample(); });
+  listen('seeked', () => {
+    // Native completion is authoritative even if the browser snapped the target.
+    if (issued && !video.seeking) pending = null;
+    seekPending();
+    sample();
+    emit('onBuffering', pending !== null);
+  });
   listen('waiting', () => emit('onBuffering', true));
   listen('seeking', () => emit('onBuffering', true));
   listen('canplay', () => { seekPending(); emit('onBuffering', pending !== null); });
-  listen('playing', () => emit('onBuffering', false));
+  listen('playing', () => emit('onBuffering', pending !== null));
+  listen('emptied', () => { playRequest += 1; starting = false; });
   listen('pause', () => {
     if (!video.ended && intent.speed) {
       intent.speed = 0;
@@ -116,13 +125,19 @@ export function createController(video, callbacks = {}) {
   });
   listen('error', () => emit('onError', video.error));
 
-  // Only enforce loop edges per frame; progress uses native timeupdate cadence.
-  const checkFrame = () => {
+  // Sample the media clock for smooth readers, without inventing elapsed time.
+  const scheduleFrame = () => video.requestVideoFrameCallback
+    ? video.requestVideoFrameCallback(checkFrame) : globalThis.requestAnimationFrame?.(checkFrame) ?? null;
+  function checkFrame(timestamp) {
     if (!active) return;
-    if (intent.speed && intent.range && video.currentTime >= bounds().end) sample();
-    frame = video.requestVideoFrameCallback?.(checkFrame) ?? null;
-  };
-  frame = video.requestVideoFrameCallback?.(checkFrame) ?? null;
+    const loopEdge = intent.speed && intent.range && video.currentTime >= bounds().end;
+    if (loopEdge || timestamp - lastFrameSample >= 1000 / 30) {
+      sample();
+      lastFrameSample = timestamp;
+    }
+    frame = scheduleFrame();
+  }
+  frame = scheduleFrame();
 
   return {
     routeId: callbacks.routeId,
@@ -150,7 +165,10 @@ export function createController(video, callbacks = {}) {
       active = false;
       playRequest += 1;
       listeners.forEach(([event, handler]) => video.removeEventListener(event, handler));
-      if (frame !== null) video.cancelVideoFrameCallback?.(frame);
+      if (frame !== null) {
+        if (video.cancelVideoFrameCallback) video.cancelVideoFrameCallback(frame);
+        else globalThis.cancelAnimationFrame?.(frame);
+      }
     },
   };
 }
