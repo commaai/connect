@@ -83,6 +83,19 @@ describe('URL-hosted clip dialogs', () => {
     await waitFor(() => expect(clipDevice.getClipUrl).toHaveBeenCalledWith(DEVICE_ID, FILENAME, clip.requested_at, expect.any(Function)));
   });
 
+  test('a failed clip preview can be retried without changing its URL', async () => {
+    clipDevice.getClipUrl.mockRejectedValueOnce(new Error('Download interrupted'));
+    const path = `/${DEVICE_ID}?modal=clip-viewer&clip=${FILENAME}`;
+    const { history } = renderClipMenu(path);
+    expect(await screen.findByText('Download interrupted')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download clip' }));
+
+    expect(await screen.findByLabelText('Close video')).toBeInTheDocument();
+    expect(clipDevice.getClipUrl).toHaveBeenCalledTimes(2);
+    expect(`${history.location.pathname}${history.location.search}`).toBe(path);
+  });
+
   test('a delete URL only opens confirmation; deletion requires the explicit button', async () => {
     const path = `/${DEVICE_ID}?modal=clip-delete&clip=${encodeURIComponent(FILENAME)}`;
     const { store } = renderClipMenu(path);
