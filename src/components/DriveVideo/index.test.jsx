@@ -5,7 +5,7 @@ import { createStore } from 'redux';
 
 import DriveVideo from '.';
 import { createInitialState } from '../../initialState';
-import { reducer, pause, play, seek, selectLoop, setPlaybackSpeed } from '../../timeline/playback';
+import { reducer, pause, play, seek, selectLoop, setPlaybackSpeed, VideoStatus } from '../../timeline/playback';
 
 vi.mock('../../api/backend', () => ({
   api: { video: { getQcameraStreamUrl: (name) => `https://example.com/${name}.mp4` } },
@@ -39,7 +39,7 @@ async function mountVideo() {
 test('plays, pauses, seeks and keeps the timeline in sync', async () => {
   const { store, video } = await mountVideo();
   expect(video.play).toHaveBeenCalledTimes(1);
-  expect(store.getState().videoStatus).toBe('ready');
+  expect(store.getState().videoStatus).toBe(VideoStatus.READY);
 
   video.currentTime = 12;
   fireEvent.timeUpdate(video);
@@ -78,20 +78,20 @@ test('seeks to the selected loop and wraps while playing', async () => {
   expect(video.currentTime).toBe(18);
 });
 
-test('a buffered seek clears loading without canplay, like safari', async () => {
+test('clears loading on seeked without waiting for canplay', async () => {
   const { store, video } = await mountVideo();
   act(() => store.dispatch(seek(30000)));
   fireEvent.seeking(video);
-  expect(store.getState().videoStatus).toBe('loading');
+  expect(store.getState().videoStatus).toBe(VideoStatus.LOADING);
   fireEvent.seeked(video);
-  expect(store.getState().videoStatus).toBe('ready');
+  expect(store.getState().videoStatus).toBe(VideoStatus.READY);
 });
 
 test('shows media errors without overwriting timeline navigation and recovers when playable', async () => {
   const { store, video, getByText, queryByText } = await mountVideo();
   fireEvent.error(video);
   fireEvent.waiting(video);
-  expect(store.getState().videoStatus).toBe('failed');
+  expect(store.getState().videoStatus).toBe(VideoStatus.FAILED);
   expect(getByText('Unable to load video')).toBeVisible();
 
   act(() => store.dispatch(seek(16000)));
@@ -100,7 +100,7 @@ test('shows media errors without overwriting timeline navigation and recovers wh
   expect(store.getState().offset).toBe(16000);
 
   fireEvent.canPlay(video);
-  expect(store.getState().videoStatus).toBe('ready');
+  expect(store.getState().videoStatus).toBe(VideoStatus.READY);
   expect(queryByText('Unable to load video')).toBeNull();
 });
 
@@ -114,12 +114,12 @@ test('changing routes resets playback and ignores events from the old video', as
   });
   await waitFor(() => expect(container.querySelector('video')).not.toBe(video));
   expect(store.getState()).toMatchObject({
-    offset: 0, seekRequest: null, desiredPlaySpeed: 1, isPlaying: true, videoStatus: 'loading',
+    offset: 0, seekRequest: null, desiredPlaySpeed: 1, isPlaying: true, videoStatus: VideoStatus.LOADING,
   });
 
   video.currentTime = 42;
   fireEvent.timeUpdate(video);
   fireEvent.error(video);
   expect(store.getState().offset).toBe(0);
-  expect(store.getState().videoStatus).toBe('loading');
+  expect(store.getState().videoStatus).toBe(VideoStatus.LOADING);
 });

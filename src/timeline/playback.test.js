@@ -25,16 +25,13 @@ describe('playback', () => {
   it('has playback controls', () => {
     let state = makeDefaultStruct();
 
-    // stop playback
     state = reducer(state, pause());
     expect(state.isPlaying).toBe(false);
     expect(state.desiredPlaySpeed).toBe(1);
 
-    // start playing
     state = reducer(state, play());
     expect(state.isPlaying).toBe(true);
 
-    // seek updates offset
     state = reducer(state, seek(123));
     expect(state.offset).toEqual(123);
 
@@ -48,7 +45,6 @@ describe('playback', () => {
     expect(state.offset).toBe(456);
     expect(state.seekRequest).toBeNull();
 
-    // reset clears offset
     state = reducer(state, resetPlayback());
     expect(state.offset).toEqual(0);
   });
@@ -95,10 +91,6 @@ describe('playback', () => {
   it('keeps the chosen speed during buffering', () => {
     let state = makeDefaultStruct();
 
-    state = reducer(state, play());
-    expect(state.isPlaying).toBe(true);
-
-    // claim the video is buffering
     state = reducer(state, setVideoStatus(VideoStatus.LOADING));
     expect(state.desiredPlaySpeed).toEqual(1);
     expect(state.videoStatus).toBe(VideoStatus.LOADING);

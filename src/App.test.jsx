@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { VideoStatus } from './timeline/playback';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), playerProps: null }));
 
@@ -40,8 +41,8 @@ vi.mock('react-map-gl', () => ({
   WebMercatorViewport: class {},
 }));
 vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    mocks.playerProps = _props;
+  default: React.forwardRef((props, ref) => {
+    mocks.playerProps = props;
     React.useImperativeHandle(ref, () => ({
       getCurrentTime: () => 0,
       getDuration: () => 60,
@@ -306,7 +307,7 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
 
-  test('a failed video leaves timeline navigation owned by Redux', async () => {
+  test('allows timeline seeking after video failure', async () => {
     const { store } = await renderApp(`/${FIRST}/${LOG}`);
     const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
 
@@ -317,7 +318,7 @@ describe('whole-app behavior', () => {
         response: { code: 404 },
       });
     });
-    expect(store.getState().videoStatus).toBe('failed');
+    expect(store.getState().videoStatus).toBe(VideoStatus.FAILED);
 
     fireEvent.pointerDown(timeline, { button: 0, clientX: 500, pageX: 500 });
     fireEvent.pointerUp(timeline, { button: 0, clientX: 500, pageX: 500 });
