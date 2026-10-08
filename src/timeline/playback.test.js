@@ -1,6 +1,6 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, resetPlayback, seek, selectLoop, videoTime } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -9,6 +9,7 @@ const makeDefaultStruct = function makeDefaultStruct() {
     startTime: Date.now(), // millisecond timestamp in which play began
 
     isBuffering: true,
+    seekCount: 0,
   };
 };
 
@@ -129,5 +130,46 @@ describe('playback', () => {
     expect(state.isBufferingVideo).toEqual(false);
 
     expect(state.desiredPlaySpeed).toEqual(2);
+  });
+});
+
+describe('video as the clock', () => {
+  it('follows the position the video reports', () => {
+    newNow();
+    let state = reducer(makeDefaultStruct(), play());
+    newNow();
+    state = reducer(state, videoTime(5000));
+    expect(state.offset).toEqual(5000);
+    expect(state.startTime).toEqual(Date.now());
+    // a report is not a request to move the video
+    expect(state.seekCount).toEqual(0);
+  });
+
+  it('asks the video to follow when the state moves the playhead', () => {
+    newNow();
+    let state = reducer(makeDefaultStruct(), play());
+    state = reducer(state, seek(3000));
+    expect(state.seekCount).toEqual(1);
+    state = reducer(state, resetPlayback());
+    expect(state.seekCount).toEqual(2);
+  });
+
+  it('wraps a loop when the video plays past its end and asks the video to follow', () => {
+    newNow();
+    let state = reducer(makeDefaultStruct(), play());
+    state = reducer(state, selectLoop(1000, 2000));
+    const before = state.seekCount;
+    state = reducer(state, videoTime(2400));
+    expect(state.offset).toEqual(1400);
+    expect(state.seekCount).toEqual(before + 1);
+  });
+
+  it('moves a playhead outside a new loop into it', () => {
+    newNow();
+    let state = reducer(makeDefaultStruct(), play());
+    const before = state.seekCount;
+    state = reducer(state, selectLoop(1000, 2000));
+    expect(state.offset).toEqual(1000);
+    expect(state.seekCount).toEqual(before + 1);
   });
 });

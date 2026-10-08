@@ -1,5 +1,6 @@
-// basic helper functions for controlling playback
-// we shouldn't want to edit the raw state most of the time, helper functions are better
+// Playback state. The <video> element is the clock: it reports where it is (videoTime) and the
+// state follows. Whenever the state itself decides the position should move (a seek, a reset, or
+// wrapping around a loop), it bumps seekCount and the player applies the new offset to the video.
 import * as Types from '../actions/types';
 import { currentOffset } from '.';
 
@@ -15,6 +16,7 @@ export function reducer(_state, action) {
         ...state,
         offset: action.offset,
         startTime: Date.now(),
+        seekCount: state.seekCount + 1,
       };
 
       if (loopOffset !== null) {
@@ -61,6 +63,13 @@ export function reducer(_state, action) {
         startTime: Date.now(),
       };
       break;
+    case Types.ACTION_VIDEO_TIME:
+      state = {
+        ...state,
+        offset: action.offset,
+        startTime: Date.now(),
+      };
+      break;
     case Types.ACTION_RESET:
       state = {
         ...state,
@@ -68,6 +77,7 @@ export function reducer(_state, action) {
         isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
+        seekCount: state.seekCount + 1,
       };
       break;
     default:
@@ -94,9 +104,11 @@ export function reducer(_state, action) {
     if (offset < loopOffset) {
       state.startTime = Date.now();
       state.offset = loopOffset;
+      state.seekCount += 1;
     } else if (offset > loopOffset + state.loop.duration) {
       state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
       state.startTime = Date.now();
+      state.seekCount += 1;
     }
   }
 
@@ -133,6 +145,14 @@ export function selectLoop(start, end) {
     type: Types.ACTION_LOOP,
     start,
     end,
+  };
+}
+
+/// the video reports its position, as an offset into the route
+export function videoTime(offset) {
+  return {
+    type: Types.ACTION_VIDEO_TIME,
+    offset,
   };
 }
 
