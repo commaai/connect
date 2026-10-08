@@ -9,12 +9,13 @@ import { pause, seek } from '../../timeline/playback';
 import rootReducer from '../../reducers';
 import * as Types from '../../actions/types';
 
-const mocks = vi.hoisted(() => ({ props: null, media: null, hls: null, seekTo: vi.fn() }));
+const mocks = vi.hoisted(() => ({ props: null, media: null, hls: null, seekTo: vi.fn(), mounts: 0 }));
 vi.mock('../../api/backend', () => ({
   api: { video: { getQcameraStreamUrl: (route) => `https://example.com/${route}.m3u8` } },
 }));
 vi.mock('react-player/file', () => ({
   default: React.forwardRef((props, ref) => {
+    React.useEffect(() => { mocks.mounts += 1; }, []);
     React.useEffect(() => { mocks.props = props; });
     const player = {
       getInternalPlayer: (type) => type === 'hls' ? mocks.hls : mocks.media,
@@ -48,7 +49,7 @@ function renderPlayer(overrides = {}) {
     ...overrides,
   });
   const audioStatus = vi.fn();
-  const view = render(<Provider store={store}><DriveVideo isMuted onAudioStatusChange={audioStatus} /></Provider>);
+  const view = render(<Provider store={store}><DriveVideo active isMuted onAudioStatusChange={audioStatus} /></Provider>);
   if (mocks.media.seeking) finishSeek();
   mocks.seekTo.mockClear();
   return { ...view, store, audioStatus };
@@ -58,6 +59,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(1000);
   mocks.hls = null;
+  mocks.mounts = 0;
   mocks.media = {
     currentTime: 0, duration: 120, readyState: 4, paused: true, seeking: false,
     ended: false, playbackRate: 1, audioTracks: [],
@@ -91,12 +93,15 @@ it('freezes display time while waiting and resumes from the media position', () 
   expect(store.getState().isBufferingVideo).toBe(false);
 });
 
-it('applies repeated seeks immediately and keeps paused seeks paused', () => {
+it('coalesces repeated seeks and keeps paused seeks paused', () => {
   const { store } = renderPlayer();
   act(() => { store.dispatch(pause()); });
   act(() => { store.dispatch(seek(10000)); });
   act(() => { store.dispatch(seek(20000)); });
   act(() => { store.dispatch(seek(20000)); });
+  expect(mocks.seekTo).toHaveBeenCalledTimes(1);
+  finishSeek();
+  expect(mocks.seekTo).toHaveBeenCalledTimes(2);
   finishSeek();
   expect(mocks.media.currentTime).toBe(20);
   expect(mocks.media.paused).toBe(true);
@@ -148,6 +153,21 @@ it('releases playback to the existing map-only clock on unmount', () => {
   vi.setSystemTime(2000);
   expect(view.store.getState().videoPlaySpeed).toBeNull();
   expect(currentOffset(view.store.getState())).toBe(6000);
+});
+
+it('keeps the player mounted and resumes at the map clock when switching views', () => {
+  const { store, rerender, audioStatus } = renderPlayer();
+  act(() => { mocks.media.currentTime = 5; mocks.props.onProgress(); });
+  rerender(<Provider store={store}><DriveVideo active={false} isMuted onAudioStatusChange={audioStatus} /></Provider>);
+  expect(store.getState().videoPlaySpeed).toBeNull();
+  expect(store.getState().desiredPlaySpeed).toBe(1);
+  vi.setSystemTime(3000);
+  expect(currentOffset(store.getState())).toBe(7000);
+  rerender(<Provider store={store}><DriveVideo active isMuted onAudioStatusChange={audioStatus} /></Provider>);
+  finishSeek();
+  expect(mocks.media.currentTime).toBe(7);
+  expect(store.getState().offset).toBe(7000);
+  expect(mocks.mounts).toBe(1);
 });
 
 it('converts route offsets to video time and detects native audio after loading', () => {

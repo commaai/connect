@@ -549,12 +549,13 @@ class Media extends Component {
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {inView === MediaType.VIDEO && (
+            <div className={inView === MediaType.VIDEO ? '' : 'hidden'}>
               <DriveVideo
+                active={inView === MediaType.VIDEO}
                 isMuted={isMuted}
                 onAudioStatusChange={this.handleAudioStatusChange}
               />
-            )}
+            </div>
             {(inView === MediaType.MAP && !showMapAlways) && (
               <div className="w-full">
                 <DriveMap />
