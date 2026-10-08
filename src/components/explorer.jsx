@@ -24,6 +24,9 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import { parseLocation } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -98,7 +101,7 @@ class ExplorerApp extends Component {
     window.scrollTo({ top: 0 }); // for ios header
 
     const q = new URLSearchParams(window.location.search);
-    if (q.has('r')) {
+    if (q.has('r') && parseLocation(q.get('r')).page !== 'not-found') {
       this.props.dispatch(replace(q.get('r')));
     }
 
@@ -198,12 +201,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, page, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -243,7 +246,9 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
+              { page === 'not-found'
+                ? <div className="p-8"><Typography>Page not found.</Typography></div>
+                : referralsOpen
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
@@ -270,6 +275,12 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        {!bodyTeleopOpen && (
+          <>
+            <DeviceSettingsModal />
+            <AddDevice modalOnly />
+          </>
+        )}
       </div>
     );
   }
@@ -278,6 +289,7 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  page: parseLocation(state.router.location).page,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,

@@ -1,3 +1,4 @@
+import { LOCATION_CHANGE } from 'connected-react-router';
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
 import { getDefaultFilter } from '../utils/filter';
@@ -29,6 +30,14 @@ export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
+    case LOCATION_CHANGE:
+      if (action.payload.navigation) state.navigation = action.payload.navigation;
+      break;
+    case 'ROUTE_LOAD':
+      if (action.dongleId === state.dongleId && action.routeId === state.selectedRouteId) {
+        state.routeLoad = { dongleId: action.dongleId, routeId: action.routeId, status: action.status, error: action.error };
+      }
+      break;
     case Types.ACTION_STARTUP_DATA: {
       const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
 
@@ -53,36 +62,32 @@ export default function reducer(_state, action) {
       state.profile = action.profile;
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_SELECT_DEVICE: {
+      if (action.dongleId === state.dongleId) return _state;
+      const deviceViews = { ...state.deviceViews };
+      if (state.dongleId) {
+        deviceViews[state.dongleId] = {
+          filter: state.filter, routes: state.routes, routesMeta: state.routesMeta,
+          lastRoutes: state.lastRoutes, limit: state.limit, files: state.files,
+          subscription: state.subscription, subscribeInfo: state.subscribeInfo,
+        };
+      }
+      const saved = deviceViews[action.dongleId];
       state = {
         ...state,
-        filter: getDefaultFilter(),
+        filter: getDefaultFilter(), routes: null, lastRoutes: null,
+        routesMeta: { dongleId: null, start: null, end: null },
+        limit: 0, files: null, subscription: null, subscribeInfo: null,
+        ...saved,
+        deviceViews,
         dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
-        subscription: null,
-        subscribeInfo: null,
-        files: null,
-        limit: 0,
+        device: state.devices?.find((device) => device.dongle_id === action.dongleId)
+          || { ...emptyDevice, dongle_id: action.dongleId },
+        primeNav: false, streamNav: false,
+        selectedRouteId: null, currentRoute: null, zoom: null, loop: null, routeLoad: null,
       };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
-      if (state.devices) {
-        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
-        if (!state.device || state.device.dongle_id !== action.dongleId) {
-          state.device = newDevice;
-        }
-      }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
-        state.routesMeta = {
-          dongleId: null,
-          start: null,
-          end: null,
-        };
-        state.routes = null;
-        state.lastRoutes = null;
-        state.currentRoute = null;
-      }
       break;
+    }
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
@@ -151,6 +156,9 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_UPDATE_ROUTE:
+      if (state.routeDetails?.[action.fullname]) state.routeDetails = {
+        ...state.routeDetails, [action.fullname]: { ...state.routeDetails[action.fullname], ...action.route },
+      };
       if (state.routes) {
         state.routes = state.routes.map((route) => {
           if (route.fullname === action.fullname) {
@@ -172,10 +180,10 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_ROUTE_EVENTS: {
       const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
-      eventsMap[action.fullname] = {
-        events: action.events,
-        videoStartOffset,
-      }
+      eventsMap[action.fullname] = { events: action.events, videoStartOffset };
+      if (state.routeDetails?.[action.fullname]) state.routeDetails = {
+        ...state.routeDetails, [action.fullname]: { ...state.routeDetails[action.fullname], ...eventsMap[action.fullname] },
+      };
       if (state.routes) {
         state.routes = state.routes.map((route) => {
           const ev = eventsMap[route.fullname];
@@ -199,10 +207,10 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_UPDATE_ROUTE_LOCATION: {
-      locationMap[action.fullname] = {
-        location: action.location,
-        locationKey: action.locationKey,
-      }
+      locationMap[action.fullname] = { location: action.location, locationKey: action.locationKey };
+      if (state.routeDetails?.[action.fullname]) state.routeDetails = {
+        ...state.routeDetails, [action.fullname]: { ...state.routeDetails[action.fullname], [action.locationKey]: action.location },
+      };
       if (state.routes) {
         state.routes = state.routes.map((route) => {
           const loc = locationMap[route.fullname];
@@ -344,26 +352,33 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
-        state.files = null;
-      }
-
+      const changedRoute = state.selectedRouteId !== action.log_id;
+      const previousZoom = state.routeLoad?.status === 'invalid' ? null : state.zoom;
+      if (changedRoute) state.files = null;
       state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
+      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id)
+        || state.routeDetails?.[`${state.dongleId}|${action.log_id}`] || null;
+      state.routeLoad = action.log_id ? {
+        dongleId: state.dongleId, routeId: action.log_id,
+        status: state.currentRoute ? 'ready' : 'loading', error: null,
+      } : null;
       if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
+        const start = action.start ?? (state.currentRoute ? 0 : null);
+        const end = action.end ?? state.currentRoute?.duration ?? null;
+        const previous = changedRoute ? null : previousZoom;
+        let ancestor = previous?.previous;
+        while (ancestor && (ancestor.start !== start || ancestor.end !== end)) ancestor = ancestor.previous;
+        if (ancestor) {
+          // Going back to an earlier selection unwinds its chain. Adding the
+          // current selection again would make the Back button toggle forever.
+          state.zoom = ancestor;
         } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
+          state.zoom = start != null && end != null ? { start, end, previous } : null;
+        }
+        if (action.start == null || action.end == null) state.loop = null;
+        if (state.currentRoute && state.zoom && state.zoom.end > state.currentRoute.duration) {
+          state.currentRoute = null;
+          state.routeLoad = { ...state.routeLoad, status: 'invalid', error: 'This time range is outside the drive.' };
         }
       } else {
         state.zoom = null;
@@ -409,43 +424,44 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
-      // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
-        return {
-          ...existingRoute,
-          ...route,
-        }
+    case Types.ACTION_ROUTES_METADATA: {
+      const routeDetails = { ...state.routeDetails };
+      const routes = action.routes.map((route) => {
+        const previous = routeDetails[route.fullname] || state.lastRoutes?.find((item) => item.fullname === route.fullname);
+        const enriched = { ...previous, ...route, ...eventsMap[route.fullname] };
+        const location = locationMap[route.fullname];
+        if (location) enriched[location.locationKey] = location.location;
+        routeDetails[route.fullname] = enriched;
+        return enriched;
       });
-      state.routesMeta = {
-        dongleId: action.dongleId,
-        start: action.start,
-        end: action.end,
-      };
-      if (!state.currentRoute && state.selectedRouteId) {
-        const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
-        if (curr) {
-          state.currentRoute = {
-            ...curr,
+      // Metadata is small, but keep historical details bounded in long sessions.
+      const keys = Object.keys(routeDetails);
+      for (const key of keys.slice(0, Math.max(0, keys.length - 100))) delete routeDetails[key];
+      state.routeDetails = routeDetails;
+      if (action.dongleId !== state.dongleId) break;
+      if (!action.routeId && action.start === state.filter.start && action.end === state.filter.end
+        && (action.limit == null || action.limit === state.limit)) {
+        state.routes = routes;
+        state.routesMeta = { dongleId: action.dongleId, start: action.start, end: action.end, limit: action.limit };
+      }
+      if (state.selectedRouteId && (!action.routeId || action.routeId === state.selectedRouteId)) {
+        const current = routeDetails[`${state.dongleId}|${state.selectedRouteId}`];
+        if (current) {
+          state.currentRoute = current;
+          if (!state.zoom) state.zoom = { start: 0, end: current.duration };
+          const invalidRange = state.zoom.end > current.duration;
+          state.routeLoad = {
+            dongleId: state.dongleId, routeId: state.selectedRouteId,
+            status: invalidRange ? 'invalid' : 'ready', error: invalidRange ? 'This time range is outside the drive.' : null,
           };
-          if (!state.zoom) {
-            state.zoom = {
-              start: 0,
-              end: state.currentRoute.duration,
-            };
-          }
-
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
-            state.loop = {
-              startTime: state.zoom.start,
-              duration: state.zoom.end - state.zoom.start,
-            };
-          }
+          if (invalidRange) state.currentRoute = null;
+          else if (!state.loop) state.loop = { startTime: state.zoom.start, duration: state.zoom.end - state.zoom.start };
+        } else if (action.routeId === state.selectedRouteId) {
+          state.routeLoad = { dongleId: state.dongleId, routeId: state.selectedRouteId, status: 'missing', error: null };
         }
       }
       break;
+    }
     default:
       return state;
   }

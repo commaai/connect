@@ -134,10 +134,12 @@ class UploadQueue extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.update !== this.props.update) {
+    if (prevProps.device?.dongle_id !== this.props.device.dongle_id) {
+      this.uploadQueue(false);
+      if (this.state.cancelQueue.length) this.setState({ cancelQueue: [] });
       this.uploadQueue(this.props.update);
-    } else if (this.props.update && prevProps.device.dongle_id !== this.props.device.dongle_id) {
-      this.uploadQueue(true);
+    } else if (prevProps.update !== this.props.update) {
+      this.uploadQueue(this.props.update);
     } else if (this.props.update && prevProps.filesUploading !== this.props.filesUploading) {
       this.uploadQueue(Boolean(Object.keys(this.props.filesUploading).length));
     }

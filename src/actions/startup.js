@@ -1,9 +1,11 @@
+import { replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
 import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { parseLocation, urlForLocation } from '../url';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -42,41 +44,33 @@ async function initDevices() {
 
 export default function init() {
   return async (dispatch, getState) => {
-    let state = getState();
-    if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
-    }
+    const initial = getState();
+    if (initial.dongleId && !initial.routes) dispatch(checkLastRoutesData());
 
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    state = getState();
+    if (profile) Sentry.setUser({ id: profile.id });
+    dispatch({ type: ACTION_STARTUP_DATA, profile, devices });
 
-    if (profile) {
-      Sentry.setUser({ id: profile.id });
-    }
-
-    if (devices.length > 0) {
-      if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
-        }
-      }
-      const dongleId = getState().dongleId;
-      const device = devices.find((dev) => dev.dongle_id === dongleId);
-      if (device) {
-        dispatch(primeFetchSubscription(dongleId, device, profile));
-      } else if (dongleId) {
-        dispatch(fetchSharedDevice(dongleId));
+    const state = getState();
+    const navigation = state.navigation || parseLocation(state.router.location);
+    if (['not-found', 'auth'].includes(navigation.page)) return;
+    if (!state.dongleId && devices.length > 0 && ['home', 'referrals'].includes(navigation.page)) {
+      const remembered = window.localStorage.getItem('selectedDongleId');
+      const selected = devices.find((device) => device.dongle_id === remembered) || devices[0];
+      if (navigation.page === 'home') {
+        // Initial preference resolution replaces the placeholder root entry.
+        dispatch(replace(urlForLocation({ ...navigation, page: 'device', dongleId: selected.dongle_id })));
+      } else {
+        dispatch(selectDevice(selected.dongle_id, false, false));
       }
     }
-
-    dispatch({
-      type: ACTION_STARTUP_DATA,
-      profile,
-      devices,
-    });
+    const current = getState();
+    const device = devices.find((entry) => entry.dongle_id === current.dongleId);
+    if (current.dongleId) {
+      window.localStorage.setItem('selectedDongleId', current.dongleId);
+      if (device) dispatch(primeFetchSubscription(current.dongleId, device, profile));
+      else dispatch(fetchSharedDevice(current.dongleId));
+      if (!current.routes) dispatch(checkLastRoutesData());
+    }
   };
 }

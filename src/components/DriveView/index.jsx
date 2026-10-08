@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
-import { IconButton, Typography } from '@material-ui/core';
+import { Button, IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { checkRoutesData, popTimelineRange, pushTimelineRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -32,12 +32,22 @@ class DriveView extends Component {
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dongleId, zoom, currentRoute, routeLoad, selectedRouteId } = this.props;
 
     if (!currentRoute) {
       return (
         <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+          <Typography>
+            {routeLoad?.status === 'invalid' ? routeLoad.error
+              : routeLoad?.status === 'error' ? 'Unable to load route.'
+              : routeLoad?.status === 'missing' ? 'Route does not exist.' : 'Loading...'}
+          </Typography>
+          {routeLoad?.status === 'error' && (
+            <Button onClick={() => this.props.dispatch(checkRoutesData())}>Retry</Button>
+          )}
+          {routeLoad?.status === 'invalid' && (
+            <Button onClick={() => this.props.dispatch(pushTimelineRange(selectedRouteId, null, null))}>Back to drive</Button>
+          )}
         </div>
       );
     }
@@ -86,9 +96,7 @@ class DriveView extends Component {
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
           <div className='px-3 pb-3 md:px-8 md:pb-8'>
-            {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
-              : <Media />}
+            <Media />
           </div>
         </div>
       </div>
@@ -98,7 +106,8 @@ class DriveView extends Component {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  routes: state.routes,
+  routeLoad: state.routeLoad,
+  selectedRouteId: state.selectedRouteId,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
 });

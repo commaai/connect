@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push, replace } from 'connected-react-router';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
 import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '@material-ui/core';
 import * as Sentry from '@sentry/react';
@@ -9,6 +10,7 @@ import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
+import { locationWithDialog, parseLocation } from '../../url';
 
 const styles = (theme) => ({
   titleContainer: {
@@ -101,7 +103,7 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
+      cameraRequested: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -116,6 +118,7 @@ class AddDevice extends Component {
     this.stream = null;
     this.scanning = false;
     this.scanFrameId = null;
+    this.cameraGeneration = 0;
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
     this.onVideoRef = this.onVideoRef.bind(this);
@@ -127,50 +130,16 @@ class AddDevice extends Component {
     this.scanFrame = this.scanFrame.bind(this);
     this.startScanning = this.startScanning.bind(this);
     this.stopScanning = this.stopScanning.bind(this);
+    this.enableCamera = this.enableCamera.bind(this);
   }
 
-  async componentDidMount() {
-    this.componentDidUpdate({}, {});
-  }
-
-  async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
-    let { hasCamera } = this.state;
-
-    // Check for camera availability
-    if (hasCamera === null) {
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        hasCamera = devices.some((d) => d.kind === 'videoinput');
-        this.setState({ hasCamera });
-      } catch {
-        hasCamera = false;
-        this.setState({ hasCamera });
-      }
-    }
-
-    // Initialize detector and camera stream
-    if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
-      try {
-        this.detector = new BarcodeDetector({ formats: ['qr_code'] });
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-        });
-        this.videoRef.srcObject = this.stream;
-        this.videoRef.setAttribute('playsinline', 'true');
-        await this.videoRef.play();
-        this.startScanning();
-      } catch (err) {
-        let cameraError = 'Unable to access camera.';
-        if (err.name === 'NotAllowedError') {
-          cameraError = 'Camera access denied. Please allow camera access in your browser settings and try again.';
-        } else if (err.name === 'NotFoundError') {
-          cameraError = 'No camera found on this device.';
-        } else if (err.name === 'NotReadableError') {
-          cameraError = 'Camera is in use by another application.';
-        }
-        this.setState({ hasCamera: false, cameraError });
-      }
+  componentDidUpdate(prevProps = {}) {
+    const { isOpen: modalOpen } = this.props;
+    const { pairLoading, pairError, pairDongleId, hasCamera } = this.state;
+    if (prevProps.isOpen && !modalOpen) {
+      this.stopCamera();
+      this.setState({ cameraRequested: false, hasCamera: null, cameraError: null, pairLoading: false, pairError: null, pairDongleId: null });
+      return;
     }
 
     // Draw corner markers on canvas
@@ -224,11 +193,50 @@ class AddDevice extends Component {
     }
   }
 
+  enableCamera() {
+    this.setState({ cameraRequested: true, cameraError: null }, async () => {
+      if (!this.props.isOpen) return;
+      this.cameraGeneration += 1;
+      const generation = this.cameraGeneration;
+      try {
+        this.detector = new BarcodeDetector({ formats: ['qr_code'] });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+        });
+        if (generation !== this.cameraGeneration || !this.props.isOpen || !this.videoRef) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        this.stream = stream;
+        this.videoRef.srcObject = stream;
+        this.videoRef.setAttribute('playsinline', 'true');
+        await this.videoRef.play();
+        if (generation === this.cameraGeneration && this.props.isOpen) {
+          this.setState({ hasCamera: true });
+        }
+      } catch (err) {
+        if (generation !== this.cameraGeneration) return;
+        this.stopCamera();
+        let cameraError = 'Unable to access camera.';
+        if (err.name === 'NotAllowedError') {
+          cameraError = 'Camera access denied. Please allow camera access in your browser settings and try again.';
+        } else if (err.name === 'NotFoundError') {
+          cameraError = 'No camera found on this device.';
+        } else if (err.name === 'NotReadableError') {
+          cameraError = 'Camera is in use by another application.';
+        }
+        this.setState({ hasCamera: false, cameraError });
+      }
+    });
+  }
+
   async scanFrame() {
     if (!this.scanning || !this.videoRef || !this.detector) return;
 
+    const generation = this.cameraGeneration;
     try {
       const results = await this.detector.detect(this.videoRef);
+      if (generation !== this.cameraGeneration || !this.scanning) return;
       if (results.length > 0) {
         this.onQrRead({ data: results[0].rawValue });
         return; // Stop scanning after detection
@@ -237,7 +245,9 @@ class AddDevice extends Component {
       // Ignore detection errors, just keep scanning
     }
 
-    this.scanFrameId = requestAnimationFrame(this.scanFrame);
+    if (generation === this.cameraGeneration && this.scanning) {
+      this.scanFrameId = requestAnimationFrame(this.scanFrame);
+    }
   }
 
   startScanning() {
@@ -254,12 +264,18 @@ class AddDevice extends Component {
     }
   }
 
-  async componentWillUnmount() {
+  stopCamera() {
+    this.cameraGeneration += 1;
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
       this.stream = null;
     }
+    this.detector = null;
+  }
+
+  componentWillUnmount() {
+    this.stopCamera();
   }
 
   async onVideoRef(ref) {
@@ -283,20 +299,8 @@ class AddDevice extends Component {
   modalClose() {
     const { pairDongleId } = this.state;
 
-    this.stopScanning();
-    if (this.stream) {
-      this.stream.getTracks().forEach((track) => track.stop());
-      this.stream = null;
-    }
-    this.detector = null;
-
-    if (pairDongleId && this.props.devices.length === 0) {
-      this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
-      window.location = `${window.location.origin}/${pairDongleId}`;
-      return;
-    }
-
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
+    this.stopCamera();
+    this.props.dispatch(replace(locationWithDialog(this.props.location, null)));
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -304,7 +308,7 @@ class AddDevice extends Component {
 
   async onQrRead({ data: result }) {
     const { pairDongleId, pairError, pairLoading } = this.state;
-    if (pairLoading || pairError || pairDongleId || !result) {
+    if (!this.props.isOpen || !this.state.cameraRequested || pairLoading || pairError || pairDongleId || !result) {
       return;
     }
 
@@ -350,42 +354,50 @@ class AddDevice extends Component {
     }
 
     const { devices, dispatch } = this.props;
+    const generation = this.cameraGeneration;
     try {
       const resp = await api.devices.pilotPair(pairToken);
       if (resp.dongle_id) {
         const deviceList = await api.devices.listDevices();
-        if (devices.length > 0) { // state change from no device to a device requires reload.
-          dispatch(updateDevices(deviceList));
-          dispatch(analyticsEvent('pair_device', { method: 'add_device_sidebar' }));
-        }
+        dispatch(updateDevices(deviceList));
+        dispatch(analyticsEvent('pair_device', { method: devices.length > 0 ? 'add_device_sidebar' : 'add_device_new' }));
+        if (generation !== this.cameraGeneration) return;
         this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
       } else {
+        if (generation !== this.cameraGeneration) return;
         this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: could not pair' });
         Sentry.captureMessage('qr scan failed', { extra: { resp } });
       }
     } catch (err) {
+      if (generation !== this.cameraGeneration) return;
       const msg = pairErrorToMessage(err, 'adddevice_pair_qr');
       this.setState({ pairLoading: false, pairDongleId: null, pairError: `Error: ${msg}` });
     }
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    this.props.dispatch(push(locationWithDialog(this.props.location, 'add-device')));
   }
 
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes, buttonText, buttonStyle, buttonIcon, modalOnly, isOpen } = this.props;
+    const { cameraRequested, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+
+    if (!api.auth.isAuthenticated()) return null;
+    if (!modalOnly) {
+      return (
+        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
+          { buttonText }
+          { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
+        </Button>
+      );
+    }
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
-          { buttonText }
-          { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
-        <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
+        <Modal aria-labelledby="add-device-modal" open={ isOpen } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
               <Typography variant="title">Pair device</Typography>
@@ -394,7 +406,9 @@ class AddDevice extends Component {
               </Typography>
             </div>
             <hr className={ classes.divider } />
-            { hasCamera === false
+            {!cameraRequested ? (
+              <Button className={classes.retryButton} onClick={this.enableCamera}>Enable camera</Button>
+            ) : hasCamera === false
               ? (
                 <>
                   <Typography style={{ marginBottom: 5 }}>
@@ -444,7 +458,9 @@ class AddDevice extends Component {
 
 const stateToProps = (state) => ({
   profile: state.profile,
-  devices: state.devices,
+  devices: state.devices || [],
+  location: state.router.location,
+  isOpen: parseLocation(state.router.location).dialog === 'add-device' && api.auth.isAuthenticated(),
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));

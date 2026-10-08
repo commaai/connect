@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
@@ -16,6 +17,7 @@ import { subscribeWindowSize } from '../../hooks/window';
 import CommacareBadge from '../CommacareBadge';
 import ClipMenu from '../DriveView/ClipMenu';
 import { LivestreamIcon, CarBatteryIcon, CameraIcon, ContentCut, GamepadIcon } from '../../icons';
+import { locationWithDialog, parseLocation } from '../../url';
 
 const styles = (theme) => ({
   container: {
@@ -153,11 +155,11 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
-      clipMenu: null,
       clipsSupported: false,
     };
 
     this.snapshotButtonRef = React.createRef();
+    this.clipsButtonRef = React.createRef();
 
     this.onVisible = this.onVisible.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
@@ -190,7 +192,6 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
-        clipMenu: null,
         clipsSupported: false,
       });
       this.checkClipsSupport();
@@ -330,10 +331,10 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
+          open={this.props.dialog === 'clips' && this.state.clipsSupported && deviceIsOnline(device)}
           dongleId={this.props.dongleId}
-          anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          anchorEl={this.clipsButtonRef.current}
+          onClose={() => this.props.dispatch(replace(locationWithDialog(this.props.location, null)))}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -411,9 +412,10 @@ class DeviceInfo extends Component {
         >
           <span className="inline-flex">
             <button
+              ref={this.clipsButtonRef}
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              onClick={() => this.props.dispatch(push(locationWithDialog(this.props.location, 'clips')))}
               disabled={offline}
             >
               <ContentCut />
@@ -514,6 +516,8 @@ class DeviceInfo extends Component {
 }
 
 const stateToProps = (state) => ({
+  location: state.router.location,
+  dialog: parseLocation(state.router.location).dialog,
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,

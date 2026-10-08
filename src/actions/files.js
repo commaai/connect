@@ -21,6 +21,8 @@ const MAX_RETRIES = 5;
 const HIGH_PRIORITY = 0;
 
 let uploadQueueTimeout = null;
+let uploadQueueDongleId = null;
+let uploadQueueGeneration = 0;
 let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
@@ -131,6 +133,8 @@ export function fetchFiles(routeName, nocache = false) {
 }
 
 export function cancelFetchUploadQueue() {
+  uploadQueueGeneration += 1;
+  uploadQueueDongleId = null;
   if (uploadQueueTimeout) {
     if (uploadQueueTimeout !== true) {
       clearTimeout(uploadQueueTimeout);
@@ -141,9 +145,12 @@ export function cancelFetchUploadQueue() {
 
 export function fetchUploadQueue(dongleId) {
   return async (dispatch, getState) => {
-    if (uploadQueueTimeout) {
+    if (uploadQueueTimeout && uploadQueueDongleId === dongleId) {
       return;
     }
+    cancelFetchUploadQueue();
+    const generation = uploadQueueGeneration;
+    uploadQueueDongleId = dongleId;
     uploadQueueTimeout = true;
 
     dispatch(fetchDeviceNetworkStatus(dongleId));
@@ -154,7 +161,10 @@ export function fetchUploadQueue(dongleId) {
       id: 0,
     };
     const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
-    if (!uploadQueue || !uploadQueue.result) {
+    if (generation !== uploadQueueGeneration) {
+      return;
+    }
+    if (!Array.isArray(uploadQueue?.result)) {
       if (uploadQueue && uploadQueue.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
       }
@@ -163,17 +173,22 @@ export function fetchUploadQueue(dongleId) {
     }
     dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
 
-    const prevFilesUploading = getState().filesUploading || {};
+    const state = getState();
+    const prevFilesUploading = state.filesUploadingMeta?.dongleId === dongleId
+      ? { ...state.filesUploading } : {};
     const device = getDeviceFromState(getState(), dongleId);
     const uploadingFiles = {};
     const newCurrentUploading = {};
     uploadQueue.result.forEach((uploading) => {
+      if (typeof uploading?.url !== 'string') return;
       const urlParts = uploading.url.split('?')[0].split('/');
       const filename = urlParts[urlParts.length - 1];
       const segNum = urlParts[urlParts.length - 2];
       const datetime = urlParts[urlParts.length - 3];
       const dongle = urlParts[urlParts.length - 4];
-      const type = Object.entries(FILE_NAMES).find((e) => e[1].includes(filename))[0];
+      const fileType = Object.entries(FILE_NAMES).find((e) => e[1].includes(filename));
+      if (!fileType || dongle !== dongleId) return;
+      const [type] = fileType;
       const fileName = `${dongle}|${datetime}--${segNum}/${type}`;
       const waitingWifi = Boolean(deviceOnCellular(device) && uploading.allow_cellular === false);
       uploadingFiles[fileName] = {
@@ -201,12 +216,16 @@ export function fetchUploadQueue(dongleId) {
       uploading: newCurrentUploading,
       files: uploadingFiles,
     });
-    if (uploadQueueTimeout === true && uploadQueue.result.length) {
-      cancelFetchUploadQueue();
+    // A store subscriber may close or switch the dialog during dispatch.
+    if (generation !== uploadQueueGeneration) return;
+    if (uploadQueue.result.length) {
       uploadQueueTimeout = setTimeout(() => {
+        if (generation !== uploadQueueGeneration) return;
         uploadQueueTimeout = null;
         dispatch(fetchUploadQueue(dongleId));
       }, 2000);
+    } else {
+      cancelFetchUploadQueue();
     }
   };
 }

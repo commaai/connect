@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -14,7 +15,8 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { updateDevice } from '../../actions';
+import { locationWithDialog, parseLocation } from '../../url';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -120,7 +122,6 @@ const initialState = {
   loadingUnpair: false,
   error: null,
   unpairError: null,
-  uploadModal: false,
 };
 
 class DeviceSettingsModal extends Component {
@@ -129,7 +130,9 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
+    this.dialogGeneration = 0;
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
     this.handleAliasChange = this.handleAliasChange.bind(this);
@@ -139,16 +142,28 @@ class DeviceSettingsModal extends Component {
     this.shareDevice = this.shareDevice.bind(this);
     this.unpairDevice = this.unpairDevice.bind(this);
     this.closeUnpair = this.closeUnpair.bind(this);
+    this.onClose = this.onClose.bind(this);
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
+    if (prevProps.dongleId !== this.props.dongleId
+      || (!prevProps.device && this.props.device)
+      || prevProps.isOpen !== this.props.isOpen) {
+      this.dialogGeneration += 1;
       const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
       this.setState({
         ...initialState,
         deviceAlias: alias,
       });
     }
+  }
+
+  componentWillUnmount() {
+    this.dialogGeneration += 1;
+  }
+
+  onClose() {
+    this.props.dispatch(replace(locationWithDialog(this.props.location, null)));
   }
 
   handleAliasChange(e) {
@@ -174,6 +189,7 @@ class DeviceSettingsModal extends Component {
 
   async setDeviceAlias() {
     const { dongle_id: dongleId } = this.props.device;
+    const generation = this.dialogGeneration;
 
     if (this.state.loadingDeviceAlias) {
       return;
@@ -186,12 +202,14 @@ class DeviceSettingsModal extends Component {
     try {
       const device = await api.devices.setDeviceAlias(dongleId, this.state.deviceAlias.trim());
       this.props.dispatch(updateDevice(device));
+      if (generation !== this.dialogGeneration) return;
       this.setState({
         loadingDeviceAlias: false,
         hasSavedAlias: true,
       });
     } catch (err) {
       Sentry.captureException(err, { fingerprint: 'device_settings_alias' });
+      if (generation !== this.dialogGeneration) return;
       this.setState({ error: err.message, loadingDeviceAlias: false });
     }
   }
@@ -200,6 +218,7 @@ class DeviceSettingsModal extends Component {
     if (this.state.loadingDeviceShare) {
       return;
     }
+    const generation = this.dialogGeneration;
 
     this.setState({
       loadingDeviceShare: true,
@@ -207,6 +226,7 @@ class DeviceSettingsModal extends Component {
     });
     try {
       await api.devices.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
+      if (generation !== this.dialogGeneration) return;
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',
@@ -214,6 +234,7 @@ class DeviceSettingsModal extends Component {
         error: null,
       });
     } catch (err) {
+      if (generation !== this.dialogGeneration) return;
       if (err.resp && err.resp.status === 404) {
         this.setState({ error: 'could not find user', loadingDeviceShare: false });
       } else {
@@ -225,17 +246,18 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
-    this.props.onClose();
+    this.props.dispatch(push({
+      ...locationWithDialog(this.props.location, null),
+      pathname: `/${this.props.dongleId}/prime`,
+    }));
   }
 
   async unpairDevice() {
+    const generation = this.dialogGeneration;
     this.setState({ loadingUnpair: true });
     try {
       const resp = await api.devices.unpair(this.props.device.dongle_id);
+      if (generation !== this.dialogGeneration) return;
       if (resp.success) {
         this.setState({ loadingUnpair: false, unpaired: true });
       } else if (resp.error) {
@@ -246,6 +268,7 @@ class DeviceSettingsModal extends Component {
     } catch (err) {
       Sentry.captureException(err, { fingerprint: 'device_settings_unpair' });
       console.error(err);
+      if (generation !== this.dialogGeneration) return;
       this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Unable to unpair' });
     }
   }
@@ -271,7 +294,7 @@ class DeviceSettingsModal extends Component {
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
           open={this.props.isOpen}
-          onClose={this.props.onClose}
+          onClose={this.onClose}
         >
           <Paper className={classes.modal}>
             <div className={ classes.titleContainer }>
@@ -299,7 +322,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.props.dispatch(push(locationWithDialog(this.props.location, 'uploads', device.dongle_id))) }
               >
                 Uploads
               </Button>
@@ -353,7 +376,7 @@ class DeviceSettingsModal extends Component {
               </div>
             </div>
             <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+              <Button variant="contained" className={ classes.cancelButton } onClick={this.onClose}>
                 Close
               </Button>
             </div>
@@ -425,9 +448,9 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          open={ this.props.uploadOpen }
+          update={ this.props.updateUploads }
+          onClose={ this.onClose }
           device={ device }
         />
       </>
@@ -435,13 +458,23 @@ class DeviceSettingsModal extends Component {
   }
 }
 
-const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
-    || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
+const stateToProps = (state) => {
+  const location = state.router.location;
+  const { dialog, dialogDevice: dongleId } = parseLocation(location);
+  const target = state.devices?.find((d) => d.dongle_id === dongleId)
+    || ((state.device?.dongle_id === dongleId) ? state.device : null);
+  const canManage = Boolean(target && (target.is_owner || state.profile?.superuser));
+  const pollRouteUploads = Boolean(target && ['files', 'route-info'].includes(dialog)
+    && (!target.shared || state.profile?.superuser));
+  const device = canManage || pollRouteUploads ? target : null;
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
+    dongleId,
+    isOpen: canManage && dialog === 'settings',
+    uploadOpen: canManage && dialog === 'uploads',
+    updateUploads: (canManage && dialog === 'uploads') || pollRouteUploads,
+    location,
   };
 };
 

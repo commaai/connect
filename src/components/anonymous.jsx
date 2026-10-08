@@ -9,6 +9,7 @@ import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 import { stringifyQuery } from '../utils/query';
+import { parseLocation } from '../url';
 
 const AUTH_PROVIDERS = { GOOGLE: 'g', APPLE: 'a', GITHUB: 'h' };
 
@@ -47,14 +48,47 @@ const styles = () => ({
   },
 });
 
-const AnonymousLanding = ({ classes, pathname }) => {
+function localDestination(value) {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.includes('\\')) return null;
+  const hasControlCharacter = [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code < 32 || code === 127;
+  });
+  if (hasControlCharacter) return null;
+  const route = parseLocation(value);
+  if (['not-found', 'auth'].includes(route.page) || new URLSearchParams(route.search).has('r')) return null;
+  return `${route.pathname}${route.search}${route.hash}`;
+}
+
+export function getLoginRedirect(location, savedRedirect = null) {
+  const route = parseLocation(location);
+  const params = new URLSearchParams(route.search);
+  const requested = params.getAll('r').length === 1 ? localDestination(params.get('r')) : null;
+  if (requested) return requested;
+  if (route.page === 'auth') return localDestination(savedRedirect) || '/';
+
+  // r is a transport argument, not part of the destination. In particular,
+  // never preserve an invalid or nested return URL for another redirect later.
+  const hadReturnArgument = params.has('r');
+  params.delete('r');
+  const query = params.toString();
+  const search = hadReturnArgument ? (query ? `?${query}` : '') : route.search;
+  const current = localDestination(`${route.pathname}${search}${route.hash}`);
+  const explicitDestination = route.pathname !== '/' || Boolean(search || route.hash);
+  if (explicitDestination) return current || '/';
+  return localDestination(savedRedirect) || current || '/';
+}
+
+const AnonymousLanding = ({ classes, location }) => {
   useEffect(() => {
+    if (parseLocation(location).page === 'auth') return;
     if (typeof window.sessionStorage !== 'undefined') {
-      const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
+      const redirectURL = getLoginRedirect(location, sessionStorage.getItem('redirectURL'));
       sessionStorage.setItem('redirectURL', redirectURL);
     }
+  }, [location.pathname, location.search, location.hash]);
 
+  useEffect(() => {
     const handleSuccess = (data) => {
       const { code, state } = data.detail.authorization;
       window.location = `${AuthConfig.APPLE_REDIRECT_PATH}?${stringifyQuery({ code, state })}`;
@@ -128,7 +162,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
 };
 
 const stateToProps = (state) => ({
-  pathname: state.router.location.pathname,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));
