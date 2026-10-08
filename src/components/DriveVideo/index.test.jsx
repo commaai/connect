@@ -174,4 +174,21 @@ describe('media transport', () => {
     expect(currentOffset(store.getState())).toBe(0);
   });
 
+  it('handles a selection beyond the available video without an endless seek', () => {
+    mount({ speed: 0 });
+    act(() => store.dispatch(selectLoop(61000, 65000)));
+    expect(screen.getByText('No video is available in this selected range.')).toBeInTheDocument();
+    expect(store.getState().isBufferingVideo).toBe(false);
+    act(() => store.dispatch(selectLoop(0, 5000)));
+    expect(screen.queryByText('No video is available in this selected range.')).not.toBeInTheDocument();
+  });
+
+  it('resumes from the selection start when play is requested at its end', () => {
+    mount({ speed: 0 });
+    act(() => { store.dispatch(selectLoop(10000, 20000)); store.dispatch(seek(20000)); });
+    act(() => store.dispatch(play()));
+    expect(video.currentTime).toBe(10);
+    expect(currentOffset(store.getState())).toBe(10000);
+  });
+
 });

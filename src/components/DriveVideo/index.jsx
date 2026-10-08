@@ -13,7 +13,7 @@ import { bufferVideo, pause, play } from '../../timeline/playback';
 // element's transport; no second clock or corrective playback rates exist.
 export class DriveVideo extends Component {
   videoPlayer = React.createRef();
-  state = { error: null, blocked: false, attempt: 0 };
+  state = { error: null, blocked: false, rangeUnavailable: false, attempt: 0 };
   element = null;
   pendingSeek = null;
   playPending = false;
@@ -70,8 +70,19 @@ export class DriveVideo extends Component {
     this.playback = state;
     const video = this.element;
     if (!video || !this.mounted) return;
+    const { start, end, videoOffset } = this.bounds();
+    if (end <= start) {
+      if (!this.state.rangeUnavailable) this.setState({ rangeUnavailable: true });
+      this.setBuffering(false);
+      video.pause();
+      return;
+    }
+    if (this.state.rangeUnavailable) this.setState({ rangeUnavailable: false });
+    if (!shouldSeek && state.desiredPlaySpeed && video.currentTime >= end) {
+      this.pendingSeek = start;
+      this.seekPending();
+    }
     if (shouldSeek) {
-      const { start, end, videoOffset } = this.bounds();
       const target = Math.max(start, Math.min(end, ((state.offset ?? state.loop?.startTime ?? 0) - videoOffset) / 1000));
       this.pendingSeek = Number.isFinite(target) ? target : start;
       this.seekPending();
@@ -115,6 +126,7 @@ export class DriveVideo extends Component {
     const video = this.element;
     if (!video || !this.mounted || video.seeking || this.pendingSeek !== null) return;
     const { start, end, videoOffset } = this.bounds();
+    if (end <= start) return;
     let time = video.currentTime;
     if (this.playback.desiredPlaySpeed && end > start && time >= end) {
       time = start + ((time - start) % (end - start));
@@ -138,7 +150,8 @@ export class DriveVideo extends Component {
 
   onPlayable = () => {
     this.seekPending();
-    this.setBuffering(this.element.readyState < 2 || this.element.seeking);
+    const { start, end } = this.bounds();
+    this.setBuffering(end > start && (this.element.readyState < 2 || this.element.seeking));
     this.detectAudio();
   };
 
@@ -156,7 +169,7 @@ export class DriveVideo extends Component {
 
   onPause = () => {
     this.sample();
-    if (!this.element.ended && this.playback.desiredPlaySpeed && !this.state.error) {
+    if (!this.element.ended && this.playback.desiredPlaySpeed && !this.state.error && !this.state.rangeUnavailable) {
       this.props.dispatch(pause());
     }
   };
@@ -236,14 +249,14 @@ export class DriveVideo extends Component {
 
   render() {
     const { playback, isMuted } = this.props;
-    const { error, blocked, attempt } = this.state;
+    const { error, blocked, rangeUnavailable, attempt } = this.state;
     const route = playback.currentRoute;
     const src = api.video.getQcameraStreamUrl(route.fullname, route.share_exp, route.share_sig);
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-        {(error || blocked || playback.isBufferingVideo) && (
+        {(error || blocked || rangeUnavailable || playback.isBufferingVideo) && (
           <div className="z-50 absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#16181AAA]" role="status">
-            {error ? <><ErrorOutline /><Typography>{error}</Typography><Button onClick={this.retry}>Retry video</Button></>
+            {rangeUnavailable ? <Typography>No video is available in this selected range.</Typography> : error ? <><ErrorOutline /><Typography>{error}</Typography><Button onClick={this.retry}>Retry video</Button></>
               : blocked ? <Button onClick={this.resume}>Play video</Button>
                 : <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />}
           </div>
