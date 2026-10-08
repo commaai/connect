@@ -289,6 +289,18 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
   });
 
+  test('speed steps change the playback speed within its range', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    const faster = await screen.findByRole('button', { name: 'Increase play speed by 1 step' });
+    const slower = screen.getByRole('button', { name: 'Decrease play speed by 1 step' });
+    for (let i = 0; i < 3; i += 1) fireEvent.click(faster);
+    expect(await screen.findByText('8×')).toBeVisible();
+    expect(faster).toBeDisabled();
+    for (let i = 0; i < 6; i += 1) fireEvent.click(slower);
+    expect(await screen.findByText('0.1×')).toBeVisible();
+    expect(slower).toBeDisabled();
+  });
+
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
     const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));
