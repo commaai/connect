@@ -278,6 +278,15 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
+  test('device settings close and browser history restore its view', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByText('Close'));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
   test('device browser history restores exact dashboards', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();

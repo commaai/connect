@@ -5,7 +5,7 @@ import { createBrowserHistory } from 'history';
 
 import rootReducer from './reducers';
 import composeEnhancers from './devtools';
-import { onHistoryMiddleware } from './actions/history';
+import { onHistoryMiddleware } from './actions/navigation';
 import { analyticsMiddleware } from './analytics';
 
 export const history = createBrowserHistory();

@@ -1,71 +1,87 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { buildUrl, isPublicPage, parseUrl } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
+const NEW_LOG = '0000010a--a51155e496';
 
-describe('URL pathname helpers', () => {
+const loc = (page, dongleId = null, logId = null, zoom = null) => ({ page, dongleId, logId, zoom });
+
+describe('parseUrl', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
-  });
-
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
-  it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
+    ['/', loc('home')],
+    ['/demo', loc('home')],
+    ['/auth/callback', loc('home')],
+    ['/referrals', loc('referrals')],
+    [`/${DONGLE}`, loc('dashboard', DONGLE)],
+    [`/${DONGLE}/`, loc('dashboard', DONGLE)],
+    [`/${DONGLE}/prime`, loc('prime', DONGLE)],
+    [`/${DONGLE}/stream`, loc('stream', DONGLE)],
+    [`/${DONGLE}/settings`, loc('settings', DONGLE)],
+    [`/${DONGLE}/${LOG}`, loc('drive', DONGLE, LOG)],
+    [`/${DONGLE}/${NEW_LOG}`, loc('drive', DONGLE, NEW_LOG)],
+    [`/${DONGLE}/${LOG}/556/610`, loc('drive', DONGLE, LOG, { start: 556000, end: 610000 })],
+    [`/${DONGLE}/${LOG}/0/20`, loc('drive', DONGLE, LOG, { start: 0, end: 20000 })],
+    [`/${DONGLE}/${LOG}/10`, loc('drive', DONGLE, LOG)],
+    [`/${DONGLE}/${LOG}/25/25`, loc('drive', DONGLE, LOG)],
+    [`/${DONGLE}/${LOG}/30/20`, loc('drive', DONGLE, LOG)],
+    [`/${DONGLE}/1000/2000`, loc('legacyRange', DONGLE, null, { start: 1000, end: 2000 })],
+  ])('%s', (pathname, expected) => {
+    expect(parseUrl(pathname)).toEqual(expected);
   });
 
   it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
+    `/${DONGLE}/prime/extra`,
+    `/${DONGLE}/unknown`,
+    `/${DONGLE}/10`,
+  ])('falls back to the dashboard for unknown device paths (%s)', (pathname) => {
+    expect(parseUrl(pathname)).toEqual(loc('dashboard', DONGLE));
+  });
+
+  it.each(['/not-a-device/prime', '/0000aaaa0000aaaz', '/0000aaaa0000aaaa0'])('needs a valid dongle id (%s)', (pathname) => {
+    expect(parseUrl(pathname)).toEqual(loc('home'));
+  });
+});
+
+describe('buildUrl', () => {
+  it.each([
+    [loc('home'), '/'],
+    [loc('referrals', DONGLE), '/referrals'],
+    [loc('dashboard', DONGLE), `/${DONGLE}`],
+    [loc('dashboard'), '/'],
+    [loc('prime', DONGLE), `/${DONGLE}/prime`],
+    [loc('stream', DONGLE), `/${DONGLE}/stream`],
+    [loc('settings', DONGLE), `/${DONGLE}/settings`],
+    [loc('drive', DONGLE, LOG), `/${DONGLE}/${LOG}`],
+    [loc('drive', DONGLE, LOG, { start: 0, end: 20000 }), `/${DONGLE}/${LOG}/0/20`],
+    [loc('drive', DONGLE, LOG, { start: 10999, end: 20500 }), `/${DONGLE}/${LOG}/10/21`],
+    [loc('drive', DONGLE, LOG, { start: 25300, end: 25900 }), `/${DONGLE}/${LOG}/25/26`],
+  ])('%j', (location, expected) => {
+    expect(buildUrl(location)).toBe(expected);
   });
 
   it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
+    '/referrals',
+    `/${DONGLE}`,
+    `/${DONGLE}/prime`,
+    `/${DONGLE}/stream`,
+    `/${DONGLE}/settings`,
+    `/${DONGLE}/${LOG}`,
+    `/${DONGLE}/${LOG}/10/20`,
+  ])('round-trips %s', (pathname) => {
+    expect(buildUrl(parseUrl(pathname))).toBe(pathname);
   });
+});
 
+describe('isPublicPage', () => {
   it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+    ['drive', true],
+    ['legacyRange', true],
+    ['dashboard', false],
+    ['prime', false],
+    ['home', false],
+  ])('%s', (page, expected) => {
+    expect(isPublicPage(page)).toBe(expected);
   });
 });
