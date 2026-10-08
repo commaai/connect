@@ -121,6 +121,14 @@ describe('the video is the clock', () => {
     expect(video.seeks).toBe(0);
   });
 
+  it('stops showing the spinner once the video moves, without waiting for an event', async () => {
+    await watch();
+    await act(async () => video.handlers.onBuffer?.());
+    expect(store.getState().isBufferingVideo).toBe(true);
+    await tick(500);
+    expect(store.getState().isBufferingVideo).toBe(false);
+  });
+
   it('seeks the video once for one seek', async () => {
     await watch();
     await act(async () => store.dispatch(seek(30000)));

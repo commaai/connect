@@ -80,8 +80,13 @@ class DriveVideo extends Component {
   }
 
   // keeps playback inside the selected range
-  onProgress() {
+  onProgress({ playedSeconds }) {
     const { dispatch, loop } = this.props;
+    // a video whose time moves is not buffering, whatever events it did or did not send (iOS)
+    if (playedSeconds !== this.playedSeconds) {
+      this.playedSeconds = playedSeconds;
+      this.setBuffering(false);
+    }
     if (loop?.duration && currentOffset() >= loop.startTime + loop.duration) {
       dispatch(seek(loop.startTime));
     }
