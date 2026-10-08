@@ -30,7 +30,8 @@ export function attachSource(video, { src, onStatus, onManifest, onAudio, onTime
     report({ loading: false, blocked: false, error });
   }
   const waiting = () => { if (!status.error && !status.blocked) report({ loading: true }); };
-  const ready = () => {
+  const ready = event => {
+    if (status.error || (status.blocked && event.type !== 'playing')) return;
     if (video.audioTracks) onAudio?.(video.audioTracks.length > 0);
     report({ loading: false, error: null, blocked: false });
   };
@@ -41,6 +42,7 @@ export function attachSource(video, { src, onStatus, onManifest, onAudio, onTime
       report({ loading: false, error: null, blocked: true });
       return;
     }
+    if (status.error) return;
     // Native media errors have no fatal flag. hls.js informational events do.
     if (error?.fatal === false) return;
     if (error?.code === 3 && !hls && mediaRetries < 1) {
@@ -83,7 +85,10 @@ export function attachSource(video, { src, onStatus, onManifest, onAudio, onTime
       fetchPlaylist(src, { signal: request.signal }).then(async response => {
         if (!response.ok) throw new Error(String(response.status));
         const entries = parseQcameraPlaylist(await response.text());
-        if (alive && visit === generation && !request.signal.aborted) onTimeline(entries);
+        if (alive && visit === generation && !request.signal.aborted) {
+          onTimeline(entries);
+          if (!entries) fail('Video timing is unavailable. Retry to try again.');
+        }
       }).catch(error => {
         if (alive && visit === generation && !request.signal.aborted) {
           onTimeline(null);

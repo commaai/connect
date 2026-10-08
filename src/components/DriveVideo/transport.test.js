@@ -116,3 +116,17 @@ it('explicit retry gets a fresh bounded decoder recovery budget', async () => {
   expect(sdk.player.recoverMediaError).toHaveBeenCalledOnce();
   expect(onStatus.mock.lastCall[0].error).toBeNull(); source.destroy();
 });
+it('canplay does not remove the user activation prompt', () => {
+  const video = media(true); const onStatus = vi.fn();
+  const source = attachSource(video, { src: 'clip', onStatus });
+  source.reportError({ name: 'NotAllowedError' }); video.dispatchEvent(new Event('canplay'));
+  expect(onStatus.mock.lastCall[0].blocked).toBe(true);
+  video.dispatchEvent(new Event('playing'));
+  expect(onStatus.mock.lastCall[0].blocked).toBe(false); source.destroy();
+});
+it('late canplay does not erase a terminal error before Retry', async () => {
+  const { sdk, source, video, onStatus } = await mse();
+  sdk.player.emit({ fatal: true, type: 'networkError', response: { code: 404 } });
+  video.dispatchEvent(new Event('canplay')); video.dispatchEvent(new Event('playing'));
+  expect(onStatus.mock.lastCall[0].error).toContain('not uploaded'); source.destroy();
+});
