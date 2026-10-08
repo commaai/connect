@@ -51,7 +51,7 @@ vi.mock('react-player/file', () => ({
       }),
       seekTo: vi.fn(),
     }));
-    return <div data-testid="video-player" />;
+    return <video />;
   }),
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
@@ -251,7 +251,11 @@ describe('whole-app behavior', () => {
 
   test('settings navigation keeps the mounted drive, loaded data and playback position', async () => {
     const { store, history } = await renderApp(`/${sourceRoute.dongle_id}/${sourceRoute.fullname.split('|')[1]}/0/20`, { authenticated: false, sourceRoute });
-    const video = await screen.findByTestId('video-player');
+    const video = await waitFor(() => {
+      const element = document.querySelector('.DriveView video');
+      expect(element).toBeInTheDocument();
+      return element;
+    });
     const before = store.getState();
     const requests = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
     act(() => history.push({ ...history.location, search: '?modal=settings' }));
@@ -263,7 +267,7 @@ describe('whole-app behavior', () => {
     const after = store.getState();
     for (const key of ['currentRoute', 'routes', 'zoom', 'loop', 'files']) expect(after[key]).toBe(before[key]);
     expect(after.offset).toBe(before.offset);
-    expect(screen.getByTestId('video-player')).toBe(video);
+    expect(document.querySelector('.DriveView video')).toBe(video);
     expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requests);
   });
 
