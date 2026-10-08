@@ -180,6 +180,7 @@ class RouteVideo extends Component {
             attributes: {
               onTimeUpdate: (event) => this.updateOffset(event.target),
               onSeeking: this.onSeeking,
+              onSeeked: this.onPlayable,
               onCanPlay: this.onPlayable,
             },
           }}

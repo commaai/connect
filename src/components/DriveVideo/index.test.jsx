@@ -78,6 +78,15 @@ test('seeks to the selected loop and wraps while playing', async () => {
   expect(video.currentTime).toBe(18);
 });
 
+test('a buffered seek clears loading without canplay, like safari', async () => {
+  const { store, video } = await mountVideo();
+  act(() => store.dispatch(seek(30000)));
+  fireEvent.seeking(video);
+  expect(store.getState().videoStatus).toBe('loading');
+  fireEvent.seeked(video);
+  expect(store.getState().videoStatus).toBe('ready');
+});
+
 test('shows media errors without overwriting timeline navigation and recovers when playable', async () => {
   const { store, video, getByText, queryByText } = await mountVideo();
   fireEvent.error(video);
