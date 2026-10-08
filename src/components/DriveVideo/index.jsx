@@ -33,6 +33,7 @@ class DriveVideo extends Component {
     this.state = {
       buffering: true,
       error: null,
+      picture: false,
     };
   }
 
@@ -61,7 +62,7 @@ class DriveVideo extends Component {
     const video = this.video.current;
     this.unload();
     onAudioStatusChange?.(false);
-    this.setState({ buffering: Boolean(currentRoute), error: null });
+    this.setState({ buffering: Boolean(currentRoute), error: null, picture: false });
     if (!currentRoute) {
       return;
     }
@@ -220,7 +221,7 @@ class DriveVideo extends Component {
 
   render() {
     const { desiredPlaySpeed, isMuted } = this.props;
-    const { buffering, error } = this.state;
+    const { buffering, error, picture } = this.state;
     const showSpinner = buffering && !error && desiredPlaySpeed > 0;
 
     return (
@@ -237,6 +238,7 @@ class DriveVideo extends Component {
           muted={isMuted}
           onClick={this.togglePlay}
           onLoadedMetadata={this.onLoadedMetadata}
+          onLoadedData={() => this.setState({ picture: true })}
           onLoadStart={() => this.setState({ buffering: true })}
           onWaiting={() => this.setState({ buffering: true })}
           onSeeking={() => this.setState({ buffering: true })}
@@ -250,8 +252,9 @@ class DriveVideo extends Component {
           onError={this.onError}
         />
         {showSpinner && (
-          // fades in after 300 ms, so quick seeks and loads do not flash it
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 animate-[fadein_200ms_300ms_both]">
+          // over a picture it fades in after 300 ms, so quick seeks do not flash it; an empty
+          // player shows it at once
+          <div className={`pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 ${picture ? 'animate-[fadein_200ms_300ms_both]' : ''}`}>
             <div aria-hidden="true" className="size-12 rounded-full border-4 border-white/20 border-t-white animate-spin" />
           </div>
         )}
