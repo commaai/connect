@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { attachSource } from './transport';
 
-const video = () => Object.assign(new EventTarget(), { src: '', load: vi.fn(), canPlayType: () => 'maybe' });
+const video = () => Object.assign(new EventTarget(), { src: '', load: vi.fn(), pause: vi.fn(), removeAttribute: vi.fn(), canPlayType: () => 'maybe' });
 afterEach(() => { vi.useRealTimers(); });
 
 describe('transport QA', () => {

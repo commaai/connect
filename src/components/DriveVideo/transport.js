@@ -147,6 +147,9 @@ export function attachSource(video, { src, onStatus = () => {}, onManifest, onAu
       video.removeEventListener('canplay', ready);
       video.removeEventListener('playing', ready);
       hls?.destroy();
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
     },
   };
 }

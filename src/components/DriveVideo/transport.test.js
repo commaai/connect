@@ -3,7 +3,7 @@ import { attachSource } from './transport';
 
 function media(native = false) {
   const video = new EventTarget();
-  Object.assign(video, { src: '', currentTime: 3, muted: true, load: vi.fn(), canPlayType: () => native ? 'maybe' : '' });
+  Object.assign(video, { src: '', currentTime: 3, muted: true, load: vi.fn(), pause: vi.fn(), removeAttribute: vi.fn(), canPlayType: () => native ? 'maybe' : '' });
   return video;
 }
 function engine() {
@@ -140,4 +140,14 @@ it('bounds native network reloads and explains unsupported sources', () => {
   const unsupported = attachSource(media(true), { src: 'clip', onStatus });
   unsupported.reportError({ code: 4 });
   expect(onStatus.mock.lastCall[0].error).toContain('not supported'); unsupported.destroy();
+});
+it('retires native audio and the old source after removing status callbacks', () => {
+  const video = media(true); const onStatus = vi.fn();
+  const source = attachSource(video, { src: 'old.m3u8', onStatus });
+  video.pause.mockImplementation(() => video.dispatchEvent(new Event('waiting')));
+  onStatus.mockClear(); source.destroy();
+  expect(video.pause).toHaveBeenCalledOnce();
+  expect(video.removeAttribute).toHaveBeenCalledWith('src');
+  expect(video.load).toHaveBeenCalledTimes(2);
+  expect(onStatus).not.toHaveBeenCalled();
 });
