@@ -25,28 +25,45 @@ export function parseQcameraPlaylist(text) {
   return !pending && entries.length ? entries : null;
 }
 
-export function createVideoMapping(route, entries) {
+function routeSegments(route) {
   const numbers = route?.segment_numbers;
   const starts = route?.segment_start_times;
   const ends = route?.segment_end_times;
-  if (!Array.isArray(entries) || !entries.length || !Array.isArray(numbers) || !numbers.length
-    || starts?.length !== numbers.length || ends?.length !== numbers.length) return null;
+  if (!Array.isArray(numbers) || !numbers.length || starts?.length !== numbers.length
+    || ends?.length !== numbers.length || !Number.isFinite(starts[0])) return null;
   const origin = starts[0];
-  const firstFrame = route.videoStartOffset ?? 0;
-  if (!Number.isFinite(origin) || !Number.isFinite(firstFrame) || firstFrame < 0) return null;
   const segments = new Map();
+  let previousEnd = 0;
   for (let i = 0; i < numbers.length; i++) {
+    let start = starts[i];
+    let end = ends[i];
+    // Some segments retain boot-relative timestamps after the route gains a clock.
+    if (start >= 0 && end < origin && origin - start > 86400000) {
+      start += origin;
+      end += origin;
+    }
+    start -= origin;
+    end -= origin;
     if (!Number.isSafeInteger(numbers[i]) || numbers[i] < 0 || segments.has(numbers[i])
-      || !Number.isFinite(starts[i]) || !Number.isFinite(ends[i]) || ends[i] <= starts[i]
-      || (i && (numbers[i] <= numbers[i - 1] || starts[i] < ends[i - 1]))) return null;
-    segments.set(numbers[i], { start: starts[i] - origin, end: ends[i] - origin });
+      || !Number.isFinite(start) || !Number.isFinite(end) || end <= start
+      || start < previousEnd || (i && numbers[i] <= numbers[i - 1])) return null;
+    segments.set(numbers[i], { number: numbers[i], start, end });
+    previousEnd = end;
   }
+  return segments;
+}
+
+export function createVideoMapping(route, entries) {
+  const segments = routeSegments(route);
+  const firstFrame = route?.videoStartOffset ?? 0;
+  if (!segments || !Array.isArray(entries) || !entries.length
+    || !Number.isFinite(firstFrame) || firstFrame < 0) return null;
   const mapping = [];
   let mediaEnd = 0;
   let previousNumber = -1;
   for (const entry of entries) {
     const segment = segments.get(entry.number);
-    if (!segment || !Number.isFinite(entry.start) || entry.start !== mediaEnd
+    if (!segment || !Number.isFinite(entry.start) || Math.abs(entry.start - mediaEnd) > 1e-6
       || !Number.isFinite(entry.duration) || entry.duration <= 0 || entry.number <= previousNumber) return null;
     // firstFrame is already route-relative, never add it to segment-number time.
     const routeStart = Math.max(segment.start, firstFrame);
@@ -73,13 +90,8 @@ export function routeToMedia(mapping, milliseconds) {
 }
 
 export function routeSegmentAt(route, offset) {
-  if (!Number.isFinite(offset) || offset < 0 || !route?.segment_numbers?.length) return null;
-  const origin = route.segment_start_times?.[0];
-  if (!Number.isFinite(origin)) return null;
-  for (let i = 0; i < route.segment_numbers.length; i++) {
-    const start = route.segment_start_times[i] - origin;
-    const end = route.segment_end_times?.[i] - origin;
-    if (offset >= start && offset < end) return { number: route.segment_numbers[i], start, end };
-  }
-  return null;
+  if (!Number.isFinite(offset) || offset < 0) return null;
+  const segments = routeSegments(route);
+  if (!segments) return null;
+  return [...segments.values()].find((segment) => offset >= segment.start && offset < segment.end) || null;
 }

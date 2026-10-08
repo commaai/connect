@@ -76,7 +76,7 @@ describe('timeline thumbnails', () => {
       offset: 1600,
       segment_numbers: Array.from(Array(4).keys()),
       segment_start_times: [1000, 61000, 121000, 181000],
-  segment_end_times: [61000, 121000, 181000, 241000],
+      segment_end_times: [61000, 121000, 181000, 241000],
     };
 
     render(React.createElement(Thumbnails, {
@@ -118,24 +118,23 @@ describe('timeline thumbnails', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(percentToOffsetMock.mock.calls.length).toBe(0);
   });
-});
 
+  it('uses segment-local sprite indices after the first minute', () => {
+    render(React.createElement(Thumbnails, {
+      thumbnail: { width: 160, height: 100 },
+      percentToOffset: () => 65000,
+      currentRoute: mockRoute,
+    }));
+    const image = screen.getByRole('img');
+    expect(image.style.backgroundImage).toContain('/1/sprite.jpg');
+    expect(image.style.backgroundPositionX).toBe('-160px');
+  });
 
-it('uses segment-local sprite indices after the first minute', () => {
-  render(React.createElement(Thumbnails, {
-    thumbnail: { width: 160, height: 100 },
-    percentToOffset: () => 65000,
-    currentRoute: mockRoute,
-  }));
-  const image = screen.getByRole('img');
-  expect(image.style.backgroundImage).toContain('/1/sprite.jpg');
-  expect(image.style.backgroundPositionX).toBe('-160px');
-});
-
-it('leaves missing backend segments blank rather than borrowing a nearby sprite', () => {
-  render(React.createElement(Thumbnails, {
-    thumbnail: { width: 160, height: 100 }, percentToOffset: () => 90000,
-    currentRoute: { segment_numbers: [0, 2], segment_start_times: [1000, 121000], segment_end_times: [61000, 181000] },
-  }));
-  expect(screen.getByRole('img')).toHaveClass('blank');
+  it('leaves missing backend segments blank rather than borrowing a nearby sprite', () => {
+    render(React.createElement(Thumbnails, {
+      thumbnail: { width: 160, height: 100 }, percentToOffset: () => 90000,
+      currentRoute: { segment_numbers: [0, 2], segment_start_times: [1000, 121000], segment_end_times: [61000, 181000] },
+    }));
+    expect(screen.getByRole('img')).toHaveClass('blank');
+  });
 });
