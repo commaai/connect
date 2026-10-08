@@ -211,3 +211,11 @@ it('samples the real media clock on frames and cancels the frame on disposal', (
   callback(80);
   expect(onProgress).toHaveBeenCalledTimes(2);
 });
+
+it('seeks after metadata even before the duration is known', () => {
+  const { video, controller, callbacks } = setup();
+  video.duration = NaN;
+  controller.update(command(2500));
+  expect(video.currentTime).toBe(2.5);
+  expect(callbacks.onProgress).toHaveBeenLastCalledWith(2500, 1);
+});

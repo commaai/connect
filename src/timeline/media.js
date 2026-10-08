@@ -23,7 +23,7 @@ export function createController(video, callbacks = {}) {
   const toRoute = (seconds) => intent.toRoute ? intent.toRoute(seconds) : seconds * 1000 + intent.videoStartOffset;
   const bounds = () => {
     const mappedStart = toMedia(intent.range?.start ?? intent.videoStartOffset);
-    const start = Number.isFinite(mappedStart) ? Math.min(video.duration, Math.max(0, mappedStart)) : NaN;
+    const start = Number.isFinite(mappedStart) ? Math.min(Number.isFinite(video.duration) ? video.duration : Infinity, Math.max(0, mappedStart)) : NaN;
     const end = Math.min(Number.isFinite(video.duration) ? video.duration : Infinity,
       intent.range ? toMedia(intent.range.end) : Infinity);
     return { start, end };
@@ -53,7 +53,7 @@ export function createController(video, callbacks = {}) {
   function seekPending() {
     if (pending === null || video.readyState < 1) return;
     const { start: first, end: last } = bounds();
-    if (!Number.isFinite(first) || !Number.isFinite(last) || last < first) return;
+    if (!Number.isFinite(first) || Number.isNaN(last) || last < first) return;
     const mapped = toMedia(pending);
     if (!Number.isFinite(mapped)) return;
     const target = Math.min(last, Math.max(first, mapped));
