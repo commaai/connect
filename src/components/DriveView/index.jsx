@@ -19,6 +19,23 @@ class DriveView extends Component {
     this.close = this.close.bind(this);
   }
 
+  componentDidMount() {
+    this.ensureValidRange();
+  }
+
+  componentDidUpdate() {
+    this.ensureValidRange();
+  }
+
+  ensureValidRange() {
+    const { currentRoute, dongleId, zoom } = this.props;
+    if (currentRoute && zoom && (zoom.start >= currentRoute.duration
+      || zoom.end > Math.ceil(currentRoute.duration / 1000) * 1000)
+      && (zoom.start !== 0 || zoom.end !== currentRoute.duration)) {
+      this.props.dispatch(replace(drivePath(dongleId, currentRoute.log_id)));
+    }
+  }
+
   onBack(currentRoute) {
     if (currentRoute) {
       this.props.dispatch(replace(drivePath(this.props.dongleId, currentRoute.log_id)));

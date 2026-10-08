@@ -316,6 +316,20 @@ describe('whole-app behavior', () => {
     });
   });
 
+  test('an out-of-bounds cold drive range resolves to the actual drive', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/2000/3000`);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+
+  test('an out-of-bounds range entered while viewing a drive also resolves', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}/2000/3000`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(screen.getByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+
   test.each([
     ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`],
   ])('signed-out %s entry retains its path', async (_name, pathname) => {
