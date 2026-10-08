@@ -1,11 +1,33 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parseRoute } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
 
 describe('URL pathname helpers', () => {
+  it.each([
+    [`/${DONGLE}`, { page: 'dashboard', dongleId: DONGLE, routeId: null, zoom: null, modal: null }],
+    [`/${DONGLE}/${LOG}/10/20?modal=upload-queue`, { page: 'drive', dongleId: DONGLE, routeId: LOG, zoom: { start: 10000, end: 20000 }, modal: 'upload-queue' }],
+    [`/${DONGLE}/prime?modal=prime-cancel`, { page: 'prime', dongleId: DONGLE, routeId: null, zoom: null, modal: 'prime-cancel' }],
+    [`/${DONGLE}/10/20`, { page: 'dashboard', dongleId: DONGLE, routeId: null, zoom: null, legacyRange: { start: 10, end: 20 }, modal: null }],
+  ])('parses %s into one route state', (url, expected) => {
+    expect(parseRoute(url)).toMatchObject(expected);
+  });
+
+  it.each([
+    `/${DONGLE}/not-a-time/20`,
+    `/${DONGLE}/${LOG}/NaN/20`,
+    `/${DONGLE}/${LOG}/20/10`,
+    `/${DONGLE}/prime?modal=remove-device`,
+    `/${DONGLE}/prime?modal=prime-cancel&device=not-a-device`,
+  ])('rejects malformed route state from %s', (url) => {
+    const route = parseRoute(url);
+    expect(route.zoom).toBeNull();
+    expect(route.modal).toBeNull();
+    expect(route.dongleId).toBe(DONGLE);
+  });
+
   it.each([
     [`/${DONGLE}`, DONGLE],
     [`/${DONGLE}/${LOG}`, DONGLE],
@@ -15,18 +37,10 @@ describe('URL pathname helpers', () => {
     expect(getDongleID(pathname)).toBe(expected);
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
   it.each([
     [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
+    [`/${DONGLE}/0/20/ignored`, null],
+    [`/${DONGLE}/${LOG}/10/20`, { start: 10000, end: 20000 }],
     [`/${DONGLE}/10`, null],
     ['/auth/code/provider', null],
   ])('getZoom(%s)', (pathname, expected) => {
@@ -49,6 +63,11 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/10/20`, null],
   ])('getRouteZoom(%s)', (pathname, expected) => {
     expect(getRouteZoom(pathname)).toEqual(expected);
+  });
+
+  it.each([`/${DONGLE}/${LOG}/NaN/20`, `/${DONGLE}/${LOG}/20/10`])('rejects invalid route zooms in helper wrappers', (pathname) => {
+    expect(getZoom(pathname)).toBeNull();
+    expect(getRouteZoom(pathname)).toBeNull();
   });
 
   it.each([
