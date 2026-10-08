@@ -18,6 +18,7 @@ let clock = null; // { offset, time, speed }, speed 0 while paused
 let gaps = [];
 
 const SEGMENT_LENGTH = 60 * 1000;
+const FRAME = 0.05; // s, at qcamera's 20 fps
 
 function videoStartOffset(state) {
   return state.currentRoute?.videoStartOffset || 0;
@@ -130,7 +131,16 @@ export function seekTo(offset, state = store.getState()) {
     return;
   }
   pendingOffset = null;
-  video.currentTime = toVideoTime(offset, state);
+  const time = toVideoTime(offset, state);
+  if (time >= video.duration) {
+    // past the end of the video, as in a drive whose last segments haven't
+    // uploaded. Reaching the end would loop playback back to the start of the
+    // range, so the video stops on its last frame instead
+    video.pause();
+    video.currentTime = Math.max(0, video.duration - FRAME);
+    return;
+  }
+  video.currentTime = time;
 }
 
 export function applyPendingSeek() {

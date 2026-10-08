@@ -46,6 +46,14 @@ describe('playback clock', () => {
     expect(currentOffset(state)).toEqual(10000);
   });
 
+  it('stops a seek past the end of the video on its last frame', () => {
+    const video = makeVideo({ duration: 180, paused: false });
+    setVideo(video);
+    seekTo(400500, { ...state, zoom: null });
+    expect(video.pause).toHaveBeenCalled();
+    expect(video.currentTime).toBeCloseTo(179.95);
+  });
+
   it('holds a seek until the video has metadata', () => {
     const video = makeVideo({ readyState: HAVE_NOTHING, currentTime: 0 });
     setVideo(video);
