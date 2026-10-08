@@ -1,10 +1,18 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
 
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { pushTimelineRange, selectDevice, selectTimeFilter } from './actions';
+import { play } from './timeline/playback';
+
+// These tests render the whole app (lazy chunks, maps, video stubs) and are
+// much heavier than the rest of the suite. Give them headroom so a fully
+// parallel run on a busy machine can't starve them into timeouts.
+configure({ asyncUtilTimeout: 8000 });
+vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -134,7 +142,7 @@ async function renderApp(pathname, options = {}) {
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
-    { timeout: 5000 },
+    { timeout: 10000 },
   );
   // Explorer initialization starts several independent async updates (device
   // details, stats, routes, and clip support). Let their promise chains finish
@@ -302,5 +310,108 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  describe('url as the single navigation authority', () => {
+    test('a programmatic push is reconciled even when no action changed state', async () => {
+      const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+      expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+
+      // A react-router push (e.g. the drawer's home link) must drive the store.
+      act(() => history.push('/'));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+      expect(store.getState().selectedRouteId).toBeNull();
+      expect(store.getState().currentRoute).toBeNull();
+      expect(store.getState().zoom).toBeNull();
+      expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    });
+
+    test('closing a deep-linked drive reloads the full route list', async () => {
+      const { history } = await renderApp(`/${FIRST}/${LOG}`);
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+
+      fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+      // The drive had loaded only its own route; the dashboard list must refresh.
+      expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    });
+
+    test('re-selecting the current device reuses state and does not refetch', async () => {
+      const { store } = await renderApp(`/${FIRST}`);
+      await screen.findByText('Mock recent route start');
+
+      act(() => store.dispatch(selectTimeFilter(START - 86_400_000, START)));
+      const filter = store.getState().filter;
+      const requests = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+
+      act(() => store.dispatch(selectDevice(FIRST)));
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+
+      expect(store.getState().filter).toEqual(filter);
+      expect(mocks.requests.filter(({ url }) => url.includes('routes_segments')).length).toBe(requests);
+    });
+
+    test('changing the timeline range keeps the playback speed', async () => {
+      const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+      act(() => { store.dispatch(play(4)); });
+      expect(store.getState().desiredPlaySpeed).toBe(4);
+
+      act(() => { store.dispatch(pushTimelineRange(LOG, 10_000, 20_000)); });
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`));
+      expect(store.getState().desiredPlaySpeed).toBe(4);
+    });
+
+    test.each([
+      ['a non-numeric range', `/${FIRST}/${LOG}/abc/def`],
+      ['a non-numeric legacy range', `/${FIRST}/notanumber/5`],
+    ])('%s never queries the API and renders 404', async (_name, pathname) => {
+      const { history, store } = await renderApp(pathname);
+      expect(await screen.findByText('Page not found')).toBeVisible();
+      expect(history.location.pathname).toBe(pathname);
+      expect(store.getState().zoom).toBeNull();
+      expect(Number.isNaN(store.getState().zoom?.start)).toBe(false);
+      expect(mocks.requests.some(({ url }) => url.includes('NaN'))).toBe(false);
+      expect(mocks.requests.some(({ url }) => url.includes('routes_segments'))).toBe(false);
+    });
+
+    test('an unknown path renders 404 instead of a silently selected device', async () => {
+      const { history, store } = await renderApp('/nonsense');
+      expect(await screen.findByText('Page not found')).toBeVisible();
+      expect(history.location.pathname).toBe('/nonsense');
+      // The not-found page keeps the previously selected device cached.
+      expect(store.getState().dongleId).toBeNull();
+    });
+
+    test('a legacy timestamp link is replaced, not pushed onto history', async () => {
+      const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+      // Replaced (not pushed): the legacy URL is gone from history.
+      expect(history.length).toBe(1);
+    });
+
+    test('device settings is a URL-addressable overlay that Back closes', async () => {
+      const { history } = await renderApp(`/${FIRST}`);
+      await screen.findByText('Mock recent route start');
+
+      fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+      // The drawer lists devices alphabetically, so Alpha/Second is first.
+      fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+      await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+      expect(await screen.findByText('Device settings')).toBeVisible();
+
+      act(() => history.goBack());
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+      await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    });
+
+    test.each([
+      ['a safe target', `/?r=${encodeURIComponent(`/${SECOND}`)}`, `/${SECOND}`],
+      ['an unsafe target', '/?r=//evil.example/foo', `/${FIRST}`],
+    ])('validates %s in ?r=', async (_name, entry, expected) => {
+      const { history } = await renderApp(entry);
+      await waitFor(() => expect(history.location.pathname).toBe(expected));
+    });
   });
 });
