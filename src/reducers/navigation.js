@@ -13,7 +13,7 @@ function driveRange(range, route) {
   return { start: range.start, end: Math.min(range.end, route.duration) };
 }
 
-// Called after navigation or route metadata changes. Query changes leave playback untouched.
+// Called after navigation or route metadata changes. Modal/query changes leave playback untouched.
 export function selectCurrentRoute(state) {
   const { routeId, range } = state.navigation;
   const currentRoute = routeId ? state.routeCache[routeId] || null : null;

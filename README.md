@@ -26,7 +26,7 @@ API and useradmin URL roots can be overridden at build time with
 ## Architecture
 
 See [Navigation and application state](docs/navigation.md) for URL formats, state ownership,
-and how to add a route.
+and how to add a route or modal.
 
 ## Libraries Used
 There's a ton of them, but these are worth mentioning because they sort of affect everything.

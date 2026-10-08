@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
 import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
+import { openModal } from '../../actions/navigation';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
@@ -101,7 +102,6 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -123,18 +123,19 @@ class AddDevice extends Component {
     this.modalClose = this.modalClose.bind(this);
     this.onQrRead = this.onQrRead.bind(this);
     this.restart = this.restart.bind(this);
-    this.onOpenModal = this.onOpenModal.bind(this);
     this.scanFrame = this.scanFrame.bind(this);
     this.startScanning = this.startScanning.bind(this);
     this.stopScanning = this.stopScanning.bind(this);
   }
 
   async componentDidMount() {
+    this.mounted = true;
     this.componentDidUpdate({}, {});
   }
 
   async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+    if (!this.mounted) return;
+    const { pairLoading, pairError, pairDongleId } = this.state;
     let { hasCamera } = this.state;
 
     // Check for camera availability
@@ -142,25 +143,34 @@ class AddDevice extends Component {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         hasCamera = devices.some((d) => d.kind === 'videoinput');
+        if (!this.mounted) return;
         this.setState({ hasCamera });
       } catch {
         hasCamera = false;
+        if (!this.mounted) return;
         this.setState({ hasCamera });
       }
     }
 
     // Initialize detector and camera stream
-    if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
+    if (this.videoRef && !this.detector && hasCamera && !pairDongleId) {
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
+        if (!this.mounted || !this.videoRef) {
+          this.stream.getTracks().forEach((track) => track.stop());
+          this.stream = null;
+          return;
+        }
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
+        if (!this.mounted) return;
         this.startScanning();
       } catch (err) {
+        if (!this.mounted) return;
         let cameraError = 'Unable to access camera.';
         if (err.name === 'NotAllowedError') {
           cameraError = 'Camera access denied. Please allow camera access in your browser settings and try again.';
@@ -219,7 +229,7 @@ class AddDevice extends Component {
     }
 
     // Start scanning if conditions are met
-    if (!pairLoading && !pairError && !pairDongleId && this.detector && modalOpen && hasCamera && !this.scanning) {
+    if (!pairLoading && !pairError && !pairDongleId && this.detector && hasCamera && !this.scanning) {
       this.startScanning();
     }
   }
@@ -229,6 +239,7 @@ class AddDevice extends Component {
 
     try {
       const results = await this.detector.detect(this.videoRef);
+      if (!this.scanning) return;
       if (results.length > 0) {
         this.onQrRead({ data: results[0].rawValue });
         return; // Stop scanning after detection
@@ -237,7 +248,7 @@ class AddDevice extends Component {
       // Ignore detection errors, just keep scanning
     }
 
-    this.scanFrameId = requestAnimationFrame(this.scanFrame);
+    if (this.scanning) this.scanFrameId = requestAnimationFrame(this.scanFrame);
   }
 
   startScanning() {
@@ -255,6 +266,7 @@ class AddDevice extends Component {
   }
 
   async componentWillUnmount() {
+    this.mounted = false;
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
@@ -290,15 +302,10 @@ class AddDevice extends Component {
     }
     this.detector = null;
 
-    if (pairDongleId && this.props.devices.length === 0) {
-      this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
-      window.location = `${window.location.origin}/${pairDongleId}`;
-      return;
-    }
-
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
+    } else {
+      this.props.onClose();
     }
   }
 
@@ -354,10 +361,9 @@ class AddDevice extends Component {
       const resp = await api.devices.pilotPair(pairToken);
       if (resp.dongle_id) {
         const deviceList = await api.devices.listDevices();
-        if (devices.length > 0) { // state change from no device to a device requires reload.
-          dispatch(updateDevices(deviceList));
-          dispatch(analyticsEvent('pair_device', { method: 'add_device_sidebar' }));
-        }
+        dispatch(updateDevices(deviceList));
+        dispatch(analyticsEvent('pair_device', { method: devices.length ? 'add_device_sidebar' : 'add_device_new' }));
+        if (!this.mounted) return;
         this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
       } else {
         this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: could not pair' });
@@ -369,26 +375,18 @@ class AddDevice extends Component {
     }
   }
 
-  onOpenModal() {
-    this.setState({ modalOpen: true });
-  }
-
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes } = this.props;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
-          { buttonText }
-          { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
-        <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
+        <Modal aria-labelledby="add-device-modal" open onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
-              <Typography variant="title">Pair device</Typography>
+              <Typography id="add-device-modal" variant="title">Pair device</Typography>
               <Typography variant="caption">
                 scan QR code
               </Typography>
@@ -426,15 +424,15 @@ class AddDevice extends Component {
                         {'Successfully paired device '}
                         <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
                       </Typography>
-                      <Button className={ classes.retryButton } onClick={ this.modalClose }>
-                        close
-                      </Button>
                     </>
                     ) }
                   </div>
                   <video className={ classes.video } ref={ this.onVideoRef } />
                 </div>
               )}
+            <div className="mt-3 text-right">
+              <Button onClick={this.modalClose}>Close</Button>
+            </div>
           </Paper>
         </Modal>
       </>
@@ -448,3 +446,10 @@ const stateToProps = (state) => ({
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));
+
+export const AddDeviceButton = connect()(withStyles(styles)(({ dispatch, classes, buttonText, buttonStyle, buttonIcon }) => (
+  <Button onClick={() => dispatch(openModal('pair'))} className={classes.addButton} style={buttonStyle}>
+    {buttonText}
+    {buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} />}
+  </Button>
+)));

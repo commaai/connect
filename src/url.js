@@ -13,6 +13,7 @@ const decimalRegex = /^\d+(?:\.\d+)?$/;
  * @property {string|null} routeId
  * @property {Range|null} range
  * @property {Range|null} legacyRange Absolute timestamps in old shared links.
+ * @property {{name: 'settings'|'uploads'|'pair'|'filter'|'clips', dongleId: string|null, clip?: string|null}|null} modal
  * @property {string|null} stripeSuccess
  * @property {string|null} stripeCancelled
  */
@@ -33,7 +34,7 @@ export function parseLocation({ pathname = '/', search = '' } = {}) {
   const dongleId = isDeviceId(parts[0]) ? parts[0] : null;
   const params = new URLSearchParams(search);
   const navigation = {
-    page: 'dashboard', dongleId, routeId: null, range: null, legacyRange: null,
+    page: 'dashboard', dongleId, routeId: null, range: null, legacyRange: null, modal: null,
     stripeSuccess: params.get('stripe_success'), stripeCancelled: params.get('stripe_cancelled'),
   };
 
@@ -52,6 +53,14 @@ export function parseLocation({ pathname = '/', search = '' } = {}) {
     navigation.page = parts[0];
   }
 
+  const modal = params.get('modal');
+  const modalDevice = params.has('device') ? params.get('device') : dongleId;
+  if (['settings', 'uploads', 'clips'].includes(modal) && isDeviceId(modalDevice)) {
+    navigation.modal = { name: modal, dongleId: modalDevice };
+    if (modal === 'clips') navigation.modal.clip = params.get('clip') || null;
+  } else if (modal === 'pair' || (modal === 'filter' && navigation.page === 'dashboard' && dongleId)) {
+    navigation.modal = { name: modal, dongleId: null };
+  }
   return navigation;
 }
 
@@ -64,4 +73,16 @@ export function driveUrl(dongleId, routeId, range = null) {
   if (!routeId) return deviceUrl(dongleId);
   const path = `${deviceUrl(dongleId)}/${routeId}`;
   return range ? `${path}/${range.start / 1000}/${range.end / 1000}` : path;
+}
+
+export function modalLocation(location, name, dongleId = null, clip = null) {
+  const params = new URLSearchParams(location.search);
+  params.delete('modal');
+  params.delete('device');
+  params.delete('clip');
+  if (name) params.set('modal', name);
+  if (name && dongleId) params.set('device', dongleId);
+  if (name === 'clips' && clip) params.set('clip', clip);
+  const search = params.toString();
+  return { pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash };
 }

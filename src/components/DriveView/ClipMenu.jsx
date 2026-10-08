@@ -245,6 +245,11 @@ class ClipMenu extends Component {
   }
 
   componentDidUpdate(prevProps) {
+    if (prevProps.selectedClip !== this.props.selectedClip) {
+      this.clearViewer();
+      const clip = this.state.clips.find((item) => item.filename === this.props.selectedClip);
+      if (clip?.status === 'ready') this.loadViewer(clip);
+    }
     const opened = this.props.open && !prevProps.open;
     const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
     const deviceChanged = this.props.dongleId !== prevProps.dongleId;
@@ -256,7 +261,7 @@ class ClipMenu extends Component {
     }
     if (!this.props.open && prevProps.open) {
       this.stopPolling();
-      if (this.state.viewingClip) this.closeViewer();
+      if (this.state.viewingClip) this.clearViewer();
     }
   }
 
@@ -292,6 +297,8 @@ class ClipMenu extends Component {
       if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
       const cameraRanges = routeName ? state.cameras || {} : null;
       this.setState({ clips, downloadedClips, cameraRanges, loading: false }, () => {
+        const selected = clips.find(clip => clip.filename === this.props.selectedClip);
+        if (selected?.status === 'ready' && !this.state.viewingClip && !this.state.previewingClip) this.loadViewer(selected);
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
         if (this.props.open && autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
       });
@@ -365,7 +372,11 @@ class ClipMenu extends Component {
     if (this.mounted) this.setState({ deleteDialogOpen: !deleted, deleting: false });
   }
 
-  async openViewer(clip) {
+  openViewer(clip) {
+    this.props.onSelectClip(clip.filename);
+  }
+
+  async loadViewer(clip) {
     if (!this.props.deviceOnline) return;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
@@ -398,7 +409,7 @@ class ClipMenu extends Component {
     }
   }
 
-  closeViewer() {
+  clearViewer() {
     this.previewRequest += 1;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.setState({ viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0 });
@@ -413,7 +424,7 @@ class ClipMenu extends Component {
       ? formatDuration((viewingClip.source_end_time - viewingClip.source_start_time) / (viewingClip.speedup || 1))
       : '';
     return (
-      <Dialog open={Boolean(viewingClip)} onClose={() => this.closeViewer()} classes={{ paper: classes.viewerPaper }} maxWidth="md">
+      <Dialog open={Boolean(viewingClip)} onClose={this.props.onCloseViewer} classes={{ paper: classes.viewerPaper }} maxWidth="md">
         <DialogTitle disableTypography className={classes.viewerTitle}>
           <div className={classes.viewerDetails}>
             <Typography className={`${classes.header} ${classes.viewerHeader}`}>{title}</Typography>
@@ -425,7 +436,7 @@ class ClipMenu extends Component {
             <IconButton aria-label="Download clip" title="Download clip" onClick={() => this.downloadViewedClip()}>
               <DownloadIcon className={classes.actionIcon} />
             </IconButton>
-            <IconButton aria-label="Close video" title="Close" onClick={() => this.closeViewer()}>
+            <IconButton aria-label="Close video" title="Close" onClick={this.props.onCloseViewer}>
               <CloseBold className={classes.actionIcon} />
             </IconButton>
           </div>
@@ -548,6 +559,8 @@ class ClipMenu extends Component {
         <Menu
           open={open}
           anchorEl={anchorEl}
+          anchorReference={anchorEl ? 'anchorEl' : 'anchorPosition'}
+          anchorPosition={{ top: 80, left: window.innerWidth - 24 }}
           onClose={onClose}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}

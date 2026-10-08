@@ -13,6 +13,7 @@ import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import NavigationModals from './NavigationModals';
 
 import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
 import init from '../actions/startup';
@@ -209,6 +210,7 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
+        <NavigationModals />
         { bodyTeleopOpen ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { deviceUrl, driveUrl, parseLocation } from './url';
+import { deviceUrl, driveUrl, modalLocation, parseLocation } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
+const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
 const parse = (url) => parseLocation(new URL(url, 'https://connect.comma.ai'));
 
@@ -50,6 +51,37 @@ describe('navigation URLs', () => {
   it('keeps legacy absolute milliseconds distinct from relative seconds', () => {
     expect(parse(`/${DONGLE}/1000/2000`)).toMatchObject({ legacyRange: { start: 1000, end: 2000 }, range: null });
     expect(parse(`/${DONGLE}/${LOG}/0/20`)).toMatchObject({ legacyRange: null, range: { start: 0, end: 20000 } });
+  });
+
+  it.each(['settings', 'uploads', 'pair', 'filter'])('round trips the %s modal', (name) => {
+    const location = { pathname: `/${DONGLE}`, search: '?keep=a%26b', hash: '#anchor' };
+    const target = modalLocation(location, name, ['settings', 'uploads'].includes(name) ? OTHER : null);
+    expect(parseLocation(target).modal).toEqual({ name, dongleId: ['settings', 'uploads'].includes(name) ? OTHER : null });
+    expect(modalLocation(target, null)).toEqual(location);
+  });
+
+  it('changes modal arguments independently of the drive, range, and payment result', () => {
+    const location = { pathname: `/${DONGLE}/${LOG}/0/20`, search: '?stripe_success=1&modal=settings&device=' + OTHER };
+    expect(parseLocation(location)).toMatchObject({
+      page: 'drive', dongleId: DONGLE, routeId: LOG, range: { start: 0, end: 20000 },
+      modal: { name: 'settings', dongleId: OTHER }, stripeSuccess: '1',
+    });
+    expect(parseLocation(modalLocation(location, 'uploads', DONGLE)).modal).toEqual({ name: 'uploads', dongleId: DONGLE });
+  });
+
+  it.each(['?modal=unknown', '?modal=settings&device=bad', '?modal=uploads&device=', '?modal=filter'])('ignores unavailable modal %s at root', (search) => {
+    expect(parseLocation({ pathname: '/', search }).modal).toBeNull();
+  });
+
+  it('defaults a device modal to the path device', () => {
+    expect(parse(`/${DONGLE}?modal=settings`).modal).toEqual({ name: 'settings', dongleId: DONGLE });
+  });
+
+  it('round trips encoded clip filenames without changing the underlying page', () => {
+    const location = { pathname: `/${DONGLE}/${LOG}`, search: '?keep=value' };
+    const target = modalLocation(location, 'clips', DONGLE, 'drive #1.mp4');
+    expect(parseLocation(target)).toMatchObject({ page: 'drive', modal: { name: 'clips', dongleId: DONGLE, clip: 'drive #1.mp4' } });
+    expect(modalLocation(target, null).search).toBe('?keep=value');
   });
 
 });

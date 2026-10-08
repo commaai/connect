@@ -23,7 +23,7 @@ const AnonymousLanding = lazy(() => import('./components/anonymous'));
 const AppRoutes = connect((state) => ({ navigation: state.navigation }))(({ navigation, redirectTo }) => {
   const authenticated = api.auth.isAuthenticated();
   if (navigation.page === 'auth') return <Redirect to={authenticated ? redirectTo : '/'} />;
-  const publicDrive = ['drive', 'legacy'].includes(navigation.page);
+  const publicDrive = ['drive', 'legacy'].includes(navigation.page) && !navigation.modal;
   return authenticated || publicDrive ? <Explorer /> : <AnonymousLanding />;
 });
 

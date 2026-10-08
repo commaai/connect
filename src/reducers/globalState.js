@@ -239,6 +239,8 @@ export default function reducer(_state, action) {
       };
       break;
     case Types.ACTION_FILES_UPLOADING:
+      if (action.dongleId !== (state.navigation.modal?.name === 'uploads'
+        ? state.navigation.modal.dongleId : state.dongleId)) return state;
       state.filesUploading = action.uploading;
       state.filesUploadingMeta = {
         dongleId: action.dongleId,

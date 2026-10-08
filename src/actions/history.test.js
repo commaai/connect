@@ -3,7 +3,7 @@ import { LOCATION_CHANGE } from 'connected-react-router';
 import { createAppStore } from '../store';
 import { createInitialState } from '../initialState';
 import { api } from '../api/backend';
-import { popTimelineRange, pushTimelineRange, selectDevice } from './navigation';
+import { closeModal, openModal, popTimelineRange, pushTimelineRange, selectDevice } from './navigation';
 import { driveUrl } from '../url';
 import * as Types from './types';
 
@@ -62,17 +62,19 @@ describe('URL to state', () => {
     expect(history.length).toBe(length);
   });
 
-  it('preserves caches and playback when only an unrelated query changes', () => {
+  it('preserves caches and playback when only the modal or unrelated query changes', () => {
     const { history, store } = setup(driveUrl(DONGLE, LOG));
     store.dispatch({ type: Types.ACTION_SEEK, offset: 12000 });
     store.dispatch({ type: Types.ACTION_PAUSE });
     const before = store.getState();
-    history.replace({ ...history.location, search: '?extra=value' });
+    store.dispatch(openModal('settings', OTHER));
+    history.replace({ ...history.location, search: history.location.search + '&extra=value' });
     const after = store.getState();
     for (const key of ['routes', 'routeCache', 'currentRoute', 'filter', 'files', 'subscription', 'zoom', 'loop', 'offset', 'startTime', 'desiredPlaySpeed']) {
       expect(after[key]).toBe(before[key]);
     }
     expect(after.dongleId).toBe(DONGLE);
+    expect(after.navigation.modal.dongleId).toBe(OTHER);
     expect(api.routes.getRoutesSegments).not.toHaveBeenCalled();
   });
 
@@ -110,6 +112,26 @@ describe('URL to state', () => {
     history.push(driveUrl(DONGLE, LOG));
     expect(store.getState().zoom).toEqual({ start: 0, end: 60000 });
     expect(api.routes.getRoutesSegments).not.toHaveBeenCalled();
+  });
+
+  it('opens and closes nested modal entries through browser history', () => {
+    const { history, store } = setup(driveUrl(DONGLE, LOG));
+    store.dispatch(openModal('settings', DONGLE));
+    store.dispatch(openModal('uploads', DONGLE));
+    store.dispatch(closeModal());
+    expect(store.getState().navigation.modal.name).toBe('settings');
+    store.dispatch(closeModal());
+    expect(history.location.pathname).toBe(driveUrl(DONGLE, LOG));
+    expect(store.getState().navigation.modal).toBeNull();
+    history.goForward();
+    expect(store.getState().navigation.modal.name).toBe('settings');
+  });
+
+  it('closes a cold modal link without leaving the app or dropping unrelated arguments', () => {
+    const { history, store } = setup(`/${DONGLE}?modal=settings&keep=value#anchor`);
+    store.dispatch(closeModal());
+    expect(history.length).toBe(1);
+    expect(history.location).toMatchObject({ pathname: `/${DONGLE}`, search: '?keep=value', hash: '#anchor' });
   });
 
   it('replaces legacy links and keeps their query arguments', async () => {
@@ -156,6 +178,9 @@ describe('URL to state', () => {
     const { store, history } = setup(driveUrl(DONGLE, LOG));
     store.dispatch(pushTimelineRange(LOG, 0, 60000));
     expect(history.length).toBe(1);
+    store.dispatch(openModal('settings', DONGLE));
+    store.dispatch(openModal('settings', DONGLE));
+    expect(history.length).toBe(2);
   });
 
 });
