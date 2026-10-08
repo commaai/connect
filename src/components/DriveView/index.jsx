@@ -4,9 +4,10 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { navigateTo, navigateToDrive } from '../../actions/history';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
+import { buildUrl } from '../../url';
 
 import Media from './Media';
 import Timeline from '../Timeline';
@@ -18,17 +19,12 @@ class DriveView extends Component {
   }
 
   onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
+    const { start, end } = zoom.previous ?? {};
+    this.props.dispatch(navigateToDrive(currentRoute.log_id, start, end));
   }
 
   close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(navigateTo('dashboard'));
   }
 
   render() {
@@ -78,7 +74,7 @@ class DriveView extends Component {
               <IconButton
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={ buildUrl({ page: 'dashboard', dongleId }) }
               >
                 <CloseBold />
               </IconButton>

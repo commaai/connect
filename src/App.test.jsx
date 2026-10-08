@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -276,6 +276,38 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+  });
+
+  test('settings URL opens device settings over the dashboard', async () => {
+    const { history } = await renderApp(`/${SECOND}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByText(SECOND, { selector: 'span' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('settings button and Prime settings navigate by URL', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
+    const secondDevice = (await screen.findByText(SECOND, { selector: 'span' })).closest('a');
+    fireEvent.click(within(secondDevice).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
+
+  test('returning from a drive reuses the loaded drive list', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    mocks.requests = [];
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toEqual([]);
   });
 
   test('device browser history restores exact dashboards', async () => {

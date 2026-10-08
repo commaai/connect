@@ -5,11 +5,12 @@ import DriveList from './DriveList';
 import Navigation from '../Navigation';
 import Promotions from '../Promotions';
 import DeviceInfo from '../DeviceInfo';
+import { currentPage } from '../../url';
 import FullPageLoading from '../FullPageLoading';
 
 const Prime = lazy(() => import('../Prime'));
 
-const Dashboard = ({ primeNav, device, dongleId }) => {
+const Dashboard = ({ page, device, dongleId }) => {
   if (!device || !dongleId) {
     return <FullPageLoading />;
   }
@@ -17,7 +18,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
   return (
     <div className="relative flex flex-col">
       <Suspense fallback={<FullPageLoading />}>
-        { primeNav
+        { page === 'prime'
           ? <Prime />
           : (
             <>
@@ -34,7 +35,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  primeNav: state.primeNav,
+  page: currentPage(state),
   device: state.device,
 });
 
