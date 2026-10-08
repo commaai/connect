@@ -52,8 +52,9 @@ class DriveVideo extends Component {
     }
   }
 
+  // a reset video paints black at once on iOS, while the next page can take 0.4 s to show
   componentWillUnmount() {
-    this.unload();
+    this.unload(true);
   }
 
   // Play the current route from the current playback offset.
@@ -104,18 +105,25 @@ class DriveVideo extends Component {
   }
 
   // Stop the video and hand the clock back to Redux first, since the teardown resets currentTime.
-  // Returns the offset handed back, if a video was attached.
-  unload() {
+  // Returns the offset handed back, if a video was attached. `later` resets the element after
+  // the next paint, once the page no longer shows it.
+  unload(later = false) {
     const offset = setVideo(null);
     this.loading = null;
-    if (this.hls) {
-      this.hls.destroy();
-      this.hls = null;
-    }
+    const { hls } = this;
     const video = this.video.current;
-    if (video?.getAttribute('src')) {
-      video.removeAttribute('src');
-      video.load();
+    this.hls = null;
+    const reset = () => {
+      hls?.destroy();
+      if (video?.getAttribute('src')) {
+        video.removeAttribute('src');
+        video.load();
+      }
+    };
+    if (later) {
+      requestAnimationFrame(() => setTimeout(reset));
+    } else {
+      reset();
     }
     return offset;
   }
