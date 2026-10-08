@@ -3,11 +3,12 @@ import { connect } from 'react-redux';
 import { push } from 'connected-react-router';
 
 import { withStyles } from '@material-ui/core/styles';
-import { Typography, IconButton, AppBar } from '@material-ui/core';
+import { Typography, IconButton, AppBar, Button } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import { selectDevice } from '../../actions';
+import { selectDevice, primeNav as openPrime } from '../../actions';
+import { usePrimePromotionDismissed } from '../Promotions/primeDismissal';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
@@ -77,10 +78,11 @@ const styles = () => ({
   },
 });
 
-const AppHeader = ({
+export const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
+  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname, device,
 }) => {
+  const primeDismissed = usePrimePromotionDismissed(device?.dongle_id);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
     window.localStorage.getItem(REFERRALS_SEEN_KEY) !== 'true'
@@ -148,6 +150,15 @@ const AppHeader = ({
             </a>
           </div>
           <div className="flex flex-row gap-2">
+            {device?.is_owner && !device.prime && primeDismissed && !primeNav && (
+              <Button
+                aria-label="Sign up for comma prime"
+                className="normal-case text-[#5e8bff]"
+                onClick={() => dispatch(openPrime(true))}
+              >
+                prime
+              </Button>
+            )}
             <IconButton
               component="a"
               href={referralsOpen ? `/${dongleId}` : '/referrals'}
@@ -188,6 +199,7 @@ const stateToProps = (state) => ({
   filter: state.filter,
   profile: state.profile,
   primeNav: state.primeNav,
+  device: state.device,
   pathname: state.router.location.pathname,
 });
 

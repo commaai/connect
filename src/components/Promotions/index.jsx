@@ -4,15 +4,16 @@ import { push } from 'connected-react-router';
 
 import { primeNav } from '../../actions';
 import Notification from '../Notification';
+import { dismissPrimePromotion, usePrimePromotionDismissed } from './primeDismissal';
 
 // Change the campaign ID to make a new referral promotion appear again.
 const REFERRAL_DISMISSAL_KEY = 'referrals-09-02-2026';
 
-const Promotions = ({ device, dispatch }) => {
+export const Promotions = ({ device, dispatch }) => {
   const [showReferral, setShowReferral] = useState(
     () => window.localStorage.getItem(REFERRAL_DISMISSAL_KEY) !== 'true',
   );
-  const [primeDismissed, setPrimeDismissed] = useState(false);
+  const primeDismissed = usePrimePromotionDismissed(device.dongle_id);
 
   if (!device.is_owner) return null;
 
@@ -43,7 +44,7 @@ const Promotions = ({ device, dispatch }) => {
           buttonClassName="primeSignUp"
           onButtonClick={() => dispatch(primeNav(true))}
           dismissLabel="Dismiss prime promotion"
-          onDismiss={() => setPrimeDismissed(true)}
+          onDismiss={() => dismissPrimePromotion(device.dongle_id)}
         />
       ) : null}
     </div>
