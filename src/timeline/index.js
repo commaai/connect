@@ -1,33 +1,46 @@
 import store from '../store';
 
+// The <video> showing the current drive, if any. It is the playback clock:
+// play, pause and seek are applied to it, and the position is read from it.
+let video = null;
+
+export function attachVideo(element) {
+  video = element;
+}
+
+export function detachVideo(element) {
+  if (video === element) {
+    video = null;
+  }
+}
+
+function videoReady() {
+  return video !== null && video.readyState >= HTMLMediaElement.HAVE_METADATA;
+}
+
+// the drive's logs start a little before its video does
+function videoStartOffset(state) {
+  return state.currentRoute?.videoStartOffset || 0;
+}
+
 /**
- * Get current playback offset
+ * Playback position in milliseconds from the start of the drive. Without a
+ * loaded video, it is the position playback will start from once there is one.
  *
- * @param {object} state
+ * @param {object} [state]
  * @returns {number}
  */
-export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
+export function currentOffset(state = store.getState()) {
+  if (videoReady()) {
+    return video.currentTime * 1000 + videoStartOffset(state);
   }
+  return state.offset ?? state.loop?.startTime ?? 0;
+}
 
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+// Move the video to an offset. Before it has loaded, the offset is picked up
+// from state by the video itself.
+export function seekVideo(offset, state = store.getState()) {
+  if (videoReady()) {
+    video.currentTime = Math.max(0, (offset - videoStartOffset(state)) / 1000);
   }
-
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
-  }
-  return offset;
 }

@@ -6,6 +6,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import * as Types from './actions/types';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
+import { currentOffset } from './timeline';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
@@ -52,12 +53,9 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
   }
 }
 
-function getVideoPercent(state, offset) {
+function getVideoPercent(state) {
   const { zoom } = state;
-  if (!offset) {
-    offset = state.offset;
-  }
-  return (offset - (zoom.start)) / (zoom.end - zoom.start);
+  return (currentOffset(state) - zoom.start) / (zoom.end - zoom.start);
 }
 
 function logAction(action, prevState, state) {

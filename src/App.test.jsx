@@ -30,7 +30,12 @@ vi.mock('./utils/webrtc', () => ({
   },
 }));
 vi.mock('react-map-gl', () => ({
-  default: React.forwardRef((_props, ref) => <div ref={ref} data-testid="map" />),
+  default: React.forwardRef((_props, ref) => {
+    React.useImperativeHandle(ref, () => ({
+      getMap: () => ({ on: vi.fn(), addSource: vi.fn(), addLayer: vi.fn(), getSource: () => null }),
+    }));
+    return <div data-testid="map" />;
+  }),
   GeolocateControl: () => null,
   HTMLOverlay: () => null,
   Layer: () => null,
@@ -38,20 +43,6 @@ vi.mock('react-map-gl', () => ({
   Marker: ({ children }) => children,
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
-}));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
@@ -154,6 +145,11 @@ describe('whole-app behavior', () => {
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
     Object.defineProperty(window, 'visualViewport', { value: { height: 800 }, configurable: true });
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, value: vi.fn(() => null) });
+    // jsdom has <video> but cannot play media
+    for (const method of ['load', 'pause']) {
+      Object.defineProperty(HTMLMediaElement.prototype, method, { configurable: true, value: vi.fn() });
+    }
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', { configurable: true, value: vi.fn(async () => undefined) });
     Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
@@ -287,6 +283,24 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goForward());
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+  });
+
+  test('pausing the video itself, e.g. from native controls, pauses playback', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    const video = document.querySelector('video');
+    expect(store.getState().desiredPlaySpeed).toBe(1);
+    Object.defineProperty(video, 'readyState', { configurable: true, value: HTMLMediaElement.HAVE_ENOUGH_DATA });
+    fireEvent.pause(video);
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+    expect(await screen.findByRole('button', { name: 'Unpause' })).toBeVisible();
+  });
+
+  test('map view keeps the video playing underneath', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    const video = document.querySelector('video');
+    fireEvent.click(screen.getByText('Map'));
+    expect(await screen.findByTestId('map')).toBeInTheDocument();
+    expect(document.querySelector('video')).toBe(video);
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
