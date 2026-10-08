@@ -64,14 +64,21 @@ function usePlaybackError(src) {
   const handlePlaying = useCallback(() => setFailure(null), []);
   useVideoEvent('playing', handlePlaying);
 
-  const hasCurrentSourceFailed = failure !== null && failure.src === src;
-  if (!hasCurrentSourceFailed) return { error: null, handleError };
-  if (!failure.retry) return { error: ERROR_MESSAGES[failure.kind], handleError };
-
-  const retry = () => {
+  const retry = useCallback(() => {
     setFailure(null);
     failure.retry();
-  };
+  }, [failure]);
+
+  const hasCurrentSourceFailed = failure !== null && failure.src === src;
+  const canRetry = hasCurrentSourceFailed && Boolean(failure.retry);
+  useEffect(() => {
+    if (!canRetry) return undefined;
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
+  }, [canRetry, retry]);
+
+  if (!hasCurrentSourceFailed) return { error: null, handleError };
+  if (!canRetry) return { error: ERROR_MESSAGES[failure.kind], handleError };
   return { error: ERROR_MESSAGES[failure.kind], retry, handleError };
 }
 
