@@ -296,3 +296,20 @@ it('can play appended media without an explicit route seek', () => {
   controller.update({ waitForBuffer: true, speed: 1 });
   expect(video.play).toHaveBeenCalledOnce();
 });
+
+it('retains explicit pause intent when unknown timing resolves after startup', () => {
+  const { video, controller } = setup();
+  video.readyState = 1;
+  video.buffered = { length: 0, start: () => 0 };
+  controller.update({ waitForBuffer: true, speed: 1, toMedia: () => null,
+    toRoute: () => null, ...command(5000) });
+  controller.update({ speed: 0 });
+  video.readyState = 4;
+  video.buffered.length = 1;
+  controller.update({ toMedia: (ms) => ms / 1000, toRoute: (seconds) => seconds * 1000 });
+  video.fire('canplay');
+  video.fire('seeked');
+  expect(video.currentTime).toBe(5);
+  expect(video.play).not.toHaveBeenCalled();
+  expect(video.paused).toBe(true);
+});
