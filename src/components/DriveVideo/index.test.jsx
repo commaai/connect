@@ -78,7 +78,7 @@ test('speed, exact seek and range updates reuse the source', () => {
     loop={{ startTime: 0, duration: 20000 }} />);
   expect(mocks.sources).toHaveLength(1);
   expect(mocks.sessions[0].update).toHaveBeenLastCalledWith(expect.objectContaining({
-    speed: 0.5, seekRevision: 2, seekOffset: 1, range: { start: 0, end: 20000 },
+    speed: 0.5, waitForBuffer: true, seekRevision: 2, seekOffset: 1, range: { start: 0, end: 20000 },
   }));
 });
 

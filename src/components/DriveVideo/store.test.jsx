@@ -7,10 +7,11 @@ import { createInitialState } from '../../initialState';
 import DriveVideo from './index';
 import { seek, play } from '../../timeline/playback';
 
-const source = vi.hoisted(() => ({ callbacks: null }));
+const source = vi.hoisted(() => ({ callbacks: null, ready: true }));
 vi.mock('./transport', () => ({ attachSource: (video, callbacks) => {
   source.callbacks = callbacks;
-  Object.defineProperty(video, 'readyState', { configurable: true, value: 1 });
+  Object.defineProperty(video, 'readyState', { configurable: true, value: source.ready ? 4 : 1 });
+  Object.defineProperty(video, 'buffered', { configurable: true, value: { length: source.ready ? 1 : 0, start: () => 0, end: () => 60 } });
   Object.defineProperty(video, 'duration', { configurable: true, value: 60 });
   callbacks.onStatus({ loading: false, error: null, blocked: false });
   return { destroy: vi.fn(), retry: vi.fn(), reportError: vi.fn() };
@@ -30,6 +31,7 @@ function setup() {
   return { store, ...view };
 }
 beforeEach(() => {
+  source.ready = true;
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
@@ -77,4 +79,23 @@ test('late mapping retains the explicit target while native seek is still pendin
   expect(store.getState().seekOffset).toBe(15000);
   act(() => source.callbacks.onTimeline([{ number: 0, start: 0, duration: 60 }]));
   expect(store.getState().seekOffset).toBe(15000);
+});
+
+
+test('first nonzero native seek waits for buffered data then applies the unchanged command', () => {
+  const { store } = setup();
+  const video = screen.getByLabelText('Drive video');
+  source.ready = false;
+  video.currentTime = 0;
+  // Reattach the same route with fresh credentials to start a new source.
+  Object.defineProperty(video, 'readyState', { configurable: true, value: 1 });
+  Object.defineProperty(video, 'buffered', { configurable: true, value: { length: 0 } });
+  act(() => store.dispatch({ type: 'ACTION_UPDATE_ROUTE', fullname: ROUTE.fullname, route: { share_sig: 'new' } }));
+  act(() => source.callbacks.onTimeline([{ number: 0, start: 0, duration: 60 }]));
+  expect(store.getState().seekOffset).toBe(10000);
+  expect(video.currentTime).toBe(0);
+  Object.defineProperty(video, 'readyState', { configurable: true, value: 4 });
+  Object.defineProperty(video, 'buffered', { configurable: true, value: { length: 1, start: () => 0, end: () => 60 } });
+  act(() => video.dispatchEvent(new Event('canplay')));
+  expect(video.currentTime).toBe(10);
 });
