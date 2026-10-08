@@ -14,7 +14,6 @@ import {
   resumesOnline, seek, startPosition, stopAt, visibleError,
 } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
-import { isIos } from '../../utils/browser.js';
 
 const PlayerContext = createContext(null);
 
@@ -58,6 +57,12 @@ const MEDIA_RECOVERY_MS = 5000;
 // button already shows; jsdom returns no promise
 const playVideo = (video) => video.play()?.catch(() => {});
 
+// hls.js runs on MediaSource, or ManagedMediaSource on iPhone (iOS 17.1+).
+// Without it, Safari's own HLS freezes above 2x: the stream has no I-frame playlist.
+const HLS_JS = Hls.isSupported();
+const ALL_SPEEDS = [0.1, 0.25, 0.5, 1, 2, 4, 8];
+const SPEEDS = HLS_JS ? ALL_SPEEDS : ALL_SPEEDS.filter((step) => step <= 2);
+
 function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
   const [video, setVideo] = useState(null);
   const [err, setErr] = useState('');
@@ -93,7 +98,7 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
     startAtRef.current = null;
     let hls = null;
     let lastMediaRecovery = 0;
-    if (!isIos() && Hls.isSupported()) {
+    if (HLS_JS) {
       hls = new Hls({ maxBufferLength: 40, startPosition: startSec });
       hls.on(Hls.Events.BUFFER_CODECS, (_event, data) => setHasAudio(Boolean(data.audio)));
       hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -186,7 +191,7 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
       }
     };
     const onLoadedMetadata = () => {
-      if (isIos() && video.audioTracks) {
+      if (!hlsRef.current && video.audioTracks) {
         setHasAudio(video.audioTracks.length > 0);
       }
     };
@@ -287,7 +292,6 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }
 
-const SPEEDS = [0.1, 0.25, 0.5, 1, 2, 4, 8];
 const IDLE_MS = 2500;
 
 const iconButton = 'flex size-10 shrink-0 items-center justify-center rounded-full text-white/90 transition-colors '
@@ -524,17 +528,15 @@ function ControlsBar({ currentRoute }) {
           {clockText && <span className="hidden text-white/60 xs:inline">{clockText}</span>}
           <span className="hidden text-white/60 sm:inline">{`Segment ${getSegmentNumber(currentRoute, offset)}`}</span>
         </div>
-        {!isIos() && (
-          <select
-            className="h-8 shrink-0 cursor-pointer appearance-none rounded-full px-3 text-center text-sm font-medium tabular-nums
-              text-white/90 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white/70"
-            value={state.speed}
-            onChange={(event) => actions.setSpeed(Number(event.target.value))}
-            aria-label="Playback speed"
-          >
-            {SPEEDS.map((step) => <option key={step} value={step} className="bg-[#1e2224]">{`${step}×`}</option>)}
-          </select>
-        )}
+        <select
+          className="h-8 shrink-0 cursor-pointer appearance-none rounded-full px-3 text-center text-sm font-medium tabular-nums
+            text-white/90 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white/70"
+          value={state.speed}
+          onChange={(event) => actions.setSpeed(Number(event.target.value))}
+          aria-label="Playback speed"
+        >
+          {SPEEDS.map((step) => <option key={step} value={step} className="bg-[#1e2224]">{`${step}×`}</option>)}
+        </select>
         <button
           type="button"
           className={iconButton}
