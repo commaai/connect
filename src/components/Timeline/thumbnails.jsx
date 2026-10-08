@@ -1,4 +1,4 @@
-import { getSegmentNumber } from '../../utils';
+import { routeSegmentAt } from '../../timeline/videoTime';
 import { api } from '../../api/backend';
 
 export default function Thumbnails(props) {
@@ -19,7 +19,8 @@ export default function Thumbnails(props) {
   const route = props.currentRoute;
   for (let i = 0; i < imgCount; ++i) {
     const offset = props.percentToOffset((i + 0.5) / imgCount);
-    if (!route) {
+    const segment = routeSegmentAt(route, offset);
+    if (!segment) {
       if (currSegment && !currSegment.blank) {
         imgArr.push(currSegment);
         currSegment = null;
@@ -33,9 +34,9 @@ export default function Thumbnails(props) {
       currSegment.length += 1;
     } else {
       // 12 per file, 5s each
-      const seconds = Math.floor(offset / 1000);
+      const seconds = Math.floor((offset - segment.start) / 1000);
       const imageIndex = Math.max(0, Math.min(Math.floor(seconds / 5), 11));
-      const segmentNum = getSegmentNumber(route, offset);
+      const segmentNum = segment.number;
       const url = api.routeAssets.thumbnail(route, segmentNum);
 
       if (currSegment && (currSegment.blank || currSegment.segmentNum !== segmentNum)) {
