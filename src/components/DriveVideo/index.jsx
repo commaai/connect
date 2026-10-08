@@ -66,6 +66,9 @@ function usePlaybackError(src) {
 }
 
 function loopContainsVideo(video, videoStartOffset, loopStart, loopDuration) {
+  if (!video) {
+    return false;
+  }
   if (!loopDuration) {
     return false;
   }
