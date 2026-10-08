@@ -3,7 +3,7 @@ import { attachSource } from './transport';
 
 function media(native = false) {
   const video = new EventTarget();
-  Object.assign(video, { src: '', currentTime: 3, muted: true, load: vi.fn(), pause: vi.fn(), removeAttribute: vi.fn(), canPlayType: () => native ? 'maybe' : '' });
+  Object.assign(video, { src: '', currentTime: 3, muted: true, load: vi.fn(), pause: vi.fn(), removeAttribute: vi.fn(), getAttribute: vi.fn(() => ''), canPlayType: () => native ? 'maybe' : '' });
   return video;
 }
 function engine() {
@@ -165,4 +165,15 @@ it('signals seek readiness only after the MSE first fragment is buffered', async
   expect(onReady).toHaveBeenCalledOnce();
   source.destroy(); sdk.player.handlers.buffered();
   expect(onReady).toHaveBeenCalledOnce();
+});
+it('pauses before HLS detachment and does not unload its revoked blob twice', async () => {
+  const { sdk, source, video } = await mse();
+  const order = [];
+  video.pause.mockImplementation(() => order.push('pause'));
+  sdk.player.stopLoad.mockImplementation(() => order.push('stop'));
+  sdk.player.destroy.mockImplementation(() => { order.push('destroy'); video.removeAttribute('src'); video.load(); });
+  source.destroy(); source.destroy();
+  expect(order).toEqual(['pause', 'stop', 'destroy']);
+  expect(video.removeAttribute).toHaveBeenCalledOnce();
+  expect(video.load).toHaveBeenCalledOnce();
 });

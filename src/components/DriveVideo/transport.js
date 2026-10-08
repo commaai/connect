@@ -143,6 +143,7 @@ export function attachSource(video, { src, onStatus = () => {}, onManifest, onAu
     reportError,
     retry: start,
     destroy() {
+      if (!alive) return;
       clearTimeout(timeout);
       playlistRequest?.abort();
       alive = false;
@@ -150,10 +151,15 @@ export function attachSource(video, { src, onStatus = () => {}, onManifest, onAu
       video.removeEventListener('waiting', waiting);
       video.removeEventListener('canplay', ready);
       video.removeEventListener('playing', ready);
-      hls?.destroy();
       video.pause();
-      video.removeAttribute('src');
-      video.load();
+      hls?.stopLoad();
+      hls?.destroy();
+      // hls.js detaches and unloads its own blob source synchronously.
+      if (!hls || video.getAttribute('src')) {
+        video.removeAttribute('src');
+        video.load();
+      }
+      hls = null;
     },
   };
 }
