@@ -356,12 +356,14 @@ export default function reducer(_state, action) {
             start: action.start,
             end: action.end,
             previous: state.zoom,
+            returnOffset: action.returnOffset ?? null,
           };
         } else {
           state.zoom = state.currentRoute ? {
             start: 0,
             end: state.currentRoute.duration,
             previous: state.zoom,
+            returnOffset: action.returnOffset ?? null,
           } : null;
           state.loop = null;
         }

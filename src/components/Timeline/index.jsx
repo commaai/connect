@@ -267,15 +267,8 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      // selecting the range moves playback to its start
+      this.props.dispatch(pushTimelineRange(route.log_id, startOffset, endOffset, true));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

@@ -4,7 +4,8 @@ import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
 
 import * as Types from './types';
-import { resetPlayback, selectLoop } from '../timeline/playback';
+import { currentOffset } from '../timeline';
+import { resetPlayback, seek, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
@@ -179,6 +180,18 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   }
 }
 
+// Where playback was before the current range was selected, if the new range is the one it was
+// selected from. Ranges opened directly from a link have nowhere to return to.
+function returnOffsetFor(state, log_id, start, end) {
+  const { zoom } = state;
+  if (!zoom?.previous || zoom.returnOffset == null || state.selectedRouteId !== log_id) {
+    return null;
+  }
+  const routeEnd = state.currentRoute?.duration;
+  const isPrevious = (start ?? 0) === zoom.previous.start && (end ?? routeEnd) === zoom.previous.end;
+  return isPrevious ? zoom.returnOffset : null;
+}
+
 export function popTimelineRange(log_id, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
@@ -188,7 +201,11 @@ export function popTimelineRange(log_id, allowPathChange = true) {
       });
 
       const { start, end } = state.zoom.previous;
+      const returnOffset = returnOffsetFor(state, log_id, start, end);
       updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+      if (returnOffset !== null) {
+        dispatch(seek(returnOffset));
+      }
     }
   };
 }
@@ -197,18 +214,25 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
 
+    // going back to the range this one was selected from, e.g. with the browser back button
+    const returnOffset = returnOffsetFor(state, log_id, start, end);
+
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
       dispatch({
         type: Types.TIMELINE_PUSH_SELECTION,
         log_id,
         start,
         end,
+        // remember where playback was, to return there when leaving the new range
+        returnOffset: (state.zoom && state.currentRoute && state.selectedRouteId === log_id) ? currentOffset(state) : null,
       });
     }
 
     updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    if (returnOffset !== null) {
+      dispatch(seek(returnOffset));
+    }
   };
-
 }
 
 
