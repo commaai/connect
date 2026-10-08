@@ -1,61 +1,67 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, push, replace } from 'connected-react-router';
+import { isPublic, parseLocation, urlFor } from '../url';
+import { checkLastRoutesData, checkRoutesData, selectDevice, selectDrive } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
-  }
-
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
+// The URL says where the app is: components navigate, and syncLocation turns the URL into state.
+export function navigate(location) {
+  return (dispatch, getState) => {
     const state = getState();
+    const url = urlFor({ dongleId: state.dongleId, ...location });
+    if (url !== state.router.location.pathname) {
+      dispatch(push(url));
+    }
+  };
+}
 
-    next(action); // must be first, otherwise breaks history
+function resolveLegacyUrl(pathname, { dongleId, start, end }) {
+  return async (dispatch, getState) => {
+    try {
+      const routes = await api.routes.getRoutesSegments(dongleId, start, end);
+      const logId = routes?.[0]?.fullname.split('|')[1];
+      if (logId && getState().router.location.pathname === pathname) {
+        dispatch(replace(urlFor({ page: 'drive', dongleId, logId })));
+      }
+    } catch (err) {
+      console.error('Error fetching routes data for log ID conversion', err);
+    }
+  };
+}
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+// Only what the URL changes is touched, so moving between pages of one device keeps its
+// routes, files and subscription.
+export function syncLocation(pathname) {
+  return (dispatch, getState) => {
+    const location = parseLocation(pathname);
+    if (!location.dongleId || (!api.auth.isAuthenticated() && !isPublic(location))) {
+      return;
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
+    if (location.dongleId !== getState().dongleId) {
+      dispatch(selectDevice(location.dongleId));
     }
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
+    if (location.page === 'legacy') {
+      dispatch(resolveLegacyUrl(pathname, location));
     }
 
-    if (pathDongleId && pathDongleId !== state.dongleId) {
+    dispatch(selectDrive(location.logId ?? null, location.zoom ?? null));
+    if (location.page === 'drive') {
       dispatch(checkRoutesData());
+    } else if (getState().limit === 0) {
+      dispatch(checkLastRoutesData());
     }
+  };
+}
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
+  if (!action) {
+    return undefined;
   }
+
+  const result = next(action);
+  if (action.type === LOCATION_CHANGE) {
+    dispatch(syncLocation(action.payload.location.pathname));
+  }
+  return result;
 };

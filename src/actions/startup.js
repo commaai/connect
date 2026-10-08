@@ -1,9 +1,11 @@
 import * as Sentry from '@sentry/react';
+import { replace } from 'connected-react-router';
 
 import { api } from '../api/backend';
+import { currentLocation, urlFor } from '../url';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, selectDevice, fetchSharedDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -42,13 +44,8 @@ async function initDevices() {
 
 export default function init() {
   return async (dispatch, getState) => {
-    let state = getState();
-    if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
-    }
-
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    state = getState();
+    const state = getState();
 
     if (profile) {
       Sentry.setUser({ id: profile.id });
@@ -56,12 +53,12 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+        const storedDongleId = window.localStorage.getItem('selectedDongleId');
+        const selected = devices.find((d) => d.dongle_id === storedDongleId) || devices[0];
+        // a URL without a device opens the selected device's dashboard, except referrals
+        dispatch(selectDevice(selected.dongle_id));
+        if (currentLocation(state).page !== 'referrals') {
+          dispatch(replace(urlFor({ page: 'dashboard', dongleId: selected.dongle_id })));
         }
       }
       const dongleId = getState().dongleId;
