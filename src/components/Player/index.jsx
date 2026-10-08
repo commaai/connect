@@ -190,7 +190,9 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
         setErr(video.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED ? 'missing' : 'network');
       }
     };
-    const onLoadedMetadata = () => {
+    // Safari's own HLS adds the audio track after loadedmetadata (#851 measured ~3.4 s);
+    // jsdom's audioTracks is a plain array
+    const onAudioTracks = () => {
       if (!hlsRef.current && video.audioTracks) {
         setHasAudio(video.audioTracks.length > 0);
       }
@@ -216,7 +218,8 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
     video.addEventListener('timeupdate', onTimeUpdate);
     video.addEventListener('play', onPlay);
     video.addEventListener('error', onNativeError);
-    video.addEventListener('loadedmetadata', onLoadedMetadata);
+    video.addEventListener('loadedmetadata', onAudioTracks);
+    video.audioTracks?.addEventListener?.('addtrack', onAudioTracks);
     video.addEventListener('pause', onPause);
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('online', onOnline);
@@ -238,7 +241,8 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
       video.removeEventListener('timeupdate', onTimeUpdate);
       video.removeEventListener('play', onPlay);
       video.removeEventListener('error', onNativeError);
-      video.removeEventListener('loadedmetadata', onLoadedMetadata);
+      video.removeEventListener('loadedmetadata', onAudioTracks);
+      video.audioTracks?.removeEventListener?.('addtrack', onAudioTracks);
       video.removeEventListener('pause', onPause);
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('online', onOnline);
