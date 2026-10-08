@@ -1,47 +1,20 @@
 // basic helper functions for controlling playback
-// we shouldn't want to edit the raw state most of the time, helper functions are better
+// the video is the clock, see index.js. the state only holds what the user asked for:
+// a speed, a loop, and the offset of the last seek
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
 
 export function reducer(_state, action) {
   let state = { ..._state };
-  let loopOffset = null;
-  if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime;
-  }
   switch (action.type) {
     case Types.ACTION_SEEK:
-      state = {
-        ...state,
-        offset: action.offset,
-        startTime: Date.now(),
-      };
-
-      if (loopOffset !== null) {
-        if (state.offset < loopOffset) {
-          state.offset = loopOffset;
-        } else if (state.offset > (loopOffset + state.loop.duration)) {
-          state.offset = loopOffset + state.loop.duration;
-        }
-      }
+      state.offset = action.offset;
+      state.seekId += 1;
       break;
     case Types.ACTION_PAUSE:
-      state = {
-        ...state,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-        desiredPlaySpeed: 0,
-      };
+      state.desiredPlaySpeed = 0;
       break;
     case Types.ACTION_PLAY:
-      if (action.speed !== state.desiredPlaySpeed) {
-        state = {
-          ...state,
-          offset: currentOffset(state),
-          desiredPlaySpeed: action.speed,
-          startTime: Date.now(),
-        };
-      }
+      state.desiredPlaySpeed = action.speed;
       break;
     case Types.ACTION_LOOP:
       if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
@@ -54,12 +27,7 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_BUFFER_VIDEO:
-      state = {
-        ...state,
-        isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-      };
+      state.isBufferingVideo = Boolean(action.buffering);
       break;
     case Types.ACTION_RESET:
       state = {
@@ -67,40 +35,27 @@ export function reducer(_state, action) {
         desiredPlaySpeed: 1,
         isBufferingVideo: true,
         offset: 0,
-        startTime: Date.now(),
+        seekId: state.seekId + 1,
       };
       break;
     default:
       break;
   }
 
+  // the video starts later than the logs, the loop can't start before the video does
   if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom
     && state.loop.startTime === state.zoom.start && state.zoom.start === 0) {
-    const loopRouteOffset = state.loop.startTime - state.zoom.start;
-    if (state.currentRoute.videoStartOffset > loopRouteOffset) {
-      state.loop = {
-        startTime: state.zoom.start + state.currentRoute.videoStartOffset,
-        duration: state.loop.duration - (state.currentRoute.videoStartOffset - loopRouteOffset),
-      };
-    }
+    state.loop = {
+      startTime: state.currentRoute.videoStartOffset,
+      duration: state.loop.duration - state.currentRoute.videoStartOffset,
+    };
   }
 
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
+  // a seek stays inside the loop
+  if (state.offset !== null && state.loop?.duration) {
+    const { startTime, duration } = state.loop;
+    state.offset = Math.min(Math.max(state.offset, startTime), startTime + duration);
   }
-
-  state.isBufferingVideo = Boolean(state.isBufferingVideo);
 
   return state;
 }
@@ -136,7 +91,7 @@ export function selectLoop(start, end) {
   };
 }
 
-// update video buffering state
+// the video is waiting for data
 export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
