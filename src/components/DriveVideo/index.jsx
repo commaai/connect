@@ -203,18 +203,14 @@ export class DriveVideo extends Component {
       this.hls.on('hlsBufferCodecs', this.audioListener);
     }
     this.seekMedia();
-    // Clip boundaries need frame precision; regular progress stays at the
-    // browser's timeupdate cadence rather than dispatching on every frame.
-    const checkLoop = () => {
+    // Publish every presented frame so the timeline, map and clip boundaries
+    // follow the picture; timeupdate (~250ms apart) remains the fallback.
+    const onFrame = () => {
       if (this.media !== media) return;
-      const { loop, currentRoute, desiredPlaySpeed } = this.props;
-      if (!this.pendingSeek && !media.seeking && desiredPlaySpeed && loop?.duration > 0
-        && media.currentTime * 1000 + (currentRoute.videoStartOffset || 0) >= loop.startTime + loop.duration) {
-        this.publishPosition();
-      }
-      this.frameRequest = media.requestVideoFrameCallback?.(checkLoop) ?? null;
+      this.publishPosition();
+      this.frameRequest = media.requestVideoFrameCallback(onFrame);
     };
-    this.frameRequest = media.requestVideoFrameCallback?.(checkLoop) ?? null;
+    this.frameRequest = media.requestVideoFrameCallback?.(onFrame) ?? null;
   };
 
   onError = (error, data, route, retry) => {

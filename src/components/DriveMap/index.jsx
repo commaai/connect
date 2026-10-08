@@ -306,7 +306,6 @@ export class DriveMap extends Component {
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
   seekRevision: state.seekRevision,
 });

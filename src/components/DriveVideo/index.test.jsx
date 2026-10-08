@@ -262,6 +262,20 @@ describe('DriveVideo media events', () => {
     expect(player.state.videoError).toContain('try again');
   });
 
+  it('publishes every presented frame, restarts clips on the boundary frame, and stops on detach', () => {
+    let frame;
+    const media = { requestVideoFrameCallback: vi.fn((callback) => { frame = callback; return 7; }), cancelVideoFrameCallback: vi.fn() };
+    const { player, props } = fixture({ currentRoute: { fullname: 'route' }, offset: 0, loop: { startTime: 0, duration: 2000 } }, media);
+    player.media.currentTime = 1.5;
+    frame();
+    expect(props.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ type: Types.ACTION_VIDEO_PROGRESS, offset: 1500 }));
+    player.media.currentTime = 2;
+    frame();
+    expect(props.dispatch).toHaveBeenLastCalledWith({ type: Types.ACTION_SEEK, offset: 0 });
+    player.componentWillUnmount();
+    expect(media.cancelVideoFrameCallback).toHaveBeenCalledWith(7);
+  });
+
   it('accepts a seek that hls.js completes just past a gap between fragments', () => {
     const { player, props, media } = fixture();
     player.props = { ...props, offset: 9000, seekRevision: 1 };

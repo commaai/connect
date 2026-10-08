@@ -86,6 +86,24 @@ test('real controls pause, seek rapidly, discover audio, and keep playback in Ma
   await expect(page.locator('video')).toHaveCount(1);
 });
 
+test('the timeline follows decoded frames rather than stepping with timeupdate', async ({ page }) => {
+  await openPlayer(page);
+  await playing(page);
+  // Browsers fire timeupdate every ~250ms; the progress overlay should move
+  // with the picture, as the old interpolated clock did.
+  const positions = await page.getByRole('slider', { name: 'Drive timeline' }).evaluate((ruler) => new Promise((resolve) => {
+    const seen = new Set();
+    const end = performance.now() + 1000;
+    const sample = () => {
+      seen.add(ruler.firstElementChild.style.left);
+      if (performance.now() < end) requestAnimationFrame(sample);
+      else resolve(seen.size);
+    };
+    requestAnimationFrame(sample);
+  }));
+  expect(positions).toBeGreaterThan(12);
+});
+
 test('a nonzero clip starts at its boundary and loops using the real decoder', async ({ page }) => {
   await openPlayer(page);
   await playing(page);
