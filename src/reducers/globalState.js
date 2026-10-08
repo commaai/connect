@@ -60,6 +60,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         primeNav: false,
         streamNav: false,
+        settingsNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
@@ -315,6 +316,12 @@ export default function reducer(_state, action) {
         streamNav: action.streamNav,
       };
       break;
+    case Types.ACTION_SETTINGS_NAV:
+      state = {
+        ...state,
+        settingsNav: action.settingsNav,
+      };
+      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -409,21 +416,26 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
-      // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
-        return {
-          ...existingRoute,
-          ...route,
-        }
+    case Types.ACTION_ROUTES_METADATA: {
+      const mergeRoute = (route, cached = {}) => ({
+        ...state.lastRoutes?.find((existing) => existing.fullname === route.fullname),
+        ...cached,
+        ...route,
       });
-      state.routesMeta = {
-        dongleId: action.dongleId,
-        start: action.start,
-        end: action.end,
-      };
+      if (action.driveOnly) {
+        const byName = new Map((state.routes || []).map((route) => [route.fullname, route]));
+        for (const route of action.routes) {
+          byName.set(route.fullname, mergeRoute(route, byName.get(route.fullname)));
+        }
+        state.routes = [...byName.values()];
+      } else {
+        state.routes = action.routes.map((route) => mergeRoute(route));
+        state.routesMeta = {
+          dongleId: action.dongleId,
+          start: action.start,
+          end: action.end,
+        };
+      }
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
         if (curr) {
@@ -446,6 +458,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }

@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { push, replace } from 'connected-react-router';
+import { Page, pathFor } from '../url';
+import { primeNav, pushTimelineRange, streamNav } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -14,40 +15,78 @@ vi.mock('connected-react-router', async () => {
     __esModule: true,
     ...originalModule,
     push: vi.fn(),
+    replace: vi.fn(),
   };
 });
 
 describe('timeline actions', () => {
   it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+    ['device', { name: Page.device, dongleId: 'dongle' }, '/dongle'],
+    ['whole drive', { name: Page.drive, dongleId: 'dongle', routeId: 'log' }, '/dongle/log'],
+    ['drive range',
+      { name: Page.drive, dongleId: 'dongle', routeId: 'log', zoom: { start: 10000, end: 20000 } },
+      '/dongle/log/10/20'],
+    ['zero-start drive range',
+      { name: Page.drive, dongleId: 'dongle', routeId: 'log', zoom: { start: 0, end: 20000 } },
+      '/dongle/log/0/20'],
+    ['Prime', { name: Page.prime, dongleId: 'dongle' }, '/dongle/prime'],
+  ])('generates a %s URL', (_name, view, expected) => {
+    expect(pathFor(view)).toBe(expected);
   });
 
   it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
+    const getState = vi.fn(() => ({
       dongleId: 'statedongle',
       loop: {},
       zoom: {},
     }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+    const dispatch = vi.fn((thunk) => (
+      typeof thunk === 'function' ? thunk(dispatch, getState) : thunk
+    ));
+    pushTimelineRange('log_id', 123, 1234)(dispatch, getState);
+    expect(push).toBeCalledWith('/statedongle/log_id/0/1');
+  });
+
+  it('replaces history for a legacy drive', () => {
+    vi.clearAllMocks();
+    const getState = () => ({
+      dongleId: 'statedongle',
+      zoom: null,
+      router: { location: { pathname: '/statedongle/1/2' } },
+    });
+    const dispatch = vi.fn((thunk) => (
+      typeof thunk === 'function' ? thunk(dispatch, getState) : thunk
+    ));
+    pushTimelineRange('log_id', null, null, { replace: true })(dispatch, getState);
+    expect(replace).toHaveBeenCalledWith('/statedongle/log_id');
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('does not push when already on the path', () => {
+    vi.clearAllMocks();
+    const getState = () => ({
+      dongleId: 'statedongle',
+      zoom: null,
+      selectedRouteId: 'log_id',
+      router: { location: { pathname: '/statedongle/log_id' } },
+    });
+    const dispatch = vi.fn((thunk) => (
+      typeof thunk === 'function' ? thunk(dispatch, getState) : thunk
+    ));
+    pushTimelineRange('log_id', null, null)(dispatch, getState);
+    expect(push).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it.each([
     ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
     ['stream', streamNav, 'streamNav', '/statedongle/stream'],
   ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    const getState = () => ({ dongleId: 'statedongle', [stateKey]: false });
+    const dispatch = vi.fn((thunk) => (
+      typeof thunk === 'function' ? thunk(dispatch, getState) : thunk
+    ));
+    action(true)(dispatch, getState);
     expect(push).toHaveBeenCalledWith(expected);
   });
 });
