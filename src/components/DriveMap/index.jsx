@@ -9,7 +9,7 @@ import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocod
 
 const INTERACTION_TIMEOUT = 5000;
 
-class DriveMap extends Component {
+export class DriveMap extends Component {
   constructor(props) {
     super(props);
 
@@ -34,7 +34,7 @@ class DriveMap extends Component {
     this.shouldFlyTo = false;
     this.isInteracting = false;
     this.isInteractingTimeout = null;
-    this.lastMapPos = [0, 0];
+    this.lastMapPos = null;
   }
 
   componentDidMount() {
@@ -98,7 +98,10 @@ class DriveMap extends Component {
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
         const pos = this.posAtOffset(currentOffset());
-        if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
+        if (!pos && markerSource._data?.coordinates?.length > 0) {
+          this.lastMapPos = null;
+          markerSource.setData({ type: 'Point', coordinates: [] });
+        } else if (pos && (!this.lastMapPos || pos.some((coordinate, index) => coordinate != this.lastMapPos[index]))) {
           this.lastMapPos = pos;
           markerSource.setData({
             type: 'Point',
@@ -109,6 +112,7 @@ class DriveMap extends Component {
           }
         }
       } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
+        this.lastMapPos = null;
         markerSource.setData({
           type: 'Point',
           coordinates: [],
@@ -180,6 +184,7 @@ class DriveMap extends Component {
     }
 
     const offsetSeconds = Math.floor(offset / 1e3);
+    if (offsetSeconds < this.state.driveCoordsMin) return null;
     const offsetFractionalPart = (offset % 1e3) / 1000.0;
     const coordIdx = Math.max(this.state.driveCoordsMin, Math.min(
       offsetSeconds,
