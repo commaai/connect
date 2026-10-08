@@ -8,7 +8,6 @@ import { api } from '../../api/backend';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { currentOffset } from '../../timeline';
 import { seek, pause, bufferVideo, videoProgress } from '../../timeline/playback';
 import { isIos } from '../../utils/browser.js';
 
@@ -450,7 +449,7 @@ export class DriveVideo extends Component {
     this.setState({ videoError });
   }
 
-  currentVideoTime(offset = currentOffset()) {
+  currentVideoTime(offset) {
     const { currentRoute } = this.props;
     if (!currentRoute) {
       return 0;
@@ -510,13 +509,11 @@ export class DriveVideo extends Component {
 }
 
 const stateToProps = (state) => ({
-  dongleId: state.dongleId,
   desiredPlaySpeed: state.desiredPlaySpeed,
   offset: state.offset,
   seekRevision: state.seekRevision || 0,
   loop: state.loop,
   isBufferingVideo: state.isBufferingVideo,
-  routes: state.routes,
   currentRoute: state.currentRoute,
 });
 
