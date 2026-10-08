@@ -28,6 +28,15 @@ export function hasRoutesData(state) {
     console.debug('Bad end offset');
     return false;
   }
+  // a drive that isn't in the list is fetched on its own, and the list again
+  // once that drive is no longer selected
+  if (state.routesMeta.logId) {
+    return state.routesMeta.logId === state.selectedRouteId;
+  }
+  if (state.selectedRouteId && !state.routes.some((route) => route.log_id === state.selectedRouteId)) {
+    console.debug('Selected route not loaded');
+    return false;
+  }
 
   return true;
 }

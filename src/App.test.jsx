@@ -278,6 +278,33 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
+  test('settings button, close, and browser history follow the settings URL', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    const deviceLink = await screen.findByRole('link', { name: new RegExp(`Alpha ${SECOND}`) });
+    fireEvent.click(within(deviceLink).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(within(document.querySelector('[aria-labelledby="device-settings-modal"]')).getByText(SECOND)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('settings URL opens settings for owned devices only', async () => {
+    await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('settings URL does not open settings for a shared device', async () => {
+    await renderApp(`/${SHARED}/settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
   test('device browser history restores exact dashboards', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
@@ -287,6 +314,17 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goForward());
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+  });
+
+  test('a linked drive is followed by the drive list and drives not in it', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`, { selected: FIRST });
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    act(() => history.push(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    expect(await screen.findByText('Loading...')).toBeVisible();
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    expect(screen.queryByText('Route does not exist.')).not.toBeInTheDocument();
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {

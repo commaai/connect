@@ -96,4 +96,20 @@ describe('segments', () => {
       dongleId: 'asdfasdf',
     })).toBe(true);
   });
+
+  it('needs the selected drive, or the list after a drive fetched on its own', () => {
+    const loaded = (routesMeta, selectedRouteId) => hasRoutesData({
+      routes: [{ log_id: 'listed' }],
+      routesMeta: { dongleId: 'asdfasdf', start: 0, end: 30, ...routesMeta },
+      filter: { start: 0, end: 30 },
+      dongleId: 'asdfasdf',
+      selectedRouteId,
+    });
+    expect(loaded({}, null)).toBe(true);
+    expect(loaded({}, 'listed')).toBe(true);
+    expect(loaded({}, 'other')).toBe(false);
+    expect(loaded({ logId: 'other' }, 'other')).toBe(true);
+    expect(loaded({ logId: 'listed' }, null)).toBe(false);
+    expect(loaded({ logId: 'listed' }, 'other')).toBe(false);
+  });
 });
