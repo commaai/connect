@@ -372,15 +372,8 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
     if (path === `/v1/devices/${DONGLE_ID}/routes_segments`) return jsonResponse(request, [data.route]);
     if (path === `/v1/devices/${DONGLE_ID}/routes/preserved`) return jsonResponse(request, [data.route]);
     if (path === `/v1/route/${ROUTE_NAME}/files`) return jsonResponse(request, {});
-    if (path === `/v1/route/${ROUTE_NAME}/qcamera.m3u8`) {
-      return request.respond({
-        status: 200,
-        contentType: 'application/vnd.apple.mpegurl',
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        body: '#EXTM3U\n#EXT-X-ENDLIST\n',
-      });
-    }
-    // Keep the pairing request pending long enough to capture its loading modal.
+    // Keep these requests pending long enough to capture their loading states.
+    if (path === `/v1/route/${ROUTE_NAME}/qcamera.m3u8`) return undefined;
     if (path === '/v2/pilotpair') return undefined;
   }
   if (url.hostname === 'billing.comma.ai') {
