@@ -275,7 +275,7 @@ class Timeline extends Component {
       const startTime = startOffset;
       const endTime = endOffset;
 
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      dispatch(pushTimelineRange(route.log_id, startTime, endTime));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

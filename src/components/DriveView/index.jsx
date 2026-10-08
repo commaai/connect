@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { pushTimelineRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -14,17 +14,12 @@ import Timeline from '../Timeline';
 class DriveView extends Component {
   constructor(props) {
     super(props);
+    this.zoomOut = this.zoomOut.bind(this);
     this.close = this.close.bind(this);
   }
 
-  onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
+  zoomOut() {
+    this.props.dispatch(pushTimelineRange(this.props.currentRoute.log_id));
   }
 
   close() {
@@ -42,8 +37,7 @@ class DriveView extends Component {
       );
     }
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const wholeDriveSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -58,9 +52,9 @@ class DriveView extends Component {
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
+                onClick={ this.zoomOut }
                 aria-label="Go Back"
-                disabled={ backButtonDisabled }
+                disabled={ wholeDriveSelected }
               >
                 <ArrowBackBold />
               </IconButton>

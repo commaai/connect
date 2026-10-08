@@ -268,6 +268,28 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
   });
 
+  test('settings URL opens the device settings and browser history restores them', async () => {
+    const { history } = await renderApp(`/${SECOND}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByDisplayValue('Alpha')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('device list opens settings by URL and settings lead to Prime', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
+    const secondDevice = (await screen.findByText(SECOND)).closest('a');
+    fireEvent.click(within(secondDevice).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
+
   test('stream close and browser history restore its view', async () => {
     const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
     const { history } = await renderApp(`/${FIRST}/stream`, { devices: online });
