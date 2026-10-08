@@ -205,7 +205,6 @@ export function goBackRange(log_id) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.zoom.previous) {
-      dispatch(popTimelineRange());
       dispatch(goTo(rangeUrl(state, log_id, state.zoom.previous.start, state.zoom.previous.end)));
     }
   };

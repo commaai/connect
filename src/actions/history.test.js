@@ -16,7 +16,7 @@ vi.mock('../api', () => ({
   video: {},
 }));
 vi.mock('./index', () => ({
-  selectDevice: vi.fn(), pushTimelineRange: vi.fn(), goToRange: vi.fn(),
+  selectDevice: vi.fn(), pushTimelineRange: vi.fn(), popTimelineRange: vi.fn(), goToRange: vi.fn(),
   checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
 }));
 
@@ -40,7 +40,7 @@ function location(pathname, action = 'POP') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'goToRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
+  for (const name of ['selectDevice', 'pushTimelineRange', 'popTimelineRange', 'goToRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
@@ -80,6 +80,23 @@ describe('history middleware', () => {
     const { invoke } = create();
     invoke(location(`/${DONGLE}/${LOG}/10/20`));
     expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 10000, 20000);
+  });
+
+  it.each(['PUSH', 'POP', 'REPLACE'])('restores the previous range after publishing the %s URL', (historyAction) => {
+    const { next, invoke } = create({ ...baseState, selectedRouteId: LOG,
+      zoom: { start: 15000, end: 20000, previous: { start: 10000, end: 30000 } } });
+    invoke(location(`/${DONGLE}/${LOG}/10/30`, historyAction));
+    expect(actions.popTimelineRange).toHaveBeenCalledOnce();
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+    expect(next.mock.invocationCallOrder[0]).toBeLessThan(actions.popTimelineRange.mock.invocationCallOrder[0]);
+  });
+
+  it('restores a previous whole-drive selection without adding another zoom level', () => {
+    const { invoke } = create({ ...baseState, selectedRouteId: LOG, currentRoute: { duration: 60000 },
+      zoom: { start: 10000, end: 20000, previous: { start: 0, end: 60000 } } });
+    invoke(location(`/${DONGLE}/${LOG}`, 'PUSH'));
+    expect(actions.popTimelineRange).toHaveBeenCalledOnce();
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
   });
 
   it('leaves a log range', () => {

@@ -211,8 +211,8 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe('/');
   });
 
-  test('referrals URL opens the referrals page', async () => {
-    await renderApp('/referrals');
+  test.each(['/referrals', '/referrals/'])('referrals URL %s opens the referrals page', async (pathname) => {
+    await renderApp(pathname);
     expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
     expect((await screen.findAllByText('$50', { selector: 'dd' }))).toHaveLength(3);
     expect(screen.getByRole('link', { name: 'claim rewards ($50)' })).toHaveAttribute(
@@ -362,6 +362,17 @@ describe('whole-app behavior', () => {
       expect(history.location.pathname).toBe(pathname);
     });
 
+    test('clip preview opens over the stream and closing it preserves the stream', async () => {
+      const pathname = `/${FIRST}/stream`;
+      const { history, store } = await renderApp(`${pathname}?modal=clip&device=${FIRST}&clip=${clip.filename}`, onlineOptions());
+      await waitFor(() => expect(document.querySelector('video[src="blob:clip-preview"]')).not.toBeNull());
+      fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+      await waitFor(() => expect(history.location.search).toBe(''));
+      expect(history.location.pathname).toBe(pathname);
+      expect(store.getState().streamNav).toBe(true);
+      expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+    });
+
     test('closing during download rejects a late preview and revokes its blob URL', async () => {
       let resolvePreview;
       mocks.getClipUrl.mockReturnValue(new Promise(resolve => { resolvePreview = resolve; }));
@@ -483,6 +494,36 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+  });
+
+  test.each([
+    ['settings', 'Device settings'],
+    ['uploads', 'Upload queue'],
+  ])('%s dialog opens over a stream URL and closes without leaving the stream', async (modal, title) => {
+    const pathname = `/${FIRST}/stream`;
+    const { history, store } = await renderApp(`${pathname}?modal=${modal}&device=${FIRST}`);
+    expect(await screen.findByText(title)).toBeVisible();
+    expect(store.getState().streamNav).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(pathname);
+    expect(store.getState().streamNav).toBe(true);
+    expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+  });
+
+  test('drive Back restores nested ranges through URL navigation without rebuilding the zoom stack', async () => {
+    const pathname = `/${FIRST}/${LOG}`;
+    const { history, store } = await renderApp(pathname);
+    const whole = store.getState().zoom;
+    act(() => history.push(`${pathname}/10/40`));
+    const outer = store.getState().zoom;
+    act(() => history.push(`${pathname}/20/30`));
+    fireEvent.click(await screen.findByRole('button', { name: 'Go Back' }));
+    expect(history.location.pathname).toBe(`${pathname}/10/40`);
+    expect(store.getState().zoom).toBe(outer);
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    expect(history.location.pathname).toBe(pathname);
+    expect(store.getState().zoom).toBe(whole);
   });
 
   test('device browser history restores exact dashboards', async () => {

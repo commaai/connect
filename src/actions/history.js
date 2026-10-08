@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
 import { parseUrl } from '../url';
-import { checkRoutesData, checkLastRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, goToRange } from './index';
+import { checkRoutesData, checkLastRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, popTimelineRange, goToRange } from './index';
 import { api } from '../api/backend';
 
 // History is the entry point for clicks, redirects, and browser Back/Forward.
@@ -36,7 +36,18 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => {
 
     if (location.pathname !== state.router?.location.pathname && (url.logId || state.selectedRouteId)) {
       const { range } = url;
-      dispatch(pushTimelineRange(url.logId, range ? range.start * 1000 : null, range ? range.end * 1000 : null));
+      const previous = state.zoom?.previous;
+      // Returning to the previous URL restores its selection instead of pushing
+      // it again. This applies equally to the drive Back button and browser history.
+      const returnsToPrevious = !deviceChanged && url.logId === state.selectedRouteId && previous
+        && (range
+          ? range.start === Math.floor(previous.start / 1000) && range.end === Math.floor(previous.end / 1000)
+          : previous.start === 0 && previous.end === state.currentRoute?.duration);
+      if (returnsToPrevious) {
+        dispatch(popTimelineRange());
+      } else {
+        dispatch(pushTimelineRange(url.logId, range ? range.start * 1000 : null, range ? range.end * 1000 : null));
+      }
     }
     if (deviceChanged) dispatch(state.limit === 0 ? checkLastRoutesData() : checkRoutesData());
 

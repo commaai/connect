@@ -9,6 +9,10 @@ and POP through one sequence: publish the location, select a changed device,
 update a changed drive path, fetch device metadata, and apply Prime/stream state.
 Dialog-only navigation preserves the drive, playback, and loaded routes. Stale
 legacy timestamp lookups cannot redirect after newer navigation.
+Returning to the previous drive range restores the existing zoom selection only
+after history publishes its URL. Referrals rendering also uses the parsed page,
+including trailing-slash URLs. Shared device, pairing, and clip dialog hosts stay
+mounted over both normal pages and the stream view.
 
 Supported pages: device dashboard, whole/ranged drive, legacy timestamp range,
 Prime checkout/management, stream, and referrals. Supported dialog names:

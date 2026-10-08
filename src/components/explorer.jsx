@@ -204,13 +204,13 @@ class ExplorerApp extends Component {
     const {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, search, profile,
     } = this.props;
-    const { modal, modalDongleId, clipFilename } = parseUrl(pathname, search);
+    const { page, modal, modalDongleId, clipFilename } = parseUrl(pathname, search);
     const clipDevice = devices?.find((device) => device.dongle_id === modalDongleId)
       || (this.props.device?.dongle_id === modalDongleId ? this.props.device : null);
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -257,41 +257,41 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
-            <AddDevice host />
-            <DeviceSettingsModal
-              isOpen={ modal === 'settings' && Boolean(modalDongleId) }
-              dongleId={ modalDongleId }
-              onClose={ () => dispatch(closeModal()) }
-            />
-            {['clip', 'clip-delete'].includes(modal) && <ClipMenu
-              key={modalDongleId}
-              open
-              modal={modal}
-              clipFilename={clipFilename}
-              dongleId={modalDongleId}
-              deviceOnline={Boolean(clipDevice && deviceIsOnline(clipDevice))}
-              inventoryOnly
-            />}
-            <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
-              <Paper className={classes.modal}>
-                <Typography variant="title">Pairing device</Typography>
-                <hr />
-                { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
-                { pairDongleId
-                  && (
-                  <Typography>
-                    {'Successfully paired device '}
-                    <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
-                  </Typography>
-                  )}
-                { pairError && <Typography>{ pairError }</Typography> }
-                <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
-                  Close
-                </Button>
-              </Paper>
-            </Modal>
           </>
         ) }
+        <AddDevice host />
+        <DeviceSettingsModal
+          isOpen={ modal === 'settings' && Boolean(modalDongleId) }
+          dongleId={ modalDongleId }
+          onClose={ () => dispatch(closeModal()) }
+        />
+        {['clip', 'clip-delete'].includes(modal) && <ClipMenu
+          key={modalDongleId}
+          open
+          modal={modal}
+          clipFilename={clipFilename}
+          dongleId={modalDongleId}
+          deviceOnline={Boolean(clipDevice && deviceIsOnline(clipDevice))}
+          inventoryOnly
+        />}
+        <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+          <Paper className={classes.modal}>
+            <Typography variant="title">Pairing device</Typography>
+            <hr />
+            { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
+            { pairDongleId
+              && (
+              <Typography>
+                {'Successfully paired device '}
+                <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+              </Typography>
+              )}
+            { pairError && <Typography>{ pairError }</Typography> }
+            <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
+              Close
+            </Button>
+          </Paper>
+        </Modal>
       </div>
     );
   }

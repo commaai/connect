@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { goToPrime, goToRange, goToStream } from './index';
+import { goBackRange, goToPrime, goToRange, goToStream } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -18,6 +18,17 @@ vi.mock('connected-react-router', async () => {
 });
 
 describe('timeline actions', () => {
+  it('writes the previous range URL without changing timeline state first', () => {
+    const previous = { start: 10000, end: 30000 };
+    const state = { dongleId: 'statedongle', zoom: { start: 15000, end: 20000, previous } };
+    const dispatched = [];
+    push.mockReturnValue({ type: 'NAVIGATE' });
+    const dispatch = (action) => typeof action === 'function' ? action(dispatch, () => state) : dispatched.push(action);
+    dispatch(goBackRange('log_id'));
+    expect(push).toHaveBeenCalledWith('/statedongle/log_id/10/30');
+    expect(dispatched).toEqual([{ type: 'NAVIGATE' }]);
+    expect(state.zoom.previous).toBe(previous);
+  });
   it('should push history state when editing zoom', () => {
     const state = { dongleId: 'statedongle', loop: {}, zoom: {} };
     const dispatch = vi.fn((action) => (typeof action === 'function' ? action(dispatch, () => state) : action));
