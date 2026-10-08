@@ -48,7 +48,13 @@ export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
 
   next(action); // must be first, otherwise breaks history
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    dispatch(syncStateFromURL(action.payload.location.pathname));
+  if (action.type === LOCATION_CHANGE) {
+    const { location, action: historyAction } = action.payload;
+    const page = parseURL(location.pathname).page;
+    const pagePush = historyAction === 'PUSH' && ['dashboard', 'prime', 'stream'].includes(page);
+
+    if (pagePush || ['POP', 'REPLACE'].includes(historyAction)) {
+      dispatch(syncStateFromURL(location.pathname));
+    }
   }
 };
