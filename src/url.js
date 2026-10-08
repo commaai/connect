@@ -1,66 +1,53 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+import { generatePath, matchPath } from 'react-router-dom';
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+// Every URL in connect. parseUrl reads addresses with this table and urlFor
+// writes them, so the two can never disagree.
+const dongleId = ':dongleId([a-f0-9]{16})';
+const logId = ':logId([a-f0-9-]{20})';
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
+export const PAGES = {
+  root: '/',
+  referrals: '/referrals',
+  device: `/${dongleId}`,
+  settings: `/${dongleId}/settings`,
+  prime: `/${dongleId}/prime`,
+  stream: `/${dongleId}/stream`,
+  // A drive, optionally zoomed in to a range in seconds from its start.
+  drive: `/${dongleId}/${logId}/:start(\\d+)?/:end(\\d+)?`,
+  // Old links: a range of milliseconds since the epoch, redirected to its drive.
+  timeRange: `/${dongleId}/:startTime(\\d+)/:endTime(\\d+)`,
+};
+
+// Pages drawn over the page they were opened from.
+export const MODALS = ['settings'];
+
+// { page, ...params } for a pathname, with page null if no page matches.
+// Times are in milliseconds, and a drive's range is its zoom.
+export function parseUrl(pathname) {
+  for (const [page, path] of Object.entries(PAGES)) {
+    const match = matchPath(pathname, { path, exact: true });
+    if (match) {
+      const { start, end, startTime, endTime, ...params } = match.params;
+      return {
+        page,
+        ...params,
+        ...(start && end && { zoom: { start: start * 1000, end: end * 1000 } }),
+        ...(startTime && { startTime: Number(startTime), endTime: Number(endTime) }),
+      };
+    }
   }
-
-  return parts[0] || null;
+  return { page: null };
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
+export function urlFor(page, { zoom, ...params } = {}) {
+  return generatePath(PAGES[page], {
+    ...params,
+    ...(zoom && { start: Math.floor(zoom.start / 1000), end: Math.floor(zoom.end / 1000) }),
+  });
 }
 
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
-  const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
-  }
-  return null;
-}
-
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
-  }
-  return false;
-}
-
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
+// The page on screen for a location: a modal shows over the page it was
+// opened from, or over its device when the modal's URL was entered directly.
+export function pageAt(location) {
+  return parseUrl(location.state?.background ?? location.pathname);
 }

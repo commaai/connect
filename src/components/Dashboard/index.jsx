@@ -6,6 +6,7 @@ import Navigation from '../Navigation';
 import Promotions from '../Promotions';
 import DeviceInfo from '../DeviceInfo';
 import FullPageLoading from '../FullPageLoading';
+import { pageAt } from '../../url';
 
 const Prime = lazy(() => import('../Prime'));
 
@@ -34,7 +35,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  primeNav: state.primeNav,
+  primeNav: pageAt(state.router.location).page === 'prime',
   device: state.device,
 });
 

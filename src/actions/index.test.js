@@ -1,53 +1,90 @@
 import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { goBack, push } from 'connected-react-router';
+
+import * as Types from './types';
+import { closeModal, navigate, selectDrive } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
+  resetPlayback: () => ({ type: 'reset' }),
+  selectLoop: (start, end) => ({ type: 'loop', start, end }),
 }));
 
-vi.mock('connected-react-router', async () => {
-  const originalModule = await vi.importActual('connected-react-router');
-  return {
-    __esModule: true,
-    ...originalModule,
-    push: vi.fn(),
-  };
+const DONGLE = '0000aaaa0000aaaa';
+const OTHER = '1111bbbb1111bbbb';
+const LOG = '2026-08-06--12-00-00';
+
+function run(thunk, state) {
+  const dispatched = [];
+  const dispatch = (action) => (typeof action === 'function' ? action(dispatch, () => state) : dispatched.push(action));
+  thunk(dispatch, () => state);
+  return dispatched;
+}
+
+const at = (pathname, state) => ({ dongleId: DONGLE, router: { location: { pathname, state } } });
+
+describe('navigate', () => {
+  it.each([
+    ['device', undefined, `/${DONGLE}`],
+    ['device', { dongleId: OTHER }, `/${OTHER}`],
+    ['prime', undefined, `/${DONGLE}/prime`],
+    ['drive', { logId: LOG }, `/${DONGLE}/${LOG}`],
+    ['drive', { logId: LOG, zoom: { start: 10000, end: 20000 } }, `/${DONGLE}/${LOG}/10/20`],
+  ])('goes to %s %j', (page, params, pathname) => {
+    expect(run(navigate(page, params), at('/referrals'))).toEqual([push(pathname, undefined)]);
+  });
+
+  it('stays put on the current URL', () => {
+    expect(run(navigate('prime'), at(`/${DONGLE}/prime`))).toEqual([]);
+  });
+
+  it('opens a modal over the current page', () => {
+    expect(run(navigate('settings', { dongleId: OTHER }), at(`/${DONGLE}/${LOG}`)))
+      .toEqual([push(`/${OTHER}/settings`, { background: `/${DONGLE}/${LOG}` })]);
+  });
 });
 
-describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+describe('closeModal', () => {
+  it('returns to the page the modal was opened over', () => {
+    expect(run(closeModal(), at(`/${OTHER}/settings`, { background: `/${DONGLE}/${LOG}` }))).toEqual([goBack()]);
   });
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
+  it('goes to the modal\'s device when its URL was entered directly', () => {
+    expect(run(closeModal(), at(`/${OTHER}/settings`))).toEqual([push(`/${OTHER}`, undefined)]);
+  });
+});
 
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+describe('selectDrive', () => {
+  const route = { log_id: LOG, duration: 60000 };
+  const base = { routes: [route], selectedRouteId: null, zoom: null, loop: null };
+
+  it('shows a drive whole', () => {
+    expect(run(selectDrive(LOG, null), base)).toEqual([
+      { type: Types.TIMELINE_PUSH_SELECTION, log_id: LOG, start: 0, end: 60000 },
+      { type: 'reset' },
+      { type: 'loop', start: 0, end: 60000 },
+    ]);
+  });
+
+  it('zooms in to a range', () => {
+    const state = { ...base, selectedRouteId: LOG, zoom: { start: 0, end: 60000 }, loop: { startTime: 0, duration: 60000 } };
+    expect(run(selectDrive(LOG, { start: 10000, end: 20000 }), state)).toEqual([
+      { type: Types.TIMELINE_PUSH_SELECTION, log_id: LOG, start: 10000, end: 20000 },
+      { type: 'reset' },
+      { type: 'loop', start: 10000, end: 20000 },
+    ]);
   });
 
   it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
-    expect(push).toHaveBeenCalledWith(expected);
+    ['whole', null, { start: 0, end: 60000 }],
+    ['whole before its route loads', null, null],
+    ['zoomed', { start: 10000, end: 20000 }, { start: 10000, end: 20000 }],
+  ])('does nothing for the drive already shown %s', (_name, zoom, shown) => {
+    const state = { ...base, routes: shown ? [route] : null, selectedRouteId: LOG, zoom: shown };
+    expect(run(selectDrive(LOG, zoom), state)).toEqual([]);
+  });
+
+  it('does nothing when no drive is shown or asked for', () => {
+    expect(run(selectDrive(null, null), base)).toEqual([]);
   });
 });

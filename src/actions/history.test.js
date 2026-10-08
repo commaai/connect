@@ -1,6 +1,6 @@
 /* eslint-disable no-import-assign */
 import { vi } from 'vitest';
-import { LOCATION_CHANGE } from 'connected-react-router';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import { drives as Drives } from '../api';
 import { onHistoryMiddleware } from './history';
@@ -16,116 +16,88 @@ vi.mock('../api', () => ({
   video: {},
 }));
 vi.mock('./index', () => ({
-  selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
-  checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
+  selectDevice: vi.fn(), selectDrive: vi.fn(), checkLastRoutesData: vi.fn(),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
-const baseState = {
-  dongleId: DONGLE, zoom: null, selectedRouteId: null, primeNav: false, streamNav: false,
-};
 
-function create(state = baseState) {
-  const store = { getState: vi.fn(() => state), dispatch: vi.fn() };
+// Runs one action through the middleware the way the store would, running
+// thunks and recording every plain action they dispatch.
+function run(action, state = { dongleId: DONGLE }) {
+  const dispatched = [];
+  const dispatch = (a) => (typeof a === 'function' ? a(dispatch, () => state) : dispatched.push(a));
   const next = vi.fn();
-  const invoke = (action) => onHistoryMiddleware(store)(next)(action);
-  return { store, next, invoke };
+  onHistoryMiddleware({ dispatch, getState: () => state })(next)(action);
+  return { dispatched, next };
 }
 
-function location(pathname, action = 'POP') {
-  return { type: LOCATION_CHANGE, payload: { action, location: { pathname } } };
+function location(pathname, action = 'PUSH', state = undefined) {
+  return { type: LOCATION_CHANGE, payload: { action, location: { pathname, state } } };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
+  for (const name of ['selectDevice', 'selectDrive', 'checkLastRoutesData']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
 
 describe('history middleware', () => {
   it('ignores an absent action', () => {
-    const { next, invoke } = create();
-    invoke();
+    const { next } = run();
     expect(next).not.toHaveBeenCalled();
   });
 
-  it.each(['PUSH', undefined])('passes through a non-history %s action', (historyAction) => {
-    const { next, invoke } = create();
-    const action = historyAction ? location(`/${DONGLE}`, historyAction) : { type: 'TEST' };
-    invoke(action);
+  it('passes other actions through', () => {
+    const { dispatched, next } = run({ type: 'TEST' });
+    expect(next).toHaveBeenCalledWith({ type: 'TEST' });
+    expect(dispatched).toEqual([]);
+  });
+
+  it.each(['PUSH', 'POP', 'REPLACE'])('applies a URL reached by %s', (historyAction) => {
+    const action = location(`/${OTHER}/${LOG}/10/20`, historyAction);
+    const { dispatched, next } = run(action);
     expect(next).toHaveBeenCalledWith(action);
-    expect(actions.selectDevice).not.toHaveBeenCalled();
+    expect(dispatched).toEqual([
+      { action: 'selectDevice', args: [OTHER, false] },
+      { action: 'selectDrive', args: [LOG, { start: 10000, end: 20000 }] },
+      { action: 'checkLastRoutesData', args: [] },
+    ]);
   });
 
-  it.each(['POP', 'REPLACE'])('selects a changed device for %s and refreshes routes', (historyAction) => {
-    const { store, next, invoke } = create(baseState);
-    const action = location(`/${OTHER}`, historyAction);
-    invoke(action);
-    expect(next).toHaveBeenCalledWith(action);
-    expect(actions.selectDevice).toHaveBeenCalledWith(OTHER, false, false);
-    expect(actions.checkRoutesData).toHaveBeenCalledOnce();
-    expect(store.dispatch).toHaveBeenCalledWith({ action: 'selectDevice', args: [OTHER, false, false] });
+  it.each([`/${DONGLE}`, '/referrals', '/'])('keeps the selected device at %s', (pathname) => {
+    const { dispatched } = run(location(pathname));
+    expect(dispatched).toEqual([{ action: 'selectDrive', args: [null, null] }]);
   });
 
-  it('does nothing when the pathname already matches state', () => {
-    const { store, invoke } = create();
-    invoke(location(`/${DONGLE}`));
-    expect(store.dispatch).not.toHaveBeenCalled();
+  it('applies the page a modal was opened over', () => {
+    const { dispatched } = run(location(`/${OTHER}/settings`, 'PUSH', { background: `/${DONGLE}/${LOG}` }));
+    expect(dispatched).toEqual([{ action: 'selectDrive', args: [LOG, null] }]);
   });
 
-  it('enters a log range', () => {
-    const { invoke } = create();
-    invoke(location(`/${DONGLE}/${LOG}/10/20`));
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 10000, 20000, false);
-  });
-
-  it('leaves a log range', () => {
-    const { invoke } = create({ ...baseState, selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
-    invoke(location(`/${DONGLE}`));
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
-  });
-
-  it('converts a legacy timestamp range to a route', async () => {
-    Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
-    const { invoke } = create();
-    invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
+  it('redirects an old time range link to its drive', async () => {
+    Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}` }]);
+    const { dispatched } = run(location(`/${DONGLE}/1000/2000`, 'POP'));
+    await vi.waitFor(() => expect(dispatched).toContainEqual(replace(`/${DONGLE}/${LOG}`)));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
-  it.each([null, []])('keeps a legacy range unchanged for an empty lookup (%j)', async (routes) => {
+  it.each([['nothing', null], ['no drives', []]])('keeps an old time range link when the lookup returns %s', async (_name, routes) => {
     Drives.getRoutesSegments.mockResolvedValue(routes);
-    const { invoke } = create();
-    invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(Drives.getRoutesSegments).toHaveBeenCalled());
-    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+    const { dispatched } = run(location(`/${DONGLE}/1000/2000`, 'POP'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(dispatched).toEqual([{ action: 'selectDrive', args: [null, null] }]);
   });
 
-  it('keeps a legacy range unchanged when lookup rejects', async () => {
+  it('keeps an old time range link when the lookup fails', async () => {
     const error = new Error('lookup failed');
     Drives.getRoutesSegments.mockRejectedValue(error);
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { invoke } = create();
-    invoke(location(`/${DONGLE}/1000/2000`));
+    const { dispatched } = run(location(`/${DONGLE}/1000/2000`, 'POP'));
     await vi.waitFor(() => expect(consoleError).toHaveBeenCalledWith('Error fetching routes data for log ID conversion', error));
-    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+    expect(dispatched).toEqual([{ action: 'selectDrive', args: [null, null] }]);
     consoleError.mockRestore();
-  });
-
-  it.each([
-    ['Prime', 'prime', 'primeNav'],
-    ['stream', 'stream', 'streamNav'],
-  ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
-    const entering = create();
-    entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
-
-    vi.clearAllMocks();
-    const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
-    leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
   });
 });

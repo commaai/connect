@@ -303,4 +303,90 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('a pushed URL changes what is on screen, not only the address bar', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${SECOND}`));
+    await waitFor(() => expect(store.getState().dongleId).toBe(SECOND));
+    act(() => history.push(`/${SECOND}/${RECENT_LOG}`));
+    await waitFor(() => expect(store.getState().selectedRouteId).toBe(RECENT_LOG));
+  });
+
+  test('device settings have a URL', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`, { selected: FIRST });
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('settings open over a drive and close back to it without reloading it', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${RECENT_LOG}`, { selected: FIRST });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    const drive = store.getState().currentRoute;
+    const requests = mocks.requests.length;
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    const otherDevice = (await screen.findByText(SECOND)).closest('a');
+    fireEvent.click(within(otherDevice).getByRole('button', { name: 'device settings' }));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${SECOND}/settings`);
+    expect(store.getState()).toMatchObject({ dongleId: FIRST, currentRoute: drive });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    expect(store.getState().currentRoute).toBe(drive);
+    expect(mocks.requests.slice(requests).filter(({ url }) => url.includes('routes_segments'))).toEqual([]);
+  });
+
+  test('Prime settings open from the settings of the car whose drive is on screen', async () => {
+    const { history } = await renderApp(`/${FIRST}/${RECENT_LOG}`, { selected: FIRST });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    const car = (await screen.findByText(FIRST)).closest('a');
+    fireEvent.click(within(car).getByRole('button', { name: 'device settings' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/prime`);
+  });
+
+  test('the back arrow zooms out to the whole drive and browser back zooms in again', async () => {
+    const { history } = await renderApp(`/${FIRST}/${RECENT_LOG}/10/20`, { selected: FIRST });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}/10/20`));
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeEnabled();
+  });
+
+  test('an old timestamp link is replaced, so browser back does not return to it', async () => {
+    const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.length).toBe(1);
+  });
+
+  test('browser back after two zooms returns to the first zoom', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    const drag = (from, to) => {
+      fireEvent.pointerDown(timeline, { button: 0, clientX: from, pageX: from });
+      fireEvent.pointerMove(document, { clientX: to, pageX: to });
+      fireEvent.pointerUp(document, { button: 0, clientX: to, pageX: to });
+    };
+    drag(100, 900);
+    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${RECENT_LOG}/\\d+/\\d+$`)));
+    const firstZoom = history.location.pathname;
+    const zoomState = () => store.getState().zoom;
+    const firstZoomState = { start: zoomState().start, end: zoomState().end };
+    drag(300, 500);
+    await waitFor(() => expect(history.location.pathname).not.toBe(firstZoom));
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(firstZoom));
+    await waitFor(() => expect({ start: zoomState().start, end: zoomState().end }).toEqual(firstZoomState));
+  });
 });
