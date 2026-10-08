@@ -13,6 +13,8 @@ import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import AddDevice from './Dashboard/AddDevice';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
@@ -24,6 +26,7 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import { routeModalUrl } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -199,12 +202,20 @@ class ExplorerApp extends Component {
   render() {
     const {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      routeModal, routeModalDeviceId, routeLocation,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
+    const canManageRouteDevice = Boolean(profile?.superuser
+      || devices?.some((device) => device.dongle_id === routeModalDeviceId && device.is_owner));
+    const closeDeviceOverlay = () => dispatch(push(
+      ['upload-queue', 'unpair'].includes(routeModal)
+        ? routeModalUrl(routeLocation, 'device-settings', routeModalDeviceId)
+        : routeModalUrl(routeLocation, null),
+    ));
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
     const headerHeight = this.state.headerRef
@@ -270,6 +281,18 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        {routeModal === 'add-device' && <AddDevice
+          isModalHost
+          hideButton
+          open
+          onClose={() => dispatch(push(routeModalUrl(routeLocation, null)))}
+        />}
+        {canManageRouteDevice && <DeviceSettingsModal
+          isOpen={routeModal === 'device-settings'}
+          dongleId={routeModalDeviceId}
+          routeModal={routeModal}
+          onClose={closeDeviceOverlay}
+        />}
       </div>
     );
   }
@@ -285,6 +308,9 @@ const stateToProps = (state) => ({
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
+  routeModal: state.routeModal,
+  routeModalDeviceId: state.routeModalDeviceId,
+  routeLocation: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
