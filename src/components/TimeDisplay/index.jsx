@@ -147,7 +147,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     dispatch(videoPlayed(getCurrentRouteMs(videoStartOffset), getPlaybackSpeed(video)));
   };
 
-  const handleSpeedChange = (steps) => {
+  const makeHandleSpeedChange = (steps) => () => {
     if (!video) return;
     const lastIndex = timerSteps.length - 1;
     const nextIndex = Math.min(Math.max(speedStepIndex(video.playbackRate) + steps, 0), lastIndex);
@@ -201,7 +201,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
         <div className={ classes.desiredPlaySpeedContainer }>
           <IconButton
             className={classes.tinyArrowIcon}
-            onClick={() => handleSpeedChange(1)}
+            onClick={makeHandleSpeedChange(1)}
             disabled={!canIncreaseSpeed}
             aria-label="Increase play speed by 1 step"
           >
@@ -213,7 +213,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
           </Typography>
           <IconButton
             className={classes.tinyArrowIcon}
-            onClick={() => handleSpeedChange(-1)}
+            onClick={makeHandleSpeedChange(-1)}
             disabled={!canDecreaseSpeed}
             aria-label="Decrease play speed by 1 step"
           >
