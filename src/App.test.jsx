@@ -120,7 +120,11 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) {
+    await options.subscriptionGate;
+    return json(options.subscription ?? null);
+  }
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
   if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
@@ -167,6 +171,26 @@ describe('whole-app behavior', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
+  });
+
+  test('a cold prime plan dialog waits for the subscription and follows browser history', async () => {
+    let releaseSubscription;
+    const subscriptionGate = new Promise((resolve) => { releaseSubscription = resolve; });
+    const app = await renderApp(`/${FIRST}/prime?modal=prime-switch`, {
+      devices: [{ ...devices[0], prime: true }],
+      subscription: { user_id: 'test-user', plan: 'nodata', amount: 1400 },
+      subscriptionGate,
+    });
+    await act(async () => releaseSubscription());
+    expect(await screen.findByText('The Standard plan costs $24/month, includes a data plan, and is')).toBeVisible();
+    expect(mocks.requests.every(({ method }) => method === 'GET')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+    await waitFor(() => expect(app.history.location.search).toBe(''));
+    act(() => app.history.goBack());
+    expect(await screen.findByRole('button', { name: 'Confirm switch' })).toBeVisible();
+    act(() => app.history.push(`/${FIRST}/prime?modal=prime-cancel`));
+    expect(await screen.findByText('Cancel prime subscription')).toBeVisible();
+    expect(mocks.requests.every(({ method }) => method === 'GET')).toBe(true);
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
