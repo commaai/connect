@@ -89,16 +89,6 @@ class ExplorerApp extends Component {
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
-    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
-    this.closeModal = this.closeModal.bind(this);
-  }
-
-  closeBodyTeleop() {
-    this.props.dispatch(navigate({ page: 'dashboard' }));
-  }
-
-  closeModal() {
-    this.props.dispatch(closeModal());
   }
 
   async componentDidMount() {
@@ -195,7 +185,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, devices, dongleId, page, modal, profile,
+      classes, devices, dispatch, dongleId, page, modal, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -222,7 +212,7 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.app}>
         { page === 'stream' ? (
-          <BodyTeleop onClose={ this.closeBodyTeleop } />
+          <BodyTeleop onClose={ () => dispatch(navigate({ page: 'dashboard' })) } />
         ) : (
           <>
             <AppHeader
@@ -245,7 +235,7 @@ class ExplorerApp extends Component {
                 ? <NoDeviceUpsell />
                 : (page === 'drive' ? <DriveView /> : <Dashboard />)}
             </div>
-            { UrlModal && <UrlModal onClose={ this.closeModal } /> }
+            { UrlModal && <UrlModal onClose={ () => dispatch(closeModal()) } /> }
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
