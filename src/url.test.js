@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parseRoute } from './url';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parseRoute, routeModalUrl } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -9,7 +9,13 @@ describe('URL pathname helpers', () => {
   it.each([
     [`/${DONGLE}`, { page: 'dashboard', dongleId: DONGLE, routeId: null, zoom: null, modal: null }],
     [`/${DONGLE}/${LOG}/10/20?modal=upload-queue`, { page: 'drive', dongleId: DONGLE, routeId: LOG, zoom: { start: 10000, end: 20000 }, modal: 'upload-queue' }],
+    [`/${DONGLE}/prime?modal=device-settings`, { page: 'prime', modal: 'device-settings', modalDeviceId: DONGLE }],
     [`/${DONGLE}/prime?modal=prime-cancel`, { page: 'prime', dongleId: DONGLE, routeId: null, zoom: null, modal: 'prime-cancel' }],
+    [`/${DONGLE}/stream?modal=add-device`, { page: 'stream', modal: 'add-device' }],
+    ['/referrals?modal=add-device', { page: 'referrals', modal: 'add-device' }],
+    [`/${DONGLE}/${LOG}?modal=clips`, { page: 'drive', modal: 'clips', routeModalClip: null }],
+    [`/${DONGLE}/${LOG}?modal=clip-viewer&clip=drive.mp4`, { page: 'drive', modal: 'clip-viewer', routeModalClip: 'drive.mp4' }],
+    [`/${DONGLE}?modal=clip-delete&clip=drive.mp4`, { page: 'dashboard', modal: 'clip-delete', routeModalClip: 'drive.mp4' }],
     [`/${DONGLE}/10/20`, { page: 'dashboard', dongleId: DONGLE, routeId: null, zoom: null, legacyRange: { start: 10, end: 20 }, modal: null }],
   ])('parses %s into one route state', (url, expected) => {
     expect(parseRoute(url)).toMatchObject(expected);
@@ -26,6 +32,20 @@ describe('URL pathname helpers', () => {
     expect(route.zoom).toBeNull();
     expect(route.modal).toBeNull();
     expect(route.dongleId).toBe(DONGLE);
+  });
+
+  it.each(['', '../drive.mp4', 'folder/drive.mp4', '..%2Fdrive.mp4', '%5Cdrive.mp4', '.mp4'])('rejects unsafe clip route names %s', (clip) => {
+    const route = parseRoute(`/${DONGLE}/${LOG}?modal=clip-viewer&clip=${clip}`);
+    expect(route.modal).toBeNull();
+    expect(route.routeModalClip).toBeNull();
+  });
+
+  it('clears stale clip parameters when switching or closing a modal', () => {
+    const location = { pathname: `/${DONGLE}/${LOG}`, search: '?modal=clip-viewer&clip=drive.mp4&share=token' };
+    expect(routeModalUrl(location, 'clips')).toBe(`/${DONGLE}/${LOG}?modal=clips&share=token`);
+    expect(routeModalUrl(location, null)).toBe(`/${DONGLE}/${LOG}?share=token`);
+    expect(routeModalUrl(location, 'clip-viewer', null, 'next.mp4'))
+      .toBe(`/${DONGLE}/${LOG}?modal=clip-viewer&share=token&clip=next.mp4`);
   });
 
   it.each([
