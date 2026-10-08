@@ -1,151 +1,84 @@
-// basic helper functions for controlling playback
-// we shouldn't want to edit the raw state most of the time, helper functions are better
+// User intent for playback. The video element owns the clock; these actions
+// only record seeks, speed, and the loop. They do not advance time.
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
 
-export function reducer(_state, action) {
-  let state = { ..._state };
-  let loopOffset = null;
-  if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime;
-  }
+export function reducer(state, action) {
   switch (action.type) {
     case Types.ACTION_SEEK:
-      state = {
+      return alignLoop({
         ...state,
-        offset: action.offset,
+        offset: clampToLoop(action.offset, state.loop),
         startTime: Date.now(),
-      };
-
-      if (loopOffset !== null) {
-        if (state.offset < loopOffset) {
-          state.offset = loopOffset;
-        } else if (state.offset > (loopOffset + state.loop.duration)) {
-          state.offset = loopOffset + state.loop.duration;
-        }
-      }
-      break;
+      });
     case Types.ACTION_PAUSE:
-      state = {
-        ...state,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-        desiredPlaySpeed: 0,
-      };
-      break;
+      return { ...state, desiredPlaySpeed: 0 };
     case Types.ACTION_PLAY:
-      if (action.speed !== state.desiredPlaySpeed) {
-        state = {
-          ...state,
-          offset: currentOffset(state),
-          desiredPlaySpeed: action.speed,
-          startTime: Date.now(),
-        };
-      }
-      break;
+      if (action.speed === state.desiredPlaySpeed) return state;
+      return { ...state, desiredPlaySpeed: action.speed };
     case Types.ACTION_LOOP:
-      if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
-        state.loop = {
-          startTime: action.start,
-          duration: action.end - action.start,
-        };
-      } else {
-        state.loop = null;
-      }
-      break;
-    case Types.ACTION_BUFFER_VIDEO:
-      state = {
+      return alignLoop({
         ...state,
-        isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-      };
-      break;
+        loop: action.start != null && action.end != null
+          ? { startTime: action.start, duration: action.end - action.start }
+          : null,
+      });
+    case Types.ACTION_BUFFER_VIDEO:
+      return { ...state, isBufferingVideo: Boolean(action.buffering) };
     case Types.ACTION_RESET:
-      state = {
+      return {
         ...state,
         desiredPlaySpeed: 1,
-        isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
       };
-      break;
     default:
-      break;
+      return alignLoop(state);
   }
-
-  if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom
-    && state.loop.startTime === state.zoom.start && state.zoom.start === 0) {
-    const loopRouteOffset = state.loop.startTime - state.zoom.start;
-    if (state.currentRoute.videoStartOffset > loopRouteOffset) {
-      state.loop = {
-        startTime: state.zoom.start + state.currentRoute.videoStartOffset,
-        duration: state.loop.duration - (state.currentRoute.videoStartOffset - loopRouteOffset),
-      };
-    }
-  }
-
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
-  }
-
-  state.isBufferingVideo = Boolean(state.isBufferingVideo);
-
-  return state;
 }
 
-// seek to a specific offset
+// The log can start before the first video frame. Don't loop that gap.
+function alignLoop(state) {
+  const videoStart = state.currentRoute?.videoStartOffset;
+  const { loop, zoom } = state;
+  if (!videoStart || !loop || !zoom || zoom.start !== 0 || loop.startTime !== zoom.start) return state;
+  if (videoStart <= loop.startTime) return state;
+  return {
+    ...state,
+    loop: {
+      startTime: videoStart,
+      duration: loop.duration - videoStart,
+    },
+  };
+}
+
+function clampToLoop(offset, loop) {
+  if (!loop || loop.startTime == null || !loop.duration) return offset;
+  const end = loop.startTime + loop.duration;
+  if (offset < loop.startTime) return loop.startTime;
+  if (offset > end) return end;
+  return offset;
+}
+
 export function seek(offset) {
-  return {
-    type: Types.ACTION_SEEK,
-    offset,
-  };
+  return { type: Types.ACTION_SEEK, offset };
 }
 
-// pause the playback
 export function pause() {
-  return {
-    type: Types.ACTION_PAUSE,
-  };
+  return { type: Types.ACTION_PAUSE };
 }
 
-// resume / change play speed
 export function play(speed = 1) {
-  return {
-    type: Types.ACTION_PLAY,
-    speed,
-  };
+  return { type: Types.ACTION_PLAY, speed };
 }
 
 export function selectLoop(start, end) {
-  return {
-    type: Types.ACTION_LOOP,
-    start,
-    end,
-  };
+  return { type: Types.ACTION_LOOP, start, end };
 }
 
-// update video buffering state
 export function bufferVideo(buffering) {
-  return {
-    type: Types.ACTION_BUFFER_VIDEO,
-    buffering,
-  };
+  return { type: Types.ACTION_BUFFER_VIDEO, buffering };
 }
 
 export function resetPlayback() {
-  return {
-    type: Types.ACTION_RESET,
-  };
+  return { type: Types.ACTION_RESET };
 }

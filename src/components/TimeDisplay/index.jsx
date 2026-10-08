@@ -34,6 +34,8 @@ const styles = (theme) => ({
     width: 400,
     maxWidth: '100%',
     margin: '0 auto',
+    userSelect: 'none',
+    touchAction: 'manipulation',
     opacity: 0,
     pointerEvents: 'none',
     transition: 'opacity 0.1s ease-in-out',
@@ -72,6 +74,14 @@ const styles = (theme) => ({
   iconButton: {
     width: '40px',
     height: '40px',
+    touchAction: 'manipulation',
+    transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1)',
+    '&:active': {
+      transform: 'scale(0.97)',
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'none',
+    },
   },
   tinyArrowIcon: {
     width: 12,
@@ -91,6 +101,9 @@ const styles = (theme) => ({
     margin: `0 ${theme.spacing.unit * 1}px`,
     fontSize: 15,
     fontWeight: 500,
+    fontVariantNumeric: 'tabular-nums',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
     display: 'block',
     flexGrow: 1,
   },
@@ -297,6 +310,7 @@ class TimeDisplay extends Component {
         </div>
         <div className={ classes.leftBorderBox }>
           <IconButton
+            className={classes.iconButton}
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >

@@ -1,33 +1,21 @@
 import store from '../store';
+import { videoOffset } from './video';
 
-/**
- * Get current playback offset
- *
- * @param {object} state
- * @returns {number}
- */
+// Route offset in milliseconds. The video element wins; Redux is only the fallback
+// before it has a frame, and the loop still traps the playhead.
 export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
-  }
+  if (!state) state = store.getState();
 
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
+  let offset = videoOffset(state.currentRoute);
+  if (offset == null) offset = state.offset;
+  if (offset == null) offset = state.loop?.startTime ?? 0;
 
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
-  }
+  const loopStart = state.loop?.startTime;
+  const loopDuration = state.loop?.duration;
+  if (loopStart == null || !loopDuration) return offset;
+
+  const loopEnd = loopStart + loopDuration;
+  if (offset < loopStart) return loopStart;
+  if (offset >= loopEnd) return loopStart + ((offset - loopStart) % loopDuration);
   return offset;
 }

@@ -15,7 +15,6 @@ import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -263,10 +262,6 @@ class Media extends Component {
     }
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
-    }
-
-    if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
     }
 
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
@@ -548,13 +543,14 @@ class Media extends Component {
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
-          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {inView === MediaType.VIDEO && (
+          <div className={`relative ${showMapAlways ? 'w-[60%]' : 'w-full'}`}>
+            {/* Stay mounted behind the map so playback keeps driving it. */}
+            <div className={inView === MediaType.VIDEO ? undefined : 'pointer-events-none absolute inset-0 -z-10 opacity-0'}>
               <DriveVideo
                 isMuted={isMuted}
                 onAudioStatusChange={this.handleAudioStatusChange}
               />
-            )}
+            </div>
             {(inView === MediaType.MAP && !showMapAlways) && (
               <div className="w-full">
                 <DriveMap />
@@ -929,7 +925,6 @@ const stateToProps = (state) => ({
   filter: state.filter,
   files: state.files,
   profile: state.profile,
-  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
