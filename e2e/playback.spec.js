@@ -84,3 +84,31 @@ test('timeline gesture, speed, range reload and drive switch use real media', as
   await expect(page).toHaveURL(/00000000--0000000004/);
   await expect(page.locator('video[aria-label="Drive video"]')).toHaveCount(1);
 });
+
+test('zero-start loop stays within its selected media range', async ({ page }) => {
+  await page.goto(`/demo/${LOG}/0/2`);
+  const video = page.getByLabel('Drive video');
+  await expect.poll(() => video.evaluate(element => element.readyState)).toBeGreaterThan(1);
+  await expect.poll(() => video.evaluate(element => element.currentTime)).toBeGreaterThan(0.2);
+  await page.waitForTimeout(2600);
+  const time = await video.evaluate(element => element.currentTime);
+  expect(time).toBeGreaterThanOrEqual(0);
+  expect(time).toBeLessThan(2.1);
+  await expect(page.getByRole('button', { name: 'Retry', exact: true })).toHaveCount(0);
+});
+
+test('slow segment fetch can be retried without replacing the video', async ({ page }) => {
+  let slow = true;
+  await page.route('**/part-*.ts', async route => {
+    if (slow) await new Promise(resolve => setTimeout(resolve, 17000));
+    await route.fallback().catch(() => {});
+  });
+  await page.goto(`/demo/${LOG}`);
+  const video = page.getByLabel('Drive video');
+  await video.evaluate(element => { window.playbackElement = element; });
+  await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible({ timeout: 20000 });
+  slow = false;
+  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect.poll(() => video.evaluate(element => element.readyState)).toBeGreaterThan(1);
+  expect(await video.evaluate(element => element === window.playbackElement)).toBe(true);
+});
