@@ -207,6 +207,7 @@ class ExplorerApp extends Component {
       || (device?.dongle_id === route.dongleId ? device : null);
     const settingsAllowed = route.page === 'settings'
       && Boolean(routeDevice && (routeDevice.is_owner || profile?.superuser));
+    const settingsDenied = route.page === 'settings' && routeDevice && !settingsAllowed;
     const uploadsOpen = route.page === 'uploads' && Boolean(routeDevice);
     const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
@@ -254,6 +255,8 @@ class ExplorerApp extends Component {
                 })))} />
                 : route.page === 'unknown' && pathname !== DEMO_PATH
                 ? <Typography className="p-8">Page not found.</Typography>
+                : settingsDenied
+                ? <Typography className="p-8">No access</Typography>
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}

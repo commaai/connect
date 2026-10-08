@@ -251,7 +251,9 @@ describe('whole-app behavior', () => {
 
   test('a shared device URL does not expose owner settings', async () => {
     await renderApp(`/${SHARED}/settings`);
+    expect(await screen.findByText('No access')).toBeVisible();
     expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    expect(screen.queryByText('Mock recent route start')).not.toBeInTheDocument();
   });
 
   test('the upload queue opens from a cold owner URL and closes through history', async () => {
