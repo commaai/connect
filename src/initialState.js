@@ -1,9 +1,16 @@
-import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { parsePath, secToMs } from './url';
 import { getDefaultFilter } from './utils/filter';
 
 export function createInitialState(pathname = window.location.pathname) {
+  // Single canonical parse of the cold-entry URL. Values below match the
+  // previous per-helper derivation exactly for all supported shapes; the
+  // legacy timestamp range intentionally seeds no zoom/selection here and
+  // resolves asynchronously through the history middleware instead.
+  const parsed = parsePath(pathname);
+  const isDriveRange = parsed.kind === 'driveRange';
+  const isWholeDrive = parsed.kind === 'drive';
   return {
-    dongleId: getDongleID(pathname),
+    dongleId: parsed.dongleId,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
@@ -22,8 +29,8 @@ export function createInitialState(pathname = window.location.pathname) {
     profile: null,
     devices: null,
 
-    primeNav: getPrimeNav(pathname),
-    streamNav: getStreamNav(pathname),
+    primeNav: parsed.kind === 'prime',
+    streamNav: parsed.kind === 'stream',
     subscription: null,
     subscribeInfo: null,
 
@@ -35,9 +42,9 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: getRouteZoom(pathname),
+    zoom: isDriveRange ? { start: secToMs(parsed.startSec), end: secToMs(parsed.endSec) } : null,
     loop: null,
-    selectedRouteId: getRouteId(pathname),
+    selectedRouteId: (isWholeDrive || isDriveRange) ? parsed.logId : null,
     limit: 0,
   };
 }

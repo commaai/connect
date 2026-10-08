@@ -228,8 +228,9 @@ class DeviceSettingsModal extends Component {
     if (this.props.dongleId !== this.props.globalDongleId) {
       this.props.dispatch(selectDevice(this.props.dongleId, false));
     }
+    // Navigating to prime un-renders settings (URL-derived visibility),
+    // so no explicit onClose navigation may follow or it would clobber prime.
     this.props.dispatch(primeNav(true));
-    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -436,7 +437,9 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  // devices is null before startup data loads; the modal is hosted at
+  // Explorer level and therefore mounted in that window.
+  const device = (state.devices || []).find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,

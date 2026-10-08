@@ -303,4 +303,140 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('direct settings URL opens the modal over the dashboard without pushing', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/settings`);
+    expect(history.length).toBe(1);
+    expect(store.getState().dongleId).toBe(FIRST);
+  });
+
+  test('settings close, back, and forward preserve exact URLs', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goForward());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('dashboard settings button navigates to the settings URL', async () => {
+    const prevInnerWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 1400, configurable: true });
+    try {
+      const { history } = await renderApp(`/${FIRST}`);
+      expect(await screen.findByText('Mock recent route start')).toBeVisible();
+      const row = screen.getByText(FIRST).closest('a');
+      fireEvent.click(within(row).getByRole('button', { name: 'device settings' }));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+      expect(await screen.findByText('Device settings')).toBeVisible();
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: prevInnerWidth, configurable: true });
+    }
+  });
+
+  test('settings follows device URLs without leaking across devices', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    // Plain pushes only move the URL (PUSH is ignored by the history
+    // middleware by design); the modal follows the URL dongle either way.
+    act(() => history.push(`/${SECOND}/settings`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    expect(screen.getByText('Device settings')).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+    expect(screen.getByText('Device settings')).toBeVisible();
+    expect(store.getState().dongleId).toBe(FIRST);
+    // REPLACE is handled by the middleware and selects the URL device; the
+    // modal caption then shows SECOND while FIRST is gone (the drawer list
+    // is unmounted at this viewport, so the caption is the dongle text).
+    act(() => history.replace(`/${SECOND}/settings`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    await waitFor(() => expect(store.getState().dongleId).toBe(SECOND));
+    expect(screen.getByText(SECOND)).toBeVisible();
+    expect(screen.queryByText(FIRST)).not.toBeInTheDocument();
+  });
+
+  test('signed-out settings entry retains its path', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`, { authenticated: false });
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/settings`);
+  });
+
+  test('drive settings button opens the modal over the drive view', async () => {
+    const prevInnerWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 1400, configurable: true });
+    try {
+      const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+      expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+      const pushes = history.length;
+      const row = screen.getByText(FIRST).closest('a');
+      fireEvent.click(within(row).getByRole('button', { name: 'device settings' }));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+      // Exactly one push: opening settings never emits a secondary push.
+      expect(history.length).toBe(pushes + 1);
+      // The modal is visible even though the drive selection is retained.
+      expect(await screen.findByText('Device settings')).toBeVisible();
+      expect(store.getState().selectedRouteId).toBe(LOG);
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: prevInnerWidth, configurable: true });
+    }
+  });
+
+  test('drive settings back returns to the drive without the modal', async () => {
+    const prevInnerWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 1400, configurable: true });
+    try {
+      const { history } = await renderApp(`/${FIRST}/${LOG}`);
+      expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+      const row = screen.getByText(FIRST).closest('a');
+      fireEvent.click(within(row).getByRole('button', { name: 'device settings' }));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+      expect(await screen.findByText('Device settings')).toBeVisible();
+      act(() => history.goBack());
+      await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+      await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+      expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: prevInnerWidth, configurable: true });
+    }
+  });
+
+  test('opening another device settings selects that device', async () => {
+    const prevInnerWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 1400, configurable: true });
+    try {
+      const { history, store } = await renderApp(`/${FIRST}`);
+      expect(await screen.findByText('Mock recent route start')).toBeVisible();
+      expect(store.getState().dongleId).toBe(FIRST);
+      const pushes = history.length;
+      const row = screen.getByText(SECOND).closest('a');
+      fireEvent.click(within(row).getByRole('button', { name: 'device settings' }));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+      expect(history.length).toBe(pushes + 1);
+      await waitFor(() => expect(store.getState().dongleId).toBe(SECOND));
+      expect(await screen.findByText('Device settings')).toBeVisible();
+      // SECOND appears twice: the drawer row and the modal caption, so the
+      // modal itself is showing device B rather than stale device A state.
+      expect(screen.getAllByText(SECOND)).toHaveLength(2);
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: prevInnerWidth, configurable: true });
+    }
+  });
+
+  test('prime settings button leaves settings for prime with one push', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    const pushes = history.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/prime`));
+    expect(history.length).toBe(pushes + 1);
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+  });
 });

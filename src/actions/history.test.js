@@ -128,4 +128,56 @@ describe('history middleware', () => {
     leaving.invoke(location(`/${DONGLE}`, 'POP'));
     expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
   });
+
+  it('enters a whole drive', () => {
+    const { invoke } = create();
+    invoke(location(`/${DONGLE}/${LOG}`));
+    expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, null, null, false);
+  });
+
+  it('clears selection when popping to referrals', () => {
+    const { invoke } = create({ ...baseState, selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
+    invoke(location('/referrals'));
+    expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
+    expect(actions.selectDevice).not.toHaveBeenCalled();
+    expect(actions.primeNav).not.toHaveBeenCalled();
+    expect(actions.streamNav).not.toHaveBeenCalled();
+  });
+
+  it('ignores PUSH to a drive range', () => {
+    const { next, invoke } = create();
+    const action = location(`/${DONGLE}/${LOG}/10/20`, 'PUSH');
+    invoke(action);
+    expect(next).toHaveBeenCalledWith(action);
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+    expect(actions.selectDevice).not.toHaveBeenCalled();
+  });
+
+  it('selects the device when popping to its settings without pushing', () => {
+    const { store, invoke } = create(baseState);
+    invoke(location(`/${OTHER}/settings`));
+    expect(actions.selectDevice).toHaveBeenCalledWith(OTHER, false, false);
+    expect(actions.checkRoutesData).toHaveBeenCalledOnce();
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+    expect(actions.primeNav).not.toHaveBeenCalled();
+    expect(actions.streamNav).not.toHaveBeenCalled();
+    expect(store.dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'primeNav' }),
+    );
+  });
+
+  it('leaves state alone when popping to settings of the current device', () => {
+    const { store, invoke } = create();
+    invoke(location(`/${DONGLE}/settings`));
+    expect(store.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('ignores PUSH to settings', () => {
+    const { next, invoke } = create();
+    const action = location(`/${DONGLE}/settings`, 'PUSH');
+    invoke(action);
+    expect(next).toHaveBeenCalledWith(action);
+    expect(actions.selectDevice).not.toHaveBeenCalled();
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+  });
 });

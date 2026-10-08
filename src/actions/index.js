@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { buildPath, msToSecFloor } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -143,19 +144,19 @@ export function checkLastRoutesData() {
 }
 
 export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
+  // Preserve the legacy falsy-zero range omission (start=0 omits the range).
+  // All ids reaching this function are canonical grammar ids, so buildPath
+  // is the sole builder.
   if (log_id) {
-    path.push(log_id);
     if (start && end) {
-      path.push(start);
-      path.push(end);
+      return buildPath({ kind: 'driveRange', dongleId, logId: log_id, startSec: start, endSec: end });
     }
-  } else if (prime) {
-    path.push('prime');
+    return buildPath({ kind: 'drive', dongleId, logId: log_id });
   }
-
-  return `/${path.join('/')}`;
+  if (prime) {
+    return buildPath({ kind: 'prime', dongleId });
+  }
+  return buildPath({ kind: 'dashboard', dongleId });
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
@@ -169,8 +170,8 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
     const route = state.routes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
 
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
+    const urlStart = wholeDrive ? null : msToSecFloor(start);
+    const urlEnd = wholeDrive ? null : msToSecFloor(end);
     const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
 
     if (currentPathname(state) !== desiredPath) {
@@ -348,7 +349,9 @@ export function streamNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      const desiredPath = nav
+        ? buildPath({ kind: 'stream', dongleId: state.dongleId })
+        : buildPath({ kind: 'dashboard', dongleId: state.dongleId });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }

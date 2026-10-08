@@ -14,14 +14,16 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav, pushTimelineRange } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { buildPath, parsePath } from '../url';
 
 import DriveView from './DriveView';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
 
@@ -82,10 +84,23 @@ class ExplorerApp extends Component {
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+    this.closeSettings = this.closeSettings.bind(this);
   }
 
   closeBodyTeleop() {
     this.props.dispatch(streamNav(false));
+  }
+
+  closeSettings() {
+    // The settings URL is the sole open signal; closing returns to the
+    // dashboard URL. Drive selection is cleared first (without pushing) so a
+    // dashboard URL never renders the drive view underneath the close.
+    const parsed = parsePath(this.props.pathname);
+    const settingsDongleId = parsed.kind === 'settings' ? parsed.dongleId : null;
+    this.props.dispatch(pushTimelineRange(null, null, null, false));
+    if (settingsDongleId) {
+      this.props.dispatch(push(buildPath({ kind: 'dashboard', dongleId: settingsDongleId })));
+    }
   }
 
   async componentDidMount() {
@@ -206,6 +221,13 @@ class ExplorerApp extends Component {
     const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
+    // Settings visibility is derived from the URL so that /{dongle}/settings
+    // survives refresh and browser history. The modal is hosted here (rather
+    // than inside Dashboard) so it mounts over every main view, including an
+    // active DriveView whose selection a settings PUSH intentionally retains.
+    const parsedPath = parsePath(pathname);
+    const settingsDongleId = parsedPath.kind === 'settings' ? parsedPath.dongleId : null;
+
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
     const headerHeight = this.state.headerRef
       ? this.state.headerRef.getBoundingClientRect().height
@@ -250,6 +272,11 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            <DeviceSettingsModal
+              isOpen={Boolean(settingsDongleId)}
+              dongleId={settingsDongleId}
+              onClose={this.closeSettings}
+            />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>

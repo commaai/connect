@@ -62,7 +62,9 @@ export default function reducer(_state, action) {
         streamNav: false,
         subscription: null,
         subscribeInfo: null,
-        files: null,
+        // NOTE: files are intentionally retained: entries are keyed by full
+        // route name (`dongle|log--segment/type`) and merge-written, so the
+        // newly selected device can never read another device's entries.
         limit: 0,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
@@ -96,7 +98,10 @@ export default function reducer(_state, action) {
           start: null,
           end: null,
         },
-        routes: null,
+        // NOTE: routes are intentionally retained (with lastRoutes stashed as
+        // before) so the current list stays visible while the new filter
+        // loads; DriveList already renders routes || lastRoutes, and the
+        // reset routesMeta still forces a refetch via hasRoutesData().
         currentRoute: null,
       };
       break;
@@ -344,10 +349,10 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
-        state.files = null;
-      }
-
+      // NOTE: files are intentionally retained across range and route
+      // changes: entries are keyed by full route name and segment
+      // (`dongle|log--segment/type`) and merge-written, so entries for other
+      // ranges or routes are never read as the current selection.
       state.selectedRouteId = action.log_id;
       state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
       if (action.log_id) {
