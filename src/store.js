@@ -7,6 +7,7 @@ import rootReducer from './reducers';
 import composeEnhancers from './devtools';
 import { onHistoryMiddleware } from './actions/history';
 import { analyticsMiddleware } from './analytics';
+import { videoMiddleware } from './timeline/video';
 
 export const history = createBrowserHistory();
 
@@ -19,6 +20,7 @@ export function createAppStore(appHistory, preloadedState) {
       onHistoryMiddleware,
       routerMiddleware(appHistory),
       analyticsMiddleware,
+      videoMiddleware,
     )),
   );
 }
