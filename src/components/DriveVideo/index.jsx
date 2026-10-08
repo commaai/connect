@@ -61,7 +61,6 @@ function usePlaybackError(src) {
 function loopContainsVideo(video, videoStartOffset, loopStart, loopDuration) {
   if (!video) return false;
   if (!loopDuration) return false;
-  if (video.readyState < video.HAVE_METADATA) return false;
   const loopEnd = loopStart + loopDuration;
   const videoStartMs = toRouteMs(videoStartOffset, 0);
   const videoEndMs = toRouteMs(videoStartOffset, video.duration);
@@ -72,6 +71,7 @@ function useLoopBounds(videoStartOffset, loopStart, loopDuration) {
   const handleFrame = useCallback((videoSeconds) => {
     const video = getVideo();
     if (!loopContainsVideo(video, videoStartOffset, loopStart, loopDuration)) return;
+    if (video.readyState < video.HAVE_FUTURE_DATA) return;
 
     const routeMs = toRouteMs(videoStartOffset, videoSeconds);
     const loopEnd = loopStart + loopDuration;
