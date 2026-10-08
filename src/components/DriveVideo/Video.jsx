@@ -60,10 +60,17 @@ function useHlsErrors(hls, onError) {
   useEffect(() => {
     if (!hls) return undefined;
 
+    let hasTriedRecovery = false;
     const handleError = (_, data) => {
       const kind = hlsErrorKind(data);
       const isReportable = data.fatal || kind === 'not-found';
       if (!isReportable) return;
+      const canRecover = data.fatal && kind === 'media' && !hasTriedRecovery;
+      if (canRecover) {
+        hasTriedRecovery = true;
+        hls.recoverMediaError();
+        return;
+      }
       onError?.({ kind, cause: data });
     };
 
