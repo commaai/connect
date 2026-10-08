@@ -335,14 +335,6 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
     case Types.TIMELINE_PUSH_SELECTION: {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
@@ -355,13 +347,11 @@ export default function reducer(_state, action) {
           state.zoom = {
             start: action.start,
             end: action.end,
-            previous: state.zoom,
           };
         } else {
           state.zoom = state.currentRoute ? {
             start: 0,
             end: state.currentRoute.duration,
-            previous: state.zoom,
           } : null;
           state.loop = null;
         }

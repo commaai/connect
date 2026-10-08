@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { primeNav, streamNav, urlForState } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -26,20 +26,6 @@ describe('timeline actions', () => {
     ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
   ])('generates a %s URL', (_name, args, expected) => {
     expect(urlForState(...args)).toBe(expected);
-  });
-
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
   });
 
   it.each([

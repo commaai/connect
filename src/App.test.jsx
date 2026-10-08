@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { play } from './timeline/playback';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -323,6 +324,41 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
     expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument();
+  });
+
+  function dragTimeline(fromX, toX) {
+    const timeline = screen.getByRole('slider', { name: 'Drive timeline' });
+    fireEvent.pointerDown(timeline, { button: 0, clientX: fromX, pageX: fromX });
+    fireEvent.pointerMove(document, { clientX: toX, pageX: toX });
+    fireEvent.pointerUp(document, { button: 0, clientX: toX, pageX: toX });
+  }
+
+  test('a range starting at the drive start keeps its range in the URL', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    dragTimeline(0, 500);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/30`));
+  });
+
+  test('selecting a range keeps the playback speed', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => store.dispatch(play(2)));
+    dragTimeline(200, 700);
+    await waitFor(() => expect(store.getState().zoom).toMatchObject({ start: 12000, end: 42000 }));
+    expect(store.getState().desiredPlaySpeed).toBe(2);
+  });
+
+  test('in-app back zooms out to the whole drive, browser back walks the ranges', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => history.push(`/${FIRST}/${LOG}/10/50`));
+    act(() => history.push(`/${FIRST}/${LOG}/20/30`));
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/50`));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
