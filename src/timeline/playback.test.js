@@ -1,6 +1,6 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek, selectLoop, updateVideoTime } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -129,5 +129,44 @@ describe('playback', () => {
     expect(state.isBufferingVideo).toEqual(false);
 
     expect(state.desiredPlaySpeed).toEqual(2);
+  });
+
+  it('uses video time as the playback offset and seeks the video when wrapping a loop', () => {
+    newNow();
+    let state = makeDefaultStruct();
+    state = {
+      ...state,
+      loop: { startTime: 1000, duration: 2000 },
+      seekRevision: 0,
+    };
+
+    state = reducer(state, updateVideoTime(1750));
+    expect(state.offset).toEqual(1750);
+    expect(state.seekRevision).toEqual(0);
+
+    state = reducer(state, updateVideoTime(4250));
+    expect(state.offset).toEqual(2250);
+    expect(state.seekRevision).toEqual(1);
+  });
+
+  it('seeks forward to the loop start when video time precedes the loop', () => {
+    newNow();
+    const state = reducer({
+      ...makeDefaultStruct(),
+      loop: { startTime: 1000, duration: 2000 },
+      seekRevision: 0,
+    }, updateVideoTime(750));
+
+    expect(state.offset).toEqual(1000);
+    expect(state.seekRevision).toEqual(1);
+  });
+
+  it('increments the seek revision only for explicit seeks', () => {
+    newNow();
+    let state = { ...makeDefaultStruct(), seekRevision: 0 };
+    state = reducer(state, seek(123));
+    expect(state.seekRevision).toEqual(1);
+    state = reducer(state, updateVideoTime(456));
+    expect(state.seekRevision).toEqual(1);
   });
 });

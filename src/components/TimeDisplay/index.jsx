@@ -11,7 +11,6 @@ import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, Vo
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
-import { isIos } from '../../utils/browser.js';
 
 const timerSteps = [
   0.1,
@@ -46,13 +45,55 @@ const styles = (theme) => ({
       paddingBottom: 0,
       paddingTop: 0,
     },
+    '@media (max-width: 600px)': {
+      '&.isThin': {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+        gridTemplateRows: '32px 40px',
+        height: 'auto',
+        minHeight: 84,
+        boxSizing: 'border-box',
+        width: '100%',
+        padding: '6px 12px',
+        borderRadius: 26,
+        columnGap: 0,
+        rowGap: 4,
+        '& > :nth-child(1)': {
+          gridColumn: 1,
+          gridRow: 2,
+        },
+        '& > :nth-child(2)': {
+          gridColumn: 2,
+          gridRow: 2,
+        },
+        '& > :nth-child(3)': {
+          gridColumn: '1 / -1',
+          gridRow: 1,
+        },
+        '& > :nth-child(4)': {
+          gridColumn: '3 / 5',
+          gridRow: 2,
+        },
+        '& > :nth-child(5)': {
+          gridColumn: 5,
+          gridRow: 2,
+        },
+        '& > :nth-child(6)': {
+          gridColumn: 6,
+          gridRow: 2,
+        },
+      },
+    },
   },
   desiredPlaySpeedContainer: {
-    marginRight: theme.spacing.unit * 1,
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
-    minWidth: '40px',
+    justifyContent: 'center',
+    minWidth: '112px',
+    '@media (max-width: 600px)': {
+      minWidth: 0,
+    },
   },
   icon: {
     width: '98%',
@@ -72,6 +113,12 @@ const styles = (theme) => ({
   iconButton: {
     width: '40px',
     height: '40px',
+    '@media (max-width: 600px)': {
+      width: 30,
+      minWidth: 30,
+      height: 30,
+      padding: 0,
+    },
   },
   tinyArrowIcon: {
     width: 12,
@@ -81,11 +128,35 @@ const styles = (theme) => ({
       visibility: 'hidden',
     },
   },
+  speedControlButton: {
+    width: 44,
+    height: 44,
+    padding: 4,
+    touchAction: 'manipulation',
+    '@media (max-width: 600px)': {
+      width: 20,
+      minWidth: 20,
+      height: 28,
+      padding: 0,
+    },
+  },
   rightBorderBox: {
     borderRight: `1px solid ${theme.palette.grey[900]}`,
+    '@media (max-width: 600px)': {
+      borderRight: 'none',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
   },
   leftBorderBox: {
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
+    '@media (max-width: 600px)': {
+      borderLeft: 'none',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
   },
   currentTime: {
     margin: `0 ${theme.spacing.unit * 1}px`,
@@ -93,10 +164,16 @@ const styles = (theme) => ({
     fontWeight: 500,
     display: 'block',
     flexGrow: 1,
+    whiteSpace: 'nowrap',
+    minWidth: 0,
+    '@media (max-width: 600px)': {
+      fontSize: 12,
+      margin: 0,
+    },
   },
 });
 
-class TimeDisplay extends Component {
+export class TimeDisplay extends Component {
   static getDerivedStateFromProps(props, state) {
     if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
       return {
@@ -253,32 +330,30 @@ class TimeDisplay extends Component {
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+          <span ref={this.textHolder} style={{ whiteSpace: 'nowrap' }}>{ displayTime }</span>
         </Typography>
-        {!isIos() && (
-          <div className={ classes.desiredPlaySpeedContainer }>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
-              aria-label="Increase play speed by 1 step"
-            >
-              <UpArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-            <Typography variant="body2" align="center">
-              {desiredPlaySpeed}
-              ×
-            </Typography>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
-              aria-label="Decrease play speed by 1 step"
-            >
-              <DownArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-          </div>
-        )}
+        <div className={ classes.desiredPlaySpeedContainer }>
+          <IconButton
+            className={classes.speedControlButton}
+            aria-label="Increase play speed by 1 step"
+            onClick={this.increaseSpeed}
+            disabled={!this.canIncreaseSpeed()}
+          >
+            <UpArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+          <Typography variant="body2" align="center" aria-live="polite">
+            {desiredPlaySpeed}
+            ×
+          </Typography>
+          <IconButton
+            className={classes.speedControlButton}
+            onClick={this.decreaseSpeed}
+            disabled={!this.canDecreaseSpeed()}
+            aria-label="Decrease play speed by 1 step"
+          >
+            <DownArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+        </div>
         <div className={ classes.leftBorderBox }>
           <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
             <div>
@@ -297,6 +372,7 @@ class TimeDisplay extends Component {
         </div>
         <div className={ classes.leftBorderBox }>
           <IconButton
+            className={ classes.iconButton }
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >

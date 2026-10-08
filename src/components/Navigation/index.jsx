@@ -7,6 +7,8 @@ import dayjs from 'dayjs';
 
 import { api } from '../../api/backend';
 import { analyticsEvent } from '../../actions';
+import { fetchDriveCoords } from '../../actions/cached';
+import { getRouteFeatureCollection, getRoutesBounds } from '../DriveMap';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import { Clear, PinCarIcon } from '../../icons';
@@ -18,7 +20,16 @@ import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
   mapContainer: {
+    position: 'sticky',
+    top: 64,
+    zIndex: 12,
+    height: 'var(--dashboard-map-height, 50vh)',
+    flexShrink: 0,
     borderBottom: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey900,
+    '@media (max-width: 639px)': {
+      top: 64,
+    },
   },
   mapError: {
     position: 'relative',
@@ -122,7 +133,7 @@ const initialState = {
   windowWidth: window.innerWidth,
 };
 
-class Navigation extends Component {
+export class Navigation extends Component {
   constructor(props) {
     super(props);
     this.mounted = null;
@@ -156,6 +167,18 @@ class Navigation extends Component {
     this.carLocationCircle = this.carLocationCircle.bind(this);
     this.clearSearchSelect = this.clearSearchSelect.bind(this);
     this.onContainerRef = this.onContainerRef.bind(this);
+    this.onMapRef = this.onMapRef.bind(this);
+    this.onMapLoad = this.onMapLoad.bind(this);
+    this.syncRouteMap = this.syncRouteMap.bind(this);
+    this.fetchNextRouteCoords = this.fetchNextRouteCoords.bind(this);
+    this.fitRoutes = this.fitRoutes.bind(this);
+
+    this.map = null;
+    this.routeSignature = '';
+    this.routeCoordQueue = [];
+    this.requestedRouteCoords = new Set();
+    this.activeRouteCoordRequests = 0;
+    this.hasUserInteractedWithMap = false;
   }
 
   componentDidMount() {
@@ -168,8 +191,17 @@ class Navigation extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { dongleId, device } = this.props;
+    const { dongleId, device, routes, lastRoutes } = this.props;
     const { geoLocateCoords, search, carLastLocation, searchSelect } = this.state;
+    const prevRoutes = prevProps.routes || prevProps.lastRoutes || [];
+    const displayRoutes = routes || lastRoutes || [];
+    const routeSignature = this.getRouteSignature(displayRoutes);
+
+    if (routeSignature !== this.routeSignature || Boolean(routes) !== Boolean(prevProps.routes)) {
+      this.syncRouteMap();
+    } else if (this.haveRouteCoordinatesChanged(prevRoutes, displayRoutes)) {
+      this.fitRoutes();
+    }
 
     if ((carLastLocation && !prevState.carLastLocation)
       || (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect)
@@ -178,6 +210,9 @@ class Navigation extends Component {
     }
 
     if (prevProps.dongleId !== dongleId) {
+      this.hasUserInteractedWithMap = false;
+      this.routeSignature = '';
+      this.requestedRouteCoords.clear();
       this.setState({
         ...initialState,
         windowWidth: window.innerWidth,
@@ -204,6 +239,100 @@ class Navigation extends Component {
   componentWillUnmount() {
     this.mounted = false;
     this.unsubscribeWindowSize?.();
+    if (this.map && typeof this.map.off === 'function') {
+      this.map.off('load', this.onMapLoad);
+    }
+  }
+
+  getDisplayRoutes() {
+    return [...(this.props.routes || this.props.lastRoutes || [])]
+      .sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis);
+  }
+
+  getRouteSignature(routes) {
+    return routes.map((route) => route.fullname).sort().join(',');
+  }
+
+  haveRouteCoordinatesChanged(previousRoutes, routes) {
+    return routes.some((route, index) => (
+      route.fullname !== previousRoutes[index]?.fullname
+      || route.driveCoords !== previousRoutes[index]?.driveCoords
+    ));
+  }
+
+  syncRouteMap() {
+    const routes = this.getDisplayRoutes();
+    this.routeSignature = this.getRouteSignature(routes);
+    this.routeCoordQueue = this.props.routes ? routes.filter((route) => (
+      !route.driveCoords
+      && typeof route.url === 'string'
+      && Number.isInteger(route.maxqlog)
+      && route.maxqlog >= 0
+      && !this.requestedRouteCoords.has(route.fullname)
+    )) : [];
+    this.fetchNextRouteCoords();
+  }
+
+  fetchNextRouteCoords() {
+    if (!this.mounted) {
+      return;
+    }
+    while (this.activeRouteCoordRequests < 2 && this.routeCoordQueue.length > 0) {
+      const route = this.routeCoordQueue.shift();
+      this.requestedRouteCoords.add(route.fullname);
+      this.activeRouteCoordRequests += 1;
+      Promise.resolve(this.props.dispatch(fetchDriveCoords(route)))
+        .catch((error) => {
+          this.requestedRouteCoords.delete(route.fullname);
+          console.error(`Unable to load dashboard map coordinates for ${route.fullname}`, error);
+        })
+        .finally(() => {
+          this.activeRouteCoordRequests -= 1;
+          if (this.getRouteSignature(this.getDisplayRoutes()) === this.routeSignature) {
+            this.fetchNextRouteCoords();
+          }
+        });
+    }
+    if (this.routeCoordQueue.length === 0 && this.activeRouteCoordRequests === 0) {
+      this.fitRoutes();
+    }
+  }
+
+  fitRoutes() {
+    if (this.hasUserInteractedWithMap || !this.map || !this.map.loaded()) {
+      return;
+    }
+    const bounds = getRoutesBounds(this.getDisplayRoutes());
+    if (!bounds) {
+      return;
+    }
+    if (bounds[0][0] === bounds[1][0]) {
+      bounds[0][0] -= 0.001;
+      bounds[1][0] += 0.001;
+    }
+    if (bounds[0][1] === bounds[1][1]) {
+      bounds[0][1] -= 0.001;
+      bounds[1][1] += 0.001;
+    }
+    this.map.fitBounds(bounds, { padding: 24, maxZoom: 10, duration: 0 });
+  }
+
+  onMapRef(mapComponent) {
+    this.map = mapComponent && typeof mapComponent.getMap === 'function'
+      ? mapComponent.getMap()
+      : null;
+    if (!this.map) {
+      return;
+    }
+    if (this.map.loaded()) {
+      this.fitRoutes();
+    } else {
+      this.map.once('load', this.onMapLoad);
+    }
+  }
+
+  onMapLoad() {
+    this.fitRoutes();
   }
 
   checkWebGLSupport() {
@@ -322,7 +451,7 @@ class Navigation extends Component {
     if (geoLocateCoords) {
       bounds.push([geoLocateCoords, geoLocateCoords]);
     }
-    if (carLocation) {
+    if (carLocation && !this.hasUserInteractedWithMap) {
       bounds.push([carLocation.location, carLocation.location]);
     }
     if (searchSelect) {
@@ -401,7 +530,8 @@ class Navigation extends Component {
     const { search, searchSelect, searchLooking } = this.state;
     this.setState({ viewport });
 
-    if (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating) {
+    if (interactionState?.isPanning || interactionState?.isZooming || interactionState?.isRotating) {
+      this.hasUserInteractedWithMap = true;
       this.focus();
 
       if (search && !searchSelect && !searchLooking) {
@@ -454,6 +584,7 @@ class Navigation extends Component {
       mapError, hasFocus, searchSelect, viewport, windowWidth,
     } = this.state;
     const carLocation = this.getCarLocation();
+    const routes = this.getDisplayRoutes();
 
     const cardStyle = windowWidth < 600
       ? { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
@@ -471,7 +602,6 @@ class Navigation extends Component {
       <div
         ref={this.onContainerRef}
         className={classes.mapContainer}
-        style={{ height: 200 }}
       >
         <VisibilityHandler onVisible={this.updateDevice} onInit onDongleId minInterval={60} />
         {mapError
@@ -495,10 +625,30 @@ class Navigation extends Component {
           onNativeClick={this.focus}
           maxPitch={0}
           mapboxApiAccessToken={MAPBOX_TOKEN}
+          ref={this.onMapRef}
           attributionControl={false}
           dragRotate={false}
           onError={(err) => this.setState({ mapError: err.error.message })}
         >
+          <Source
+            id="dashboard-routes"
+            type="geojson"
+            data={getRouteFeatureCollection(routes)}
+          >
+            <Layer
+              id="dashboard-route-lines"
+              type="line"
+              layout={{
+                'line-join': 'round',
+                'line-cap': 'round',
+              }}
+              paint={{
+                'line-color': '#55A9E8',
+                'line-width': 3,
+                'line-opacity': 0.8,
+              }}
+            />
+          </Source>
           <GeolocateControl
             className={classes.geolocateControl}
             positionOptions={{ enableHighAccuracy: true }}
@@ -611,6 +761,8 @@ class Navigation extends Component {
 const stateToProps = (state) => ({
   device: state.device,
   dongleId: state.dongleId,
+  routes: state.routes,
+  lastRoutes: state.lastRoutes,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Navigation));

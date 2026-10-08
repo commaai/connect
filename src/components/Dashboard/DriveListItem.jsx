@@ -8,7 +8,7 @@ import { pushTimelineRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
-import { RightArrow } from '../../icons';
+import { ChevronRight } from '../../icons';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Timeline from '../Timeline';
@@ -25,7 +25,10 @@ const styles = () => ({
     padding: 0,
     transition: 'background .2s',
     textDecoration: 'none',
-    '&:hover': {},
+    '&:hover $driveArrow': {
+      color: Colors.white,
+      transform: 'translateX(2px)',
+    },
   },
   driveHeader: {
     alignItems: 'center',
@@ -43,10 +46,10 @@ const styles = () => ({
     justifyContent: 'center',
   },
   driveArrow: {
-    color: Colors.grey500,
-    height: '100%',
-    marginLeft: '25%',
-    width: 32,
+    color: Colors.white60,
+    height: 24,
+    transition: 'color .15s ease, transform .15s ease',
+    width: 24,
   },
   firstLine: {
     fontWeight: 600,
@@ -147,7 +150,7 @@ const DriveListItem = (props) => {
           </div>
           {!small && (
             <div className={classes.driveGridItem} style={gridStyle.arrow}>
-              <RightArrow className={classes.driveArrow} />
+              <ChevronRight className={classes.driveArrow} />
             </div>
           )}
         </Grid>

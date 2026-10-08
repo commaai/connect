@@ -98,35 +98,38 @@ export function updateFiles(files) {
 
 export function fetchFiles(routeName, nocache = false) {
   return async (dispatch) => {
-    let files;
     try {
-      files = await api.routes.getRouteFiles(routeName, nocache);
+      const files = await api.routes.getRouteFiles(routeName, nocache);
+      if (!files || typeof files !== 'object' || Array.isArray(files)) {
+        throw new Error('Invalid route files response');
+      }
+
+      const dongleId = routeName.split('|')[0];
+      const urlName = routeName.replace('|', '/');
+      const urls = Object
+        .keys(FILE_NAMES)
+        .filter((type) => files[type])
+        .flatMap((type) => files[type].map((file) => ([type, file])))
+        .reduce((state, [type, file]) => {
+          const segmentNum = parseInt(file.split(urlName)[1].split('/')[1], 10);
+          const fileName = `${routeName}--${segmentNum}/${type}`;
+          state[fileName] = {
+            url: file,
+          };
+          return state;
+        }, {});
+
+      dispatch({
+        type: Types.ACTION_FILES_URLS,
+        dongleId,
+        urls,
+      });
+      return true;
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
-      return;
+      return false;
     }
-
-    const dongleId = routeName.split('|')[0];
-    const urlName = routeName.replace('|', '/');
-    const urls = Object
-      .keys(FILE_NAMES)
-      .filter((type) => files[type])
-      .flatMap((type) => files[type].map((file) => ([type, file])))
-      .reduce((state, [type, file]) => {
-        const segmentNum = parseInt(file.split(urlName)[1].split('/')[1], 10);
-        const fileName = `${routeName}--${segmentNum}/${type}`;
-        state[fileName] = {
-          url: file,
-        };
-        return state;
-      }, {});
-
-    dispatch({
-      type: Types.ACTION_FILES_URLS,
-      dongleId,
-      urls,
-    });
   };
 }
 

@@ -21,7 +21,7 @@ const store = Redux.createStore((state) => {
 
 describe('drive list items', () => {
   it('has DriveEntry class', () => {
-    render(React.createElement(DriveListItem, {
+    const { container } = render(React.createElement(DriveListItem, {
       store,
       drive: {
         fullname: '1d3dc3e03047b0c7/000000dd--455f14369d',
@@ -34,5 +34,6 @@ describe('drive list items', () => {
       },
     }));
     expect(screen.getByRole('link')).toHaveClass('DriveEntry');
+    expect(container.querySelector('.DriveEntry svg')).toBeInTheDocument();
   });
 });

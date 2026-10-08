@@ -8,8 +8,68 @@ import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
+export function getRouteFeatureCollection(routes) {
+  return {
+    type: 'FeatureCollection',
+    features: routes.flatMap((route) => {
+      if (!route.driveCoords) {
+        return [];
+      }
 
-class DriveMap extends Component {
+      const coordinates = Object.keys(route.driveCoords)
+        .sort((a, b) => Number(a) - Number(b))
+        .map((time) => route.driveCoords[time])
+        .filter((coordinate) => (
+          Array.isArray(coordinate)
+          && coordinate.length >= 2
+          && Number.isFinite(coordinate[0])
+          && Number.isFinite(coordinate[1])
+        ));
+      if (coordinates.length < 2) {
+        return [];
+      }
+
+      return [{
+        type: 'Feature',
+        properties: { fullname: route.fullname },
+        geometry: { type: 'LineString', coordinates },
+      }];
+    }),
+  };
+}
+
+export function getRoutesBounds(routes) {
+  const coordinates = routes.flatMap((route) => {
+    const pathCoordinates = route.driveCoords
+      ? Object.values(route.driveCoords).filter((coordinate) => (
+        Array.isArray(coordinate)
+        && coordinate.length >= 2
+        && Number.isFinite(coordinate[0])
+        && Number.isFinite(coordinate[1])
+      ))
+      : [];
+    if (pathCoordinates.length > 0) {
+      return pathCoordinates;
+    }
+    return [
+      [route.start_lng, route.start_lat],
+      [route.end_lng, route.end_lat],
+    ].filter(([longitude, latitude]) => Number.isFinite(longitude) && Number.isFinite(latitude));
+  });
+
+  if (coordinates.length === 0) {
+    return null;
+  }
+
+  const longitudes = coordinates.map(([longitude]) => longitude);
+  const latitudes = coordinates.map(([, latitude]) => latitude);
+  return [
+    [Math.min(...longitudes), Math.min(...latitudes)],
+    [Math.max(...longitudes), Math.max(...latitudes)],
+  ];
+}
+
+export class DriveMap extends Component {
   constructor(props) {
     super(props);
 
@@ -30,6 +90,7 @@ class DriveMap extends Component {
     this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onInteraction = this.onInteraction.bind(this);
+    this.onMapLoad = this.onMapLoad.bind(this);
 
     this.shouldFlyTo = false;
     this.isInteracting = false;
@@ -73,6 +134,10 @@ class DriveMap extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    const map = this.map && this.map.getMap();
+    if (map && typeof map.off === 'function') {
+      map.off('load', this.onMapLoad);
+    }
   }
 
   onInteraction(ev) {
@@ -160,17 +225,20 @@ class DriveMap extends Component {
 
   setPath(coords) {
     const map = this.map && this.map.getMap();
+    const routeSource = map && map.getSource('route');
 
-    if (map) {
-      map.getSource('route').setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: coords,
-        },
-      });
+    if (!routeSource) {
+      return;
     }
+
+    routeSource.setData({
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: coords,
+      },
+    });
   }
 
   posAtOffset(offset) {
@@ -217,8 +285,21 @@ class DriveMap extends Component {
       this.map = null;
       return;
     }
+    this.map = mapComponent;
 
-    map.on('load', () => {
+    if (map.loaded()) {
+      this.onMapLoad();
+    } else {
+      map.once('load', this.onMapLoad);
+    }
+  }
+
+  onMapLoad() {
+    const map = this.map && this.map.getMap();
+    if (!map) {
+      return;
+    }
+    if (!map.getSource('route')) {
       map.addSource('route', {
         type: 'geojson',
         data: {
@@ -264,20 +345,18 @@ class DriveMap extends Component {
       };
 
       map.addLayer(markerGeoJson);
+    }
 
-      this.map = mapComponent;
-
-      const { currentRoute } = this.props;
-      if (currentRoute?.driveCoords) {
-        this.shouldFlyTo = false;
-        const keys = Object.keys(currentRoute.driveCoords);
-        this.setState({
-          driveCoordsMin: Math.min(...keys),
-          driveCoordsMax: Math.max(...keys),
-        });
-        this.populateMap();
-      }
-    });
+    const { currentRoute } = this.props;
+    if (currentRoute?.driveCoords) {
+      this.shouldFlyTo = false;
+      const keys = Object.keys(currentRoute.driveCoords);
+      this.setState({
+        driveCoordsMin: Math.min(...keys),
+        driveCoordsMax: Math.max(...keys),
+      });
+      this.populateMap();
+    }
   }
 
   render() {

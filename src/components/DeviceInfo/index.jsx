@@ -19,11 +19,18 @@ import { LivestreamIcon, CarBatteryIcon, CameraIcon, ContentCut, GamepadIcon } f
 
 const styles = (theme) => ({
   container: {
+    position: 'sticky',
+    top: 'calc(64px + var(--dashboard-map-height, 50vh))',
+    zIndex: 11,
+    backgroundColor: Colors.grey900,
     borderBottom: `1px solid ${Colors.white10}`,
     display: 'flex',
     flexDirection: 'column',
     minHeight: 64,
     justifyContent: 'center',
+    '@media (max-width: 639px)': {
+      top: 'calc(64px + var(--dashboard-map-height, 50vh))',
+    },
   },
   row: {
     display: 'flex',

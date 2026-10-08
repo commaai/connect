@@ -15,6 +15,7 @@ export function reducer(_state, action) {
         ...state,
         offset: action.offset,
         startTime: Date.now(),
+        seekRevision: (state.seekRevision || 0) + 1,
       };
 
       if (loopOffset !== null) {
@@ -25,6 +26,28 @@ export function reducer(_state, action) {
         }
       }
       break;
+    case Types.ACTION_VIDEO_TIME: {
+      let offset = action.offset;
+      let seekRevision = state.seekRevision || 0;
+      if (state.loop?.startTime != null && state.loop.duration > 0) {
+        if (offset < state.loop.startTime) {
+          offset = state.loop.startTime;
+          seekRevision += 1;
+        }
+        const loopEnd = state.loop.startTime + state.loop.duration;
+        if (offset > loopEnd) {
+          offset = ((offset - state.loop.startTime) % state.loop.duration) + state.loop.startTime;
+          seekRevision += 1;
+        }
+      }
+      state = {
+        ...state,
+        offset,
+        startTime: Date.now(),
+        seekRevision,
+      };
+      break;
+    }
     case Types.ACTION_PAUSE:
       state = {
         ...state,
@@ -44,6 +67,7 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_LOOP:
+      state.seekRevision = (state.seekRevision || 0) + 1;
       if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
         state.loop = {
           startTime: action.start,
@@ -68,6 +92,7 @@ export function reducer(_state, action) {
         isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
+        seekRevision: (state.seekRevision || 0) + 1,
       };
       break;
     default:
@@ -109,6 +134,13 @@ export function reducer(_state, action) {
 export function seek(offset) {
   return {
     type: Types.ACTION_SEEK,
+    offset,
+  };
+}
+
+export function updateVideoTime(offset) {
+  return {
+    type: Types.ACTION_VIDEO_TIME,
     offset,
   };
 }

@@ -26,6 +26,16 @@ const styles = () => ({
     padding: '0px 16px',
     flex: '1',
   },
+  stickyFilters: {
+    position: 'sticky',
+    top: 'calc(64px + var(--dashboard-map-height, 50vh) + 64px)',
+    zIndex: 10,
+    backgroundColor: '#1D2225',
+    paddingTop: 8,
+    '@media (max-width: 639px)': {
+      top: 'calc(64px + var(--dashboard-map-height, 50vh) + 64px)',
+    },
+  },
   endMessage: {
     padding: 8,
     textAlign: 'center',
@@ -33,7 +43,7 @@ const styles = () => ({
   },
 });
 
-const DriveList = (props) => {
+export const DriveList = (props) => {
   const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
 
   const [deviceStats, setDeviceStats] = useState({});
@@ -77,12 +87,9 @@ const DriveList = (props) => {
   }
 
   // we clean up routes during data fetching, fallback to using lastRoutes to display current data
-  const displayRoutes = routes || lastRoutes;
+  const displayRoutes = [...(routes || lastRoutes || [])]
+    .sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis);
   if (displayRoutes && displayRoutes.length){
-    // sort routes by start_time_utc_millis with the latest drive first
-    // Workaround upstream sorting issue for now
-    // possibly from https://github.com/commaai/connect/issues/451
-    displayRoutes.sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis);
     const routesSize = displayRoutes.length
 
     content = (
@@ -137,8 +144,8 @@ const DriveList = (props) => {
 
   return (
     <div className="flex flex-col grow py-2">
-      <VisibilityHandler onVisible={onVisible} minInterval={60} />
-      <div className="flex flex-row justify-between mx-4 pb-2 gap-2 flex-wrap">
+      <VisibilityHandler onInit onVisible={onVisible} minInterval={60} />
+      <div className={`${classes.stickyFilters} mx-4 flex shrink-0 flex-row flex-wrap justify-between gap-2 pb-2`}>
         { renderStats() }
         <button
           className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98] cursor-pointer"

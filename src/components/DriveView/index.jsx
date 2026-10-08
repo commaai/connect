@@ -11,7 +11,7 @@ import { filterRegularClick } from '../../utils';
 import Media from './Media';
 import Timeline from '../Timeline';
 
-class DriveView extends Component {
+export class DriveView extends Component {
   constructor(props) {
     super(props);
     this.close = this.close.bind(this);
@@ -20,10 +20,10 @@ class DriveView extends Component {
   onBack(zoom, currentRoute) {
     if (zoom.previous) {
       this.props.dispatch(popTimelineRange(currentRoute?.log_id));
+    } else if (currentRoute && zoom.start === 0 && zoom.end === currentRoute.duration) {
+      this.close();
     } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
+      this.props.dispatch(pushTimelineRange(currentRoute.log_id, null, null));
     }
   }
 
@@ -42,9 +42,6 @@ class DriveView extends Component {
       );
     }
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
-
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
     const startDateObj = dayjs(start);
@@ -60,7 +57,6 @@ class DriveView extends Component {
               <IconButton
                 onClick={ () => this.onBack(zoom, currentRoute) }
                 aria-label="Go Back"
-                disabled={ backButtonDisabled }
               >
                 <ArrowBackBold />
               </IconButton>

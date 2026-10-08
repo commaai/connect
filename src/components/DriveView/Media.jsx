@@ -198,7 +198,7 @@ const MediaType = {
   MAP: 'map',
 };
 
-class Media extends Component {
+export class Media extends Component {
   constructor(props) {
     super(props);
 
@@ -208,12 +208,15 @@ class Media extends Component {
       downloadMenu: null,
       clipMenu: null,
       moreInfoMenu: null,
+      filesLoading: false,
+      filesError: null,
       uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
       hasAudio: false,
       clipsSupported: false,
+      filesRetrying: false,
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
@@ -232,6 +235,7 @@ class Media extends Component {
     this.onPublicToggle = this.onPublicToggle.bind(this);
     this.fetchRoutePreserved = this.fetchRoutePreserved.bind(this);
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
+    this.loadRouteFiles = this.loadRouteFiles.bind(this);
 
     this.routeViewed = false;
   }
@@ -277,13 +281,15 @@ class Media extends Component {
       this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
     }
 
+    const routeChanged = prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname;
     if (this.props.currentRoute && ((!prevState.downloadMenu && downloadMenu)
       || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)
-      || (!prevProps.currentRoute && (downloadMenu || moreInfoMenu)))) {
+      || (!prevProps.currentRoute && (downloadMenu || moreInfoMenu))
+      || (routeChanged && (downloadMenu || moreInfoMenu)))) {
       if ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser) {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
       }
-      this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
+      this.loadRouteFiles(this.props.currentRoute.fullname);
     }
 
     if (routePreserved === null && (this.props.device?.is_owner || this.props.profile?.superuser)
@@ -299,7 +305,35 @@ class Media extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    this.filesLoadRequestId = (this.filesLoadRequestId || 0) + 1;
     this.unsubscribeWindowSize?.();
+  }
+
+  async loadRouteFiles(routeName, forceRefresh = false) {
+    const requestId = (this.filesLoadRequestId || 0) + 1;
+    this.filesLoadRequestId = requestId;
+    this.setState({
+      filesLoading: true,
+      filesError: forceRefresh ? this.state.filesError : null,
+      filesRetrying: forceRefresh,
+    });
+
+    let loaded = false;
+    try {
+      loaded = await this.props.dispatch(fetchFiles(routeName, forceRefresh));
+    } catch (error) {
+      console.error('Unable to load route files', error);
+      Sentry.captureException(error, { fingerprint: 'media_fetch_route_files' });
+    }
+
+    if (this.mounted && this.filesLoadRequestId === requestId
+      && this.props.currentRoute?.fullname === routeName) {
+      this.setState({
+        filesLoading: false,
+        filesError: loaded ? null : 'Unable to load route files. Check your connection and retry.',
+        filesRetrying: false,
+      });
+    }
   }
 
   async checkClipsSupport() {
@@ -637,7 +671,10 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const {
+      downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo,
+      routePreserved, filesLoading, filesError, filesRetrying,
+    } = this.state;
 
     if (!device) {
       return null;
@@ -686,11 +723,29 @@ class Media extends Component {
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
-          { !files
-          && (
-          <div className={ classes.menuLoading }>
-            <CircularProgress size={ 36 } style={{ color: Colors.white }} />
-          </div>
+          { !filesError && (filesLoading || !files) && (
+            <div className={ classes.menuLoading }>
+              <CircularProgress size={ 36 } style={{ color: Colors.white }} />
+            </div>
+          )}
+          { filesError && (
+            <div className="flex flex-col items-center gap-2 px-4 py-3 text-center">
+              <Typography variant="body2">{filesError}</Typography>
+              <Button
+                className="rounded-full bg-white/10 px-4 py-1.5 normal-case text-white hover:bg-white/20"
+                style={{ minHeight: 44, minWidth: 80, touchAction: 'manipulation' }}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  this.loadRouteFiles(currentRoute.fullname, true);
+                }}
+                disableRipple
+                disabled={filesRetrying}
+                aria-busy={filesRetrying}
+              >
+                {filesRetrying ? 'Retrying…' : 'Retry'}
+              </Button>
+            </div>
           )}
           { buttons.filter((b) => Boolean(b)).map(this.renderUploadMenuItem)}
           <hr />
