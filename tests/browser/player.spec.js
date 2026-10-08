@@ -122,6 +122,7 @@ test('changing the section keeps pause and moves only a playhead outside it', as
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await page.getByRole('button', { name: 'Select 8–12 second clip' }).click();
   await expect.poll(async () => (await video(page)).time).toBeGreaterThanOrEqual(8000);
+  await expect(page.locator('.DriveView')).toContainText(/@ \d\d:00:08 - \d\d:00:12/);
   // Back to the whole drive contains the playhead, so nothing should move.
   await page.getByRole('button', { name: 'Go Back' }).click();
   await page.waitForTimeout(500);

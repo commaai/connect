@@ -46,11 +46,14 @@ class DriveView extends Component {
     const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
+    // A selected section is often under a minute, so show its seconds.
+    const timeFormat = currentRouteBoundsSelected ? 'HH:mm' : 'HH:mm:ss';
     const start = currentRoute.start_time_utc_millis + zoom.start;
     const startDateObj = dayjs(start);
     const startDay = startDateObj.format('dddd');
-    const startTime = startDateObj.format(`MMM D${dayjs().year() === startDateObj.year() ? '' : ', YYYY'} @ HH:mm`);
-    const endTime = dayjs(start + (zoom.end - zoom.start)).format('HH:mm');
+    const startDate = startDateObj.format(`MMM D${dayjs().year() === startDateObj.year() ? '' : ', YYYY'}`);
+    const startTime = startDateObj.format(timeFormat);
+    const endTime = dayjs(start + (zoom.end - zoom.start)).format(timeFormat);
 
     return (
       <div className="DriveView">
@@ -72,6 +75,8 @@ class DriveView extends Component {
                 ) : null}
                 <div>
                   <span className="hidden sm:inline">{`${startDay} `}</span>
+                  {/* On phones a section's seconds need the room; the date is the drive's. */}
+                  <span className={currentRouteBoundsSelected ? undefined : 'hidden xs:inline'}>{`${startDate} @ `}</span>
                   {`${startTime} - ${endTime}`}
                 </div>
               </div>
