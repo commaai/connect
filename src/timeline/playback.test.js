@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { applyPendingSeek, currentOffset, seekTo, setVideo } from '.';
+import { applyPendingSeek, currentOffset, seekTo, setVideo, setVideoFailed } from '.';
 import { pause, play, reducer, seek, videoState } from './playback';
 import * as Types from '../actions/types';
 
@@ -84,6 +84,40 @@ describe('playback commands', () => {
 
     const playing = reducer(before, videoState(makeVideo({ paused: false, playbackRate: 2 })));
     expect(playing).toEqual({ isPaused: false, playSpeed: 2, isBufferingVideo: false });
+  });
+});
+
+describe('clock for a failed video', () => {
+  let now = 0;
+  beforeEach(() => vi.stubGlobal('performance', { now: () => now }));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('moves the playhead while playing and loops in the range', () => {
+    const video = makeVideo({ readyState: HAVE_NOTHING });
+    const dispatch = vi.fn();
+    setVideo(video);
+    seekTo(12000, state);
+    setVideoFailed(true);
+    now += 1000;
+    expect(currentOffset(state)).toEqual(12000);
+
+    play(2)(dispatch);
+    expect(video.play).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ isPaused: false, playSpeed: 2 }));
+    now += 3000;
+    expect(currentOffset(state)).toEqual(18000);
+    now += 2000;
+    expect(currentOffset(state)).toEqual(12000);
+
+    pause()(dispatch);
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ isPaused: true }));
+    now += 1000;
+    expect(currentOffset(state)).toEqual(12000);
+
+    seek(15000)(dispatch);
+    expect(currentOffset(state)).toEqual(15000);
+    setVideoFailed(false);
+    expect(currentOffset(state)).toEqual(15000);
   });
 });
 

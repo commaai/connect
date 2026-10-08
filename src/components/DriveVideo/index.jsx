@@ -6,7 +6,7 @@ import { api } from '../../api/backend';
 
 import Colors from '../../colors';
 import { ErrorOutline, Pause, PlayArrow } from '../../icons';
-import { applyPendingSeek, currentOffset, seekTo, setVideo, toVideoTime } from '../../timeline';
+import { applyPendingSeek, currentOffset, seekTo, setVideo, setVideoFailed, toVideoTime } from '../../timeline';
 import { pause, play, seek, videoState } from '../../timeline/playback';
 
 const NOT_UPLOADED_ERROR = 'This video segment has not uploaded yet or has been deleted.';
@@ -99,6 +99,7 @@ class RouteVideo extends Component {
     this.unload();
     this.mediaErrorRecovered = false;
     this.setState({ error: null });
+    setVideoFailed(false);
     onAudioStatusChange?.(false);
     // the video has no metadata now, so the clock holds this offset until it loads
     seekTo(startOffset);
@@ -199,16 +200,20 @@ class RouteVideo extends Component {
     } else if (this.state.error && this.hls) {
       // seeking away from a segment that failed to load resumes loading there
       this.setState({ error: null });
+      setVideoFailed(false);
       this.hls.startLoad(video.currentTime);
     }
     this.syncState();
   };
 
   // a failed video stays paused until it is retried, or a seek moves hls.js
-  // away from the segment that failed
+  // away from the segment that failed. Meanwhile the timeline's clock moves the
+  // playhead, so the map still plays
   fail(error) {
     this.setState({ error });
     this.video.current.pause();
+    setVideoFailed(true);
+    this.syncState();
   }
 
   onPlay = () => {

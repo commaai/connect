@@ -1,7 +1,7 @@
 // playback commands act on the drive's <video> element; the element's own
 // events report back what it is doing through videoState
 import * as Types from '../actions/types';
-import { currentOffset, getVideo, seekTo } from '.';
+import { clockSpeed, currentOffset, getVideo, runClock, seekTo } from '.';
 
 export function reducer(state, action) {
   if (action.type !== Types.ACTION_VIDEO_STATE) {
@@ -26,7 +26,12 @@ export function seek(offset) {
 // pause the playback
 export function pause() {
   return (dispatch) => {
-    getVideo()?.pause();
+    const video = getVideo();
+    if (runClock(0)) {
+      dispatch(videoState(video));
+    } else {
+      video?.pause();
+    }
     dispatch({ type: Types.ACTION_PAUSE, offset: currentOffset() });
   };
 }
@@ -40,15 +45,23 @@ export function play(speed) {
         video.defaultPlaybackRate = speed;
         video.playbackRate = speed;
       }
-      // a refused play() just leaves the video paused
-      video.play().catch(() => {});
+      if (runClock(video.playbackRate)) {
+        dispatch(videoState(video));
+      } else {
+        // a refused play() just leaves the video paused
+        video.play().catch(() => {});
+      }
     }
     dispatch({ type: Types.ACTION_PLAY, offset: currentOffset(), speed: speed || video?.playbackRate || 1 });
   };
 }
 
-// what the video element is currently doing
+// what the video element, or the clock standing in for a failed one, is doing
 export function videoState(video) {
+  const speed = clockSpeed();
+  if (speed !== null) {
+    return { type: Types.ACTION_VIDEO_STATE, isPaused: speed === 0, playSpeed: video.playbackRate, isBufferingVideo: false };
+  }
   return {
     type: Types.ACTION_VIDEO_STATE,
     isPaused: video.paused,
