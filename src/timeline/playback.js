@@ -15,6 +15,7 @@ export function reducer(_state, action) {
         ...state,
         offset: action.offset,
         startTime: Date.now(),
+        videoPlaySpeed: state.videoPlaySpeed == null ? null : 0,
       };
 
       if (loopOffset !== null) {
@@ -24,6 +25,7 @@ export function reducer(_state, action) {
           state.offset = loopOffset + state.loop.duration;
         }
       }
+      state.seekRequest = { offset: state.offset };
       break;
     case Types.ACTION_PAUSE:
       state = {
@@ -31,6 +33,7 @@ export function reducer(_state, action) {
         offset: currentOffset(state),
         startTime: Date.now(),
         desiredPlaySpeed: 0,
+        videoPlaySpeed: state.videoPlaySpeed == null ? null : 0,
       };
       break;
     case Types.ACTION_PLAY:
@@ -61,6 +64,18 @@ export function reducer(_state, action) {
         startTime: Date.now(),
       };
       break;
+    case Types.ACTION_VIDEO_PROGRESS:
+      if (action.fullname === state.currentRoute?.fullname
+        && (action.speed === null || action.seekRequest === state.seekRequest)
+        && Number.isFinite(action.offset)) {
+        state = {
+          ...state,
+          offset: action.offset,
+          videoPlaySpeed: action.speed,
+          startTime: Date.now(),
+        };
+      }
+      break;
     case Types.ACTION_RESET:
       state = {
         ...state,
@@ -68,6 +83,8 @@ export function reducer(_state, action) {
         isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
+        videoPlaySpeed: state.videoPlaySpeed == null ? null : 0,
+        seekRequest: { offset: 0 },
       };
       break;
     default:
@@ -85,8 +102,8 @@ export function reducer(_state, action) {
     }
   }
 
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
+  // The map-only clock wraps here; media playback handles its own loop.
+  if (state.videoPlaySpeed == null && state.offset !== null && state.loop?.duration > 0) {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
     const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
     loopOffset = state.loop.startTime;
@@ -141,6 +158,18 @@ export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
+  };
+}
+
+// Anchor display time to the media position. A null speed releases the video
+// when switching to map-only playback. Ignore events from old routes or seeks.
+export function videoProgress(fullname, offset, speed, seekRequest) {
+  return {
+    type: Types.ACTION_VIDEO_PROGRESS,
+    fullname,
+    offset,
+    speed,
+    seekRequest,
   };
 }
 

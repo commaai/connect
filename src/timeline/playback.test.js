@@ -1,6 +1,6 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek, selectLoop, videoProgress } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -24,6 +24,31 @@ function newNow() {
 }
 
 describe('playback', () => {
+  it('uses media speed and ignores progress from an old route or seek', () => {
+    newNow();
+    let state = { ...makeDefaultStruct(), currentRoute: { fullname: 'route' }, seekRequest: null };
+    state = reducer(state, videoProgress('route', 5000, 0, null));
+    mostRecentNow += 1000;
+    expect(currentOffset(state)).toBe(5000);
+    state = reducer(state, videoProgress('route', 5500, 2, null));
+    mostRecentNow += 100;
+    expect(currentOffset(state)).toBe(5700);
+
+    state = reducer(state, seek(10000));
+    const request = state.seekRequest;
+    state = reducer(state, videoProgress('route', 6000, 2, null));
+    expect(state.offset).toBe(10000);
+    state = reducer(state, videoProgress('old route', 6000, 2, request));
+    expect(state.offset).toBe(10000);
+    state = reducer(state, videoProgress('route', 10000, 0, request));
+    mostRecentNow += 1000;
+    expect(currentOffset(state)).toBe(10000);
+
+    state = reducer(state, videoProgress('route', 10000, null));
+    mostRecentNow += 1000;
+    expect(currentOffset(state)).toBe(11000);
+  });
+
   it('has playback controls', async () => {
     newNow();
     let state = makeDefaultStruct();
