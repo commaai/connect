@@ -14,7 +14,7 @@ function parseRange(start, end, scale) {
 // /:dongleId/:logId                drive
 // /:dongleId/:logId/:start/:end    drive zoomed to a range, in seconds
 // /:dongleId/:start/:end           legacy timestamp range, in milliseconds
-// ?settings=:dongleId              device settings over any page, read in explorer.jsx
+// ?settings=:dongleId              device settings over any page, see settingsUrl
 export function parseUrl(pathname) {
   const [dongleId, ...parts] = pathname.split('/').filter(Boolean);
   if (!dongleIdRegex.test(dongleId)) {
@@ -36,11 +36,22 @@ export function parseUrl(pathname) {
 
 export function driveUrl(route, start, end) {
   const path = `/${route.dongle_id}/${route.log_id}`;
-  if (start == null || end == null || (start === 0 && end === route.duration)) {
+  // within a second of the whole drive is the whole drive
+  if (start == null || end == null || (start < 1000 && end > route.duration - 1000)) {
     return path;
   }
   // whole seconds, rounded outwards within the drive so a range never collapses
   const endSeconds = Math.min(Math.ceil(end / 1000), Math.floor(route.duration / 1000));
   const startSeconds = Math.min(Math.floor(start / 1000), endSeconds - 1);
   return `${path}/${startSeconds}/${endSeconds}`;
+}
+
+export function settingsUrl({ pathname, search }, dongleId) {
+  const query = new URLSearchParams(search);
+  if (dongleId) {
+    query.set('settings', dongleId);
+  } else {
+    query.delete('settings');
+  }
+  return query.toString() ? `${pathname}?${query}` : pathname;
 }

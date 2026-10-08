@@ -29,13 +29,13 @@ export function checkRoutesData() {
       return routesRequestPromise;
     }
     console.debug('We need to update the segment metadata...');
-    const { dongleId, limit: fetchLimit } = state;
+    const { dongleId, limit: fetchLimit, selectedRouteId } = state;
     const fetchRange = state.filter;
 
     // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.selectedRouteId) {
+    if (selectedRouteId) {
       routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
+        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${selectedRouteId}`),
         dongleId,
       };
     } else {
@@ -97,8 +97,9 @@ export function checkRoutesData() {
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
-        start: fetchRange.start,
-        end: fetchRange.end,
+        // a single drive opened by its url is not the drive list
+        start: selectedRouteId ? null : fetchRange.start,
+        end: selectedRouteId ? null : fetchRange.end,
         routes,
       });
 
@@ -117,10 +118,11 @@ export function checkRoutesData() {
 
 export function checkLastRoutesData() {
   return (dispatch, getState) => {
-    const { limit, routes, filter } = getState();
+    const state = getState();
+    const { limit, routes, filter } = state;
 
     // if current routes are fewer than limit, that means the last fetch already fetched all the routes
-    if (routes && routes.length < limit) {
+    if (hasRoutesData(state) && routes.length < limit) {
       return
     }
 

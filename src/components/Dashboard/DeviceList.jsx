@@ -13,6 +13,7 @@ import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
+import { settingsUrl } from '../../url';
 
 import AddDevice from './AddDevice';
 
@@ -96,7 +97,7 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.props.dispatch(push({ search: `?settings=${dongleId}` }));
+    this.props.dispatch(push(settingsUrl(this.props.location, dongleId)));
   }
 
   async onVisible() {
@@ -201,6 +202,7 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

@@ -21,7 +21,7 @@ import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
-import { parseUrl } from '../url';
+import { parseUrl, settingsUrl } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -194,7 +194,8 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, page, selectedRouteId, settingsDongleId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, location, page, selectedRouteId, settingsDongleId,
+      pathname, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -246,11 +247,6 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
-            <DeviceSettingsModal
-              isOpen={ Boolean(settingsDongleId) }
-              dongleId={ settingsDongleId }
-              onClose={ () => dispatch(push({ search: '' })) }
-            />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -271,6 +267,11 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        <DeviceSettingsModal
+          isOpen={ Boolean(settingsDongleId) }
+          dongleId={ settingsDongleId }
+          onClose={ () => dispatch(push(settingsUrl(location, null))) }
+        />
       </div>
     );
   }
@@ -279,6 +280,7 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  location: state.router.location,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,

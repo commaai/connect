@@ -258,7 +258,7 @@ class DeviceSettingsModal extends Component {
   render() {
     const { classes, device } = this.props;
     const commacare = device?.commacare;
-    if (!device) {
+    if (!device || !(device.is_owner || this.props.profile?.superuser)) {
       return null;
     }
 
@@ -438,6 +438,7 @@ const stateToProps = (state, ownProps) => {
   return {
     subscription: state.subscription,
     device,
+    profile: state.profile,
   };
 };
 

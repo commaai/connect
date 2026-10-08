@@ -334,9 +334,28 @@ describe('whole-app behavior', () => {
     expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
   });
 
-  test('settings URL opens from a cold entry', async () => {
-    await renderApp(`/${FIRST}?settings=${FIRST}`);
+  test.each([['dashboard', ''], ['stream', '/stream']])('settings URL opens over the %s from a cold entry', async (_name, page) => {
+    await renderApp(`/${FIRST}${page}?settings=${FIRST}`);
     expect(await screen.findByDisplayValue('Zulu')).toBeVisible();
+  });
+
+  test('settings URL does not open for a shared device', async () => {
+    await renderApp(`/${SHARED}?settings=${SHARED}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('closing a drive opened by its URL shows the whole drive list', async () => {
+    vi.stubGlobal('IntersectionObserver', class {
+      constructor(callback) { this.callback = callback; }
+      observe() { this.callback([{ isIntersecting: true }]); }
+      disconnect() {}
+      unobserve() {}
+    });
+    await renderApp(`/${FIRST}/${LOG}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
   });
 
   test('navigating between pages reuses the loaded routes', async () => {

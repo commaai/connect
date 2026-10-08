@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { driveUrl, parseUrl } from './url';
+import { driveUrl, parseUrl, settingsUrl } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -29,6 +29,7 @@ describe('URL pathname helpers', () => {
   it.each([
     ['whole drive', [], `/${DONGLE}/${LOG}`],
     ['full range', [0, 60500], `/${DONGLE}/${LOG}`],
+    ['nearly full range', [400, 60200], `/${DONGLE}/${LOG}`],
     ['range', [10000, 20000], `/${DONGLE}/${LOG}/10/20`],
     ['zero-start range', [0, 20000], `/${DONGLE}/${LOG}/0/20`],
     ['short range', [10100, 10900], `/${DONGLE}/${LOG}/10/11`],
@@ -36,5 +37,14 @@ describe('URL pathname helpers', () => {
     ['range in the last partial second', [60100, 60500], `/${DONGLE}/${LOG}/59/60`],
   ])('driveUrl for a %s', (_name, range, expected) => {
     expect(driveUrl(route, ...range)).toBe(expected);
+  });
+
+  it.each([
+    ['/d', '', 'x', '/d?settings=x'],
+    ['/d/prime', '?stripe_success=1', 'x', '/d/prime?stripe_success=1&settings=x'],
+    ['/d/prime', '?stripe_success=1&settings=x', null, '/d/prime?stripe_success=1'],
+    ['/d', '?settings=x', null, '/d'],
+  ])('settingsUrl(%s%s, %s)', (pathname, search, dongleId, expected) => {
+    expect(settingsUrl({ pathname, search }, dongleId)).toBe(expected);
   });
 });
