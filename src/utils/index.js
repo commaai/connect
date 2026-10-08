@@ -176,16 +176,9 @@ export function segmentAtOffset(offset) {
   return Math.floor(offset / (60*1000));
 }
 
-function offsetOrCurrent(route, offset) {
-  if (offset !== undefined) {
-    return offset;
-  }
-  return getCurrentRouteMs(route.videoStartOffset);
-}
-
-export function getSegmentNumber(route, offset) {
+export function getSegmentNumber(route, offset = getCurrentRouteMs(route?.videoStartOffset)) {
   if (!route) {
     return null;
   }
-  return segmentAtOffset(offsetOrCurrent(route, offset));
+  return segmentAtOffset(offset);
 }

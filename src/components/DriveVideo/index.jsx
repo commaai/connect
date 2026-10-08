@@ -43,22 +43,26 @@ function VideoOverlay({ loading, error }) {
 }
 
 function usePlaybackError(src) {
-  const [failedSrc, setFailedSrc] = useState(null);
-  const [errorKind, setErrorKind] = useState(null);
+  const [failure, setFailure] = useState(null);
 
   const handleError = useCallback(({ kind }) => {
-    setFailedSrc(src);
-    setErrorKind(kind);
+    setFailure((current) => {
+      const isSameFailure = current?.src === src && current.kind === kind;
+      if (isSameFailure) {
+        return current;
+      }
+      return { src, kind };
+    });
   }, [src]);
 
-  const clearError = useCallback(() => setFailedSrc(null), []);
+  const clearError = useCallback(() => setFailure(null), []);
   useVideoEvent('playing', clearError);
 
-  const currentSourceFailed = failedSrc !== null && failedSrc === src;
+  const currentSourceFailed = failure !== null && failure.src === src;
   if (!currentSourceFailed) {
     return { error: null, handleError };
   }
-  return { error: ERROR_MESSAGES[errorKind], handleError };
+  return { error: ERROR_MESSAGES[failure.kind], handleError };
 }
 
 function loopContainsVideo(video, videoStartOffset, loopStart, loopDuration) {
