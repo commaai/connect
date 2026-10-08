@@ -1,6 +1,8 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import {
+  bufferVideo, pause, play, reducer, seek, selectLoop, setVideoError, setVideoSeeking,
+} from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -67,6 +69,29 @@ describe('playback', () => {
     expect(state.offset).toEqual(123);
     expect(state.startTime).toEqual(Date.now());
     expect(currentOffset(state)).toEqual(123);
+    // the transport controller picks the intent up by nonce
+    expect(state.seekRequest.offset).toEqual(123);
+    const firstNonce = state.seekRequest.nonce;
+    state = reducer(state, seek(456));
+    expect(state.seekRequest.offset).toEqual(456);
+    expect(state.seekRequest.nonce).toEqual(firstNonce + 1);
+  });
+
+  it('tracks video error and seeking state', () => {
+    newNow();
+    let state = makeDefaultStruct();
+
+    state = reducer(state, setVideoError('Unable to load video'));
+    expect(state.videoError).toEqual('Unable to load video');
+
+    state = reducer(state, setVideoError(null));
+    expect(state.videoError).toEqual(null);
+
+    state = reducer(state, setVideoSeeking(true));
+    expect(state.isSeekingVideo).toEqual(true);
+
+    state = reducer(state, setVideoSeeking(false));
+    expect(state.isSeekingVideo).toEqual(false);
   });
 
   it('should clamp loop when seeked after loop end time', () => {
@@ -85,6 +110,8 @@ describe('playback', () => {
     state = reducer(state, seek(3000));
     expect(state.loop.startTime).toEqual(1000);
     expect(state.offset).toEqual(2000);
+    // the controller intent carries the clamped offset
+    expect(state.seekRequest.offset).toEqual(2000);
   });
 
   it('should clamp loop when seeked before loop start time', () => {

@@ -24,6 +24,10 @@ export function reducer(_state, action) {
           state.offset = loopOffset + state.loop.duration;
         }
       }
+
+      // intent for the transport controller: applied to the video element once,
+      // identified by nonce so rapid seeks never replay a stale one
+      state.seekRequest = { offset: state.offset, nonce: action.nonce };
       break;
     case Types.ACTION_PAUSE:
       state = {
@@ -68,6 +72,19 @@ export function reducer(_state, action) {
         isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
+        seekRequest: null,
+      };
+      break;
+    case Types.ACTION_VIDEO_ERROR:
+      state = {
+        ...state,
+        videoError: action.error,
+      };
+      break;
+    case Types.ACTION_VIDEO_SEEKING:
+      state = {
+        ...state,
+        isSeekingVideo: action.seeking,
       };
       break;
     default:
@@ -85,31 +102,22 @@ export function reducer(_state, action) {
     }
   }
 
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
-  }
-
+  // the transport controller traps the loop on the video element itself,
+  // and currentOffset() still traps for the no-video fallback below
   state.isBufferingVideo = Boolean(state.isBufferingVideo);
 
   return state;
 }
 
 // seek to a specific offset
+// the nonce lets the transport controller apply each seek exactly once
+let seekNonce = 0;
 export function seek(offset) {
+  seekNonce += 1;
   return {
     type: Types.ACTION_SEEK,
     offset,
+    nonce: seekNonce,
   };
 }
 
@@ -141,6 +149,22 @@ export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
+  };
+}
+
+// report a fatal video error, or null to clear it
+export function setVideoError(error) {
+  return {
+    type: Types.ACTION_VIDEO_ERROR,
+    error,
+  };
+}
+
+// report whether the video is actively seeking (drives seek feedback UI)
+export function setVideoSeeking(seeking) {
+  return {
+    type: Types.ACTION_VIDEO_SEEKING,
+    seeking,
   };
 }
 
