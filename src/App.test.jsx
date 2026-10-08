@@ -268,6 +268,29 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
   });
 
+  test('settings URL opens over the dashboard and browser history restores it', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByText('Mock recent route start')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('opening settings from a drive and going back reuses the loaded drive', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    const fetches = () => mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    const before = fetches();
+    act(() => history.push(`/${FIRST}/settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goBack());
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(fetches()).toBe(before);
+  });
+
   test('stream close and browser history restore its view', async () => {
     const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
     const { history } = await renderApp(`/${FIRST}/stream`, { devices: online });

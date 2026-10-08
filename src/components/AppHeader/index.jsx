@@ -8,6 +8,7 @@ import { Typography, IconButton, AppBar } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { selectDevice } from '../../actions';
+import { getPage } from '../../url';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
@@ -187,7 +188,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   filter: state.filter,
   profile: state.profile,
-  primeNav: state.primeNav,
+  primeNav: getPage(state) === 'prime',
   pathname: state.router.location.pathname,
 });
 

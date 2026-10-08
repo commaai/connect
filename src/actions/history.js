@@ -1,61 +1,45 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { parseUrl, urlFor } from '../url';
+import { applyDevice, applyTimelineRange, checkRoutesData } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
-  }
+// The URL is the source of truth for navigation. Navigation actions only change the URL,
+// and every location change is applied to the store here.
+function applyUrl(pathname) {
+  return (dispatch, getState) => {
+    const { dongleId, logId, zoom } = parseUrl(pathname);
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+    const deviceChanged = dongleId && dongleId !== getState().dongleId;
+    if (deviceChanged) {
+      dispatch(applyDevice(dongleId, false));
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
+    dispatch(applyTimelineRange(logId, zoom?.start ?? null, zoom?.end ?? null));
 
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
+    if (deviceChanged) {
+      dispatch(checkRoutesData());
+    }
 
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
+    if (zoom && !logId) {
+      api.routes.getRoutesSegments(dongleId, zoom.start, zoom.end).then((routesData) => {
+        if (routesData?.length > 0 && getState().router.location.pathname === pathname) {
+          const routeLogId = routesData[0].fullname.split('|')[1];
+          dispatch(replace(urlFor({ dongleId, logId: routeLogId })));
         }
       }).catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);
       });
     }
+  };
+}
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
+  if (!action) {
+    return;
+  }
 
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  next(action); // must be first, so the router state holds the new location
+  if (action.type === LOCATION_CHANGE) {
+    dispatch(applyUrl(action.payload.location.pathname));
   }
 };

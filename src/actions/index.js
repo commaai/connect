@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { urlFor } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -142,75 +143,68 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
+function driveUrl(state, log_id, start, end) {
+  const route = state.routes?.find((candidate) => candidate.log_id === log_id);
+  const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+  return urlFor({ dongleId: state.dongleId, logId: log_id, zoom: wholeDrive ? null : { start, end } });
 }
 
-function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
+function navigate(path) {
+  return (dispatch, getState) => {
+    if (currentPathname(getState()) !== path) {
+      dispatch(push(path));
+    }
+  };
+}
+
+function updateTimeline(state, dispatch, start, end) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
   }
-
-  if (allowPathChange) {
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
-    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
-
-    if (currentPathname(state) !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
-  }
 }
 
-export function popTimelineRange(log_id, allowPathChange = true) {
+export function popTimelineRange(log_id) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.zoom.previous) {
-      dispatch({
-        type: Types.TIMELINE_POP_SELECTION,
-      });
-
       const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+      dispatch(navigate(driveUrl(state, log_id, start, end)));
     }
   };
 }
 
-export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
+export function pushTimelineRange(log_id, start, end) {
+  return (dispatch, getState) => {
+    dispatch(navigate(driveUrl(getState(), log_id, start, end)));
+  };
+}
+
+// Applies a drive range from the URL. Navigate with pushTimelineRange and popTimelineRange instead.
+export function applyTimelineRange(log_id, start, end) {
   return (dispatch, getState) => {
     const state = getState();
+    const path = driveUrl(state, log_id, start, end);
+    if (path === driveUrl(state, state.selectedRouteId, state.zoom?.start, state.zoom?.end)) {
+      return;
+    }
 
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
+    const previous = state.zoom?.previous;
+    if (previous && log_id === state.selectedRouteId && path === driveUrl(state, log_id, previous.start, previous.end)) {
+      dispatch({ type: Types.TIMELINE_POP_SELECTION });
+      updateTimeline(state, dispatch, previous.start, previous.end);
+    } else {
       dispatch({
         type: Types.TIMELINE_PUSH_SELECTION,
         log_id,
         start,
         end,
       });
+      updateTimeline(state, dispatch, start, end);
     }
-
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
   };
-
 }
-
 
 export function primeGetSubscription(dongleId, subscription) {
   return {
@@ -268,7 +262,12 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
+export function selectDevice(dongleId) {
+  return navigate(urlFor({ dongleId }));
+}
+
+// Applies a device from the URL. Navigate with selectDevice instead.
+export function applyDevice(dongleId, fetchRoutes = true) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
@@ -289,7 +288,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
       dongleId,
     });
 
-    dispatch(pushTimelineRange(null, null, null, false));
+    dispatch(applyTimelineRange(null, null, null));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
@@ -298,62 +297,24 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     if (fetchRoutes) {
       dispatch(checkLastRoutesData());
     }
+  };
+}
 
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
+function navigateDevicePage(page) {
+  return (dispatch, getState) => {
+    const { dongleId } = getState();
+    if (dongleId) {
+      dispatch(navigate(urlFor({ dongleId, page })));
     }
   };
 }
 
-export function primeNav(nav, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.primeNav !== nav) {
-      dispatch({
-        type: Types.ACTION_PRIME_NAV,
-        primeNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
-  };
+export function primeNav(nav) {
+  return navigateDevicePage(nav ? 'prime' : 'dashboard');
 }
 
-export function streamNav(nav, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.streamNav !== nav) {
-      dispatch({
-        type: Types.ACTION_STREAM_NAV,
-        streamNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
-  };
+export function streamNav(nav) {
+  return navigateDevicePage(nav ? 'stream' : 'dashboard');
 }
 
 export function fetchSharedDevice(dongleId) {

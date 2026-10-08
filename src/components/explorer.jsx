@@ -13,6 +13,7 @@ import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
@@ -20,6 +21,7 @@ import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { getPage, urlFor } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -198,7 +200,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, page, selectedRouteId, pathname, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -224,7 +226,7 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
-        { bodyTeleopOpen ? (
+        { page === 'stream' ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
           <>
@@ -249,6 +251,14 @@ class ExplorerApp extends Component {
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
+            { page === 'settings' && (
+              <DeviceSettingsModal
+                key={ dongleId }
+                isOpen
+                dongleId={ dongleId }
+                onClose={ () => dispatch(push(urlFor({ dongleId }))) }
+              />
+            ) }
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
@@ -283,7 +293,7 @@ const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
   limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
+  page: getPage(state),
   profile: state.profile,
 });
 
