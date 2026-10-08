@@ -357,12 +357,14 @@ class DriveMap extends Component {
             <CircularProgress style={{ color: '#fff' }} thickness={4} size={32} />
           </div>
         )}
-        {this.state.mapReady && this.state.offCenter && (
+        {this.state.mapReady && (
           <button
             type="button"
             aria-label="Center map"
+            aria-hidden={!this.state.offCenter}
+            tabIndex={this.state.offCenter ? 0 : -1}
             onClick={this.recenter}
-            className="absolute top-3 right-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/75 text-white ring-1 ring-white/15 transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-black/90"
+            className={`absolute top-3 right-3 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white/70 ring-1 ring-white/10 backdrop-blur-md transition-[opacity,scale,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] motion-reduce:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white/25 [@media(hover:hover)_and_(pointer:fine)]:hover:text-white ${this.state.offCenter ? 'scale-100 opacity-100' : 'pointer-events-none scale-95 opacity-0'}`}
           >
             <MyLocation className="h-[22px] w-[22px]" />
           </button>
