@@ -376,6 +376,21 @@ describe('whole-app behavior', () => {
     expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(routeRequests);
   });
 
+  test('settings opens another device\'s Prime page in one navigation', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`, { width: 1440 });
+    fireEvent.click(screen.getAllByRole('button', { name: 'device settings' })[0]);
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Alpha');
+    expect(store.getState().dongleId).toBe(FIRST);
+    const historyLength = history.length;
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Prime settings' })));
+    expect(history.location.pathname).toBe(`/${SECOND}/prime`);
+    expect(history.length).toBe(historyLength + 1);
+    expect(store.getState().dongleId).toBe(SECOND);
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    await act(async () => history.goBack());
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+  });
+
   test('changing a range preserves the player while changing a drive replaces its local media state', async () => {
     const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
     const player = await screen.findByTestId('video-player');
