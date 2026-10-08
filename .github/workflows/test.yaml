@@ -23,6 +23,22 @@ jobs:
       - name: Run unit tests
         run: bun run test
 
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run test:browser --project=chromium --project=android
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: video-playback-traces
+          path: test-results/
+
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 1

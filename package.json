@@ -9,6 +9,7 @@
     "serve": "vite preview",
     "lint": "oxlint src",
     "test": "vitest run",
+    "test:browser": "playwright test",
     "test:watch": "vitest",
     "test-coverage": "vitest run --coverage"
   },
@@ -48,6 +49,7 @@
     "redux-thunk": "^2.4.2"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4",
     "@testing-library/jest-dom": "^6.6.3",

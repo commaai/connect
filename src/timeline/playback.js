@@ -14,7 +14,7 @@ export function reducer(_state, action) {
       state = {
         ...state,
         offset: action.offset,
-        startTime: Date.now(),
+        seekRevision: (state.seekRevision || 0) + 1,
       };
 
       if (loopOffset !== null) {
@@ -25,11 +25,15 @@ export function reducer(_state, action) {
         }
       }
       break;
+    case Types.ACTION_VIDEO_PROGRESS:
+      if (action.route === state.currentRoute?.fullname && action.seekRevision === (state.seekRevision || 0)) {
+        state.offset = action.offset;
+      }
+      break;
     case Types.ACTION_PAUSE:
       state = {
         ...state,
         offset: currentOffset(state),
-        startTime: Date.now(),
         desiredPlaySpeed: 0,
       };
       break;
@@ -39,7 +43,6 @@ export function reducer(_state, action) {
           ...state,
           offset: currentOffset(state),
           desiredPlaySpeed: action.speed,
-          startTime: Date.now(),
         };
       }
       break;
@@ -58,7 +61,6 @@ export function reducer(_state, action) {
         ...state,
         isBufferingVideo: action.buffering,
         offset: currentOffset(state),
-        startTime: Date.now(),
       };
       break;
     case Types.ACTION_RESET:
@@ -67,7 +69,7 @@ export function reducer(_state, action) {
         desiredPlaySpeed: 1,
         isBufferingVideo: true,
         offset: 0,
-        startTime: Date.now(),
+        seekRevision: (state.seekRevision || 0) + 1,
       };
       break;
     default:
@@ -85,19 +87,13 @@ export function reducer(_state, action) {
     }
   }
 
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
+  // A new clip or late first-frame metadata must put playback inside its
+  // bounds. Keep observations independent of this explicit seek command.
+  if (state.loop && state.offset != null
+    && (state.loop.startTime !== _state.loop?.startTime || state.loop.duration !== _state.loop?.duration)
+    && (state.offset < state.loop.startTime || state.offset >= state.loop.startTime + state.loop.duration)) {
+    state.offset = state.loop.startTime;
+    state.seekRevision = (state.seekRevision || 0) + 1;
   }
 
   state.isBufferingVideo = Boolean(state.isBufferingVideo);
@@ -148,4 +144,9 @@ export function resetPlayback() {
   return {
     type: Types.ACTION_RESET,
   };
+}
+
+// Observations do not issue seek commands back to the player.
+export function videoProgress(route, offset, seekRevision) {
+  return { type: Types.ACTION_VIDEO_PROGRESS, route, offset, seekRevision };
 }
