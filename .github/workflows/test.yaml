@@ -23,6 +23,25 @@ jobs:
       - name: Run unit tests
         run: bun run test
 
+  navigation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run test:e2e
+      - run: bun run build:production
+        env:
+          E2E: '1'
+      - run: bun run bundle-size
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: navigation-failures
+          path: test-results/
+
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 1
