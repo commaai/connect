@@ -3,7 +3,10 @@ const LOG_ID = /^[0-9a-f-]{20}$/;
 const NUMBER = /^\d+(\.\d+)?$/;
 
 export const DEVICE_PAGES = ['prime', 'stream'];
-export const MODALS = ['settings', 'pair', 'filter'];
+export const MODALS = [
+  'settings', 'pair', 'filter', 'files', 'info', 'uploads', 'settings-uploads',
+  'unpair', 'clips', 'clip', 'delete-clip', 'switch-prime', 'cancel-prime',
+];
 
 const emptyNav = {
   page: 'home',
@@ -12,6 +15,7 @@ const emptyNav = {
   zoom: null,
   legacyRange: null,
   modal: null,
+  clip: null,
 };
 
 function range(start, end, scale) {
@@ -41,11 +45,14 @@ function parsePath(parts) {
 }
 
 export function parseLocation({ pathname, search = '' }) {
-  const modal = new URLSearchParams(search).get('modal');
+  const query = new URLSearchParams(search);
+  const modal = query.get('modal');
+  const clip = query.get('clip');
   return {
     ...emptyNav,
     ...parsePath(pathname.split('/').filter(Boolean)),
     modal: MODALS.includes(modal) ? modal : null,
+    clip: ['clip', 'delete-clip'].includes(modal) && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}$/.test(clip || '') ? clip : null,
   };
 }
 
@@ -68,6 +75,8 @@ export function urlFor(nav) {
   const query = new URLSearchParams(nav.search);
   if (nav.modal) query.set('modal', nav.modal);
   else query.delete('modal');
+  if (['clip', 'delete-clip'].includes(nav.modal) && nav.clip) query.set('clip', nav.clip);
+  else query.delete('clip');
   const search = query.toString();
   return search ? `${path}?${search}` : path;
 }

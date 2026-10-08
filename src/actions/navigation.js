@@ -36,6 +36,10 @@ export function selectDrive(logId, start = null, end = null) {
   };
 }
 
-export const openModal = (modal) => (dispatch, getState) => dispatch(navigate({ ...getState().nav, modal }));
+export const openModal = (modal, clip = null) => (dispatch, getState) => dispatch(navigate({ ...getState().nav, modal, clip }));
 
-export const closeModal = () => (dispatch, getState) => dispatch(navigateBack({ ...getState().nav, modal: null }));
+export const closeModal = () => (dispatch, getState) => {
+  const nav = getState().nav;
+  const parent = { uploads: 'files', 'settings-uploads': 'settings', unpair: 'settings', clip: 'clips', 'delete-clip': 'clips' };
+  dispatch(navigateBack({ ...nav, modal: parent[nav.modal] || null, clip: null }));
+};

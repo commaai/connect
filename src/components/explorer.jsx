@@ -267,7 +267,7 @@ class ExplorerApp extends Component {
         ) }
         <AddDevice />
         <DeviceSettingsModal
-          isOpen={ nav.modal === 'settings' }
+          isOpen={ ['settings', 'settings-uploads', 'unpair'].includes(nav.modal) }
           dongleId={ dongleId }
           onClose={ () => dispatch(closeModal()) }
         />

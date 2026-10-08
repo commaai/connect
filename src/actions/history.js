@@ -3,7 +3,7 @@ import { LOCATION_CHANGE } from 'connected-react-router';
 import { api } from '../api/backend';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import { webrtcConnectionManager } from '../utils/webrtc';
-import { checkRoutesData, fetchDeviceOnline, primeFetchSubscription } from './index';
+import { checkRoutesData, fetchDeviceOnline, fetchSharedDevice, primeFetchSubscription } from './index';
 import { navigate } from './navigation';
 
 const ROUTE_PAGES = ['dashboard', 'drive'];
@@ -20,7 +20,11 @@ function switchDevice(state, dispatch) {
   const { dongleId, device, profile } = state;
   // tear down existing webrtc connection
   webrtcConnectionManager.disconnect();
-  if ((device && !device.shared) || profile?.superuser) {
+  if (!device) {
+    dispatch(fetchSharedDevice(dongleId));
+    return;
+  }
+  if (!device.shared || profile?.superuser) {
     dispatch(primeFetchSubscription(dongleId, device));
     dispatch(fetchDeviceOnline(dongleId));
   }

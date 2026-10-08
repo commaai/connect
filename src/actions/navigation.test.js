@@ -69,6 +69,11 @@ describe('selectDrive', () => {
 });
 
 describe('modals', () => {
+  it('returns from a direct clip link to the clip list', () => {
+    const from = `/${DONGLE}?modal=clip&clip=test.mp4`;
+    expect(run(closeModal(), from)).toEqual([push(`/${DONGLE}?modal=clips`, { from })]);
+  });
+
   it('preserves query parameters when opening a modal', () => {
     const from = `/${DONGLE}/${LOG}?share_sig=test&share_exp=123`;
     expect(run(openModal('pair'), from)).toEqual([

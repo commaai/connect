@@ -8,7 +8,7 @@ const DATED_LOG = '2026-08-06--12-00-00';
 const DEMO_LOG = '00000000--0000000001';
 
 const nav = (fields) => ({
-  page: 'home', dongleId: null, logId: null, zoom: null, legacyRange: null, modal: null, ...fields,
+  page: 'home', dongleId: null, logId: null, zoom: null, legacyRange: null, modal: null, clip: null, ...fields,
 });
 
 describe('parseLocation', () => {
@@ -43,6 +43,7 @@ describe('parseLocation', () => {
     ['?modal=settings', 'settings'],
     ['?modal=pair', 'pair'],
     ['?modal=filter', 'filter'],
+    ...['files', 'info', 'uploads', 'settings-uploads', 'unpair', 'clips', 'clip', 'delete-clip', 'switch-prime', 'cancel-prime'].map((modal) => [`?modal=${modal}`, modal]),
     ['?modal=unknown', null],
     ['?r=/somewhere', null],
   ])('reads the modal from %s', (search, modal) => {
@@ -51,6 +52,16 @@ describe('parseLocation', () => {
 });
 
 describe('urlFor', () => {
+  it.each(['test.mp4', 'camera-1_2.mp4'])('round-trips a clip filename: %s', (clip) => {
+    const url = urlFor(nav({ page: 'dashboard', dongleId: DONGLE, modal: 'clip', clip }));
+    const parsed = new URL(url, 'https://example.com');
+    expect(parseLocation(parsed)).toMatchObject({ modal: 'clip', clip });
+  });
+
+  it.each(['../secret', '/absolute', 'a/b.mp4', ''])('rejects invalid clip identifiers: %s', (clip) => {
+    expect(parseLocation({ pathname: `/${DONGLE}`, search: `?modal=clip&clip=${encodeURIComponent(clip)}` }).clip).toBeNull();
+  });
+
   it('keeps a subsecond selection nonempty', () => {
     const url = urlFor(nav({ page: 'drive', dongleId: DONGLE, logId: LOG, zoom: { start: 10100, end: 10900 } }));
     expect(parseLocation({ pathname: url }).zoom).toEqual({ start: 10000, end: 11000 });

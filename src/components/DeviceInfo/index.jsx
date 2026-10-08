@@ -8,7 +8,7 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
 import { analyticsEvent, fetchDeviceNotCar } from '../../actions';
-import { navigate } from '../../actions/navigation';
+import { navigate, openModal, closeModal } from '../../actions/navigation';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
@@ -154,7 +154,6 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
-      clipMenu: null,
       clipsSupported: false,
     };
 
@@ -191,7 +190,6 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
-        clipMenu: null,
         clipsSupported: false,
       });
       this.checkClipsSupport();
@@ -331,10 +329,10 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
+          open={this.state.clipsSupported && ['clips', 'clip', 'delete-clip'].includes(this.props.modal)}
           dongleId={this.props.dongleId}
-          anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          anchorEl={this.clipButton}
+          onClose={() => this.props.dispatch(closeModal())}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -413,8 +411,9 @@ class DeviceInfo extends Component {
           <span className="inline-flex">
             <button
               className={`${classes.button} ${classes.carBattery}`}
+              ref={(element) => { this.clipButton = element; }}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              onClick={() => this.props.dispatch(openModal('clips'))}
               disabled={offline}
             >
               <ContentCut />
@@ -518,6 +517,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,
+  modal: state.nav.modal,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));

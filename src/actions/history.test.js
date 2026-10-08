@@ -13,6 +13,7 @@ vi.mock('../api/backend', () => ({
   api: {
     auth: { isAuthenticated: vi.fn() },
     routes: { getRoutesSegments: vi.fn() },
+    devices: { fetchDevice: vi.fn(async (dongle_id) => ({ dongle_id, shared: true })) },
   },
 }));
 vi.mock('../utils/webrtc', () => ({ webrtcConnectionManager: { disconnect: vi.fn() } }));

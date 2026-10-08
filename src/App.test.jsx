@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { clipDevice } from './api/clips';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -16,6 +17,16 @@ vi.mock('@commaai/my-comma-auth', () => ({
   },
   config: { AUTH_PATH: '/auth/' },
   storage: { setCommaAccessToken: vi.fn() },
+}));
+vi.mock('./api/clips', () => ({
+  deviceSupportsClips: vi.fn(async () => Boolean(mocks.options.clips)),
+  clipDevice: {
+    getClipState: vi.fn(async () => ({ clips: mocks.options.clips || [], cameras: {} })),
+    hasClipBlob: vi.fn(async () => true),
+    getClipUrl: vi.fn(async () => 'blob:test-clip'),
+    createClip: vi.fn(),
+    deleteClip: vi.fn(),
+  },
 }));
 vi.mock('./utils/navigation', () => ({ hardNavigate: mocks.hardNavigate }));
 vi.mock('./utils/turn', () => ({ fetchTurnCredentials: vi.fn(async () => null) }));
@@ -110,16 +121,21 @@ async function mockFetch(input, init = {}) {
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
   }
+  if (url.pathname.endsWith('/athena_offline_queue')) return json([]);
   if (url.pathname.endsWith('/location')) return json({ error: 'no_segments_uploaded' });
   if (url.pathname.endsWith('/stats')) return json(null);
   if (/^\/v1\.1\/devices\/[a-f0-9]{16}\/$/.test(url.pathname)) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const request = JSON.parse(init.body || '{}');
+    return json({ jsonrpc: '2.0', id: 0, result: request.method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -151,6 +167,7 @@ describe('whole-app behavior', () => {
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
+    URL.revokeObjectURL = vi.fn();
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
     Object.defineProperty(window, 'visualViewport', { value: { height: 800 }, configurable: true });
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, value: vi.fn(() => null) });
@@ -163,6 +180,8 @@ describe('whole-app behavior', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
+    vi.mocked(clipDevice.getClipUrl).mockClear();
+    vi.mocked(clipDevice.deleteClip).mockClear();
   });
 
   test('a pairing link opens over the stream page', async () => {
@@ -374,6 +393,125 @@ describe('whole-app behavior', () => {
     expect(screen.getByText('Start date:')).toBeVisible();
     expect(store.getState().routes).toBe(routes);
     expect(count()).toBe(requests);
+  });
+
+  test.each([
+    ['settings-uploads', 'Upload queue'],
+    ['unpair', 'Unpair device'],
+  ])('%s opens from a URL and returns to settings', async (modal, title) => {
+    const { history } = await renderApp(`/${FIRST}?modal=${modal}`);
+    expect(await screen.findByRole('heading', { name: title })).toBeVisible();
+    const dialog = screen.getByRole('heading', { name: title }).parentElement.parentElement;
+    fireEvent.click(within(dialog).getByRole('button', { name: modal === 'unpair' ? 'Cancel' : 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=settings'));
+    expect(screen.getByLabelText('Device name')).toHaveValue('Zulu');
+    expect(mocks.requests.some(({ method, url }) => method !== 'GET' && !url.includes('athena.comma.ai'))).toBe(false);
+  });
+
+  test('the drive upload queue opens from a link without losing the selected range', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20?modal=uploads`);
+    expect(await screen.findByRole('heading', { name: 'Upload queue' })).toBeVisible();
+    const route = store.getState().currentRoute;
+    const dialog = screen.getByRole('heading', { name: 'Upload queue' }).parentElement.parentElement;
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=files'));
+    expect(store.getState().currentRoute).toBe(route);
+    expect(store.getState().zoom).toEqual({ start: 10000, end: 20000 });
+  });
+
+  test.each(['unpair', 'settings-uploads', 'cancel-prime', 'switch-prime'])('shared devices cannot open %s', async (modal) => {
+    await renderApp(`/${SHARED}${modal.endsWith('prime') ? '/prime' : ''}?modal=${modal}`);
+    expect(screen.queryByRole('heading', { name: /Unpair device|Upload queue|Cancel prime subscription|Switch to .* plan/ })).not.toBeInTheDocument();
+  });
+
+  test.each([
+    ['switch-prime', 'Switch to Lite plan'],
+    ['cancel-prime', 'Cancel prime subscription'],
+  ])('%s opens without making a billing change and respects browser history', async (modal, title) => {
+    const options = {
+      devices: [{ ...devices[0], prime: true }],
+      subscription: { user_id: 'test-user', plan: 'data', amount: 2400, next_charge_at: 1900000000, subscribed_at: 1700000000 },
+    };
+    const { history } = await renderApp(`/${FIRST}/prime?modal=${modal}`, options);
+    expect(await screen.findByRole('heading', { name: title })).toBeVisible();
+    await act(async () => history.push(`/${FIRST}/prime`));
+    expect(screen.queryByRole('heading', { name: title })).not.toBeInTheDocument();
+    await act(async () => history.goBack());
+    expect(screen.getByRole('heading', { name: title })).toBeVisible();
+    expect(mocks.requests.filter(({ url, method }) => url.includes('billing.comma.ai') && method !== 'GET')).toEqual([]);
+  });
+
+  test.each(['', `/${LOG}/10/20`])('clip links open on device/drive pages (%s) and Back closes playback', async (suffix) => {
+    const options = {
+      devices: [{ ...devices[0], last_athena_ping: Math.floor(Date.now() / 1000) }],
+      clips: [{ filename: 'test.mp4', status: 'ready', camera: 'fcamera.hevc', source_start_time: 0, source_end_time: 10, speedup: 1, requested_at: 1 }],
+    };
+    const { history } = await renderApp(`/${FIRST}${suffix}?modal=clips`, options);
+    expect(await screen.findByText('CLIPS ON THIS DEVICE')).toBeVisible();
+    fireEvent.click(await screen.findByRole('button', { name: 'Play clip' }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=clip&clip=test.mp4'));
+    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
+    expect(clipDevice.getClipUrl).toHaveBeenCalledWith(FIRST, 'test.mp4', 1, expect.any(Function));
+    await act(async () => history.goBack());
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Close video' })).not.toBeInTheDocument());
+    expect(history.location.search).toBe('?modal=clips');
+    await act(async () => history.goForward());
+    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
+  });
+
+  test.each(['clip', 'delete-clip'])('a direct %s link resolves the filename without deleting it', async (modal) => {
+    const { history } = await renderApp(`/${FIRST}?modal=${modal}&clip=test.mp4`, {
+      devices: [{ ...devices[0], last_athena_ping: Math.floor(Date.now() / 1000) }],
+      clips: [{ filename: 'test.mp4', status: 'ready', camera: 'fcamera.hevc', source_start_time: 0, source_end_time: 10, speedup: 1, requested_at: 1 }],
+    });
+    const name = modal === 'clip' ? 'Close video' : 'Cancel';
+    fireEvent.click(await screen.findByRole('button', { name }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=clips'));
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+  });
+
+  test('leaving a clip URL discards a preview that finishes later', async () => {
+    let finish;
+    vi.mocked(clipDevice.getClipUrl).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const { history } = await renderApp(`/${FIRST}?modal=clip&clip=test.mp4`, {
+      devices: [{ ...devices[0], last_athena_ping: Math.floor(Date.now() / 1000) }],
+      clips: [{ filename: 'test.mp4', status: 'ready', camera: 'fcamera.hevc', source_start_time: 0, source_end_time: 10, speedup: 1, requested_at: 1 }],
+    });
+    await waitFor(() => expect(clipDevice.getClipUrl).toHaveBeenCalledOnce());
+    await act(async () => history.push(`/${FIRST}?modal=clips`));
+    await act(async () => finish('blob:old-clip'));
+    expect(screen.queryByRole('button', { name: 'Close video' })).not.toBeInTheDocument();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:old-clip');
+  });
+
+  test('unknown clip filenames never trigger a download or deletion', async () => {
+    await renderApp(`/${FIRST}?modal=clip&clip=missing.mp4`, {
+      devices: [{ ...devices[0], last_athena_ping: Math.floor(Date.now() / 1000) }], clips: [],
+    });
+    expect(await screen.findByText('Clip not found on this device.')).toBeVisible();
+    expect(clipDevice.getClipUrl).not.toHaveBeenCalled();
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+  });
+
+  test.each([['files', 'Files'], ['info', 'More info']])('the %s panel opens directly and follows browser history', async (modal, label) => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}?modal=${modal}`);
+    expect(await screen.findByRole('menu')).toBeVisible();
+    const route = store.getState().currentRoute;
+    await act(async () => history.push(`/${FIRST}/${LOG}`));
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByText(label));
+    await waitFor(() => expect(history.location.search).toBe(`?modal=${modal}`));
+    expect(store.getState().currentRoute).toBe(route);
+    await act(async () => history.goBack());
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+  });
+
+  test('a pushed link to another shared device loads its device details', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    await act(async () => history.push(`/${SHARED}/${LOG}`));
+    await waitFor(() => expect(store.getState().device?.dongle_id).toBe(SHARED));
+    expect(store.getState().device.is_owner).toBe(false);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
   });
 
   test('settings stay closed for a device you do not own', async () => {
