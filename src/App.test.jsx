@@ -1,10 +1,15 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
+import { storage as AuthStorage } from '@commaai/my-comma-auth';
 
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { seek } from './timeline/playback';
+import { DEMO_DONGLE_ID, PUBLIC_ROUTE_LOG_ID } from './api/demo';
+
+vi.setConfig({ testTimeout: 15000 });
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -88,9 +93,10 @@ async function mockFetch(input, init = {}) {
   mocks.requests.push({ method: init.method || 'GET', url: url.href });
   const options = mocks.options;
   const deviceList = options.devices ?? devices;
+  if (url.pathname === '/v2/auth/' && init.method === 'POST') return json({ access_token: 'exchanged-token' });
   if (url.pathname === '/v1/me/turn') return json(null);
   if (url.pathname === '/v1/me/') return json({ id: 'test-user', superuser: false });
-  if (url.pathname === '/v1/me/devices/') return json(deviceList);
+  if (url.pathname === '/v1/me/devices/') return json(await deviceList);
   if (url.pathname === '/v1/referrals') return json(options.referrals ?? {
     code: 'ABC1234',
     cash: { available: 50, claimed: 50, pending: 50 },
@@ -106,8 +112,8 @@ async function mockFetch(input, init = {}) {
     if (options.failedRoutes && url.searchParams.has('start')) return json({}, 500);
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
-    if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
-    if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
+    if (routeStr) return json([LOG, RECENT_LOG, PUBLIC_ROUTE_LOG_ID].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
+    if (url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
   }
   if (url.pathname.endsWith('/location')) return json({ error: 'no_segments_uploaded' });
@@ -129,9 +135,11 @@ async function renderApp(pathname, options = {}) {
   mocks.requests = [];
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
-  const history = createMemoryHistory({ initialEntries: [pathname] });
+  const initialEntries = options.initialEntries || [pathname];
+  const history = createMemoryHistory({ initialEntries, initialIndex: initialEntries.length - 1 });
   const store = createAppStore(history, createInitialState(history.location.pathname));
   const view = render(<App history={history} store={store} />);
+  await options.beforeStartup?.(store);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
     { timeout: 5000 },
@@ -165,11 +173,47 @@ describe('whole-app behavior', () => {
     mocks.hardNavigate.mockClear();
   });
 
+  test('auth callback preserves the stored return drive URL', async () => {
+    sessionStorage.setItem('redirectURL', `/${FIRST}/${LOG}`);
+    const { history } = await renderApp('/auth/?code=x&provider=google');
+    expect(AuthStorage.setCommaAccessToken).toHaveBeenCalledWith('exchanged-token');
+    expect(mocks.requests).toContainEqual({ method: 'POST', url: 'https://api.comma.ai/v2/auth/' });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+  });
+
   test('root uses a valid stored device and keeps the selection', async () => {
     const app = await renderApp('/', { selected: FIRST });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     expect(app.history.location.pathname).toBe(`/${FIRST}`);
     expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+  });
+
+  test('cold dashboard hydrates once and same-device zooms do not hydrate again', async () => {
+    let resolveDevices;
+    const deviceList = new Promise((resolve) => { resolveDevices = resolve; });
+    const observed = [];
+    const { history } = await renderApp(`/${FIRST}`, { devices: deviceList, beforeStartup: async (pendingStore) => {
+      pendingStore.subscribe(() => observed.push(pendingStore.getState()));
+      await waitFor(() => expect(pendingStore.getState().routes).not.toBeNull());
+      expect(screen.getByRole('status', { name: 'Loading' })).toBeVisible();
+      expect(screen.queryByText('Mock recent route start')).not.toBeInTheDocument();
+      expect(pendingStore.getState().device).toBeNull();
+      resolveDevices(devices);
+    } });
+    const loaded = observed.find((state) => state.devices);
+    expect(loaded.device).toBe(loaded.devices.find((d) => d.dongle_id === FIRST));
+    expect(observed.every(({ device }) => !device || device.is_owner)).toBe(true);
+    const deviceUrl = `https://api.comma.ai/v1.1/devices/${FIRST}/`;
+    const subscriptionUrl = `https://billing.comma.ai/v1/prime/subscribe_info?dongle_id=${FIRST}`;
+    const hydrationRequests = () => mocks.requests.map(({ url }) => url).filter((url) => url === deviceUrl || url === subscriptionUrl);
+    expect(hydrationRequests()).toHaveLength(2);
+    expect(hydrationRequests()).toEqual(expect.arrayContaining([deviceUrl, subscriptionUrl]));
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}/10/20`));
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}/12/18`));
+    expect(hydrationRequests()).toHaveLength(2);
   });
 
   test('fetches the initial routes with a nonzero limit', async () => {
@@ -182,8 +226,8 @@ describe('whole-app behavior', () => {
   test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects first device with %s', async (_name, selected) => {
     const { history } = await renderApp('/', { selected });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    expect(history.location.pathname).toBe(`/${FIRST}`);
-    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+    expect(history.location.pathname).toBe(`/${SECOND}`);
+    expect(localStorage.getItem('selectedDongleId')).toBe(SECOND);
   });
 
   test('root with no devices shows pairing', async () => {
@@ -253,10 +297,10 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
   });
 
-  test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
+  test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp URL stays after an %s lookup', async (_name, options) => {
     const pathname = `/${FIRST}/${START}/${START + 60_000}`;
     const { history } = await renderApp(pathname, options);
-    await waitFor(() => expect(history.location.pathname).toBe(pathname));
+    expect(history.location.pathname).toBe(pathname);
   });
 
   test('Prime close and browser history restore its view', async () => {
@@ -289,6 +333,104 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
   });
 
+  test('browser navigation to another drive resets playback and its loop', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => store.dispatch(seek(25000)));
+    const route = store.getState().currentRoute;
+    act(() => history.replace(`/${FIRST}/${LOG}`));
+    expect(store.getState().currentRoute).toBe(route);
+    expect(store.getState().offset).toBe(25000);
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}`));
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(RECENT_LOG));
+    expect(store.getState().offset).toBe(0);
+    expect(store.getState().loop).toEqual({ startTime: 0, duration: 60000 });
+  });
+
+  test('closing a drive opened by URL shows the full drive list', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(store.getState().selectedRouteId).toBeNull();
+  });
+
+  test('opening an uncached drive on the same device fetches it and retains the drive list', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    const recent = store.getState().routes[0];
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(store.getState().currentRoute.log_id).toBe(LOG);
+    expect(store.getState().routes).toContain(recent);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('two zooms then browser back restores the previous zoom without a stack', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    const zoom = (left, right) => {
+      fireEvent.pointerDown(timeline, { button: 0, clientX: left, pageX: left });
+      fireEvent.pointerMove(document, { clientX: right, pageX: right });
+      fireEvent.pointerUp(document, { button: 0, clientX: right, pageX: right });
+    };
+    zoom(100, 900);
+    const firstPath = history.location.pathname;
+    const firstZoom = store.getState().zoom;
+    zoom(300, 600);
+    expect(history.location.pathname).not.toBe(firstPath);
+    act(() => history.goBack());
+    expect(history.location.pathname).toBe(firstPath);
+    expect(store.getState().zoom).toEqual(firstZoom);
+    expect(store.getState().zoom).not.toHaveProperty('previous');
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
+  });
+
+  test('legacy conversion replaces its history entry so back returns to the prior page', async () => {
+    const pathname = `/${FIRST}/${START}/${START + 60_000}`;
+    const { history } = await renderApp(pathname, { initialEntries: [`/${SECOND}`, pathname] });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(history.length).toBe(2);
+    act(() => history.goBack());
+    expect(history.location.pathname).toBe(`/${SECOND}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('settings URL opens at 600px with the drawer closed, and closes to its device', async () => {
+    const width = window.innerWidth;
+    window.innerWidth = 600;
+    try {
+      const { history } = await renderApp(`/${FIRST}/settings`);
+      expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+      expect(screen.queryByRole('link', { name: 'device settings' })).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Device name' })).toHaveValue('Zulu');
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect(history.location.pathname).toBe(`/${FIRST}`);
+      expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    } finally {
+      window.innerWidth = width;
+    }
+  });
+
+  test('settings navigates to Prime for its URL device rather than the remembered device', async () => {
+    const { history, store } = await renderApp(`/${SECOND}/settings`, { selected: FIRST });
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${SECOND}/prime`);
+    expect(store.getState().dongleId).toBe(SECOND);
+  });
+
+  test('shared settings URL shows the dashboard without settings controls', async () => {
+    await renderApp(`/${SHARED}/settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
     const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));
@@ -302,5 +444,21 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('demo entry lands on the demo device dashboard', async () => {
+    // The backend is selected once per application startup, so start a fresh app.
+    vi.resetModules();
+    const { default: DemoApp } = await import('./App');
+    const { createAppStore: createDemoStore } = await import('./store');
+    mocks.authenticated = false;
+    mocks.options = {};
+    window.history.replaceState({}, '', '/demo');
+    const history = createMemoryHistory({ initialEntries: ['/demo'] });
+    const store = createDemoStore(history, createInitialState());
+    render(<DemoApp history={history} store={store} />);
+    expect(await screen.findByRole('button', { name: 'Filter' })).toBeVisible();
+    await waitFor(() => expect(history.location.pathname).toBe(`/${DEMO_DONGLE_ID}`));
+    expect(store.getState().device.alias).toBe('demo device');
   });
 });

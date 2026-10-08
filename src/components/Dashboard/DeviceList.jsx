@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -14,9 +15,8 @@ import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
 
-const styles = (theme) => ({
+const styles = () => ({
   deviceList: {
     overflow: 'auto',
   },
@@ -24,7 +24,6 @@ const styles = (theme) => ({
     textDecoration: 'none',
     alignItems: 'center',
     display: 'flex',
-    justifyContent: 'space-between',
     padding: '16px 32px',
     '&.isSelected': {
       backgroundColor: 'rgba(0, 0, 0, 0.25)',
@@ -49,6 +48,8 @@ const styles = (theme) => ({
     backgroundColor: Colors.grey400,
   },
   deviceInfo: {
+    flex: 1,
+    alignSelf: 'stretch',
     display: 'flex',
     alignItems: 'center',
   },
@@ -64,21 +65,6 @@ const styles = (theme) => ({
   deviceId: {
     color: '#74838e',
   },
-  editDeviceIcon: {
-    color: 'white',
-    '&:hover': {
-      color: theme.palette.grey[100],
-    },
-  },
-  nameField: {
-    marginRight: theme.spacing.unit,
-  },
-  saveButton: {
-    marginRight: theme.spacing.unit,
-  },
-  textField: {
-    marginBottom: theme.spacing.unit,
-  },
   addDeviceContainer: {
     '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },
   },
@@ -88,24 +74,8 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
-    this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
-  }
-
-  handleOpenedSettingsModal(dongleId, ev) {
-    ev.stopPropagation();
-    ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
   }
 
   async onVisible() {
@@ -122,17 +92,16 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
+    const { classes, dispatch, handleDeviceSelected, profile, selectedDevice } = this.props;
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
-      <a
-        key={device.dongle_id}
-        className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
-      >
-        <div className={classes.deviceInfo}>
+      <div key={device.dongle_id} className={ `${classes.device} ${isSelectedCls}` }>
+        <a
+          className={classes.deviceInfo}
+          onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
+          href={ `/${device.dongle_id}` }
+        >
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
           <div className={ classes.deviceName }>
             <Typography className={classes.deviceAlias}>
@@ -142,23 +111,25 @@ class DeviceList extends Component {
               { device.dongle_id }
             </Typography>
           </div>
-        </div>
+        </a>
         { (device.is_owner || (profile && profile.superuser))
           && (
           <IconButton
             className={classes.settingsButton}
             aria-label="device settings"
-            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
+            component="a"
+            role="link"
+            href={ `/${device.dongle_id}/settings` }
+            onClick={ filterRegularClick(() => dispatch(push(`/${device.dongle_id}/settings`))) }
           >
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
           )}
-      </a>
+      </div>
     );
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -202,11 +173,6 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }

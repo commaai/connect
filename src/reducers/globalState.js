@@ -32,57 +32,74 @@ export default function reducer(_state, action) {
     case Types.ACTION_STARTUP_DATA: {
       const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
 
-      if (!state.dongleId && devices.length > 0) {
-        state = {
-          ...state,
-          device: devices[0],
-        };
-      } else {
-        state = {
-          ...state,
-          device: devices.find((device) => device.dongle_id === state.dongleId),
-        };
-        if (!state.device) {
-          state.device = {
-            ...emptyDevice,
-            dongle_id: state.dongleId,
-          };
-        }
-      }
       state.devices = devices;
       state.profile = action.profile;
+      state.device = devices.find((d) => d.dongle_id === state.dongleId) || { ...emptyDevice, dongle_id: state.dongleId };
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
-      state = {
-        ...state,
-        filter: getDefaultFilter(),
-        dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
-        subscription: null,
-        subscribeInfo: null,
-        files: null,
-        limit: 0,
-      };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
-      if (state.devices) {
-        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
-        if (!state.device || state.device.dongle_id !== action.dongleId) {
-          state.device = newDevice;
+    case Types.ACTION_APPLY_DESTINATION: {
+      const { kind, dongleId = null, logId = null, start = null, end = null } = action.destination;
+      const deviceChanged = state.dongleId !== dongleId;
+      const routeChanged = deviceChanged || state.selectedRouteId !== logId;
+      let device = state.devices?.find((d) => d.dongle_id === dongleId) || null;
+      if (!device && state.device?.dongle_id === dongleId) {
+        device = state.device;
+      }
+      if (!device && state.devices) {
+        device = { ...emptyDevice, dongle_id: dongleId };
+      }
+      if (deviceChanged) {
+        state.filter = getDefaultFilter();
+        state.routes = null;
+        state.routesMeta = { dongleId: null, start: null, end: null };
+        state.lastRoutes = null;
+        state.files = null;
+        state.subscription = null;
+        state.subscribeInfo = null;
+        state.limit = 0;
+        if (dongleId) {
+          window.localStorage.setItem('selectedDongleId', dongleId);
         }
       }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
-        state.routesMeta = {
-          dongleId: null,
-          start: null,
-          end: null,
-        };
-        state.routes = null;
-        state.lastRoutes = null;
-        state.currentRoute = null;
+      const currentRoute = state.routes?.find((route) => route.log_id === logId) || null;
+      let zoom = null;
+      if (start != null && end != null) {
+        zoom = { start, end };
+      } else if (currentRoute) {
+        zoom = { start: 0, end: currentRoute.duration };
       }
+      if (state.zoom?.start === zoom?.start && state.zoom?.end === zoom?.end) {
+        zoom = state.zoom;
+      }
+      if (routeChanged || (zoom && (!state.zoom || zoom.start < state.zoom.start || zoom.end > state.zoom.end))) {
+        state.files = null;
+      }
+      const zoomStart = zoom?.start ?? null;
+      const zoomEnd = zoom?.end ?? null;
+      const loop = state.loop;
+      const zoomChanged = zoom !== state.zoom;
+      const loopFits = loop && loop.startTime != null && loop.duration > 0
+        && loop.startTime >= zoomStart && loop.startTime + loop.duration <= zoomEnd && loop.duration >= zoomEnd - zoomStart;
+      const resetPlayback = routeChanged || (zoomChanged && !loopFits);
+      if (resetPlayback) {
+        state.desiredPlaySpeed = 1;
+        state.isBufferingVideo = true;
+        state.offset = 0;
+        state.startTime = Date.now();
+        state.loop = zoom ? { startTime: zoomStart, duration: zoomEnd - zoomStart } : null;
+      }
+      state = {
+        ...state,
+        dongleId,
+        device,
+        primeNav: kind === 'prime',
+        streamNav: kind === 'stream',
+        selectedRouteId: logId,
+        currentRoute,
+        zoom,
+      };
       break;
+    }
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
@@ -300,21 +317,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -335,42 +337,6 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
-        state.files = null;
-      }
-
-      state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
-        }
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    }
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
@@ -412,8 +378,9 @@ export default function reducer(_state, action) {
     case Types.ACTION_ROUTES_METADATA:
       // merge existing routes' event and location info with new routes
       state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+        const existingRoute = state.routes?.find((r) => r.fullname === route.fullname)
+          || state.lastRoutes?.find((r) => r.fullname === route.fullname);
+        if (existingRoute === route) return route;
         return {
           ...existingRoute,
           ...route,

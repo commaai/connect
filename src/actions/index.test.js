@@ -1,53 +1,34 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { primeNav, pushTimelineRange, selectDevice, streamNav } from './index';
 
-vi.mock('../timeline/playback', () => ({
-  reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
-}));
+function navigate(action, extra = {}) {
+  const dispatch = vi.fn();
+  action(dispatch, () => ({ dongleId: 'statedongle', router: { location: { pathname: '/statedongle' } }, ...extra }));
+  return dispatch;
+}
 
-vi.mock('connected-react-router', async () => {
-  const originalModule = await vi.importActual('connected-react-router');
-  return {
-    __esModule: true,
-    ...originalModule,
-    push: vi.fn(),
-  };
-});
-
-describe('timeline actions', () => {
+describe('navigation actions', () => {
   it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
-  });
-
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+    [0, 20000, '/statedongle/log/0/20'],
+    [10000, 20000, '/statedongle/log/10/20'],
+    [0, 60000, '/statedongle/log'],
+    [null, null, '/statedongle/log'],
+  ])('pushes a range %s to %s', (start, end, expected) => {
+    const dispatch = navigate(pushTimelineRange('log', start, end), { routes: [{ log_id: 'log', duration: 60000 }] });
+    expect(dispatch).toHaveBeenCalledWith(push(expected));
+    expect(dispatch.mock.calls.every(([action]) => !action.type?.includes('SELECTION'))).toBe(true);
   });
 
   it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
-    expect(push).toHaveBeenCalledWith(expected);
+    [primeNav(true), '/statedongle/prime'],
+    [streamNav(true), '/statedongle/stream'],
+    [selectDevice('anotherdongle'), '/anotherdongle'],
+    [pushTimelineRange(null, null, null), '/statedongle'],
+  ])('only pushes when the URL differs', (action, expected) => {
+    const dispatch = navigate(action);
+    expect(dispatch.mock.calls.filter(([dispatched]) => dispatched.type === push(expected).type)).toEqual(expected === '/statedongle' ? [] : [[push(expected)]]);
+    const same = navigate(action, { router: { location: { pathname: expected } } });
+    expect(same).not.toHaveBeenCalledWith(push(expected));
   });
 });
