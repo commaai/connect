@@ -13,15 +13,9 @@ import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
-const timerSteps = [
-  0.1,
-  0.25,
-  0.5,
-  1,
-  2,
-  4,
-  8,
-];
+// native HLS on iOS and iPadOS (which reports itself as a Mac) stalls above 2x
+const nativeHls = isIos() || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const timerSteps = nativeHls ? [0.5, 1, 2] : [0.1, 0.25, 0.5, 1, 2, 4, 8];
 
 const styles = (theme) => ({
   base: {
@@ -141,13 +135,7 @@ class TimeDisplay extends Component {
     if (Number.isNaN(now.getTime())) {
       return '...';
     }
-    let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute);
-    if (seg !== null) {
-      dateString = `${dateString} \u2013 ${seg}`;
-    }
-
-    return dateString;
+    return dayjs(now).format('HH:mm:ss');
   }
 
   jumpBack(amount) {
@@ -222,7 +210,8 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
+    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio, currentRoute } = this.props;
+    const segment = getSegmentNumber(currentRoute);
     const { displayTime, desiredPlaySpeed } = this.state;
     const isPaused = videoPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
@@ -253,32 +242,34 @@ class TimeDisplay extends Component {
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+          <span ref={this.textHolder}>
+            { displayTime }
+            {/* phones only have room for the time */}
+            { segment !== null && <span className="hidden xs:inline">{ ` \u2013 ${segment}` }</span> }
+          </span>
         </Typography>
-        {!isIos() && (
-          <div className={ classes.desiredPlaySpeedContainer }>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
-              aria-label="Increase play speed by 1 step"
-            >
-              <UpArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-            <Typography variant="body2" align="center">
-              {desiredPlaySpeed}
-              ×
-            </Typography>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
-              aria-label="Decrease play speed by 1 step"
-            >
-              <DownArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-          </div>
-        )}
+        <div className={ classes.desiredPlaySpeedContainer }>
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={this.increaseSpeed}
+            disabled={!this.canIncreaseSpeed()}
+            aria-label="Increase play speed by 1 step"
+          >
+            <UpArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+          <Typography variant="body2" align="center">
+            {desiredPlaySpeed}
+            ×
+          </Typography>
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={this.decreaseSpeed}
+            disabled={!this.canDecreaseSpeed()}
+            aria-label="Decrease play speed by 1 step"
+          >
+            <DownArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+        </div>
         <div className={ classes.leftBorderBox }>
           <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
             <div>
