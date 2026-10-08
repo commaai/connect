@@ -11,10 +11,11 @@ import { api } from '../api/backend';
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, settingsNav, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -199,7 +200,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, page, profile,
+      classes, currentRoute, devices, dispatch, dongleId, page, profile, settingsDongleId,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -252,6 +253,13 @@ class ExplorerApp extends Component {
                 : (page === 'drive' ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            { settingsDongleId && (
+              <DeviceSettingsModal
+                isOpen
+                dongleId={ settingsDongleId }
+                onClose={ () => dispatch(settingsNav(settingsDongleId, false)) }
+              />
+            ) }
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -281,6 +289,7 @@ const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
   page: selectLocation(state).page,
+  settingsDongleId: selectLocation(state).page === 'settings' && state.devices ? selectLocation(state).dongleId : null,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,

@@ -4,7 +4,7 @@ const logIdRegex = /^[a-f0-9-]{20}$/;
 
 const secondsRegex = /^\d+$/;
 
-const DEVICE_PAGES = ['prime', 'stream'];
+const DEVICE_PAGES = ['prime', 'stream', 'settings'];
 
 export function parseLocation(pathname) {
   const parts = pathname.split('/').filter(Boolean);

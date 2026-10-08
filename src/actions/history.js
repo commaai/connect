@@ -2,6 +2,7 @@ import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import { buildUrl, parseLocation } from '../url';
 import { nextTimeline } from '../timeline/zoom';
+import { canManageDevice } from '../utils';
 import { checkRoutesData, loadDevice, selectTimeline } from './index';
 
 function fallbackDongleId(devices) {
@@ -17,6 +18,14 @@ function canonicalUrl(location, state, devices) {
     const dongleId = devicesLoaded ? fallbackDongleId(devices) : null;
 
     return dongleId ? buildUrl({ page: 'dash', dongleId }) : state.router.location.pathname;
+  }
+
+  if (location.page === 'settings' && devicesLoaded) {
+    const device = state.devices.find((d) => d.dongle_id === location.dongleId);
+
+    if (!canManageDevice(device, state.profile)) {
+      return buildUrl({ page: 'dash', dongleId: location.dongleId });
+    }
   }
 
   return buildUrl(location);

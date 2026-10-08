@@ -82,6 +82,7 @@ describe('syncLocation replaces', () => {
     ['an unknown page with its dashboard', `/${DONGLE}/x`, `/${DONGLE}`],
     ['a legacy timestamp range with its dashboard', `/${DONGLE}/1786017600000/1786017660000`, `/${DONGLE}`],
     ['a trailing slash', `/${DONGLE}/`, `/${DONGLE}`],
+    ['settings of a device you cannot manage with its dashboard', `/${SHARED}/settings`, `/${SHARED}`],
   ])('%s', (_name, pathname, expected) => {
     expect(sync(pathname)).toEqual(replaced(expected));
   });
@@ -98,6 +99,11 @@ describe('syncLocation replaces', () => {
 
   it('nothing before the device list arrives', () => {
     expect(sync('/', { devices: null, dongleId: null })).toEqual([]);
+    expect(sync(`/${SHARED}/settings`, { devices: null, dongleId: SHARED })).toEqual([]);
+  });
+
+  it('nothing for settings of a device you manage', () => {
+    expect(sync(`/${DONGLE}/settings`)).toEqual([]);
   });
 });
 

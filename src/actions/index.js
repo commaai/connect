@@ -182,6 +182,10 @@ export function streamNav(nav) {
   };
 }
 
+export function settingsNav(dongleId, open) {
+  return navigate({ page: open ? 'settings' : 'dash', dongleId });
+}
+
 export function pushTimelineRange(log_id, start, end) {
   return (dispatch, getState) => {
     const { dongleId, routes } = getState();

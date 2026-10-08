@@ -2,7 +2,7 @@ import { push } from 'connected-react-router';
 
 import '../store';
 
-import { popTimelineRange, primeNav, pushTimelineRange, selectDevice, streamNav } from './index';
+import { popTimelineRange, primeNav, pushTimelineRange, selectDevice, settingsNav, streamNav } from './index';
 
 const DONGLE = 'statedongle';
 
@@ -39,6 +39,7 @@ describe('navigation actions', () => {
     ['Prime', primeNav(true), `/${DONGLE}/prime`],
     ['the dashboard from Prime', primeNav(false), `/${DONGLE}`],
     ['stream', streamNav(true), `/${DONGLE}/stream`],
+    ['settings', settingsNav('otherdongle', true), '/otherdongle/settings'],
     ['a device', selectDevice('otherdongle'), '/otherdongle'],
   ])('pushes the url of %s', (_name, thunk, expected) => {
     expect(run(thunk)).toEqual([push(expected)]);
