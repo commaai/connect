@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { test as base, expect } from '@playwright/test';
 
 export const DONGLE = 'deadbeefdeadbeef';
 export const LOG = '00000000--0000000003';
-const hls = readFileSync('node_modules/hls.js/dist/hls.min.js');
 const START = Date.UTC(2026, 7, 6, 12);
 const PUBLIC_LOG = '0000010a--a51155e496';
 const PUBLIC_DONGLE = '5beb9b58bd12b691';
@@ -58,9 +56,6 @@ export const test = base.extend({
         return route.fulfill({ contentType: 'image/png', body: Buffer.from(
           'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aM1cAAAAASUVORK5CYII=', 'base64'),
         });
-      }
-      if (url.hostname === 'cdn.jsdelivr.net' && url.pathname === '/npm/hls.js@1.4.8/dist/hls.min.js') {
-        return route.fulfill({ contentType: 'application/javascript', body: hls });
       }
       if (url.pathname.endsWith('.m3u8')) return route.fulfill({
         contentType: 'application/vnd.apple.mpegurl', body: '#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-ENDLIST\n',
