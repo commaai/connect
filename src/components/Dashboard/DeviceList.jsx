@@ -9,7 +9,7 @@ import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
 import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
+import { canManageDevice, deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
@@ -143,7 +143,7 @@ class DeviceList extends Component {
             </Typography>
           </div>
         </div>
-        { (device.is_owner || (profile && profile.superuser))
+        { canManageDevice(device, profile)
           && (
           <IconButton
             className={classes.settingsButton}

@@ -67,6 +67,10 @@ export function truncateName(name) {
   return name;
 }
 
+export function canManageDevice(device, profile) {
+  return Boolean(device?.is_owner || profile?.superuser);
+}
+
 export function deviceIsOnline(device) {
   if (!device || !device.last_athena_ping) {
     return false;
