@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { urlForLocation } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -143,19 +144,16 @@ export function checkLastRoutesData() {
 }
 
 export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
   if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
+    return urlForLocation({
+      view: 'drive',
+      dongleId,
+      logId: log_id,
+      startMs: start == null || end == null ? null : start * 1000,
+      endMs: start == null || end == null ? null : end * 1000,
+    });
   }
-
-  return `/${path.join('/')}`;
+  return urlForLocation({ view: prime ? 'prime' : 'device', dongleId });
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
@@ -167,7 +165,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 
   if (allowPathChange) {
     const route = state.routes?.find((candidate) => candidate.log_id === log_id);
-    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+    const wholeDrive = start == null || end == null || (start === 0 && (route?.duration == null || end === route.duration));
 
     const urlStart = wholeDrive ? null : Math.floor(start / 1000);
     const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
@@ -348,7 +346,7 @@ export function streamNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      const desiredPath = urlForLocation({ view: nav ? 'stream' : 'device', dongleId: state.dongleId });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }

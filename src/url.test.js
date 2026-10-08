@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parseLocation, urlForLocation } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -25,8 +25,8 @@ describe('URL pathname helpers', () => {
 
   it.each([
     [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
+    [`/${DONGLE}/0/20/ignored`, null],
+    [`/${DONGLE}/${LOG}/10/20`, null],
     [`/${DONGLE}/10`, null],
     ['/auth/code/provider', null],
   ])('getZoom(%s)', (pathname, expected) => {
@@ -67,5 +67,21 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/prime`, false],
   ])('getStreamNav(%s)', (pathname, expected) => {
     expect(getStreamNav(pathname)).toBe(expected);
+  });
+
+  it.each([
+    ['/', { view: 'home' }],
+    ['/referrals', { view: 'referrals' }],
+    [`/${DONGLE}/settings`, { view: 'settings', dongleId: DONGLE, panel: null }],
+    [`/${DONGLE}/settings/uploads`, { view: 'settings', dongleId: DONGLE, panel: 'uploads' }],
+    [`/${DONGLE}/${LOG}/0/20`, { view: 'drive', dongleId: DONGLE, logId: LOG, startMs: 0, endMs: 20000 }],
+    [`/${DONGLE}/drive/${LOG}`, { view: 'drive', dongleId: DONGLE, logId: LOG, startMs: null, endMs: null }],
+  ])('parses %s into one canonical descriptor', (pathname, expected) => {
+    expect(parseLocation(pathname)).toEqual(expected);
+  });
+
+  it('serializes every internal destination without losing a zero start', () => {
+    expect(urlForLocation({ view: 'settings', dongleId: DONGLE, panel: 'uploads' })).toBe(`/${DONGLE}/settings/uploads`);
+    expect(urlForLocation({ view: 'drive', dongleId: DONGLE, logId: LOG, startMs: 0, endMs: 20000 })).toBe(`/${DONGLE}/${LOG}/0/20`);
   });
 });

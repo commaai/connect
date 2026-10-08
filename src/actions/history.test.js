@@ -121,11 +121,11 @@ describe('history middleware', () => {
   ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
     const entering = create();
     entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(true, false);
 
     vi.clearAllMocks();
     const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
     leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(false, false);
   });
 });

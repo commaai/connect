@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
+import { push, replace } from 'connected-react-router';
 
 import {
   Button,
@@ -15,6 +16,7 @@ import {
 
 import { api } from '../../api/backend';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { parseLocation, urlForLocation } from '../../url';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -120,7 +122,6 @@ const initialState = {
   loadingUnpair: false,
   error: null,
   unpairError: null,
-  uploadModal: false,
 };
 
 class DeviceSettingsModal extends Component {
@@ -139,6 +140,8 @@ class DeviceSettingsModal extends Component {
     this.shareDevice = this.shareDevice.bind(this);
     this.unpairDevice = this.unpairDevice.bind(this);
     this.closeUnpair = this.closeUnpair.bind(this);
+    this.openUploads = this.openUploads.bind(this);
+    this.closeUploads = this.closeUploads.bind(this);
   }
 
   componentDidUpdate(prevProps) {
@@ -258,9 +261,21 @@ class DeviceSettingsModal extends Component {
     }
   }
 
+  openUploads() {
+    this.props.dispatch(push(urlForLocation({ view: 'settings', dongleId: this.props.dongleId, panel: 'uploads' })));
+  }
+
+  closeUploads() {
+    this.props.dispatch(replace(urlForLocation({ view: 'settings', dongleId: this.props.dongleId })));
+  }
+
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, pathname } = this.props;
     const commacare = device?.commacare;
+    const location = parseLocation(pathname);
+    const uploadModal = location.view === 'settings'
+      && location.dongleId === this.props.dongleId
+      && location.panel === 'uploads';
     if (!device) {
       return null;
     }
@@ -299,7 +314,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.openUploads() }
               >
                 Uploads
               </Button>
@@ -425,9 +440,9 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          open={ uploadModal }
+          update={ uploadModal }
+          onClose={ () => this.closeUploads() }
           device={ device }
         />
       </>
@@ -442,6 +457,7 @@ const stateToProps = (state, ownProps) => {
     subscription: state.subscription,
     device,
     globalDongleId: state.dongleId,
+    pathname: state.router.location.pathname,
   };
 };
 

@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
+import { push, replace } from 'connected-react-router';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
 
@@ -8,6 +9,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
+import { parseLocation, urlForLocation } from '../../url';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
@@ -88,10 +90,6 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
     this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
@@ -101,11 +99,15 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
+    this.props.dispatch(push(urlForLocation({ view: 'settings', dongleId })));
   }
 
   handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    const { pathname, dispatch } = this.props;
+    const location = parseLocation(pathname);
+    if (location.view === 'settings') {
+      dispatch(replace(urlForLocation({ view: 'device', dongleId: location.dongleId })));
+    }
   }
 
   async onVisible() {
@@ -158,8 +160,9 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
-    const { classes, device, selectedDevice: dongleId } = this.props;
+    const { classes, device, selectedDevice: dongleId, pathname } = this.props;
+    const location = parseLocation(pathname);
+    const settingsModalDongleId = location.view === 'settings' ? location.dongleId : null;
 
     let { devices } = this.props;
     if (devices === null) {
@@ -216,6 +219,7 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  pathname: state.router.location.pathname,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));
