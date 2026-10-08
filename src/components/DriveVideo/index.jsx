@@ -6,7 +6,7 @@ import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, pause, play, bufferVideo, videoProgress } from '../../timeline/playback';
+import { restartLoop, pause, play, bufferVideo, videoProgress } from '../../timeline/playback';
 import { isFirefox } from '../../utils/browser.js';
 
 const sourceIdentity = (route) => JSON.stringify([route?.fullname, route?.share_exp, route?.share_sig]);
@@ -125,7 +125,7 @@ export class DriveVideo extends Component {
     if (!Number.isFinite(offset)) return;
     if (!this.media.paused && this.props.desiredPlaySpeed && loop && loop.duration > 0 && offset >= loop.startTime + loop.duration) {
       this.pendingSeek = true;
-      dispatch(seek(Math.max(loop.startTime, currentRoute.videoStartOffset || 0)));
+      dispatch(restartLoop(Math.max(loop.startTime, currentRoute.videoStartOffset || 0)));
       return;
     }
     dispatch(videoProgress(currentRoute.fullname, offset, seekRevision || 0));
@@ -191,7 +191,7 @@ export class DriveVideo extends Component {
       const start = Math.max(loop?.startTime || 0, currentRoute.videoStartOffset || 0);
       const end = this.media.duration * 1000 + (currentRoute.videoStartOffset || 0);
       if (this.props.desiredPlaySpeed && loop?.duration > 0 && start < end) {
-        if (!this.pendingSeek) dispatch(seek(start));
+        if (!this.pendingSeek) dispatch(restartLoop(start));
       } else {
         dispatch(pause());
       }

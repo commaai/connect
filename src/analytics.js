@@ -189,7 +189,7 @@ function logAction(action, prevState, state) {
       return;
 
     case Types.ACTION_SEEK:
-      if (state.zoom) {
+      if (state.zoom && !action.loop) {
         percent = getVideoPercent(state);
         gtag('event', 'video_seek', {
           ...params,

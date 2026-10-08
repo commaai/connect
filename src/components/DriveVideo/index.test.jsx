@@ -54,7 +54,7 @@ describe('DriveVideo media events', () => {
     const { player, props, media } = fixture({ currentRoute: { fullname: 'route' }, offset: 0, loop: { startTime: 0, duration: 2000 } });
     media.currentTime = 2;
     media.dispatchEvent(new Event('timeupdate'));
-    expect(props.dispatch).toHaveBeenCalledWith({ type: Types.ACTION_SEEK, offset: 0 });
+    expect(props.dispatch).toHaveBeenCalledWith({ type: Types.ACTION_SEEK, offset: 0, loop: true });
     player.props = { ...props, loop: null };
     media.dispatchEvent(new Event('ended'));
     expect(props.dispatch).toHaveBeenLastCalledWith({ type: Types.ACTION_PAUSE });
@@ -117,7 +117,7 @@ describe('DriveVideo media events', () => {
     media.ended = true;
     media.play = vi.fn(() => Promise.resolve());
     media.dispatchEvent(new Event('ended'));
-    expect(props.dispatch).toHaveBeenLastCalledWith({ type: Types.ACTION_SEEK, offset: 0 });
+    expect(props.dispatch).toHaveBeenLastCalledWith({ type: Types.ACTION_SEEK, offset: 0, loop: true });
     player.props = { ...props, seekRevision: 1 };
     player.componentDidUpdate(props);
     expect(media.currentTime).toBe(0);
@@ -271,7 +271,7 @@ describe('DriveVideo media events', () => {
     expect(props.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ type: Types.ACTION_VIDEO_PROGRESS, offset: 1500 }));
     player.media.currentTime = 2;
     frame();
-    expect(props.dispatch).toHaveBeenLastCalledWith({ type: Types.ACTION_SEEK, offset: 0 });
+    expect(props.dispatch).toHaveBeenLastCalledWith({ type: Types.ACTION_SEEK, offset: 0, loop: true });
     player.componentWillUnmount();
     expect(media.cancelVideoFrameCallback).toHaveBeenCalledWith(7);
   });

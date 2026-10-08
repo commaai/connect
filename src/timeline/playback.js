@@ -94,6 +94,11 @@ export function seek(offset) {
   };
 }
 
+// the media restarting a clip: a seek, but not one the viewer asked for
+export function restartLoop(offset) {
+  return { ...seek(offset), loop: true };
+}
+
 // pause the playback
 export function pause() {
   return {
