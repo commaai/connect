@@ -107,6 +107,10 @@ async function mockFetch(input, init = {}) {
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
+    if (options.legacyLookup && url.searchParams.get('start') === String(START)) {
+      await options.legacyLookup;
+      return json([makeRoute(dongleId, LOG)]);
+    }
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
   }
@@ -130,7 +134,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState(`${history.location.pathname}${history.location.search}`));
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -279,14 +283,61 @@ describe('whole-app behavior', () => {
   });
 
   test('device browser history restores exact dashboards', async () => {
-    const { history } = await renderApp(`/${FIRST}`);
+    const { history, store } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     act(() => history.push(`/${SECOND}`));
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    expect(store.getState().dongleId).toBe(SECOND);
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(store.getState().dongleId).toBe(FIRST);
     act(() => history.goForward());
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+  });
+
+  test('device settings URL targets another device and closes without reloading route data', async () => {
+    const { history, store } = await renderApp(`/${FIRST}?modal=device-settings&device=${SECOND}`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.search).toBe(`?modal=device-settings&device=${SECOND}`);
+    expect(store.getState().dongleId).toBe(FIRST);
+    expect(store.getState().device.dongle_id).toBe(FIRST);
+    const routes = store.getState().routes;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(store.getState().routes).toBe(routes);
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goForward());
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(store.getState().routes).toBe(routes);
+  });
+
+  test('date filter modal opens from its URL and closes through history state', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=date-filter`);
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+  });
+
+  test('direct navigation fetches a route missing from the same-device list', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(mocks.requests.some(({ url }) => new URL(url).searchParams.get('route_str') === `${FIRST}|${LOG}`)).toBe(true);
+  });
+
+  test('ignores a legacy URL conversion after navigating elsewhere', async () => {
+    let releaseLookup;
+    const legacyLookup = new Promise((resolve) => { releaseLookup = resolve; });
+    const { history, store } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`, { legacyLookup });
+    act(() => history.push(`/${SECOND}`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    releaseLookup();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(history.location.pathname).toBe(`/${SECOND}`);
+    expect(store.getState().dongleId).toBe(SECOND);
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
