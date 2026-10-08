@@ -285,7 +285,7 @@ class TimeDisplay extends Component {
               <IconButton
                 className={ classes.iconButton }
                 onClick={onMuteToggle}
-                disabled={!hasAudio}
+                disabled={!hasAudio && isMuted}
                 aria-label={isMuted ? 'Unmute' : 'Mute'}
               >
                 {isMuted
