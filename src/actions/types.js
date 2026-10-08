@@ -28,6 +28,7 @@ export const ACTION_PAUSE = 'ACTION_PAUSE';
 export const ACTION_PLAY = 'ACTION_PLAY';
 export const ACTION_LOOP = 'ACTION_LOOP';
 export const ACTION_RESET = 'ACTION_RESET';
+export const ACTION_MAX_PLAY_SPEED = 'ACTION_MAX_PLAY_SPEED';
 
 // segments
 export const ACTION_ROUTES_METADATA = 'ACTION_ROUTES_METADATA';

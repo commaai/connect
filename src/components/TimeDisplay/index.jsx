@@ -97,10 +97,12 @@ const styles = (theme) => ({
 
 class TimeDisplay extends Component {
   static getDerivedStateFromProps(props, state) {
-    if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
+    // while paused, keep the speed to resume at, held under the engine's cap
+    const speed = props.desiredPlaySpeed || Math.min(state.desiredPlaySpeed, props.maxPlaySpeed || Infinity);
+    if (speed !== state.desiredPlaySpeed) {
       return {
         ...state,
-        desiredPlaySpeed: props.desiredPlaySpeed,
+        desiredPlaySpeed: speed,
       };
     }
     return state;
@@ -207,7 +209,7 @@ class TimeDisplay extends Component {
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
     }
-    return curIndex < timerSteps.length - 1;
+    return curIndex < timerSteps.length - 1 && timerSteps[curIndex + 1] <= (this.props.maxPlaySpeed || Infinity);
   }
 
   togglePause() {
@@ -311,6 +313,7 @@ const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
   desiredPlaySpeed: state.desiredPlaySpeed,
+  maxPlaySpeed: state.maxPlaySpeed,
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

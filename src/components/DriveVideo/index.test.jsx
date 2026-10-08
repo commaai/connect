@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'history';
 import DriveVideo from '.';
 import { createAppStore } from '../../store';
 import * as Types from '../../actions/types';
-import { seek } from '../../timeline/playback';
+import { play, seek } from '../../timeline/playback';
 
 const hls = vi.hoisted(() => ({ instances: [], load: null }));
 
@@ -88,6 +88,20 @@ describe('DriveVideo', () => {
     hls.load = () => { throw new TypeError('Failed to fetch dynamically imported module'); };
     renderPlayer();
     expect(await screen.findByRole('alert')).toHaveTextContent('Check your network connection');
+  });
+
+  it('caps the speed at 2x only when it plays HLS natively', async () => {
+    window.MediaSource = undefined;
+    const store = renderPlayer();
+    store.dispatch(play(4));
+    expect(store.getState().desiredPlaySpeed).toEqual(2);
+    cleanup();
+
+    window.MediaSource = class {};
+    const hlsStore = renderPlayer();
+    await act(async () => {});
+    hlsStore.dispatch(play(8));
+    expect(hlsStore.getState().desiredPlaySpeed).toEqual(8);
   });
 
   it('starts no player for a drive the user already left', async () => {

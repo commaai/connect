@@ -33,16 +33,21 @@ export function reducer(_state, action) {
         desiredPlaySpeed: 0,
       };
       break;
-    case Types.ACTION_PLAY:
-      if (action.speed !== state.desiredPlaySpeed) {
+    case Types.ACTION_MAX_PLAY_SPEED:
+      state.maxPlaySpeed = action.speed;
+      // fall through: clamp the current speed to the new cap
+    case Types.ACTION_PLAY: {
+      const speed = Math.min(action.type === Types.ACTION_PLAY ? action.speed : state.desiredPlaySpeed, state.maxPlaySpeed || Infinity);
+      if (speed !== state.desiredPlaySpeed) {
         state = {
           ...state,
           offset: currentOffset(state),
-          desiredPlaySpeed: action.speed,
+          desiredPlaySpeed: speed,
           startTime: Date.now(),
         };
       }
       break;
+    }
     case Types.ACTION_LOOP:
       if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
         state.loop = {
@@ -121,6 +126,14 @@ export function selectLoop(start, end) {
     type: Types.ACTION_LOOP,
     start,
     end,
+  };
+}
+
+// the fastest speed the picked video engine plays smoothly, or null for no cap
+export function setMaxPlaySpeed(speed) {
+  return {
+    type: Types.ACTION_MAX_PLAY_SPEED,
+    speed,
   };
 }
 

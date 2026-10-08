@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { api } from '../../api/backend';
 import { ErrorOutline } from '../../icons';
 import { holdVideo, setVideo, videoReady } from '../../timeline';
-import { pause, play, seek } from '../../timeline/playback';
+import { pause, play, seek, setMaxPlaySpeed } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
 const NOT_UPLOADED = 'This video segment has not uploaded yet or has been deleted.';
@@ -68,7 +68,10 @@ class DriveVideo extends Component {
     this.src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
     // Safari 17+ (macOS, iPadOS, iOS) plays HLS natively, keeping AirPlay and the system audio
     // session; iPhones before iOS 17.1 have no MediaSource at all. Everything else gets hls.js.
-    if (!window.MediaSource || (window.ManagedMediaSource && video.canPlayType('application/vnd.apple.mpegurl'))) {
+    const native = !window.MediaSource || (window.ManagedMediaSource && video.canPlayType('application/vnd.apple.mpegurl'));
+    // native HLS stalls above 2x (iOS simulator: 4x and 8x spin even on a direct playbackRate write)
+    this.props.dispatch(setMaxPlaySpeed(native ? 2 : null));
+    if (native) {
       setVideo(video);
       video.src = this.src;
     } else {

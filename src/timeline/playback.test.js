@@ -2,7 +2,7 @@ import * as Types from '../actions/types';
 import store from '../store';
 import { asyncSleep } from '../utils';
 import { currentOffset, setVideo, videoReady } from '.';
-import { pause, play, reducer, resetPlayback, seek, selectLoop } from './playback';
+import { pause, play, reducer, resetPlayback, seek, selectLoop, setMaxPlaySpeed } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -103,6 +103,22 @@ describe('playback', () => {
     state = reducer(state, seek(0));
     expect(state.loop.startTime).toEqual(1000);
     expect(state.offset).toEqual(1000);
+  });
+
+  it('caps the speed to what the video engine can play', () => {
+    newNow();
+    let state = reducer(makeDefaultStruct(), play(8));
+
+    // native HLS picked while a faster speed was carried over: clamp it
+    state = reducer(state, setMaxPlaySpeed(2));
+    expect(state.desiredPlaySpeed).toEqual(2);
+    state = reducer(state, play(4));
+    expect(state.desiredPlaySpeed).toEqual(2);
+
+    // hls.js picked: no cap
+    state = reducer(state, setMaxPlaySpeed(null));
+    state = reducer(state, play(8));
+    expect(state.desiredPlaySpeed).toEqual(8);
   });
 });
 
