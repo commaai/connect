@@ -833,11 +833,31 @@ function renderReport(manifest, { showPreviewLink = true } = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>connect ${hasBaseline ? 'visual regression report' : 'gallery'}</title>
   <style>
-    table { width: 100%; table-layout: fixed; }
+    body { margin: 0 auto; padding: 24px; max-width: 1800px; font: 15px/1.5 system-ui, sans-serif; color: #e5e7eb; background: #1b2023; }
+    a { color: #81c9f3; }
+    h1, h2 { line-height: 1.2; }
+    code { overflow-wrap: anywhere; }
+    button { padding: 8px 12px; margin: 0 4px 8px 0; border: 1px solid #52616a; border-radius: 6px; color: inherit; background: #2b3338; cursor: pointer; }
+    button[aria-pressed="true"] { border-color: #81c9f3; background: #344c5a; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; background: #242b2f; }
+    th, td { padding: 10px; border: 1px solid #465158; vertical-align: top; overflow-wrap: anywhere; }
+    thead th { text-align: left; }
     table th:first-child { width: 7rem; }
     table.comparison th:last-child { width: 9rem; }
-    td > a { display: block; max-width: 100%; overflow: auto; }
-    img { display: block; width: auto; max-width: none; height: auto; }
+    td > a { display: block; width: 100%; }
+    img { display: block; width: 100%; max-width: 100%; height: auto; }
+    @media (max-width: 900px) {
+      body { padding: 16px; }
+      table, tbody, tr, th, td { display: block; width: auto !important; }
+      thead { display: none; }
+      tr { margin-bottom: 20px; }
+      tr > th { background: #344047; }
+      td::before { display: block; margin-bottom: 8px; font-weight: 600; }
+      .comparison td:nth-child(2)::before { content: 'Baseline'; }
+      .comparison td:nth-child(3)::before { content: 'PR'; }
+      .comparison td:nth-child(4)::before { content: 'Pixel difference'; }
+      .comparison td:nth-child(5)::before { content: 'Result'; }
+    }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -845,6 +865,7 @@ function renderReport(manifest, { showPreviewLink = true } = {}) {
   <header>
     ${showPreviewLink ? '<p><a class="preview" href="/">Open interactive preview</a></p>' : ''}
     <h1>${hasBaseline ? 'Visual regression report' : 'Gallery'}</h1>
+    <p>Compare complete screenshots below. Select Changed to focus on visual differences, or click any image to inspect it at full resolution. This report checks layout; use the interactive preview to test playback.</p>
     <p>${hasBaseline ? `Base: <code>${manifest.baseSha}</code><br>` : ''}Head: <code>${manifest.headSha}</code><br>Generated: <time datetime="${manifest.generatedAt}">${manifest.generatedAt}</time></p>
   </header>
   <main>
