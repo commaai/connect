@@ -289,6 +289,83 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
   });
 
+  test('a trip between drives and devices reuses loaded data', async () => {
+    const takeRequests = async () => {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      const counts = {};
+      for (const { method, url } of mocks.requests.splice(0)) {
+        const { hostname, pathname, searchParams } = new URL(url);
+        const path = pathname.replace(FIRST, 'FIRST').replace(SECOND, 'SECOND');
+        const key = `${method} ${hostname}${path}${searchParams.has('route_str') ? ' (one route)' : ''}`;
+        counts[key] = (counts[key] || 0) + 1;
+      }
+      return counts;
+    };
+    const openDrive = async () => {
+      fireEvent.click(await screen.findByText('Mock recent route start'));
+      expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    };
+    const switchDevice = async (name, dongleId) => {
+      fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
+      fireEvent.click(await screen.findByText(name));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${dongleId}`));
+      expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    };
+    const trip = {};
+
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    trip.dashboard = await takeRequests();
+    await openDrive();
+    trip['open drive'] = await takeRequests();
+    act(() => history.goBack());
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    trip.back = await takeRequests();
+    await openDrive();
+    trip['reopen drive'] = await takeRequests();
+    await switchDevice('Alpha', SECOND);
+    trip['switch device'] = await takeRequests();
+    await switchDevice('Zulu', FIRST);
+    trip['switch back'] = await takeRequests();
+
+    expect(trip).toEqual({
+      dashboard: {
+        'GET api.comma.ai/v1/me/': 1,
+        'GET api.comma.ai/v1/me/devices/': 1,
+        'GET api.comma.ai/v1/devices/FIRST/routes_segments': 1,
+        'GET billing.comma.ai/v1/prime/subscribe_info': 1,
+        'GET api.comma.ai/v1/devices/FIRST/location': 2,
+        'GET api.comma.ai/v1.1/devices/FIRST/stats': 1,
+      },
+      'open drive': {
+        'GET api.comma.ai/v1/devices/FIRST/routes/preserved': 3,
+      },
+      back: {
+        'GET api.comma.ai/v1/devices/FIRST/location': 2,
+        'GET api.comma.ai/v1.1/devices/FIRST/stats': 1,
+      },
+      'reopen drive': {
+        'GET api.comma.ai/v1/devices/FIRST/routes/preserved': 3,
+      },
+      'switch device': {
+        'GET api.comma.ai/v1/devices/SECOND/routes_segments': 1,
+        'GET billing.comma.ai/v1/prime/subscribe_info': 1,
+        'GET api.comma.ai/v1.1/devices/SECOND/': 1,
+        'GET api.comma.ai/v1/devices/SECOND/location': 3,
+        'GET api.comma.ai/v1.1/devices/SECOND/stats': 1,
+      },
+      'switch back': {
+        'GET api.comma.ai/v1/devices/FIRST/routes_segments': 1,
+        'GET billing.comma.ai/v1/prime/subscribe_info': 1,
+        'GET api.comma.ai/v1.1/devices/FIRST/': 1,
+        'GET api.comma.ai/v1/devices/FIRST/location': 3,
+        'GET api.comma.ai/v1.1/devices/FIRST/stats': 1,
+      },
+    });
+  });
+
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
     const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));
@@ -297,10 +374,31 @@ describe('whole-app behavior', () => {
     fireEvent.pointerDown(timeline, { button: 0, clientX: 200, pageX: 200 });
     fireEvent.pointerMove(document, { clientX: 700, pageX: 700 });
     fireEvent.pointerUp(document, { button: 0, clientX: 700, pageX: 700 });
-    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}/12/42`));
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('browser back and forward move between the dashboard and a drive', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument());
+    expect(screen.getByText('Mock recent route start')).toBeVisible();
+    act(() => history.goForward());
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`);
+  });
+
+  test('the drive back arrow zooms out to the whole drive', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    const back = await screen.findByRole('button', { name: 'Go Back' });
+    expect(back).toBeEnabled();
+    fireEvent.click(back);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
   });
 });
