@@ -1,4 +1,5 @@
-import { push } from 'connected-react-router';
+import { push, replace } from 'connected-react-router';
+import { buildUrl, withModal } from '../url';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -142,22 +143,6 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
-}
-
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
@@ -171,12 +156,27 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 
     const urlStart = wholeDrive ? null : Math.floor(start / 1000);
     const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
+    const range = urlStart && urlEnd ? { start: urlStart, end: urlEnd } : null;
+    const desiredPath = buildUrl({ page: 'drive', dongleId: state.dongleId, logId: log_id, range });
 
     if (currentPathname(state) !== desiredPath) {
       dispatch(push(desiredPath));
     }
   }
+}
+
+// Modals live in the URL, over whatever page is open.
+export function openModal(modal, modalDongleId, { replaceHistory = false } = {}) {
+  return (dispatch, getState) => {
+    const navigate = replaceHistory ? replace : push;
+    dispatch(navigate(withModal(getState().router.location, modal, modalDongleId)));
+  };
+}
+
+export function closeModal() {
+  return (dispatch, getState) => {
+    dispatch(replace(withModal(getState().router.location, null)));
+  };
 }
 
 export function popTimelineRange(log_id, allowPathChange = true) {
@@ -300,7 +300,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     }
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
+      const desiredPath = buildUrl({ dongleId });
       if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -324,7 +324,7 @@ export function primeNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
+      const desiredPath = buildUrl({ page: nav ? 'prime' : 'device', dongleId: state.dongleId });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -348,7 +348,7 @@ export function streamNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      const desiredPath = buildUrl({ page: nav ? 'stream' : 'device', dongleId: state.dongleId });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }

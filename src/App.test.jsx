@@ -259,6 +259,36 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(pathname));
   });
 
+  test('device settings dialog opens from the URL and closes back to the page', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=settings&device=${FIRST}`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(screen.queryByText('Device settings')).toBeNull();
+  });
+
+  test('unpair dialog opens from the URL and cancelling returns to settings', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=unpair&device=${FIRST}`);
+    expect(await screen.findByText('Unpair device')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(`?modal=settings&device=${FIRST}`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('date filter dialog opens from the URL', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=date`);
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+  });
+
+  test('pair dialog opens from the URL and closes back to the page', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=pair`);
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    act(() => history.replace(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Pair device')).toBeNull());
+  });
+
   test('Prime close and browser history restore its view', async () => {
     const { history } = await renderApp(`/${FIRST}/prime`);
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();

@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
+import { parseUrl } from '../url';
 import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
@@ -13,17 +13,15 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
 
     next(action); // must be first, otherwise breaks history
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
+    const { location } = action.payload;
+    const url = parseUrl(location.pathname, location.search);
+    const pathDongleId = url.dongleId;
     if (pathDongleId && pathDongleId !== state.dongleId) {
       dispatch(selectDevice(pathDongleId, false, false));
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
+    if (url.legacyRange) {
+      const { start, end } = url.legacyRange;
 
       api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
         if (routesData && routesData.length > 0) {
@@ -37,21 +35,22 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       });
     }
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
+
+    if (url.logId || state.selectedRouteId) {
+      const { range } = url;
+      dispatch(pushTimelineRange(url.logId, range ? range.start * 1000 : null, range ? range.end * 1000 : null, false));
     }
 
     if (pathDongleId && pathDongleId !== state.dongleId) {
       dispatch(checkRoutesData());
     }
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
+    const pathPrimeNav = url.page === 'prime';
     if (pathPrimeNav !== state.primeNav) {
       dispatch(primeNav(pathPrimeNav));
     }
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
+    const pathStreamNav = url.page === 'stream';
     if (pathStreamNav !== state.streamNav) {
       dispatch(streamNav(pathStreamNav, false));
     }

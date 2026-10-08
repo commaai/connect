@@ -5,7 +5,8 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
+import { selectDevice, updateDevices, analyticsEvent, openModal, closeModal } from '../../actions';
+import { parseUrl } from '../../url';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
@@ -101,7 +102,6 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -133,8 +133,17 @@ class AddDevice extends Component {
     this.componentDidUpdate({}, {});
   }
 
-  async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+  // The dialog is owned by a single hosting instance (<AddDevice host />); the rest are only buttons.
+  isOpen(props = this.props) {
+    return Boolean(props.host && props.modal === 'pair');
+  }
+
+  async componentDidUpdate(prevProps) {
+    const modalOpen = this.isOpen();
+    const { pairLoading, pairError, pairDongleId } = this.state;
+    if (!modalOpen && this.isOpen(prevProps)) {
+      this.teardown();
+    }
     let { hasCamera } = this.state;
 
     // Check for camera availability
@@ -280,23 +289,27 @@ class AddDevice extends Component {
     this.startScanning();
   }
 
-  modalClose() {
-    const { pairDongleId } = this.state;
-
+  teardown() {
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
       this.stream = null;
     }
     this.detector = null;
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
+  }
+
+  modalClose() {
+    const { pairDongleId } = this.state;
 
     if (pairDongleId && this.props.devices.length === 0) {
+      this.teardown();
       this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
       window.location = `${window.location.origin}/${pairDongleId}`;
       return;
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
+    this.props.dispatch(closeModal());
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -370,22 +383,25 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    this.props.dispatch(openModal('pair'));
   }
 
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes, host, buttonText, buttonStyle, buttonIcon } = this.props;
+    const modalOpen = this.isOpen();
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
-          { buttonText }
-          { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
-        <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
+        { !host && (
+          <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
+            { buttonText }
+            { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
+          </Button>
+        )}
+        { host && <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
               <Typography variant="title">Pair device</Typography>
@@ -436,7 +452,7 @@ class AddDevice extends Component {
                 </div>
               )}
           </Paper>
-        </Modal>
+        </Modal> }
       </>
     );
   }
@@ -445,6 +461,7 @@ class AddDevice extends Component {
 const stateToProps = (state) => ({
   profile: state.profile,
   devices: state.devices,
+  modal: parseUrl(state.router.location.pathname, state.router.location.search).modal,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));
