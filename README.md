@@ -30,3 +30,26 @@ There's a ton of them, but these are worth mentioning because they sort of affec
  * `Redux` - Sane formal *global* scope. This is not a replacement for component state, which is the best way to store local component level variables and trigger re-renders. Redux state is for global state that many unrelated components care about. No free-form editing, only specific pre-defined actions. [Redux DevTools](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?hl=en) can be very helpful.
  * `@material-ui` - Lots of fully featured highly customizable components for building the UIs with. Theming system with global and per-component overrides of any CSS values.
  * `connected-react-router` - Mindlessly simple routing with convenient global access due to redux
+
+## Navigation
+
+`src/url.js` owns the URL grammar, range validation, and URL builders. Components
+navigate with `openPage`, `openDrive`, or `openDialog`. The history middleware in
+`src/actions/history.js` applies location changes to the device and drive selection;
+unchanged selections retain their data and playback. Pages and dialogs are read
+from `selectUrl(state)`, not parallel Redux flags.
+
+Dialogs overlay their current page with `?dialog=...`. Settings, unpair, and settings
+uploads can also specify `&device=<dongleId>`, independently of the underlying drive.
+Other dialog names are `add-device`, `filter`, `uploads`, `cancel-prime`, and
+`switch-prime`. Opening a dialog never performs its destructive or billing action.
+Dialog close works from a cold link, and browser Back/Forward restores the overlay.
+
+Drive ranges are seconds in the URL, with up to three decimal places, and integer
+milliseconds in state. The drive Back button returns to the whole drive; browser
+history steps through previous selections. Legacy timestamp links replace their
+history entry once resolved, and stale lookups cannot redirect newer navigation.
+
+`routes` caches fetched drives for the selected device. `routesMeta` describes the
+loaded dashboard filter and its route IDs. Fetching a single drive augments the
+cache without replacing that list or claiming that its filter has been loaded.

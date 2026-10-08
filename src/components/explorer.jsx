@@ -24,6 +24,7 @@ import { DIALOGS, PAGES, selectUrl } from '../url';
 
 import DriveView from './DriveView';
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
 
@@ -161,9 +162,9 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { pathname, zoom } = this.props;
+    const { location, zoom } = this.props;
 
-    if (prevProps.pathname !== pathname) {
+    if (prevProps.location !== location) {
       this.setState({ drawerIsOpen: false });
     }
 
@@ -198,7 +199,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dongleId, page, dialog, selectedRouteId, profile,
+      classes, currentRoute, devices, dongleId, page, dialog, dialogDevice, selectedRouteId, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -243,16 +244,24 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
+              { page === PAGES.NOT_FOUND
+                ? (
+                  <div className="p-8">
+                    <Typography variant="title">Page not found</Typography>
+                    <a href="/">Go to connect</a>
+                  </div>
+                )
+                : referralsOpen
                 ? <Referrals profile={profile} onBack={ this.closePage } />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            {dialog === DIALOGS.ADD_DEVICE && <AddDevice dialogOnly />}
             <DeviceSettingsModal
-              isOpen={ dialog === DIALOGS.SETTINGS }
-              dongleId={ dialog === DIALOGS.SETTINGS ? dongleId : null }
+              isOpen={ Boolean(dialogDevice) }
+              dongleId={ dialogDevice }
               onClose={ this.closeDialog }
             />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -282,13 +291,14 @@ class ExplorerApp extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
-  pathname: state.router.location.pathname,
+  location: state.router.location,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
   page: selectUrl(state).page,
   dialog: selectUrl(state).dialog,
+  dialogDevice: selectUrl(state).dialogDevice,
   profile: state.profile,
 });
 

@@ -1,42 +1,18 @@
+// Selected drives and dashboard coverage are independent cache questions.
 export function hasRoutesData(state) {
-  if (!state) {
-    return false;
-  }
-  if (state.devices && state.devices.length === 0 && !state.dongleId) {
-    // new users without devices won't have segment metadata
-    return true;
-  }
-  if (!state.routesMeta || !state.routesMeta.dongleId || state.routesMeta.start === null
-    || state.routesMeta.end === null) {
-    console.debug('No routes data at all');
-    return false;
-  }
-  if (!state.routes) {
-    console.debug('Still loading...');
-    return false;
-  }
-  if (state.dongleId !== state.routesMeta.dongleId) {
-    console.debug('Bad dongle id');
-    return false;
-  }
+  if (!state) return false;
   if (state.selectedRouteId) {
-    // a selected drive is loaded once it's in the list or was fetched by itself
-    return state.routesMeta.logId === state.selectedRouteId
-      || state.routes.some((route) => route.log_id === state.selectedRouteId);
+    return state.missingRouteId === state.selectedRouteId
+      || Boolean(state.routes?.some((route) => route.log_id === state.selectedRouteId));
   }
-  if (state.routesMeta.logId) {
-    console.debug('Single drive, not a drive list');
-    return false;
-  }
-  const fetchRange = state.filter;
-  if (fetchRange.start < state.routesMeta.start) {
-    console.debug('Bad start offset');
-    return false;
-  }
-  if (fetchRange.end > state.routesMeta.end) {
-    console.debug('Bad end offset');
-    return false;
-  }
+  if (state.devices?.length === 0 && !state.dongleId) return true;
+  const meta = state.routesMeta;
+  return Boolean(meta && meta.dongleId === state.dongleId && meta.start != null && meta.end != null
+    && state.filter.start >= meta.start && state.filter.end <= meta.end);
+}
 
-  return true;
+// Only list requests establish which cached drives belong on the dashboard.
+export function dashboardRoutes(state) {
+  const ids = state.routesMeta.routeIds;
+  return ids ? state.routes?.filter((route) => ids.includes(route.log_id)) ?? [] : null;
 }

@@ -5,17 +5,17 @@ import { api } from '../api/backend';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
-import {hasRoutesData } from '../timeline/segments';
+import { hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { ROUTE_LIMIT_INCREMENT } from '../utils/filter';
 import { dialogUrl, driveUrl, urlFor } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
-const LIMIT_INCREMENT = 5
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
-const currentLocation = (state) => `${currentPathname(state)}${state.router?.location?.search ?? ''}`;
+const currentLocation = (state) => `${currentPathname(state)}${state.router?.location?.search ?? ''}${state.router?.location?.hash ?? ''}`;
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -27,8 +27,8 @@ export function checkRoutesData() {
       // already has metadata, don't bother
       return;
     }
-    if (!state.selectedRouteId && (!state.limit || !api.auth.isAuthenticated())) {
-      // the drive list waits for checkLastRoutesData, signed out visitors have none
+    if (!state.selectedRouteId && !api.auth.isAuthenticated()) {
+      // Signed-out visitors can only load individual public drives.
       return;
     }
     const { dongleId, limit: fetchLimit, selectedRouteId: logId } = state;
@@ -123,17 +123,17 @@ export function checkRoutesData() {
 
 export function checkLastRoutesData() {
   return (dispatch, getState) => {
-    const { limit, routes, filter } = getState();
+    const { limit, routesMeta, filter } = getState();
 
     // if current routes are fewer than limit, that means the last fetch already fetched all the routes
-    if (routes && routes.length < limit) {
+    if (routesMeta.routeIds && routesMeta.routeIds.length < limit) {
       return
     }
 
-    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
+    console.log(`fetching ${limit + ROUTE_LIMIT_INCREMENT } routes`)
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
-      limit: limit + LIMIT_INCREMENT,
+      limit: limit + ROUTE_LIMIT_INCREMENT,
     })
 
     // invalidate cached routes while keeping the current filter range
@@ -148,7 +148,7 @@ export function checkLastRoutesData() {
 }
 
 // Pushes `url` unless the app is already there.
-function navigate(url) {
+export function navigate(url) {
   return (dispatch, getState) => {
     if (currentLocation(getState()) !== url) {
       dispatch(push(url));
@@ -166,70 +166,33 @@ export function closePage() {
   return openPage(null);
 }
 
-// Opens a dialog over the current page, or over the dashboard of another device.
+// Dialog targets are independent of the selected device and underlying page.
 export function openDialog(dialog, dongleId) {
   return (dispatch, getState) => {
     const state = getState();
-    const pathname = !dongleId || dongleId === state.dongleId ? currentPathname(state) : urlFor({ dongleId });
-    dispatch(navigate(dialogUrl(pathname, dialog)));
+    dispatch(navigate(dialogUrl(state.router.location, dialog, dongleId ?? state.dongleId)));
   };
 }
 
 export function closeDialog() {
-  return (dispatch, getState) => {
-    dispatch(navigate(currentPathname(getState())));
-  };
+  return openDialog(null);
 }
 
-function fitLoop(loop, start, end) {
-  return (dispatch) => {
-    if (!loop || !loop.startTime || !loop.duration || loop.startTime < start
-      || loop.startTime + loop.duration > end || loop.duration < end - start) {
-      dispatch(resetPlayback());
-      dispatch(selectLoop(start, end));
-    }
-  };
-}
-
-// Selects a drive in state and loads it; a missing zoom means the whole drive.
+// Only URL reconciliation selects a drive. Reapplying the same selection is a no-op.
 export function selectRoute(logId, zoom) {
   return (dispatch, getState) => {
     const state = getState();
-    const { start = null, end = null } = zoom ?? {};
-
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== logId) {
-      dispatch({
-        type: Types.TIMELINE_PUSH_SELECTION,
-        log_id: logId,
-        start,
-        end,
-      });
-    }
-    dispatch(fitLoop(state.loop, start, end));
-    dispatch(checkRoutesData());
+    const route = state.routes?.find((candidate) => candidate.log_id === logId);
+    const nextZoom = logId ? (zoom ?? (route ? { start: 0, end: route.duration } : null)) : null;
+    if (state.selectedRouteId === logId && state.zoom?.start === nextZoom?.start && state.zoom?.end === nextZoom?.end) return;
+    dispatch({ type: Types.ACTION_SELECT_ROUTE, logId, zoom: nextZoom });
+    dispatch(resetPlayback());
+    dispatch(selectLoop(nextZoom?.start, nextZoom?.end));
   };
 }
 
-export function pushTimelineRange(logId, start, end) {
-  return (dispatch, getState) => {
-    const state = getState();
-    dispatch(selectRoute(logId, { start, end }));
-    dispatch(navigate(driveUrl(state, logId, { start, end })));
-  };
-}
-
-export function popTimelineRange(logId) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (!state.zoom.previous) {
-      return;
-    }
-
-    dispatch({ type: Types.TIMELINE_POP_SELECTION });
-    const { start, end } = state.zoom.previous;
-    dispatch(fitLoop(state.loop, start, end));
-    dispatch(navigate(driveUrl(state, logId, { start, end })));
-  };
+export function openDrive(logId, zoom = null) {
+  return (dispatch, getState) => dispatch(navigate(driveUrl(getState(), logId, zoom)));
 }
 
 export function primeGetSubscription(dongleId, subscription) {
@@ -244,14 +207,14 @@ export function primeFetchSubscription(dongleId, device, profile) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if (!device && state.device && state.device === dongleId) {
+    if (!device && state.device && state.device.dongle_id === dongleId) {
       device = state.device;
     }
     if (!profile && state.profile) {
       profile = state.profile;
     }
 
-    if (device && (device.is_owner || profile.superuser)) {
+    if (device && (device.is_owner || profile?.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
           dispatch(primeGetSubscription(dongleId, subscription));
@@ -292,8 +255,9 @@ export function fetchDeviceOnline(dongleId) {
 export function setDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();
+    if (state.dongleId === dongleId) return;
     let device;
-    if (state.devices && state.devices.length > 1) {
+    if (state.devices && state.devices.length > 0) {
       device = state.devices.find((d) => d.dongle_id === dongleId);
     }
     if (!device && state.device && state.device.dongle_id === dongleId) {
@@ -310,7 +274,7 @@ export function setDevice(dongleId) {
       dongleId,
     });
 
-    dispatch(selectRoute(null));
+    if (!device && state.devices) dispatch(fetchSharedDevice(dongleId));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
@@ -319,11 +283,7 @@ export function setDevice(dongleId) {
 }
 
 export function selectDevice(dongleId) {
-  return (dispatch) => {
-    dispatch(setDevice(dongleId));
-    dispatch(navigate(urlFor({ dongleId })));
-    dispatch(checkLastRoutesData());
-  };
+  return navigate(urlFor({ dongleId }));
 }
 
 export function fetchSharedDevice(dongleId) {
@@ -464,7 +424,7 @@ export function selectTimeFilter(start, end) {
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
-      limit: LIMIT_INCREMENT,
+      limit: ROUTE_LIMIT_INCREMENT,
     })
 
     dispatch(checkRoutesData());

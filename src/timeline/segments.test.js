@@ -106,8 +106,9 @@ describe('segments', () => {
     expect(hasRoutesData({
       dongleId: 'asdfasdf',
       selectedRouteId,
+      missingRouteId: logId,
       filter: { start: 0, end: 30 },
-      routesMeta: { dongleId: 'asdfasdf', logId, start: 0, end: 30 },
+      routesMeta: { dongleId: 'asdfasdf', start: logId ? null : 0, end: logId ? null : 30 },
       routes: logIds.map((log_id) => ({ log_id })),
     })).toBe(expected);
   });

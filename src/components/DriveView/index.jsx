@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { openDrive, closePage } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 import { urlFor } from '../../url';
@@ -18,18 +18,16 @@ class DriveView extends Component {
     this.close = this.close.bind(this);
   }
 
-  onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
+  onBack(currentRoute) {
+    if (currentRoute) {
       this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
+        openDrive(currentRoute.log_id),
       );
     }
   }
 
   close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(closePage());
   }
 
   render() {
@@ -44,7 +42,7 @@ class DriveView extends Component {
     }
 
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const backButtonDisabled = currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -59,7 +57,7 @@ class DriveView extends Component {
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
+                onClick={ () => this.onBack(currentRoute) }
                 aria-label="Go Back"
                 disabled={ backButtonDisabled }
               >
@@ -102,7 +100,7 @@ const stateToProps = (state) => ({
   routes: state.routes,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
-  routeMissing: Boolean(state.selectedRouteId) && state.routesMeta.logId === state.selectedRouteId,
+  routeMissing: Boolean(state.selectedRouteId) && state.missingRouteId === state.selectedRouteId,
 });
 
 export default connect(stateToProps)(DriveView);

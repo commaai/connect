@@ -1,51 +1,44 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
-import { driveUrl, parseUrl, urlFor } from '../url';
-import { checkLastRoutesData, selectRoute, setDevice } from './index';
+import { PAGES, parseUrl, urlFor } from '../url';
+import { checkRoutesData, selectRoute, setDevice } from './index';
 import { api } from '../api/backend';
 
-// Old links address a drive by timestamps; swap them for the drive's own URL.
-function resolveLegacyRange(pathname, dongleId, { start, end }) {
-  return (dispatch, getState) => {
-    api.routes.getRoutesSegments(dongleId, start, end).then((routesData) => {
-      if (routesData && routesData.length > 0 && getState().router.location.pathname === pathname) {
-        const logId = routesData[0].fullname.split('|')[1];
-        dispatch(replace(urlFor({ dongleId, logId })));
-      }
-    }).catch((err) => {
-      console.error('Error fetching routes data for log ID conversion', err);
-    });
-  };
-}
-
-// Updates whatever state the URL disagrees with, so navigating reuses everything else.
-export function syncStateToUrl(pathname) {
+// One reconciliation path for initial load, PUSH, POP, and REPLACE.
+// Data and playback are retained unless their device or drive selection changes.
+export function syncStateFromUrl(pathname) {
   return (dispatch, getState) => {
     const url = parseUrl(pathname);
-
-    const deviceChanged = url.dongleId && url.dongleId !== getState().dongleId;
-    if (deviceChanged) {
-      dispatch(setDevice(url.dongleId));
+    if (url.page === PAGES.HOME && getState().dongleId) {
+      dispatch(replace({ ...getState().router.location, pathname: urlFor({ dongleId: getState().dongleId }) }));
+      return;
     }
-
-    if (url.legacyRange) {
-      dispatch(resolveLegacyRange(pathname, url.dongleId, url.legacyRange));
-    }
-
-    const state = getState();
-    if (driveUrl(state, state.selectedRouteId, state.zoom) !== driveUrl(state, url.logId, url.zoom)) {
-      dispatch(selectRoute(url.logId, url.zoom));
-    }
-
-    if (deviceChanged) {
-      dispatch(checkLastRoutesData());
-    }
+    if (url.dongleId && url.dongleId !== getState().dongleId) dispatch(setDevice(url.dongleId));
+    dispatch(selectRoute(url.logId, url.zoom));
+    dispatch(checkRoutesData());
   };
 }
 
-export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
-  const result = next(action);
-  if (action.type === LOCATION_CHANGE) {
-    dispatch(syncStateToUrl(action.payload.location.pathname));
-  }
-  return result;
+export const onHistoryMiddleware = ({ dispatch, getState }) => {
+  let previousPathname;
+  let revision = 0;
+  return (next) => (action) => {
+    const result = next(action);
+    if (action.type !== LOCATION_CHANGE) return result;
+    const { pathname } = action.payload.location;
+    // Dialog-only changes cannot reset playback or start duplicate lookups.
+    if (pathname === previousPathname) return result;
+    previousPathname = pathname;
+    revision += 1;
+    const currentRevision = revision;
+    dispatch(syncStateFromUrl(pathname));
+    const { dongleId, legacyRange } = parseUrl(pathname);
+    if (legacyRange) {
+      api.routes.getRoutesSegments(dongleId, legacyRange.start, legacyRange.end).then((routes) => {
+        if (revision !== currentRevision || !routes?.length) return;
+        const logId = routes[0].fullname.split('|')[1];
+        dispatch(replace({ ...getState().router.location, pathname: urlFor({ dongleId, logId }) }));
+      }).catch((err) => console.error('Error fetching routes data for log ID conversion', err));
+    }
+    return result;
+  };
 };

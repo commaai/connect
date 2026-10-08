@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { closeDialog, closePage, openDialog, openPage, pushTimelineRange } from './index';
+import { closeDialog, closePage, openDialog, openPage, openDrive } from './index';
 import { DIALOGS, PAGES } from '../url';
 
 vi.mock('../timeline/playback', () => ({
@@ -30,8 +30,8 @@ describe('navigation actions', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('pushes the drive URL when editing zoom', () => {
-    run(pushTimelineRange('log', 1234, 5678), { dongleId: 'dongle', router: router('/dongle/log'), zoom: {} });
-    expect(push).toHaveBeenCalledWith('/dongle/log/1/5');
+    run(openDrive('log', { start: 1234, end: 5678 }), { dongleId: 'dongle', router: router('/dongle/log'), zoom: {} });
+    expect(push).toHaveBeenCalledWith('/dongle/log/1.234/5.678');
   });
 
   it.each([
@@ -39,8 +39,8 @@ describe('navigation actions', () => {
     ['stream', openPage(PAGES.STREAM), '/dongle', '/dongle/stream'],
     ['referrals', openPage(PAGES.REFERRALS), '/dongle', '/referrals'],
     ['the dashboard', closePage(), '/dongle/prime', '/dongle'],
-    ['settings over a drive', openDialog(DIALOGS.SETTINGS), '/dongle/log', '/dongle/log?dialog=settings'],
-    ['settings for another device', openDialog(DIALOGS.SETTINGS, 'other'), '/dongle/log', '/other?dialog=settings'],
+    ['settings over a drive', openDialog(DIALOGS.SETTINGS), '/dongle/log', '/dongle/log?dialog=settings&device=dongle'],
+    ['settings for another device', openDialog(DIALOGS.SETTINGS, 'other'), '/dongle/log', '/dongle/log?dialog=settings&device=other'],
     ['the page under a dialog', closeDialog(), '/dongle/log?dialog=settings', '/dongle/log'],
   ])('navigates to %s', (_name, thunk, from, expected) => {
     run(thunk, { dongleId: 'dongle', router: router(from) });

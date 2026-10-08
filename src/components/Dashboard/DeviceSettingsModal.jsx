@@ -14,12 +14,12 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { openPage, updateDevice } from '../../actions';
+import { openPage, openDialog, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
-import { PAGES } from '../../url';
+import { PAGES, selectUrl } from '../../url';
 
 const styles = (theme) => ({
   modal: {
@@ -116,12 +116,10 @@ const initialState = {
   loadingDeviceShare: false,
   hasSavedAlias: false,
   shareEmail: '',
-  unpairConfirm: false,
   unpaired: false,
   loadingUnpair: false,
   error: null,
   unpairError: null,
-  uploadModal: false,
 };
 
 class DeviceSettingsModal extends Component {
@@ -130,6 +128,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -226,7 +225,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    this.props.dispatch(openPage(PAGES.PRIME));
+    this.props.dispatch(openPage(PAGES.PRIME, this.props.dongleId));
   }
 
   async unpairDevice() {
@@ -251,7 +250,7 @@ class DeviceSettingsModal extends Component {
     if (this.state.unpaired) {
       window.location = window.location.origin;
     } else {
-      this.setState({ unpairConfirm: false });
+      this.props.dispatch(openDialog('settings', this.props.dongleId));
     }
   }
 
@@ -287,7 +286,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ unpairConfirm: true }) }
+                onClick={ () => this.props.dispatch(openDialog('unpair', this.props.dongleId)) }
               >
                 Unpair
               </Button>
@@ -296,7 +295,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.props.dispatch(openDialog('settings-uploads', this.props.dongleId)) }
               >
                 Uploads
               </Button>
@@ -359,7 +358,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.state.unpairConfirm}
+          open={this.props.dialog === 'unpair'}
           onClose={ this.closeUnpair }
         >
           <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
@@ -422,9 +421,9 @@ class DeviceSettingsModal extends Component {
           </Paper>
         </Modal>
         <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          open={ this.props.dialog === 'settings-uploads' }
+          update={ this.props.dialog === 'settings-uploads' }
+          onClose={ () => this.props.dispatch(openDialog('settings', this.props.dongleId)) }
           device={ device }
         />
       </>
@@ -436,7 +435,8 @@ const stateToProps = (state, ownProps) => {
   const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
-    subscription: state.subscription,
+    dialog: selectUrl(state).dialog,
+    subscription: ownProps.dongleId === state.dongleId ? state.subscription : null,
     device,
     profile: state.profile,
   };

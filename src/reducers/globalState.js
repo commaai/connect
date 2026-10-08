@@ -1,6 +1,6 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
-import { getDefaultFilter } from '../utils/filter';
+import { getDefaultFilter, ROUTE_LIMIT_INCREMENT } from '../utils/filter';
 
 const eventsMap = {};
 const locationMap = {};
@@ -61,7 +61,7 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
-        limit: 0,
+        limit: ROUTE_LIMIT_INCREMENT,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
@@ -70,34 +70,29 @@ export default function reducer(_state, action) {
           state.device = newDevice;
         }
       }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
-        state.routesMeta = {
-          dongleId: null,
-          logId: null,
-          start: null,
-          end: null,
-        };
-        state.routes = null;
-        state.lastRoutes = null;
-        state.currentRoute = null;
-      }
+      state.routesMeta = { dongleId: null, routeIds: null, start: null, end: null };
+      state.routes = null;
+      state.lastRoutes = null;
+      state.missingRouteId = null;
+      state.selectedRouteId = null;
+      state.currentRoute = null;
+      state.zoom = null;
+      state.loop = null;
       break;
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
-        lastRoutes: state.routes,
+        lastRoutes: state.routesMeta.routeIds ? state.routes?.filter((route) => state.routesMeta.routeIds.includes(route.log_id)) : state.lastRoutes,
         filter: {
           start: action.start,
           end: action.end,
         },
         routesMeta: {
           dongleId: null,
-          logId: null,
+          routeIds: null,
           start: null,
           end: null,
         },
-        routes: null,
-        currentRoute: null,
       };
       break;
     case Types.ACTION_UPDATE_ROUTE_LIMIT:
@@ -243,7 +238,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           last_athena_ping: action.last_athena_ping,
@@ -265,7 +260,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           network_metered: action.networkMetered,
@@ -290,7 +285,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           rpc: {
@@ -320,42 +315,12 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
+    case Types.ACTION_SELECT_ROUTE:
+      if (state.selectedRouteId !== action.logId) state.files = null;
+      state.selectedRouteId = action.logId;
+      state.currentRoute = state.routes?.find((route) => route.log_id === action.logId) || null;
+      state.zoom = action.zoom;
       break;
-    case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
-        state.files = null;
-      }
-
-      state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
-        }
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    }
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
@@ -394,22 +359,25 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
-      // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
-        return {
-          ...existingRoute,
-          ...route,
-        }
-      });
-      state.routesMeta = {
-        dongleId: action.dongleId,
-        logId: action.logId,
-        start: action.start,
-        end: action.end,
-      };
+    case Types.ACTION_ROUTES_METADATA: {
+      if (action.dongleId !== state.dongleId) break;
+      // Individual drives enrich the cache without replacing the dashboard's list.
+      const cached = state.routes || [];
+      const incoming = action.routes.map((route) => ({
+        ...cached.find((existing) => existing.fullname === route.fullname),
+        ...route,
+      }));
+      state.routes = [...cached.filter((route) => !incoming.some((next) => next.fullname === route.fullname)), ...incoming];
+      if (action.logId) {
+        state.missingRouteId = incoming.length ? null : action.logId;
+      } else {
+        state.routesMeta = {
+          dongleId: action.dongleId,
+          start: action.start,
+          end: action.end,
+          routeIds: incoming.map((route) => route.log_id),
+        };
+      }
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
         if (curr) {
@@ -432,6 +400,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }

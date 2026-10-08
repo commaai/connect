@@ -1,9 +1,11 @@
+import { replace } from 'connected-react-router';
+import { urlFor } from '../url';
 import * as Sentry from '@sentry/react';
 
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, setDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, checkRoutesData, setDevice, fetchSharedDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -44,7 +46,7 @@ export default function init() {
   return async (dispatch, getState) => {
     let state = getState();
     if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
+      dispatch(checkRoutesData());
     }
 
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
@@ -58,12 +60,12 @@ export default function init() {
       if (!state.dongleId) {
         const storedDongleId = window.localStorage.getItem('selectedDongleId');
         const dongleId = devices.some((d) => d.dongle_id === storedDongleId) ? storedDongleId : devices[0].dongle_id;
-        // Only the bare root moves to the device's URL; pages like /referrals stay put.
-        if (state.router.location.pathname === '/') {
-          dispatch(selectDevice(dongleId));
+        // Home resolves to the device URL without losing its dialog or adding history.
+        if (['/', '/demo'].includes(state.router.location.pathname)) {
+          dispatch(replace({ ...state.router.location, pathname: urlFor({ dongleId }) }));
         } else {
           dispatch(setDevice(dongleId));
-          dispatch(checkLastRoutesData());
+          dispatch(checkRoutesData());
         }
       }
       const dongleId = getState().dongleId;

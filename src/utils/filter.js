@@ -1,3 +1,5 @@
+export const ROUTE_LIMIT_INCREMENT = 5;
+
 const ONE_YEAR = 365 * 24 * 60 * 60 * 1000;
 
 export function getDefaultFilter() {

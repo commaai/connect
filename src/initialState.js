@@ -1,5 +1,5 @@
 import { parseUrl } from './url';
-import { getDefaultFilter } from './utils/filter';
+import { getDefaultFilter, ROUTE_LIMIT_INCREMENT } from './utils/filter';
 
 export function createInitialState(pathname = window.location.pathname) {
   const url = parseUrl(pathname);
@@ -14,11 +14,12 @@ export function createInitialState(pathname = window.location.pathname) {
     routes: null,
     routesMeta: {
       dongleId: null,
-      logId: null,
+      routeIds: null,
       start: null,
       end: null,
     },
     currentRoute: null,
+    missingRouteId: null,
     lastRoutes: null,
 
     profile: null,
@@ -38,7 +39,7 @@ export function createInitialState(pathname = window.location.pathname) {
     zoom: url.zoom,
     loop: null,
     selectedRouteId: url.logId,
-    limit: 0,
+    limit: ROUTE_LIMIT_INCREMENT,
   };
 }
 
