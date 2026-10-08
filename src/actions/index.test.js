@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { primeNav, pushTimelineRange, streamNav } from './index';
+import { formatUrl, Pages } from '../url';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -19,19 +20,23 @@ vi.mock('connected-react-router', async () => {
 
 describe('timeline actions', () => {
   it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+    ['device dashboard', { dongleId: 'dongle' }, '/dongle'],
+    ['deviceless', {}, '/'],
+    ['whole drive', { dongleId: 'dongle', page: Pages.DRIVE, routeId: 'log' }, '/dongle/log'],
+    ['drive range', { dongleId: 'dongle', page: Pages.DRIVE, routeId: 'log', zoom: { start: 10000, end: 20000 } }, '/dongle/log/10/20'],
+    ['zero-start drive range keeps its bounds', { dongleId: 'dongle', page: Pages.DRIVE, routeId: 'log', zoom: { start: 0, end: 20000 } }, '/dongle/log/0/20'],
+    ['Prime', { dongleId: 'dongle', page: Pages.PRIME }, '/dongle/prime'],
+    ['stream', { dongleId: 'dongle', page: Pages.STREAM }, '/dongle/stream'],
+    ['referrals', { page: Pages.REFERRALS }, '/referrals'],
+    ['settings modal', { dongleId: 'dongle', settingsDongleId: 'beef' }, '/dongle?settings=beef'],
+  ])('generates a %s URL', (_name, url, expected) => {
+    expect(formatUrl(url)).toBe(expected);
   });
 
   it('should push history state when editing zoom', () => {
     const dispatch = vi.fn();
     const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
+    const actionThunk = pushTimelineRange('log_id', 123, 1234);
 
     getState.mockImplementationOnce(() => ({
       dongleId: 'statedongle',
@@ -39,7 +44,7 @@ describe('timeline actions', () => {
       zoom: {},
     }));
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+    expect(push).toBeCalledWith('/statedongle/log_id/0/1');
   });
 
   it.each([

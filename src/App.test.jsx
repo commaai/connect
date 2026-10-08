@@ -202,6 +202,18 @@ describe('whole-app behavior', () => {
     expect(mocks.requests).toContainEqual({ method: 'GET', url: 'https://billing.comma.ai/v1/referrals' });
   });
 
+  test('device settings opens from the URL and follows navigation', async () => {
+    const { history } = await renderApp(`/${FIRST}?settings=${SECOND}`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.search).toBe(`?settings=${SECOND}`);
+
+    act(() => history.push(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
   test.each([['owned', FIRST], ['shared', SHARED]])('direct entry opens %s device dashboard', async (_name, dongleId) => {
     const { history } = await renderApp(`/${dongleId}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();

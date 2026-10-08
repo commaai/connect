@@ -13,11 +13,13 @@ import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
+import { formatUrl, parseLocation, Pages } from '../url';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 
@@ -154,9 +156,9 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { url, zoom, dongleId, limit } = this.props;
 
-    if (prevProps.pathname !== pathname) {
+    if (prevProps.url !== url) {
       this.setState({ drawerIsOpen: false });
     }
 
@@ -198,12 +200,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, url, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = url.page === Pages.REFERRALS;
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -244,12 +246,17 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(push(formatUrl({ dongleId })))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            <DeviceSettingsModal
+              isOpen={ Boolean(url.settingsDongleId) }
+              dongleId={ url.settingsDongleId }
+              onClose={ () => dispatch(push(formatUrl({ ...url, settingsDongleId: null }))) }
+            />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -277,7 +284,7 @@ class ExplorerApp extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
-  pathname: state.router.location.pathname,
+  url: parseLocation(state.router.location),
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,

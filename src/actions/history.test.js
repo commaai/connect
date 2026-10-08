@@ -92,7 +92,7 @@ describe('history middleware', () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
     const { invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
+    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, false));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
@@ -118,14 +118,14 @@ describe('history middleware', () => {
   it.each([
     ['Prime', 'prime', 'primeNav'],
     ['stream', 'stream', 'streamNav'],
-  ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
+  ])('activates and deactivates %s through history without pushing a path', (_name, suffix, actionName) => {
     const entering = create();
     entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(true, false);
 
     vi.clearAllMocks();
     const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
     leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(false, false);
   });
 });

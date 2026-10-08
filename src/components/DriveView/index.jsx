@@ -7,6 +7,7 @@ import { IconButton, Typography } from '@material-ui/core';
 import { popTimelineRange, pushTimelineRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
+import { formatUrl } from '../../url';
 
 import Media from './Media';
 import Timeline from '../Timeline';
@@ -78,7 +79,7 @@ class DriveView extends Component {
               <IconButton
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={ formatUrl({ dongleId }) }
               >
                 <CloseBold />
               </IconButton>
