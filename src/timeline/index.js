@@ -1,5 +1,5 @@
 import store from '../store';
-import { videoOffset } from './video';
+import { playbackRange, videoOffset } from './video';
 
 /**
  * Get current playback offset
@@ -16,11 +16,9 @@ export function currentOffset(state = null) {
 
   const fromVideo = videoOffset(state.currentRoute);
   if (fromVideo !== null) {
-    // the video keeps playing past the loop end until it is sent back, so clamp
-    if (state.loop?.startTime) {
-      return Math.min(Math.max(fromVideo, state.loop.startTime), state.loop.startTime + state.loop.duration);
-    }
-    return fromVideo;
+    // the video can be a frame past the range end before it is sent back, so clamp
+    const range = playbackRange(state.loop, state.zoom);
+    return range ? Math.min(Math.max(fromVideo, range.start), range.end) : fromVideo;
   }
 
   /** @type {number} */

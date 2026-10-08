@@ -25,6 +25,23 @@ export function isStalled(el) {
   return el.seeking || el.readyState < (el.paused ? HAVE_CURRENT_DATA : HAVE_FUTURE_DATA);
 }
 
+/**
+ * The range playback repeats within: the selected loop, or else the zoomed range.
+ *
+ * @param {{ startTime: number, duration: number } | null} loop
+ * @param {{ start: number, end: number } | null} zoom
+ * @returns {{ start: number, end: number } | null} offsets in milliseconds
+ */
+export function playbackRange(loop, zoom) {
+  if (loop && loop.duration > 0) {
+    return { start: loop.startTime, end: loop.startTime + loop.duration };
+  }
+  if (zoom && zoom.end > zoom.start) {
+    return { start: zoom.start, end: zoom.end };
+  }
+  return null;
+}
+
 let video = null;
 let videoRoute = null;
 

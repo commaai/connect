@@ -1,5 +1,7 @@
 import * as Types from '../actions/types';
-import { attachVideo, detachVideo, isActiveVideo, isStalled, seekVideo, videoMiddleware, videoOffset } from './video';
+import {
+  attachVideo, detachVideo, isActiveVideo, isStalled, playbackRange, seekVideo, videoMiddleware, videoOffset,
+} from './video';
 
 const route = { fullname: 'abc|route', videoStartOffset: 2000 };
 const otherRoute = { fullname: 'abc|other' };
@@ -127,5 +129,25 @@ describe('isActiveVideo', () => {
     expect(isActiveVideo(fakeVideo(), route)).toBe(false);
     expect(isActiveVideo(video, otherRoute)).toBe(false);
     expect(isActiveVideo(null, route)).toBe(false);
+  });
+});
+
+describe('playbackRange', () => {
+  it('uses the selected loop', () => {
+    expect(playbackRange({ startTime: 120000, duration: 60000 }, { start: 0, end: 900000 })).toEqual({ start: 120000, end: 180000 });
+  });
+
+  it('handles a loop starting at the beginning of the route', () => {
+    expect(playbackRange({ startTime: 0, duration: 60000 }, null)).toEqual({ start: 0, end: 60000 });
+  });
+
+  it('falls back to the zoomed range without a loop', () => {
+    expect(playbackRange(null, { start: 0, end: 900000 })).toEqual({ start: 0, end: 900000 });
+    expect(playbackRange({ startTime: 5, duration: 0 }, { start: 0, end: 10 })).toEqual({ start: 0, end: 10 });
+  });
+
+  it('is null with neither', () => {
+    expect(playbackRange(null, null)).toBeNull();
+    expect(playbackRange(null, { start: 10, end: 10 })).toBeNull();
   });
 });

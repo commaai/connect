@@ -10,7 +10,7 @@ import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo, pause, play } from '../../timeline/playback';
-import { attachVideo, detachVideo, isActiveVideo, isStalled, seekVideo } from '../../timeline/video';
+import { attachVideo, detachVideo, isActiveVideo, isStalled, playbackRange, seekVideo, videoOffset } from '../../timeline/video';
 import { isIos, isFirefox } from '../../utils/browser.js';
 
 // native media events after which the video may have started or stopped waiting for data.
@@ -53,10 +53,13 @@ class DriveVideo extends Component {
     this.onPlay = this.onPlay.bind(this);
     this.onPause = this.onPause.bind(this);
     this.onPlaying = this.onPlaying.bind(this);
+    this.onEnded = this.onEnded.bind(this);
+    this.checkRangeEnd = this.checkRangeEnd.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
 
     this.video = null;
+    this.frame = null;
     this.buffering = null; // last buffering state sent to redux
     this.playSpeed = 1; // last speed the user played at
     this.playbackRate = 1;
@@ -69,6 +72,7 @@ class DriveVideo extends Component {
 
   componentDidMount() {
     this.updateVideoSource({});
+    this.frame = requestAnimationFrame(this.checkRangeEnd);
   }
 
   componentDidUpdate(prevProps) {
@@ -76,6 +80,7 @@ class DriveVideo extends Component {
   }
 
   componentWillUnmount() {
+    cancelAnimationFrame(this.frame);
     // hand the position over to the playback clock, which keeps time without a video
     const offset = currentOffset();
     this.setVideoElement(null);
@@ -126,9 +131,43 @@ class DriveVideo extends Component {
 
   onPause() {
     const { currentRoute, desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed > 0 && isActiveVideo(this.video, currentRoute)) {
+    // reaching the end also pauses the video, onEnded decides what happens then
+    if (desiredPlaySpeed > 0 && !this.video.ended && isActiveVideo(this.video, currentRoute)) {
       dispatch(pause());
     }
+  }
+
+  // the video can end before the range does when it is shorter than the logs
+  onEnded() {
+    const { currentRoute, dispatch } = this.props;
+    if (!isActiveVideo(this.video, currentRoute)) {
+      return;
+    }
+    if (this.restartRange()) {
+      this.video.play()?.catch(() => console.debug('[DriveVideo] play interrupted'));
+    } else {
+      dispatch(pause());
+    }
+  }
+
+  // playback repeats within the selected range: send the video back to its start once it passes the end.
+  // checked every frame rather than on timeupdate, which only fires a few times a second
+  checkRangeEnd() {
+    const { currentRoute, loop, zoom } = this.props;
+    const el = this.video;
+    if (el && !el.paused && !el.seeking && isActiveVideo(el, currentRoute)) {
+      const range = playbackRange(loop, zoom);
+      if (range && videoOffset(currentRoute) >= range.end) {
+        this.restartRange();
+      }
+    }
+    this.frame = requestAnimationFrame(this.checkRangeEnd);
+  }
+
+  restartRange() {
+    const { currentRoute, loop, zoom } = this.props;
+    const range = playbackRange(loop, zoom);
+    return Boolean(range) && seekVideo(currentRoute, range.start);
   }
 
   onPlaying() {
@@ -212,6 +251,7 @@ class DriveVideo extends Component {
       this.video.removeEventListener('play', this.onPlay);
       this.video.removeEventListener('pause', this.onPause);
       this.video.removeEventListener('playing', this.onPlaying);
+      this.video.removeEventListener('ended', this.onEnded);
       BUFFERING_EVENTS.forEach((ev) => this.video.removeEventListener(ev, this.updateBuffering));
     }
     this.video = el || null;
@@ -220,6 +260,7 @@ class DriveVideo extends Component {
       this.video.addEventListener('play', this.onPlay);
       this.video.addEventListener('pause', this.onPause);
       this.video.addEventListener('playing', this.onPlaying);
+      this.video.addEventListener('ended', this.onEnded);
       BUFFERING_EVENTS.forEach((ev) => this.video.addEventListener(ev, this.updateBuffering));
       if (this.video.readyState > 0) {
         // metadata loaded before we started listening
@@ -295,6 +336,8 @@ const stateToProps = (state) => ({
   desiredPlaySpeed: state.desiredPlaySpeed,
   isBufferingVideo: state.isBufferingVideo,
   currentRoute: state.currentRoute,
+  loop: state.loop,
+  zoom: state.zoom,
 });
 
 export default connect(stateToProps)(DriveVideo);
