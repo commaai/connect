@@ -27,6 +27,8 @@ describe('URL pathname helpers', () => {
     expect(getDialog(`/${DONGLE}/settings`, '?dialog=filter')).toBeNull();
     expect(withDialog({ pathname: `/${DONGLE}`, search: '?source=test', hash: '#map' }, 'filter'))
       .toBe(`/${DONGLE}?source=test&dialog=filter#map`);
+    expect(getDialog(`/${DONGLE}/${LOG}`, `?dialog=unpair&device=${DONGLE}&panel=settings`)).toBe('unpair');
+    expect(getDialog(`/${DONGLE}/${LOG}`, '?dialog=unpair')).toBeNull();
   });
   it.each([
     [`/${DONGLE}`, DONGLE],

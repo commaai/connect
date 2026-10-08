@@ -25,7 +25,7 @@ import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
-import { parsePathname } from '../url';
+import { getDialog, parsePathname, withDialog } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -200,14 +200,26 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, device, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId,
+      pathname, profile, routerLocation,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const location = parsePathname(pathname);
     const referralsOpen = location.page === 'referrals';
-    const settingsOpen = location.page === 'settings';
+    const dialog = getDialog(pathname, routerLocation.search);
+    const params = new URLSearchParams(routerLocation.search);
+    const contextualSettings = params.get('panel') === 'settings'
+      && ['settings', 'unpair', 'uploads'].includes(dialog);
+    const settingsOpen = location.page === 'settings' || contextualSettings;
+    const settingsDongleId = location.page === 'settings' ? location.dongleId : params.get('device');
+    const settingsDevice = (devices || []).find(({ dongle_id }) => dongle_id === settingsDongleId)
+      || (device?.dongle_id === settingsDongleId ? device : null);
+    const settingsAllowed = Boolean(settingsDevice && (settingsDevice.is_owner || profile?.superuser));
+    const closeSettings = () => dispatch(push(location.page === 'settings'
+      ? `/${settingsDongleId}`
+      : withDialog(routerLocation, null, { device: null, panel: null })));
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -255,10 +267,18 @@ class ExplorerApp extends Component {
             </div>
             <IosPwaPopup />
             <DeviceSettingsModal
-              isOpen={settingsOpen}
-              dongleId={settingsOpen ? location.dongleId : null}
-              onClose={() => dispatch(push(`/${location.dongleId}`))}
+              isOpen={settingsOpen && settingsAllowed}
+              dongleId={settingsOpen ? settingsDongleId : null}
+              contextual={contextualSettings}
+              onClose={closeSettings}
             />
+            <Modal open={settingsOpen && Boolean(settingsDevice) && !settingsAllowed} onClose={closeSettings}>
+              <Paper className={classes.modal}>
+                <Typography variant="title">Device settings unavailable</Typography>
+                <Typography>You do not have permission to manage this device.</Typography>
+                <Button variant="contained" className={classes.closeButton} onClick={closeSettings}>Close</Button>
+              </Paper>
+            </Modal>
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -287,7 +307,9 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  routerLocation: state.router.location,
   dongleId: state.dongleId,
+  device: state.device,
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,

@@ -143,7 +143,8 @@ class DeviceSettingsModal extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
+    if (prevProps.dongleId !== this.props.dongleId
+      || prevProps.device?.dongle_id !== this.props.device?.dongle_id) {
       const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
       this.setState({
         ...initialState,
@@ -230,7 +231,17 @@ class DeviceSettingsModal extends Component {
   }
 
   openDialog(dialog) {
-    this.props.dispatch(push(withDialog(this.props.location, dialog)));
+    if (this.props.contextual && !dialog) {
+      this.props.dispatch(push(withDialog(this.props.location, 'settings', {
+        device: this.props.dongleId,
+        panel: 'settings',
+      })));
+      return;
+    }
+    this.props.dispatch(push(withDialog(this.props.location, dialog, this.props.contextual ? {
+      device: this.props.dongleId,
+      panel: 'settings',
+    } : {})));
   }
 
   async unpairDevice() {
@@ -442,7 +453,6 @@ const stateToProps = (state, ownProps) => {
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
     location: state.router.location,
     dialog: getDialog(state.router.location.pathname, state.router.location.search),
   };

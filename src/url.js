@@ -78,23 +78,30 @@ export function buildPath({ page = 'dashboard', dongleId, routeId, range } = {})
 }
 
 const dialogsByPage = {
-  dashboard: ['filter'],
-  demo: ['filter'],
-  drive: ['clips', 'uploads'],
-  prime: ['cancel', 'plan'],
+  dashboard: ['filter', 'settings', 'unpair', 'uploads'],
+  demo: ['filter', 'settings', 'unpair', 'uploads'],
+  drive: ['settings', 'unpair', 'uploads'],
   settings: ['unpair', 'uploads'],
 };
 
 export function getDialog(pathname, search = '') {
   const { page } = parsePathname(pathname);
-  const dialog = new URLSearchParams(search).get('dialog');
+  const params = new URLSearchParams(search);
+  const dialog = params.get('dialog');
+  if (page !== 'settings' && ['unpair', 'uploads'].includes(dialog)
+    && params.get('panel') !== 'settings') return null;
   return dialogsByPage[page]?.includes(dialog) ? dialog : null;
 }
 
-export function withDialog(location, dialog) {
+export function withDialog(location, dialog, values = {}) {
   const params = new URLSearchParams(location.search || '');
-  if (dialog) params.set('dialog', dialog);
-  else params.delete('dialog');
+  if (dialog) {
+    params.set('dialog', dialog);
+    Object.entries(values).forEach(([key, value]) => params.set(key, value));
+  } else {
+    params.delete('dialog');
+    Object.keys(values).forEach((key) => params.delete(key));
+  }
   const search = params.toString();
   return `${location.pathname}${search ? `?${search}` : ''}${location.hash || ''}`;
 }

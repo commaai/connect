@@ -12,7 +12,6 @@ import { hardNavigate } from '../utils/navigation';
 import { buildPath, parsePathname } from '../url';
 
 let routesRequest = null;
-let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
@@ -22,45 +21,62 @@ export function checkRoutesData() {
     if (!state.dongleId) {
       return;
     }
-    if (hasRoutesData(state)) {
+    const requestedRouteId = state.selectedRouteId;
+    const cachedRoute = state.routes?.find((route) => route.log_id === requestedRouteId);
+    const hasRequestedRoute = !requestedRouteId || cachedRoute;
+    if (hasRoutesData(state) && hasRequestedRoute) {
+      if (cachedRoute && state.currentRoute?.log_id !== requestedRouteId) {
+        dispatch({
+          type: Types.ACTION_ROUTES_METADATA,
+          dongleId: state.dongleId,
+          start: state.filter.start,
+          end: state.filter.end,
+          routes: state.routes,
+        });
+      }
       // already has metadata, don't bother
-      return;
+      return state.routes;
     }
-    if (routesRequest && routesRequest.dongleId === state.dongleId) {
+    if (routesRequest && routesRequest.dongleId === state.dongleId
+      && routesRequest.routeId === requestedRouteId) {
       // there is already an pending request
-      return routesRequestPromise;
+      return routesRequest.promise;
     }
     console.debug('We need to update the segment metadata...');
     const { dongleId, limit: fetchLimit } = state;
     const fetchRange = state.filter;
 
     // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.selectedRouteId) {
+    if (requestedRouteId) {
       routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
+        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${requestedRouteId}`),
         dongleId,
+        routeId: requestedRouteId,
       };
     } else {
       routesRequest = {
         req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit),
         dongleId,
+        routeId: null,
       };
     }
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    const request = routesRequest;
+    request.promise = request.req.then((routesData) => {
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.limit !== fetchLimit
-        || state.dongleId !== dongleId) {
-        routesRequest = null;
+        || state.dongleId !== dongleId
+        || state.selectedRouteId !== requestedRouteId) {
+        if (routesRequest === request) routesRequest = null;
         dispatch(checkRoutesData());
         return;
       }
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
-        routesRequest = null;
+        if (routesRequest === request) routesRequest = null;
         hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
         return;
       }
@@ -117,16 +133,16 @@ export function checkRoutesData() {
         })));
       }
 
-      routesRequest = null;
+      if (routesRequest === request) routesRequest = null;
 
       return routes
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
+      if (routesRequest === request) routesRequest = null;
     });
 
-    return routesRequestPromise
+    return request.promise
   };
 }
 

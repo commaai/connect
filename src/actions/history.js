@@ -5,7 +5,7 @@ import { api } from '../api/backend';
 
 let locationRevision = 0;
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (!action) {
     return;
   }

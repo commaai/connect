@@ -106,7 +106,12 @@ async function mockFetch(input, init = {}) {
     if (options.failedRoutes && url.searchParams.has('start')) return json({}, 500);
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
-    if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
+    if (routeStr) {
+      if (options.routeDelay && routeStr.endsWith(`|${LOG}`)) {
+        await new Promise((resolve) => setTimeout(resolve, options.routeDelay));
+      }
+      return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
+    }
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
   }
@@ -223,10 +228,51 @@ describe('whole-app behavior', () => {
   test('device settings opens directly and follows browser history', async () => {
     const { history } = await renderApp(`/${FIRST}/settings`);
     expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByLabelText('Device name')).toHaveValue('Zulu');
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('shared device settings show an access-denied state', async () => {
+    await renderApp(`/${SHARED}/settings`);
+    expect(await screen.findByText('Device settings unavailable')).toBeVisible();
+    expect(screen.queryByLabelText('Device name')).not.toBeInTheDocument();
+  });
+
+  test('contextual settings preserve an open drive and browser history', async () => {
+    const path = `/${FIRST}/${LOG}`;
+    const { history, store } = await renderApp(`${path}?dialog=settings&device=${FIRST}&panel=settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(store.getState().currentRoute.log_id).toBe(LOG);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname + history.location.search).toBe(path));
+    expect(store.getState().currentRoute.log_id).toBe(LOG);
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(store.getState().currentRoute.log_id).toBe(LOG);
+  });
+
+  test('same-device deep links load routes missing from the dashboard cache', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+
+  test('a stale route request cannot replace a newer same-device navigation', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`, { routeDelay: 30, selected: FIRST });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => {
+      history.push(`/${FIRST}/${LOG}`);
+      history.push(`/${FIRST}/${RECENT_LOG}`);
+    });
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(RECENT_LOG));
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 50)));
+    expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`);
+    expect(store.getState().currentRoute?.log_id).toBe(RECENT_LOG);
   });
 
   test.each([

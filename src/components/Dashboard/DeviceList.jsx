@@ -15,6 +15,7 @@ import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
+import { withDialog } from '../../url';
 
 const styles = (theme) => ({
   deviceList: {
@@ -96,7 +97,10 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.props.dispatch(push(`/${dongleId}/settings`));
+    this.props.dispatch(push(withDialog(this.props.location, 'settings', {
+      device: dongleId,
+      panel: 'settings',
+    })));
   }
 
   async onVisible() {
@@ -201,6 +205,7 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));
