@@ -76,6 +76,21 @@ export function seek(offset) {
   };
 }
 
+// a new loop moves the playhead to its start only when the playhead is outside
+// it; not a user seek, so no analytics event
+export function keepInRange() {
+  return (_dispatch, getState) => {
+    if (!attached) {
+      return;
+    }
+    const bounds = playbackBounds(getState(), attached.video);
+    const start = playStart({ currentTime: attached.video.currentTime * 1000 }, bounds);
+    if (start !== null) {
+      attached.seekTo(start);
+    }
+  };
+}
+
 export function play() {
   return (dispatch, getState) => {
     attached?.play();
@@ -96,7 +111,7 @@ export function pause() {
  * @property {boolean} paused
  * @property {boolean} seeking
  * @property {Array<[number, number]>} buffered  buffered ranges, start inclusive, end exclusive
- * @property {'' | 'missing' | 'network'} err    fatal load error; buffered data still plays
+ * @property {'' | 'missing' | 'network' | 'media'} err    fatal load error; buffered data still plays
  */
 
 /**
@@ -134,16 +149,30 @@ export function seekTarget(r, bounds) {
   return clamp(clamp(r, bounds.loopStart, bounds.loopEnd) - bounds.videoStart, 0, bounds.videoDuration);
 }
 
-// the video end is handled on 'ended': the engine pauses before that timeupdate
-export function loopWrapTarget(el, bounds) {
-  if (el.paused || el.seeking || el.currentTime >= bounds.videoDuration || el.currentTime + bounds.videoStart < bounds.loopEnd) {
-    return null;
-  }
-  return loopRestartTime(bounds);
+// a new source starts at the loop start. Not seekTarget: on a route change the
+// bounds still hold the old video's duration; the element clamps to the new one.
+export function startPosition(bounds) {
+  return Math.max(bounds.loopStart - bounds.videoStart, 0);
 }
 
-export function loopRestartTime(bounds) {
-  return clamp(bounds.loopStart - bounds.videoStart, 0, bounds.videoDuration);
+// timeupdate: playback stops at the end of the selected range, never past it;
+// returns the video time to pause at, or null. At the video end the engine
+// pauses on its own.
+export function stopAt(el, bounds) {
+  if (el.paused || el.seeking || el.currentTime >= bounds.videoDuration
+    || el.currentTime + bounds.videoStart < bounds.loopEnd) {
+    return null;
+  }
+  return clamp(bounds.loopEnd - bounds.videoStart, 0, el.currentTime);
+}
+
+// 'play' from outside the selected range (its end included) starts at the range start
+export function playStart(el, bounds) {
+  const offset = el.currentTime + bounds.videoStart;
+  if (offset >= bounds.loopStart && offset < bounds.loopEnd) {
+    return null;
+  }
+  return seekTarget(bounds.loopStart, bounds);
 }
 
 export function resumesOnline(el, online) {

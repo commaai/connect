@@ -10,8 +10,8 @@ import {
 } from '../../icons';
 import { currentOffset } from '../../timeline';
 import {
-  attachPlayer, bufferedAhead, isLoading, isPlaying, loopRestartTime, loopWrapTarget, pause, play, playbackBounds,
-  resumesOnline, seek, seekTarget, visibleError,
+  attachPlayer, bufferedAhead, isLoading, isPlaying, pause, play, playbackBounds, playStart,
+  resumesOnline, seek, startPosition, stopAt, visibleError,
 } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
@@ -28,12 +28,13 @@ export function usePlayer() {
 
 const MEDIA_EVENTS = [
   'play', 'pause', 'playing', 'waiting', 'seeking', 'seeked', 'timeupdate', 'progress',
-  'canplay', 'ended', 'emptied', 'loadedmetadata', 'ratechange', 'volumechange',
+  'canplay', 'emptied', 'loadedmetadata', 'ratechange', 'volumechange',
 ];
 
 const ERROR_TEXT = {
   missing: 'This video segment has not uploaded yet or has been deleted.',
   network: 'Unable to load video. Check network connection.',
+  media: 'Unable to play this video.',
 };
 
 // below HAVE_FUTURE_DATA the engine cannot play at the playhead even when
@@ -68,8 +69,9 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
   const hlsRef = useRef(null);
   const frameRef = useRef(null);
   const errRef = useRef(err);
-  const srcRef = useRef(null);
   const fatalRef = useRef('');
+  const startAtRef = useRef(null);
+  const [reloadKey, reload] = useReducer((n) => n + 1, 0);
   errRef.current = err;
 
   const bounds = playbackBounds({ currentRoute, loop, zoom }, video);
@@ -79,7 +81,6 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
   const src = currentRoute
     ? api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig)
     : null;
-  srcRef.current = src;
 
   // play(), never the autoplay attribute: iOS pauses autoplay videos while hidden
   useEffect(() => {
@@ -88,7 +89,8 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
     }
     setErr('');
     setHasAudio(false);
-    const startSec = seekTarget(boundsRef.current.loopStart, boundsRef.current) / 1000;
+    const startSec = startAtRef.current ?? startPosition(boundsRef.current) / 1000;
+    startAtRef.current = null;
     let hls = null;
     let lastMediaRecovery = 0;
     if (!isIos() && Hls.isSupported()) {
@@ -104,14 +106,19 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
           hls.recoverMediaError();
           return;
         }
-        setErr(data.response?.code === 404 ? 'missing' : 'network');
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          setErr('media');
+        } else {
+          setErr(data.response?.code === 404 ? 'missing' : 'network');
+        }
       });
       hls.loadSource(src);
       hls.attachMedia(video);
     } else {
       video.src = src;
-      video.currentTime = startSec;
     }
+    // hls.js loads from here once fragments are tracked
+    video.currentTime = startSec;
     hlsRef.current = hls;
     playVideo(video);
 
@@ -121,7 +128,7 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
       video.removeAttribute('src');
       video.load();
     };
-  }, [video, src]);
+  }, [video, src, reloadKey]);
 
   useEffect(() => {
     const onChange = () => setFullscreen(Boolean(document.fullscreenElement) && document.fullscreenElement === frameRef.current);
@@ -136,16 +143,18 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
 
     const recover = (sec) => {
       setErr('');
+      video.currentTime = sec;
       const hls = hlsRef.current;
-      if (hls && fatalRef.current === Hls.ErrorTypes.MEDIA_ERROR) {
+      const fatal = fatalRef.current;
+      fatalRef.current = '';
+      if (hls && fatal === Hls.ErrorTypes.MEDIA_ERROR) {
         hls.recoverMediaError();
-        video.currentTime = sec;
       } else if (hls?.levels?.length) {
         hls.startLoad(sec);
       } else if (hls) {
-        // startLoad() does nothing until a manifest has loaded
-        hls.startPosition = sec;
-        hls.loadSource(srcRef.current);
+        // startLoad() does nothing until a manifest has loaded: start a new hls.js at sec
+        startAtRef.current = sec;
+        reload();
       } else {
         const resume = !video.paused;
         video.load();
@@ -158,22 +167,16 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
 
     const onMedia = () => refresh();
     const onTimeUpdate = () => {
-      const wrapTo = loopWrapTarget(snapshot(video, errRef.current), boundsRef.current);
-      if (wrapTo !== null) {
-        video.currentTime = wrapTo / 1000;
-        playVideo(video);
+      const stop = stopAt(snapshot(video, errRef.current), boundsRef.current);
+      if (stop !== null) {
+        video.pause();
+        video.currentTime = stop / 1000;
       }
     };
-    // the engine pauses before the end-of-media timeupdate, so the video end wraps here
-    const onEnded = () => {
-      video.currentTime = loopRestartTime(boundsRef.current) / 1000;
-      playVideo(video);
-    };
     const onPlay = () => {
-      const { loopStart, loopEnd, videoStart } = boundsRef.current;
-      const offset = video.currentTime * 1000 + videoStart;
-      if (offset < loopStart || offset > loopEnd) {
-        video.currentTime = seekTarget(loopStart, boundsRef.current) / 1000;
+      const start = playStart(snapshot(video, errRef.current), boundsRef.current);
+      if (start !== null) {
+        video.currentTime = start / 1000;
       }
     };
     const onNativeError = () => {
@@ -206,7 +209,6 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
 
     MEDIA_EVENTS.forEach((type) => video.addEventListener(type, onMedia));
     video.addEventListener('timeupdate', onTimeUpdate);
-    video.addEventListener('ended', onEnded);
     video.addEventListener('play', onPlay);
     video.addEventListener('error', onNativeError);
     video.addEventListener('loadedmetadata', onLoadedMetadata);
@@ -229,7 +231,6 @@ function PlayerProvider({ children, currentRoute, loop, zoom, dispatch }) {
       detach();
       MEDIA_EVENTS.forEach((type) => video.removeEventListener(type, onMedia));
       video.removeEventListener('timeupdate', onTimeUpdate);
-      video.removeEventListener('ended', onEnded);
       video.removeEventListener('play', onPlay);
       video.removeEventListener('error', onNativeError);
       video.removeEventListener('loadedmetadata', onLoadedMetadata);
@@ -346,7 +347,7 @@ function PlayerFrame({ className = '', children }) {
     const onKeyDown = (event) => {
       const frame = meta.frameRef.current;
       const shortcut = SHORTCUTS[event.key];
-      if (!frame || !frame.offsetParent || !shortcut || event.metaKey || event.ctrlKey || event.altKey) {
+      if (!frame || frame.getClientRects().length === 0 || !shortcut || event.metaKey || event.ctrlKey || event.altKey) {
         return; // offsetParent is null while hidden in map-only view
       }
       const { target } = event;
