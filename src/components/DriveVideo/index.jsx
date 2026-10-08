@@ -71,8 +71,14 @@ export class DriveVideo extends Component {
       onAudio: (hasAudio) => { if (active()) this.props.onAudioStatusChange?.(hasAudio); },
       onTimeline: (entries) => {
         if (!active()) return;
+        const video = this.video.current;
+        const previousMapping = createVideoMapping(this.props.currentRoute, this.entries);
+        const offset = video.readyState < 1 ? this.props.seekOffset
+          : previousMapping ? mediaToRoute(previousMapping, video.currentTime)
+          : video.currentTime * 1000 + (this.props.currentRoute?.videoStartOffset ?? 0);
         this.entries = entries;
         this.updateIntent();
+        if (createVideoMapping(this.props.currentRoute, entries) && Number.isFinite(offset)) dispatch(seek(offset));
       },
     });
     this.updateIntent();
