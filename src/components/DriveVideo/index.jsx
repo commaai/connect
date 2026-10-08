@@ -36,7 +36,7 @@ const VideoOverlay = ({ loading, error }) => {
   );
 };
 
-class DriveVideo extends Component {
+export class DriveVideo extends Component {
   constructor(props) {
     super(props);
 
@@ -52,6 +52,9 @@ class DriveVideo extends Component {
     this.lastObservedOffset = null;
     this.pendingInitialSeek = true;
     this.lastRequestedMediaTime = null;
+    this.sourceGeneration = 0;
+    this.hlsPlayer = null;
+    this.hlsBufferCodecsHandler = null;
 
     this.state = {
       src: null,
@@ -81,7 +84,23 @@ class DriveVideo extends Component {
   }
 
   componentWillUnmount() {
+    this.removeHlsListener();
     this.lastObservedOffset = null;
+  }
+
+  isCurrentSource(generation) {
+    return generation === undefined || generation === this.sourceGeneration;
+  }
+
+  removeHlsListener() {
+    if (!this.hlsPlayer || !this.hlsBufferCodecsHandler) return;
+    if (typeof this.hlsPlayer.off === 'function') {
+      this.hlsPlayer.off('hlsBufferCodecs', this.hlsBufferCodecsHandler);
+    } else if (typeof this.hlsPlayer.removeListener === 'function') {
+      this.hlsPlayer.removeListener('hlsBufferCodecs', this.hlsBufferCodecsHandler);
+    }
+    this.hlsPlayer = null;
+    this.hlsBufferCodecsHandler = null;
   }
 
   isObservedOffset(offset) {
@@ -101,6 +120,8 @@ class DriveVideo extends Component {
     const { currentRoute } = this.props;
     if (!currentRoute) {
       if (src !== '') {
+        this.sourceGeneration += 1;
+        this.removeHlsListener();
         this.pendingInitialSeek = true;
         this.lastObservedOffset = null;
         this.setState({ src: '', videoError: null });
@@ -110,6 +131,8 @@ class DriveVideo extends Component {
 
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
       src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
+      this.sourceGeneration += 1;
+      this.removeHlsListener();
       this.pendingInitialSeek = true;
       this.lastObservedOffset = null;
       this.lastRequestedMediaTime = null;
@@ -148,7 +171,8 @@ class DriveVideo extends Component {
     return true;
   }
 
-  onVideoReady(player) {
+  onVideoReady(player, generation) {
+    if (!this.isCurrentSource(generation)) return;
     this.seekToRouteOffset(this.requestedRouteOffset());
 
     const { onAudioStatusChange } = this.props;
@@ -161,11 +185,17 @@ class DriveVideo extends Component {
 
     const hlsPlayer = player.getInternalPlayer('hls');
     if (hlsPlayer) {
-      hlsPlayer.on('hlsBufferCodecs', (_event, data) => onAudioStatusChange(Boolean(data.audio)));
+      this.removeHlsListener();
+      this.hlsPlayer = hlsPlayer;
+      this.hlsBufferCodecsHandler = (_event, data) => {
+        if (this.isCurrentSource(generation)) onAudioStatusChange(Boolean(data.audio));
+      };
+      hlsPlayer.on('hlsBufferCodecs', this.hlsBufferCodecsHandler);
     }
   }
 
-  onVideoProgress(progress) {
+  onVideoProgress(progress, generation) {
+    if (!this.isCurrentSource(generation)) return;
     const routeOffset = this.routeOffsetForMediaTime(progress.playedSeconds);
     if (!Number.isFinite(routeOffset)) return;
 
@@ -185,18 +215,21 @@ class DriveVideo extends Component {
     }
   }
 
-  onVideoBuffering() {
+  onVideoBuffering(generation) {
+    if (!this.isCurrentSource(generation)) return;
     if (!this.props.isBufferingVideo) this.props.dispatch(bufferVideo(true));
   }
 
-  onVideoResume() {
+  onVideoResume(generation) {
+    if (!this.isCurrentSource(generation)) return;
     const { dispatch } = this.props;
     if (this.state.videoError) this.setState({ videoError: null });
     if (this.props.isBufferingVideo) dispatch(bufferVideo(false));
   }
 
   /** @param {Error} error */
-  onVideoError(error, data) {
+  onVideoError(error, data, generation) {
+    if (!this.isCurrentSource(generation)) return;
     if (!error) {
       console.warn('Unknown video error', { error, data });
       return;
@@ -208,23 +241,26 @@ class DriveVideo extends Component {
     // HLS buffer stalls are recoverable. The media element will emit playing
     // or canplay again when recovery succeeds, so do not convert them into a
     // false fatal error.
-    if (mediaError?.type === 'mediaError' && ['bufferStalledError', 'bufferNudgeOnStall'].includes(mediaError.details)) {
-      this.onVideoBuffering();
+    if (mediaError?.fatal === false
+      || (mediaError?.type === 'mediaError' && ['bufferStalledError', 'bufferNudgeOnStall'].includes(mediaError.details))) {
+      this.onVideoBuffering(generation);
       return;
     }
 
     this.props.dispatch(bufferVideo(true));
-    if (mediaError?.type === 'networkError') {
-      this.setState({ videoError: 'Unable to load video. Check network connection.' });
-      return;
+    let videoError;
+    if (mediaError?.response?.code === 404) {
+      videoError = 'This video segment has not uploaded yet or has been deleted.';
+    } else if (mediaError?.type === 'networkError') {
+      videoError = 'Unable to load video. Check network connection.';
+    } else {
+      videoError = mediaError?.response?.text || 'Unable to load video';
     }
-    const videoError = mediaError?.response?.code === 404
-      ? 'This video segment has not uploaded yet or has been deleted.'
-      : (mediaError?.response?.text || 'Unable to load video');
     this.setState({ videoError });
   }
 
-  onVideoEnded() {
+  onVideoEnded(generation) {
+    if (!this.isCurrentSource(generation)) return;
     const { loop, dispatch } = this.props;
     if (loop?.startTime !== null && loop?.startTime !== undefined && loop.duration > 0) {
       dispatch(seek(loop.startTime));
@@ -238,6 +274,7 @@ class DriveVideo extends Component {
   render() {
     const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted } = this.props;
     const { src, videoError } = this.state;
+    const sourceGeneration = this.sourceGeneration;
 
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
@@ -252,13 +289,13 @@ class DriveVideo extends Component {
           playing={Boolean(currentRoute && desiredPlaySpeed)}
           playbackRate={desiredPlaySpeed || 1}
           progressInterval={100}
-          onReady={this.onVideoReady}
-          onProgress={this.onVideoProgress}
-          onBuffer={this.onVideoBuffering}
-          onBufferEnd={this.onVideoResume}
-          onPlay={this.onVideoResume}
-          onError={this.onVideoError}
-          onEnded={this.onVideoEnded}
+          onReady={player => this.onVideoReady(player, sourceGeneration)}
+          onProgress={progress => this.onVideoProgress(progress, sourceGeneration)}
+          onBuffer={() => this.onVideoBuffering(sourceGeneration)}
+          onBufferEnd={() => this.onVideoResume(sourceGeneration)}
+          onPlay={() => this.onVideoResume(sourceGeneration)}
+          onError={(error, data) => this.onVideoError(error, data, sourceGeneration)}
+          onEnded={() => this.onVideoEnded(sourceGeneration)}
           config={{
             hlsVersion: '1.4.8',
             hlsOptions: { maxBufferLength: 40 },
