@@ -116,10 +116,15 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/unpair')) return json({ success: true });
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const { method } = JSON.parse(init.body || '{}');
+    return json({ jsonrpc: '2.0', id: 0, result: method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -308,5 +313,63 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  const primeDevices = devices.map((device) => (device.dongle_id === FIRST ? { ...device, prime: true } : device));
+  const subscription = {
+    user_id: 'test-user', plan: 'data', amount: 2400, subscribed_at: 1_770_000_000, next_charge_at: 1_790_000_000,
+  };
+
+  test.each([
+    ['device settings', `/${FIRST}?dialog=settings`, 'Device settings', {}],
+    ['unpair', `/${FIRST}?dialog=unpair`, 'Unpair device', {}],
+    ['upload queue', `/${FIRST}?dialog=uploads`, 'Upload queue', {}],
+    ['date filter', `/${FIRST}?dialog=filter`, 'Start date:', {}],
+    ['pair device', '/?dialog=add-device', 'Pair device', { devices: [] }],
+    ['Prime plan switch', `/${FIRST}/prime?dialog=prime-switch`, 'Confirm switch', { devices: primeDevices, subscription }],
+    ['Prime cancel', `/${FIRST}/prime?dialog=prime-cancel`, 'Cancel prime subscription', { devices: primeDevices, subscription }],
+  ])('%s opens from its URL', async (_name, url, text, options) => {
+    await renderApp(url, options);
+    expect(await screen.findByText(text)).toBeVisible();
+    expect(screen.getAllByText(text)).toHaveLength(1);
+  });
+
+  test('Back closes an open dialog', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(`${history.location.pathname}${history.location.search}`).toBe(`/${FIRST}`);
+  });
+
+  test('Back does not reopen a dialog that was closed', async () => {
+    const { history } = await renderApp(`/${SECOND}`);
+    act(() => history.push(`/${FIRST}`));
+    fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    const dialog = (await screen.findByText('Device settings')).closest('[role="document"]');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('Prime dialogs stay shut where their buttons are hidden', async () => {
+    const cancelling = { ...subscription, cancel_at: 1_780_000_000 };
+    await renderApp(`/${FIRST}/prime?dialog=prime-cancel`, { devices: primeDevices, subscription: cancelling });
+    expect(await screen.findByText('Subscription end')).toBeVisible();
+    expect(screen.queryByText('Cancel prime subscription')).not.toBeInTheDocument();
+  });
+
+  test('a finished unpair reloads the app even when Back closes it', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    act(() => history.push(`/${FIRST}?dialog=unpair`));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+    expect(await screen.findByText('Unpaired')).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith('/'));
   });
 });

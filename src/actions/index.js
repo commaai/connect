@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router';
+import { goBack, push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -143,12 +143,32 @@ export function checkLastRoutesData() {
   };
 }
 
+const currentUrl = ({ pathname, search }) => `${pathname}${search}`;
+
 export const navigate = (target) => (dispatch, getState) => {
   const { dongleId, router } = getState();
   const url = formatUrl({ ...NOWHERE, dongleId, ...target });
-  if (`${router.location.pathname}${router.location.search}` !== url) {
-    dispatch(push(url));
+  if (currentUrl(router.location) === url) {
+    return;
   }
+  dispatch(router.location.state?.dialog ? replace(url) : push(url));
+};
+
+export const openDialog = (dialog, device = null) => (dispatch, getState) => {
+  const { place, router } = getState();
+  const url = formatUrl({ ...place, dialog, device: device === place.dongleId ? null : device });
+  if (currentUrl(router.location) !== url) {
+    dispatch(push(url, { dialog: true }));
+  }
+};
+
+export const closeDialog = () => (dispatch, getState) => {
+  const { place, router } = getState();
+  if (router.location.state?.dialog) {
+    dispatch(goBack());
+    return;
+  }
+  dispatch(replace(formatUrl({ ...place, dialog: null, device: null })));
 };
 
 function driveTarget(state, logId, start, end) {
