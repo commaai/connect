@@ -433,7 +433,6 @@ describe('whole-app behavior', () => {
         'GET api.comma.ai/v1.1/devices/SECOND/stats': 1,
       },
       'switch back': {
-        'GET api.comma.ai/v1/devices/FIRST/routes_segments': 1,
         'GET billing.comma.ai/v1/prime/subscribe_info': 1,
         'GET api.comma.ai/v1.1/devices/FIRST/': 1,
         'GET api.comma.ai/v1/devices/FIRST/location': 3,

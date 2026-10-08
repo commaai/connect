@@ -35,6 +35,16 @@ function findDevice(devices, dongleId) {
   return devices.find((device) => device.dongle_id === dongleId) || { ...emptyDevice, dongle_id: dongleId };
 }
 
+function emptyRouteList() {
+  return {
+    filter: getDefaultFilter(),
+    limit: LIMIT_INCREMENT,
+    routes: null,
+    routesMeta: { dongleId: null, start: null, end: null },
+    lastRoutes: null,
+  };
+}
+
 // null until the drive's duration is known
 function wholeDrive(route) {
   return route ? { start: 0, end: route.duration } : null;
@@ -52,14 +62,16 @@ export default function reducer(_state, action) {
     case LOCATION_CHANGE: {
       const nav = parseLocation(action.payload.location);
       if (nav.dongleId !== state.dongleId) {
+        // each device keeps its drive list, so switching back to it needs no refetch
+        const { filter, limit, routes, routesMeta, lastRoutes } = state;
+        const routesByDevice = state.dongleId
+          ? { ...state.routesByDevice, [state.dongleId]: { filter, limit, routes, routesMeta, lastRoutes } }
+          : state.routesByDevice;
         state = {
           ...state,
+          ...(routesByDevice[nav.dongleId] || emptyRouteList()),
+          routesByDevice,
           device: findDevice(state.devices, nav.dongleId),
-          filter: getDefaultFilter(),
-          limit: LIMIT_INCREMENT,
-          routes: null,
-          routesMeta: { dongleId: null, start: null, end: null },
-          lastRoutes: null,
           subscription: null,
           subscribeInfo: null,
         };

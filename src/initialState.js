@@ -20,6 +20,7 @@ export function createInitialState() {
     currentRoute: null,
     currentRouteMissing: false,
     lastRoutes: null,
+    routesByDevice: {},
 
     profile: null,
     devices: null,

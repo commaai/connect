@@ -93,4 +93,15 @@ describe('location changes', () => {
     state = rootReducer(playing(state), locationChange(`/1111bbbb1111bbbb/2026-08-06--13-00-00/10/20`));
     expect(state).toMatchObject({ zoom: { start: 10000, end: 20000 }, desiredPlaySpeed: 1, offset: 10000 });
   });
+
+  it('keep each device\'s drive list', () => {
+    const OTHER = '1111bbbb1111bbbb';
+    let state = reducer(createInitialState(), locationChange(`/${DONGLE}`));
+    state = reducer(state, { type: ACTION_ROUTES_METADATA, dongleId: DONGLE, start: 0, end: 1, routes: [route] });
+    state = reducer(state, locationChange(`/${OTHER}`));
+    expect(state).toMatchObject({ dongleId: OTHER, routes: null, routesMeta: { dongleId: null } });
+    state = reducer(state, locationChange('/referrals'));
+    state = reducer(state, locationChange(`/${DONGLE}`));
+    expect(state).toMatchObject({ dongleId: DONGLE, routes: [route], routesMeta: { dongleId: DONGLE, start: 0, end: 1 } });
+  });
 });
