@@ -14,7 +14,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { showPage, selectDevice, updateDevice } from '../../actions';
+import { showPage, updateDevice } from '../../actions';
 import { Pages } from '../../url';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
@@ -226,11 +226,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
     this.props.dispatch(showPage(Pages.PRIME));
-    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -260,9 +256,9 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, canManage } = this.props;
     const commacare = device?.commacare;
-    if (!device) {
+    if (!device || !canManage) {
       return null;
     }
 
@@ -437,12 +433,12 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
+    canManage: Boolean(device?.is_owner || state.profile?.superuser),
   };
 };
 

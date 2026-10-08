@@ -1,4 +1,4 @@
-import { parseLocation, Pages } from './url';
+import { parseLocation, devicePage } from './url';
 import { getDefaultFilter } from './utils/filter';
 
 export function createInitialState(pathname = window.location.pathname) {
@@ -24,7 +24,7 @@ export function createInitialState(pathname = window.location.pathname) {
     profile: null,
     devices: null,
 
-    page: page === Pages.PRIME || page === Pages.STREAM ? page : Pages.DEVICE,
+    page: devicePage(page),
     subscription: null,
     subscribeInfo: null,
 

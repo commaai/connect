@@ -25,6 +25,7 @@ import { Pages } from '../url';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 const styles = (theme) => ({
   app: {
@@ -83,6 +84,11 @@ class ExplorerApp extends Component {
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+    this.closeSettings = this.closeSettings.bind(this);
+  }
+
+  closeSettings() {
+    this.props.dispatch(showPage(Pages.DEVICE));
   }
 
   closeBodyTeleop() {
@@ -199,7 +205,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, settingsOpen, selectedRouteId, pathname, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -251,6 +257,7 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            <DeviceSettingsModal isOpen={ settingsOpen } dongleId={ dongleId } onClose={ this.closeSettings } />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -285,6 +292,7 @@ const stateToProps = (state) => ({
   selectedRouteId: state.selectedRouteId,
   limit: state.limit,
   bodyTeleopOpen: state.page === Pages.STREAM,
+  settingsOpen: state.page === Pages.SETTINGS,
   profile: state.profile,
 });
 

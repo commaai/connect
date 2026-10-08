@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseLocation, buildPath, Pages } from './url';
+import { parseLocation, buildPath, devicePage, Pages } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -21,6 +21,8 @@ describe('parseLocation', () => {
     [`/${DONGLE}/prime`, { ...empty, page: Pages.PRIME, dongleId: DONGLE }],
     [`/${DONGLE}/prime/extra`, { ...empty, page: Pages.DEVICE, dongleId: DONGLE }],
     [`/${DONGLE}/stream`, { ...empty, page: Pages.STREAM, dongleId: DONGLE }],
+    [`/${DONGLE}/settings`, { ...empty, page: Pages.SETTINGS, dongleId: DONGLE }],
+    [`/${DONGLE}/settings/extra`, { ...empty, page: Pages.DEVICE, dongleId: DONGLE }],
     [`/${DONGLE}/stream/extra`, { ...empty, page: Pages.DEVICE, dongleId: DONGLE }],
     [`/${DONGLE}/${LOG}`, { ...empty, page: Pages.ROUTE, dongleId: DONGLE, routeId: LOG }],
     [`/${DONGLE}/${LOG}/556/610`, {
@@ -45,6 +47,20 @@ describe('parseLocation', () => {
   });
 });
 
+describe('devicePage', () => {
+  it.each([
+    [Pages.PRIME, Pages.PRIME],
+    [Pages.STREAM, Pages.STREAM],
+    [Pages.SETTINGS, Pages.SETTINGS],
+    [Pages.DEVICE, Pages.DEVICE],
+    [Pages.ROUTE, Pages.DEVICE],
+    [Pages.RANGE, Pages.DEVICE],
+    [Pages.HOME, Pages.DEVICE],
+  ])('maps %s to %s', (page, expected) => {
+    expect(devicePage(page)).toBe(expected);
+  });
+});
+
 describe('buildPath', () => {
   it.each([
     ['home', {}, '/'],
@@ -52,6 +68,7 @@ describe('buildPath', () => {
     ['device', { page: Pages.DEVICE, dongleId: DONGLE }, `/${DONGLE}`],
     ['prime', { page: Pages.PRIME, dongleId: DONGLE }, `/${DONGLE}/prime`],
     ['stream', { page: Pages.STREAM, dongleId: DONGLE }, `/${DONGLE}/stream`],
+    ['settings', { page: Pages.SETTINGS, dongleId: DONGLE }, `/${DONGLE}/settings`],
     ['route', { page: Pages.ROUTE, dongleId: DONGLE, routeId: LOG }, `/${DONGLE}/${LOG}`],
     ['zoomed route', {
       page: Pages.ROUTE, dongleId: DONGLE, routeId: LOG, zoom: { start: 10000, end: 20000 },
@@ -72,6 +89,7 @@ describe('buildPath', () => {
     `/${DONGLE}`,
     `/${DONGLE}/prime`,
     `/${DONGLE}/stream`,
+    `/${DONGLE}/settings`,
     `/${DONGLE}/${LOG}`,
     `/${DONGLE}/${LOG}/556/610`,
     `/${DONGLE}/${LOG}/0/20`,

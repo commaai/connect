@@ -298,7 +298,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
   };
 }
 
-// page is one of Pages.DEVICE, Pages.PRIME or Pages.STREAM: what is open over the device's drives.
+// page is one of Pages.DEVICE, PRIME, STREAM or SETTINGS: what is open over the device's drives.
 export function showPage(page, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
@@ -319,6 +319,18 @@ export function showPage(page, allowPathChange = true) {
         dispatch(push(desiredPath));
       }
     }
+  };
+}
+
+export function openDeviceSettings(dongleId) {
+  return (dispatch, getState) => {
+    if (getState().dongleId !== dongleId) {
+      dispatch(selectDevice(dongleId, false));
+    } else if (getState().selectedRouteId) {
+      // the settings URL has no route, so leave the drive that is open
+      dispatch(pushTimelineRange(null, null, null, false));
+    }
+    dispatch(showPage(Pages.SETTINGS));
   };
 }
 

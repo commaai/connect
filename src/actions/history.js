@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { parseLocation, Pages } from '../url';
+import { parseLocation, devicePage } from '../url';
 import { checkRoutesData, showPage, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
@@ -40,9 +40,9 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       dispatch(checkRoutesData());
     }
 
-    const openPage = page === Pages.PRIME || page === Pages.STREAM ? page : Pages.DEVICE;
-    if (openPage !== getState().page) {
-      dispatch(showPage(openPage, false));
+    const statePage = devicePage(page);
+    if (statePage !== getState().page) {
+      dispatch(showPage(statePage, false));
     }
   } else {
     next(action);

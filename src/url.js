@@ -6,6 +6,7 @@
 //   /<dongleId>                       device
 //   /<dongleId>/prime                 device, prime page
 //   /<dongleId>/stream                device, body teleop
+//   /<dongleId>/settings              device, settings modal
 //   /<dongleId>/<routeId>             route
 //   /<dongleId>/<routeId>/<s>/<e>     route, zoomed to seconds s..e
 //   /<dongleId>/<s>/<e>               legacy time range (unix seconds)
@@ -24,10 +25,15 @@ export const Pages = {
   DEVICE: 'device',
   PRIME: 'prime',
   STREAM: 'stream',
+  SETTINGS: 'settings',
   ROUTE: 'route',
   RANGE: 'range',
   UNKNOWN: 'unknown',
 };
+
+// The pages kept in state.page: shown over a device's drives. Every other URL is just the device.
+const OVERLAY_PAGES = [Pages.PRIME, Pages.STREAM, Pages.SETTINGS];
+export const devicePage = (page) => (OVERLAY_PAGES.includes(page) ? page : Pages.DEVICE);
 
 const isSeconds = (...parts) => parts.every((part) => SECONDS.test(part));
 
@@ -65,6 +71,8 @@ export function parseLocation(pathname) {
     result.page = Pages.PRIME;
   } else if (parts.length === 2 && second === 'stream') {
     result.page = Pages.STREAM;
+  } else if (parts.length === 2 && second === 'settings') {
+    result.page = Pages.SETTINGS;
   } else if (ROUTE_ID.test(second ?? '')) {
     result.page = Pages.ROUTE;
     result.routeId = second;
@@ -92,6 +100,8 @@ export function buildPath({ page = Pages.HOME, dongleId = null, routeId = null, 
       return `/${dongleId}/prime`;
     case Pages.STREAM:
       return `/${dongleId}/stream`;
+    case Pages.SETTINGS:
+      return `/${dongleId}/settings`;
     case Pages.ROUTE:
       return zoom
         ? `/${dongleId}/${routeId}/${Math.floor(zoom.start / 1000)}/${Math.floor(zoom.end / 1000)}`

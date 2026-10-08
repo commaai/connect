@@ -115,7 +115,7 @@ describe('history middleware', () => {
     consoleError.mockRestore();
   });
 
-  it.each(['prime', 'stream'])('opens and closes the %s page through history', (page) => {
+  it.each(['prime', 'stream', 'settings'])('opens and closes the %s page through history', (page) => {
     const entering = create();
     entering.invoke(location(`/${DONGLE}/${page}`, 'REPLACE'));
     expect(actions.showPage).toHaveBeenCalledWith(page, false);

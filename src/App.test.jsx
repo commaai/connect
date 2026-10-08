@@ -268,6 +268,35 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
   });
 
+  test('device settings open from a URL, from the gear, and close back to the device', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Device settings')).toBeNull());
+
+    // the sidebar is permanent on wide windows
+    const width = window.innerWidth;
+    window.innerWidth = 1400;
+    act(() => { window.dispatchEvent(new Event('resize')); });
+    const row = (await screen.findByText('Alpha')).closest('a');
+    fireEvent.click(within(row).getByRole('button', { name: 'device settings' }));
+    window.innerWidth = width;
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Device settings')).toBeNull());
+  });
+
+  test('device settings stay closed for a device you cannot manage', async () => {
+    await renderApp(`/${SHARED}/settings`);
+    expect((await screen.findAllByText('Shared device'))[0]).toBeVisible();
+    expect(screen.queryByText('Device settings')).toBeNull();
+  });
+
   test('stream close and browser history restore its view', async () => {
     const online = devices.map((device) => ({ ...device, commacare: true, last_athena_ping: Math.floor(Date.now() / 1000), openpilot_version: '0.11.2' }));
     const { history } = await renderApp(`/${FIRST}/stream`, { devices: online });
