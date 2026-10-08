@@ -6,6 +6,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import * as Types from './actions/types';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
+import { currentOffset } from './timeline';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
@@ -193,7 +194,7 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_seek', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playbackRate,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -202,10 +203,10 @@ function logAction(action, prevState, state) {
 
     case Types.ACTION_PAUSE:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, currentOffset());
         gtag('event', 'video_pause', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playbackRate,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -214,10 +215,10 @@ function logAction(action, prevState, state) {
 
     case Types.ACTION_PLAY:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, currentOffset());
         gtag('event', 'video_play', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playbackRate,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });

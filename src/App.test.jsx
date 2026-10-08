@@ -1,12 +1,13 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
+import dayjs from 'dayjs';
 
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), play: null }));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -38,20 +39,6 @@ vi.mock('react-map-gl', () => ({
   Marker: ({ children }) => children,
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
-}));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
@@ -145,6 +132,15 @@ async function renderApp(pathname, options = {}) {
   return { ...view, history, store };
 }
 
+// A loaded video whose playhead the test moves.
+function loadedVideo() {
+  const video = document.querySelector('video');
+  let time = 0;
+  Object.defineProperty(video, 'readyState', { configurable: true, value: 4 });
+  Object.defineProperty(video, 'currentTime', { configurable: true, get: () => time, set: (t) => { time = t; } });
+  return video;
+}
+
 describe('whole-app behavior', () => {
   beforeAll(() => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
@@ -154,12 +150,16 @@ describe('whole-app behavior', () => {
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
     Object.defineProperty(window, 'visualViewport', { value: { height: 800 }, configurable: true });
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, value: vi.fn(() => null) });
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', { configurable: true, value: vi.fn(() => mocks.play?.() ?? Promise.resolve()) });
+    Object.defineProperty(HTMLMediaElement.prototype, 'pause', { configurable: true, value: vi.fn() });
+    Object.defineProperty(HTMLMediaElement.prototype, 'load', { configurable: true, value: vi.fn() });
     Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
     });
   });
   afterEach(() => {
+    mocks.play = null;
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
@@ -302,5 +302,44 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('the video is the playback clock', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    const video = loadedVideo();
+    video.currentTime = 12;
+    expect(await screen.findByText(dayjs(START + 12000).format('HH:mm:ss'))).toBeInTheDocument();
+
+    fireEvent.pointerDown(timeline, { button: 0, clientX: 500, pageX: 500 });
+    fireEvent.pointerUp(timeline, { button: 0, clientX: 500, pageX: 500 });
+    expect(video.currentTime).toBe(30);
+    expect(await screen.findByText(dayjs(START + 30000).format('HH:mm:ss'))).toBeInTheDocument();
+
+    fireEvent.play(video);
+    expect(store.getState().isPlaying).toBe(true);
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeVisible();
+    fireEvent.pause(video);
+    expect(store.getState().isPlaying).toBe(false);
+  });
+
+  test('a refused autoplay shows a play button, not a spinner', async () => {
+    mocks.play = () => Promise.reject(new DOMException('autoplay refused', 'NotAllowedError'));
+    await renderApp(`/${FIRST}/${LOG}`);
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(2));
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  test('a video that cannot load says so and can be tried again', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const video = document.querySelector('video');
+    await waitFor(() => expect(video.getAttribute('src')).toContain('qcamera.m3u8'));
+    act(() => { fireEvent.error(video); });
+    expect(await screen.findByText('Unable to load video')).toBeVisible();
+    const plays = HTMLMediaElement.prototype.play.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(HTMLMediaElement.prototype.play.mock.calls.length).toBeGreaterThan(plays));
+    expect(screen.queryByText('Unable to load video')).not.toBeInTheDocument();
   });
 });

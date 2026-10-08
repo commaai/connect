@@ -73,6 +73,18 @@ export const Forward10 = (props) => (
   </SvgIcon>
 );
 
+export const Fullscreen = (props) => (
+  <SvgIcon {...props} viewBox="0 -960 960 960">
+    <path d="M120-120v-200h80v120h120v80H120Zm520 0v-80h120v-120h80v200H640ZM120-640v-200h200v80H200v120h-80Zm640 0v-120H640v-80h200v200h-80Z" />
+  </SvgIcon>
+);
+
+export const FullscreenExit = (props) => (
+  <SvgIcon {...props} viewBox="0 -960 960 960">
+    <path d="M240-120v-120H120v-80h200v200h-80Zm400 0v-200h200v80H720v120h-80ZM120-640v-80h120v-120h80v200H120Zm520 0v-200h80v120h120v80H640Z" />
+  </SvgIcon>
+);
+
 export const Refresh = (props) => (
   <SvgIcon {...props} viewBox="0 -960 960 960">
     <path d="M480-160q-133 0-226.5-93.5T160-480q0-133 93.5-226.5T480-800q85 0 149 34.5T740-671v-129h60v254H546v-60h168q-38-60-97-97t-137-37q-109 0-184.5 75.5T220-480q0 109 75.5 184.5T480-220q83 0 152-47.5T728-393h62q-29 105-115 169t-195 64Z" />
