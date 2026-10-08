@@ -21,38 +21,37 @@ export function checkRoutesData() {
     if (!state.dongleId) {
       return;
     }
-    if (hasRoutesData(state)) {
+    if (hasRoutesData(state) && (!state.selectedRouteId || state.routes?.some((route) => route.log_id === state.selectedRouteId))) {
       // already has metadata, don't bother
       return;
     }
-    if (routesRequest && routesRequest.dongleId === state.dongleId) {
+    const { dongleId, limit: fetchLimit, selectedRouteId } = state;
+    const fetchRange = state.filter;
+    const requestKey = [dongleId, selectedRouteId || '', fetchRange.start, fetchRange.end, fetchLimit].join(':');
+    if (routesRequest?.key === requestKey) {
       // there is already an pending request
       return routesRequestPromise;
     }
     console.debug('We need to update the segment metadata...');
-    const { dongleId, limit: fetchLimit } = state;
-    const fetchRange = state.filter;
+    const request = { key: requestKey };
+    routesRequest = request;
 
     // if requested segment range not in loaded routes, fetch it explicitly
     if (state.selectedRouteId) {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
-        dongleId,
-      };
+      request.req = api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${selectedRouteId}`);
     } else {
-      routesRequest = {
-        req: api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit),
-        dongleId,
-      };
+      request.req = api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit);
     }
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    routesRequestPromise = request.req.then((routesData) => {
+      if (routesRequest !== request) return;
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.limit !== fetchLimit
-        || state.dongleId !== dongleId) {
+        || state.dongleId !== dongleId
+        || state.selectedRouteId !== selectedRouteId) {
         routesRequest = null;
         dispatch(checkRoutesData());
         return;
@@ -64,7 +63,7 @@ export function checkRoutesData() {
         return;
       }
 
-      const routes = routesData.map((r) => {
+      const fetchedRoutes = routesData.map((r) => {
         let startTime = r.segment_start_times[0];
         let endTime = r.segment_end_times[r.segment_end_times.length - 1];
 
@@ -94,6 +93,9 @@ export function checkRoutesData() {
       }).sort((a, b) => {
         return b.create_time - a.create_time;
       });
+      const routes = selectedRouteId
+        ? [...(state.routes || []).filter((route) => !fetchedRoutes.some((fetched) => fetched.log_id === route.log_id)), ...fetchedRoutes]
+        : fetchedRoutes;
 
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
@@ -103,10 +105,11 @@ export function checkRoutesData() {
         routes,
       });
 
-      routesRequest = null;
+      if (routesRequest === request) routesRequest = null;
 
       return routes
     }).catch((err) => {
+      if (routesRequest !== request) return;
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
       routesRequest = null;
@@ -147,7 +150,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 
   if (log_id) {
     path.push(log_id);
-    if (start && end) {
+    if (start != null && end != null) {
       path.push(start);
       path.push(end);
     }
@@ -159,30 +162,33 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
+  if (allowPathChange) {
+    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
+    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
+    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
+    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
+    if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
+    return;
+  }
+
+  if (state.selectedRouteId !== log_id || !state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
   }
 
-  if (allowPathChange) {
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
-    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
-
-    if (currentPathname(state) !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
-  }
 }
 
 export function popTimelineRange(log_id, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.zoom.previous) {
+      if (allowPathChange) {
+        const { start, end } = state.zoom.previous;
+        updateTimeline(state, dispatch, log_id, start, end, true);
+        return;
+      }
       dispatch({
         type: Types.TIMELINE_POP_SELECTION,
       });
@@ -196,6 +202,11 @@ export function popTimelineRange(log_id, allowPathChange = true) {
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
+
+    if (allowPathChange) {
+      updateTimeline(state, dispatch, log_id, start, end, true);
+      return;
+    }
 
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
       dispatch({
@@ -271,6 +282,13 @@ export function fetchDeviceOnline(dongleId) {
 export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
   return (dispatch, getState) => {
     const state = getState();
+    if (allowPathChange) {
+      const desiredPath = urlForState(dongleId, null, null, null, null);
+      if (currentPathname(state) !== desiredPath) {
+        dispatch(push(desiredPath));
+        return;
+      }
+    }
     let device;
     if (state.devices && state.devices.length > 1) {
       device = state.devices.find((d) => d.dongle_id === dongleId);
@@ -299,12 +317,6 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
       dispatch(checkLastRoutesData());
     }
 
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
   };
 }
 
@@ -315,6 +327,14 @@ export function primeNav(nav, allowPathChange = true) {
       return;
     }
 
+    if (allowPathChange) {
+      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
+      if (currentPathname(state) !== desiredPath) {
+        dispatch(push(desiredPath));
+        return;
+      }
+    }
+
     if (state.primeNav !== nav) {
       dispatch({
         type: Types.ACTION_PRIME_NAV,
@@ -322,13 +342,6 @@ export function primeNav(nav, allowPathChange = true) {
       });
     }
 
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
   };
 }
 
@@ -339,6 +352,14 @@ export function streamNav(nav, allowPathChange = true) {
       return;
     }
 
+    if (allowPathChange) {
+      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      if (currentPathname(state) !== desiredPath) {
+        dispatch(push(desiredPath));
+        return;
+      }
+    }
+
     if (state.streamNav !== nav) {
       dispatch({
         type: Types.ACTION_STREAM_NAV,
@@ -346,13 +367,6 @@ export function streamNav(nav, allowPathChange = true) {
       });
     }
 
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
   };
 }
 
