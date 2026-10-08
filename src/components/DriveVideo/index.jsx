@@ -148,7 +148,17 @@ class DriveVideo extends Component {
 
   seekTo(offset) {
     if (this.isLoaded()) {
-      this.video.current.currentTime = this.videoTime(offset);
+      const video = this.video.current;
+      const time = this.videoTime(offset);
+      const buffered = [...Array(video.buffered.length).keys()].some((i) => video.buffered.start(i) <= time && time < video.buffered.end(i));
+      if (this.hls && !buffered) {
+        // restart loading so hls.js drops what it parsed of the old position, leftovers make it reload the previous segment
+        this.hls.stopLoad();
+        video.currentTime = time;
+        this.hls.startLoad(time);
+      } else {
+        video.currentTime = time;
+      }
     } else {
       this.pendingOffset = offset;
       if (this.hls?.levels?.length) {
