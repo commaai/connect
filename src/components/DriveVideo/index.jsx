@@ -312,9 +312,11 @@ class RouteVideo extends Component {
           </div>
         )}
         <VideoOverlay loading={isBufferingVideo} error={error} onRetry={() => this.load(currentOffset())} />
+        {/* the box has the camera's shape, so the video fills it. To fit it instead,
+            iOS first draws the video as if it were 2:1, the size before its metadata */}
         <video
           ref={this.video}
-          className="w-full h-full cursor-pointer touch-manipulation"
+          className="w-full h-full object-fill cursor-pointer touch-manipulation"
           playsInline
           onPointerDown={this.onVideoPointerDown}
           onClick={this.onVideoClick}
@@ -342,7 +344,7 @@ class RouteVideo extends Component {
 
 // a new route gets a new video element
 const DriveVideo = (props) => (
-  <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
+  <div className="relative max-w-[964px] m-[0_auto] aspect-[1.593]">
     {props.currentRoute && <RouteVideo key={props.currentRoute.fullname} {...props} />}
   </div>
 );
