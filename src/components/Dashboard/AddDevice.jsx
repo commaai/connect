@@ -112,6 +112,7 @@ class AddDevice extends Component {
 
     this.videoRef = null;
     this.detector = null;
+    this.checkingCamera = false;
     this.stream = null;
     this.scanning = false;
     this.scanFrameId = null;
@@ -134,12 +135,14 @@ class AddDevice extends Component {
   }
 
   async componentDidUpdate() {
-    if (!this.props.dialogOnly) return;
+    if (!this.mounted || !this.props.dialogOnly) return;
     const { pairLoading, pairError, pairDongleId } = this.state;
     let { hasCamera } = this.state;
 
     // Check for camera availability
     if (hasCamera === null) {
+      if (this.checkingCamera) return;
+      this.checkingCamera = true;
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         hasCamera = devices.some((d) => d.kind === 'videoinput');
@@ -150,6 +153,7 @@ class AddDevice extends Component {
         if (!this.mounted) return;
         this.setState({ hasCamera });
       }
+      return;
     }
 
     // Initialize detector and camera stream
@@ -228,7 +232,7 @@ class AddDevice extends Component {
     }
 
     // Start scanning if conditions are met
-    if (!pairLoading && !pairError && !pairDongleId && this.detector && hasCamera && !this.scanning) {
+    if (!pairLoading && !pairError && !pairDongleId && this.detector && this.stream && hasCamera && !this.scanning) {
       this.startScanning();
     }
   }
@@ -238,6 +242,7 @@ class AddDevice extends Component {
 
     try {
       const results = await this.detector.detect(this.videoRef);
+      if (!this.mounted || !this.scanning) return;
       if (results.length > 0) {
         this.onQrRead({ data: results[0].rawValue });
         return; // Stop scanning after detection
@@ -246,7 +251,7 @@ class AddDevice extends Component {
       // Ignore detection errors, just keep scanning
     }
 
-    this.scanFrameId = requestAnimationFrame(this.scanFrame);
+    if (this.mounted && this.scanning) this.scanFrameId = requestAnimationFrame(this.scanFrame);
   }
 
   startScanning() {

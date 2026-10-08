@@ -6,8 +6,9 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 import * as FileActions from './actions/files';
+import { api } from './api/backend';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), detect: vi.fn(async () => []) }));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -54,7 +55,7 @@ vi.mock('react-player/file', () => ({
     return <div data-testid="video-player" />;
   }),
 }));
-vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
+vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect(video) { return mocks.detect(video); } } }));
 
 const FIRST = 'aaaaaaaaaaaaaaaa';
 const SECOND = 'bbbbbbbbbbbbbbbb';
@@ -169,6 +170,7 @@ describe('whole-app behavior', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
+    mocks.detect.mockReset().mockResolvedValue([]);
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -396,6 +398,56 @@ describe('whole-app behavior', () => {
       expect(stop).toHaveBeenCalledOnce();
       expect(screen.queryByRole('heading', { name: 'Pair device' })).not.toBeInTheDocument();
     } finally {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: original });
+    }
+  });
+
+  test('a cold pairing dialog checks camera availability once and retains permission errors', async () => {
+    let resolveDevices;
+    const original = navigator.mediaDevices;
+    const error = Object.assign(new Error('Permission denied'), { name: 'NotAllowedError' });
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: vi.fn(() => new Promise((resolve) => { resolveDevices = resolve; })),
+      getUserMedia: vi.fn(async () => { throw error; }),
+    } });
+    try {
+      await renderApp(`/${FIRST}?modal=pair`);
+      expect(navigator.mediaDevices.enumerateDevices).toHaveBeenCalledOnce();
+      await act(async () => resolveDevices([{ kind: 'videoinput' }]));
+      expect(await screen.findByText(/Camera access denied/)).toBeVisible();
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledOnce();
+      expect(document.querySelector('video')).toBeNull();
+    } finally {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: original });
+    }
+  });
+
+  test('closing pairing ignores a QR detection that completes after unmount', async () => {
+    let resolveDetection;
+    mocks.detect.mockReturnValueOnce(new Promise((resolve) => { resolveDetection = resolve; }));
+    const original = navigator.mediaDevices;
+    const stop = vi.fn();
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    const context = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((type) => type === '2d' ? {
+      clearRect: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(),
+    } : null);
+    const pair = vi.spyOn(api.devices, 'pilotPair').mockResolvedValue({});
+    const token = `eyJhbGciOiJub25lIn0.${btoa(JSON.stringify({ identity: FIRST }))}.`;
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: vi.fn(async () => [{ kind: 'videoinput' }]),
+      getUserMedia: vi.fn(async () => ({ getTracks: () => [{ stop }] })),
+    } });
+    try {
+      const { history } = await renderApp(`/${FIRST}?modal=pair`);
+      await waitFor(() => expect(mocks.detect).toHaveBeenCalledOnce());
+      act(() => history.push(`/${FIRST}`));
+      await act(async () => resolveDetection([{ rawValue: `https://connect.comma.ai/?pair=${encodeURIComponent(token)}` }]));
+      expect(pair).not.toHaveBeenCalled();
+      expect(stop).toHaveBeenCalledOnce();
+    } finally {
+      pair.mockRestore();
+      context.mockRestore();
+      play.mockRestore();
       Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: original });
     }
   });
