@@ -4,25 +4,16 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
-function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
+const DONGLE_ID_PREFIX = /^\/[a-f0-9]{16}(?=\/|$)/;
+const RANGE_SUFFIX = /\/\d+\/\d+\/?$/;
 
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
+function getPageViewEventLocation(pathname) {
+  return pathname
+    .replace(DONGLE_ID_PREFIX, '/<dongleId>')
+    .replace(RANGE_SUFFIX, '/<zoomStart>/<zoomEnd>')
+    .replace(/\/$/, '');
 }
 
 const clusterMap = {
@@ -100,25 +91,6 @@ function logAction(action, prevState, state) {
 
   // eslint-disable-next-line default-case
   switch (action.type) {
-    case LOCATION_CHANGE:
-      gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(action.payload.location.pathname),
-      });
-      return;
-
-    case Types.TIMELINE_PUSH_SELECTION:
-      if (!prevState.zoom && state.zoom) {
-        params = {
-          ...params,
-          start: state.zoom.start,
-          end: state.zoom.end,
-        };
-        attachRelTime(params, 'start', true, 'h');
-        attachRelTime(params, 'end', true, 'h');
-        gtag('event', 'select_zoom', params);
-      }
-      return;
-
     case Types.ACTION_STARTUP_DATA:
       gtag('set', {
         user_id: state.profile?.user_id,
@@ -142,7 +114,31 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.ACTION_SELECT_DEVICE:
+    case LOCATION_CHANGE:
+      gtag('event', 'page_view', {
+        page_location: getPageViewEventLocation(action.payload.location.pathname),
+      });
+
+      if (state.loop !== prevState.loop && state.currentRoute && state.zoom && state.loop?.duration !== 0) {
+        percent = state.loop && state.currentRoute ? state.loop.duration / state.currentRoute.duration : undefined;
+        gtag('event', 'video_loop', {
+          ...params,
+          loop_duration: state.loop?.duration,
+          loop_duration_percentage: percent,
+          loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
+        });
+      }
+
+      if (!prevState.zoom && state.zoom) {
+        const zoomParams = { ...params, start: state.zoom.start, end: state.zoom.end };
+        attachRelTime(zoomParams, 'start', true, 'h');
+        attachRelTime(zoomParams, 'end', true, 'h');
+        gtag('event', 'select_zoom', zoomParams);
+      }
+
+      if (state.dongleId === prevState.dongleId) {
+        return;
+      }
       gtag('event', 'select_device', {
         ...params,
         device_prime_type: state.device?.prime_type,
@@ -220,18 +216,6 @@ function logAction(action, prevState, state) {
           play_speed: state.desiredPlaySpeed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
-        });
-      }
-      return;
-
-    case Types.ACTION_LOOP:
-      if (state.currentRoute && state.zoom && state.loop?.duration !== 0) {
-        percent = state.loop && state.currentRoute ? state.loop.duration / state.currentRoute.duration : undefined;
-        gtag('event', 'video_loop', {
-          ...params,
-          loop_duration: state.loop?.duration,
-          loop_duration_percentage: percent,
-          loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
         });
       }
       return;

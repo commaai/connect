@@ -1,16 +1,15 @@
 import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
+import { Link } from 'react-router-dom';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, AppBar } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import { selectDevice } from '../../actions';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
-import { filterRegularClick } from '../../utils';
+import { urlFor } from '../../url';
 
 import AccountMenu from './AccountMenu';
 
@@ -78,8 +77,8 @@ const styles = () => ({
 });
 
 const AppHeader = ({
-  profile, classes, dispatch, drawerIsOpen, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
+  profile, classes, drawerIsOpen, showDrawerButton,
+  forwardRef, handleDrawerStateChanged, dongleId, page,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
@@ -98,23 +97,18 @@ const AppHeader = ({
     setMenuOpen(false);
   }, []);
 
-  const openReferrals = useCallback(() => {
-    if (pathname === '/referrals') return;
-    dispatch(push('/referrals'));
-  }, [dispatch, pathname]);
-
-  const toggleReferrals = useCallback(() => {
+  const markReferralsSeen = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
-  }, [dispatch, dongleId, pathname]);
+  }, []);
 
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
   }, [drawerIsOpen, handleDrawerStateChanged]);
 
   const open = menuOpen;
-  const referralsOpen = pathname === '/referrals';
+  const home = urlFor({ dongleId });
+  const referralsOpen = page === 'referrals';
   const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
 
   return (
@@ -132,28 +126,21 @@ const AppHeader = ({
               </IconButton>
             )
               : (
-                <a
-                  href={`/${dongleId}`}
-                  className={classes.logoImgLink}
-                  onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
-                >
+                <Link to={home} className={classes.logoImgLink}>
                   <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-                </a>
+                </Link>
               )}
-            <a
-              href={`/${dongleId}`}
-              onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
-            >
+            <Link to={home}>
               <Typography className={classes.logoText}>connect</Typography>
-            </a>
+            </Link>
           </div>
           <div className="flex flex-row gap-2">
             <IconButton
-              component="a"
-              href={referralsOpen ? `/${dongleId}` : '/referrals'}
+              component={Link}
+              to={referralsOpen ? home : '/referrals'}
               aria-label="referrals"
               className={classes.giftButton}
-              onClick={filterRegularClick(toggleReferrals)}
+              onClick={markReferralsSeen}
             >
               <ReferralsIcon className={`${classes.giftIcon} ${referralsOpen ? classes.activeGiftIcon : ''}`} />
               {showNewReferralsDot && <span aria-label="New referrals" className={classes.newReferralsDot} />}
@@ -171,7 +158,6 @@ const AppHeader = ({
                 <AccountMenu
                   open={open}
                   onClose={handleClose}
-                  onReferrals={openReferrals}
                   profile={profile}
                 />
               )}
@@ -185,10 +171,8 @@ const AppHeader = ({
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  filter: state.filter,
+  page: state.page,
   profile: state.profile,
-  primeNav: state.primeNav,
-  pathname: state.router.location.pathname,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

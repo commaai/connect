@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 
@@ -10,9 +11,10 @@ import { billing as Billing } from '../../api';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
 import { ErrorOutline, InfoOutline, KeyboardBackspaceIcon, PriorityHighIcon } from '../../icons';
-import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
+import { primeGetSubscription, analyticsEvent } from '../../actions';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 import { otherPrimePlan, primePlanName } from './primePlans';
+import { urlFor } from '../../url';
 
 export function primeSwitchErrorMessage(error, plan = 'data') {
   const status = error?.resp?.status;
@@ -392,7 +394,7 @@ export class PrimeManage extends Component {
   }
 
   render() {
-    const { dispatch, dongleId, subscription, classes, device } = this.props;
+    const { dongleId, subscription, classes, device } = this.props;
     const { windowWidth, stripeStatus } = this.state;
     const commacare = device?.commacare;
 
@@ -424,7 +426,7 @@ export class PrimeManage extends Component {
       <>
         <div className={classes.primeBox}>
           <div className={classes.primeContainer} style={{ padding: `8px ${containerPadding}px` }}>
-            <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false))}>
+            <IconButton aria-label="Go Back" component={Link} to={urlFor({ dongleId })}>
               <KeyboardBackspaceIcon />
             </IconButton>
           </div>

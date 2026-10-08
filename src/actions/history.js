@@ -1,61 +1,58 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
-import { api } from '../api/backend';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
+import { api } from '../api/backend';
+import { isPublic, parseLocation, urlFor } from '../url';
+import { webrtcConnectionManager } from '../utils/webrtc';
+import { checkLastRoutesData, checkRoutesData, loadDevice, openDefaultDevice } from './index';
+
+// Old links name a drive by its start and end time; swap in the drive's own URL.
+function resolveLegacyUrl(pathname, { dongleId, start, end }) {
+  return async (dispatch, getState) => {
+    try {
+      const routes = await api.routes.getRoutesSegments(dongleId, start, end);
+      const logId = routes?.[0]?.fullname.split('|')[1];
+      if (logId && getState().router.location.pathname === pathname) {
+        dispatch(replace(urlFor({ dongleId, logId })));
+      }
+    } catch (err) {
+      console.error('Error fetching routes data for log ID conversion', err);
+    }
+  };
+}
+
+// By the time this runs the reducer has applied the new URL; this fetches whatever the new
+// view needs that isn't loaded yet.
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (!action) {
     return;
   }
-
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  if (action.type !== LOCATION_CHANGE) {
+    return next(action);
   }
+
+  const previousDongleId = getState().dongleId;
+  const result = next(action);
+  const state = getState();
+  if (!state.dongleId) {
+    dispatch(openDefaultDevice());
+    return result;
+  }
+  if (!api.auth.isAuthenticated() && !isPublic(state.page)) {
+    return result;
+  }
+
+  if (state.dongleId !== previousDongleId) {
+    window.localStorage.setItem('selectedDongleId', state.dongleId);
+    if (previousDongleId) webrtcConnectionManager.disconnect();
+    dispatch(loadDevice(state.dongleId));
+    dispatch(checkLastRoutesData());
+  } else if (state.selectedRouteId && !state.currentRoute) {
+    dispatch(checkRoutesData());
+  }
+
+  if (state.page === 'legacy') {
+    const { location } = action.payload;
+    dispatch(resolveLegacyUrl(location.pathname, parseLocation(location)));
+  }
+  return result;
 };

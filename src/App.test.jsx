@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -200,6 +200,12 @@ describe('whole-app behavior', () => {
       'href', expect.stringContaining('Referral%20coupon%3A%20ABC1234'),
     );
     expect(mocks.requests).toContainEqual({ method: 'GET', url: 'https://billing.comma.ai/v1/referrals' });
+  });
+
+  test('leaving a cold referrals page goes to the default device', async () => {
+    const { history } = await renderApp('/referrals', { selected: SECOND });
+    fireEvent.click(await screen.findByRole('button', { name: 'referrals' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
   });
 
   test.each([['owned', FIRST], ['shared', SHARED]])('direct entry opens %s device dashboard', async (_name, dongleId) => {
@@ -302,5 +308,18 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('moving between the dashboard and a drive reuses loaded routes', async () => {
+    const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    const routeRequests = () => mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    const before = routeRequests();
+    act(() => history.goBack());
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.goForward());
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(routeRequests()).toBe(before);
   });
 });

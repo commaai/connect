@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Link } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -9,7 +10,8 @@ import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
 import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
+import { urlFor } from '../../url';
+import { deviceNamePretty, deviceIsOnline, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
@@ -126,11 +128,11 @@ class DeviceList extends Component {
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
-      <a
+      <Link
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
+        onClick={ handleDeviceSelected }
+        to={ urlFor({ dongleId: device.dongle_id }) }
       >
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
@@ -153,7 +155,7 @@ class DeviceList extends Component {
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
           )}
-      </a>
+      </Link>
     );
   }
 

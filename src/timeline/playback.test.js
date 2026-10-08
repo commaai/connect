@@ -1,6 +1,6 @@
 import { asyncSleep } from '../utils';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -75,10 +75,7 @@ describe('playback', () => {
 
     // set up loop
     state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
+    state.loop = { startTime: 1000, duration: 1000 };
     expect(state.loop.startTime).toEqual(1000);
 
     // seek past loop end boundary a
@@ -93,10 +90,7 @@ describe('playback', () => {
 
     // set up loop
     state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
+    state.loop = { startTime: 1000, duration: 1000 };
     expect(state.loop.startTime).toEqual(1000);
 
     // seek past loop end boundary a

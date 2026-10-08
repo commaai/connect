@@ -43,30 +43,11 @@ export function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_LOOP:
-      if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
-        state.loop = {
-          startTime: action.start,
-          duration: action.end - action.start,
-        };
-      } else {
-        state.loop = null;
-      }
-      break;
     case Types.ACTION_BUFFER_VIDEO:
       state = {
         ...state,
         isBufferingVideo: action.buffering,
         offset: currentOffset(state),
-        startTime: Date.now(),
-      };
-      break;
-    case Types.ACTION_RESET:
-      state = {
-        ...state,
-        desiredPlaySpeed: 1,
-        isBufferingVideo: true,
-        offset: 0,
         startTime: Date.now(),
       };
       break;
@@ -128,24 +109,10 @@ export function play(speed = 1) {
   };
 }
 
-export function selectLoop(start, end) {
-  return {
-    type: Types.ACTION_LOOP,
-    start,
-    end,
-  };
-}
-
 // update video buffering state
 export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
-  };
-}
-
-export function resetPlayback() {
-  return {
-    type: Types.ACTION_RESET,
   };
 }
