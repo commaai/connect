@@ -1,61 +1,54 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { parseURL, buildURL } from '../url';
+import { checkRoutesData, selectDevice, pushTimelineRange } from './index';
+import { ACTION_APPLY_DESTINATION } from './types';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
+export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
+  const state = getState();
+  const parsed = parseURL(pathname);
+  const destination = { ...parsed, dongleId: parsed.dongleId ?? state.dongleId };
+  const { page, dongleId, logId, range } = destination;
+  const deviceChanged = state.dongleId !== dongleId;
+  const isCurrent = () => getState().router.location.pathname === pathname;
+
+  if (deviceChanged) dispatch(selectDevice(dongleId, false, false));
+
+  dispatch({
+    type: ACTION_APPLY_DESTINATION,
+    destination,
+  });
+
+  const isDrive = page === 'drive';
+  if (deviceChanged || isDrive || state.selectedRouteId) {
+    const routeId = isDrive ? logId : null;
+    const zoom = isDrive ? range : null;
+    dispatch(pushTimelineRange(routeId, zoom?.start ?? null, zoom?.end ?? null, false));
   }
 
+  if (dongleId && (deviceChanged || isDrive)) {
+    dispatch(checkRoutesData());
+  }
+
+  if (page === 'legacy-drive') {
+    try {
+      const routesData = await api.routes.getRoutesSegments(dongleId, range.start, range.end);
+      if (!isCurrent()) return;
+
+      const logId = routesData?.[0]?.fullname?.split('|')[1];
+      if (logId) dispatch(replace(buildURL({ page: 'drive', dongleId, logId, range: null })));
+    } catch (err) {
+      console.error('Error fetching routes data for log ID conversion', err);
+    }
+  }
+}
+
+export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
+  if (!action) return;
+
+  next(action); // must be first, otherwise breaks history
+
   if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
-
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+    dispatch(syncStateFromURL(action.payload.location.pathname));
   }
 };
