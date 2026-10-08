@@ -9,9 +9,12 @@ import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { bufferVideo, observeMediaTime, pause, seek } from '../../timeline/playback';
-import { isIos } from '../../utils/browser.js';
+import { isFirefox, isIos } from '../../utils/browser.js';
 
 const OBSERVED_OFFSET_EPSILON_MS = 75;
+
+// Browsers cap playbackRate at 16x, and Firefox mutes audio above 8x.
+const playbackRateFor = (speed, isMuted) => Math.min(speed || 1, (isFirefox() && !isMuted) ? 8 : 16);
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -287,7 +290,7 @@ export class DriveVideo extends Component {
           width="100%"
           height="100%"
           playing={Boolean(currentRoute && desiredPlaySpeed)}
-          playbackRate={desiredPlaySpeed || 1}
+          playbackRate={playbackRateFor(desiredPlaySpeed, isMuted)}
           progressInterval={100}
           onReady={player => this.onVideoReady(player, sourceGeneration)}
           onProgress={progress => this.onVideoProgress(progress, sourceGeneration)}
