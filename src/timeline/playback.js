@@ -1,7 +1,7 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
+import { currentOffset, videoController } from '.';
 
 export function reducer(_state, action) {
   let state = { ..._state };
@@ -107,6 +107,7 @@ export function reducer(_state, action) {
 
 // seek to a specific offset
 export function seek(offset) {
+  videoController.seek(offset);
   return {
     type: Types.ACTION_SEEK,
     offset,
