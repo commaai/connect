@@ -29,6 +29,7 @@ function useHls(video, src, startPosition, onError) {
 
     if (playsHlsNatively()) {
       video.src = src;
+      video.currentTime = startPosition;
       return () => {
         video.removeAttribute('src');
         video.load();
@@ -41,6 +42,7 @@ function useHls(video, src, startPosition, onError) {
       const instance = new Hls({ ...HLS_CONFIG, startPosition });
       instance.loadSource(src);
       instance.attachMedia(video);
+      video.currentTime = startPosition;
       controller.signal.addEventListener('abort', () => instance.destroy());
       setHls(instance);
     }).catch((error) => {

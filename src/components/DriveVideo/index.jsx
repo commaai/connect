@@ -60,6 +60,7 @@ function usePlaybackError(src) {
 function loopContainsVideo(video, videoStartOffset, loopStart, loopDuration) {
   if (!video) return false;
   if (!loopDuration) return false;
+  if (video.readyState < video.HAVE_METADATA) return false;
   const loopEnd = loopStart + loopDuration;
   const videoStartMs = toRouteMs(videoStartOffset, 0);
   const videoEndMs = toRouteMs(videoStartOffset, video.duration);
