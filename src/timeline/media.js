@@ -51,8 +51,10 @@ export function createController(video, callbacks = {}) {
   function seekPending() {
     if (pending === null || video.readyState < 1) return;
     const { start: first, end: last } = bounds();
-    if (last < first) return;
-    const target = Math.min(last, Math.max(first, toMedia(pending)));
+    if (!Number.isFinite(first) || !Number.isFinite(last) || last < first) return;
+    const mapped = toMedia(pending);
+    if (!Number.isFinite(mapped)) return;
+    const target = Math.min(last, Math.max(first, mapped));
     if (!Number.isFinite(target)) return;
     try {
       // No dead band: a 1ms command is just as explicit as a one-minute seek.
@@ -95,13 +97,13 @@ export function createController(video, callbacks = {}) {
   listen('canplay', () => { seekPending(); emit('onBuffering', pending !== null); });
   listen('playing', () => emit('onBuffering', false));
   listen('pause', () => {
-    sample();
     if (!video.ended && intent.speed) {
       intent.speed = 0;
       playRequest += 1;
       starting = false;
       emit('onPause');
     }
+    sample();
   });
   listen('ended', () => {
     const { start: first, end: last } = bounds();

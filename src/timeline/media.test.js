@@ -111,6 +111,27 @@ describe('native media controller', () => {
     expect(video.play).toHaveBeenCalledOnce();
   });
 
+  it('does not resume an external pause at the loop edge', async () => {
+    const { video, controller, callbacks } = setup();
+    controller.update({ range: { start: 0, end: 1000 }, speed: 1, ...command(0) });
+    await Promise.resolve();
+    video.currentTime = 1;
+    video.paused = true;
+    video.fire('pause');
+    expect(video.play).toHaveBeenCalledOnce();
+    expect(callbacks.onPause).toHaveBeenCalledOnce();
+  });
+
+  it('waits rather than coercing unknown mappings to zero', () => {
+    const { video, controller, callbacks } = setup();
+    video.currentTime = 5;
+    controller.update({ toMedia: () => null, ...command(10000) });
+    expect(video.currentTime).toBe(5);
+    expect(callbacks.onProgress).not.toHaveBeenCalled();
+    controller.update({ toMedia: (offset) => offset / 1000 });
+    expect(video.currentTime).toBe(10);
+  });
+
   it('passes buffering and errors through without recovery', () => {
     const { video, callbacks } = setup();
     video.fire('waiting');
