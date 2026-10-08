@@ -132,7 +132,7 @@ export default class VideoSession {
   resume() {
     this.recovering = false;
     if (this.failed || !this.state.desiredPlaySpeed) return;
-    this.video.playbackRate = this.state.desiredPlaySpeed;
+    if (this.video.playbackRate !== this.state.desiredPlaySpeed) this.video.playbackRate = this.state.desiredPlaySpeed;
     if (!this.video.paused) return;
     const attempt = this.playAttempt = (this.playAttempt ?? 0) + 1;
     this.video.play()?.catch((error) => {

@@ -84,6 +84,13 @@ it('invokes play synchronously during dispatch and follows native pause/rate con
   expect(video.play).toHaveBeenCalledOnce();
 });
 
+it('does not rewrite playback rate when repeated readiness events resume audio', () => {
+  const rate = vi.spyOn(video, 'playbackRate', 'set');
+  store.dispatch(play(2));
+  event('canplay'); event('canplay');
+  expect(rate).toHaveBeenCalledExactlyOnceWith(2);
+});
+
 it('loops from zero and within a selection at the actual video boundary', () => {
   video.currentTime = 60; video.ended = true;
   event('ended');
