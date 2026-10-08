@@ -18,8 +18,10 @@ const UrlModals = ({ location, device, profile, dispatch }) => {
     return <DeviceSettingsModal key={device.dongle_id} dongleId={device.dongle_id}
       isOpen={location.modal === 'settings'} unpairOpen={location.modal === 'unpair'} onClose={close} />;
   }
-  if (location.modal === 'uploads' && device && api.auth.isAuthenticated()) {
-    return <UploadQueue open update device={device} onClose={close} />;
+  const showUploads = location.modal === 'uploads';
+  const showDriveFiles = location.page === 'drive' && ['files', 'info'].includes(location.modal);
+  if ((showUploads || showDriveFiles) && device && api.auth.isAuthenticated()) {
+    return <UploadQueue key={device.dongle_id} open={showUploads} update device={device} onClose={close} />;
   }
   if (location.modal === 'filter' && location.page === 'dashboard') {
     return <TimeSelect onClose={close} />;
@@ -29,7 +31,8 @@ const UrlModals = ({ location, device, profile, dispatch }) => {
 
 export default connect((state) => {
   const location = parseLocation(state.router.location);
-  const dongleId = location.modalDevice || state.dongleId;
+  const dongleId = ['settings', 'unpair', 'uploads'].includes(location.modal)
+    ? location.modalDevice || state.dongleId : state.dongleId;
   return {
     location,
     profile: state.profile,

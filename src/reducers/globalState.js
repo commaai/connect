@@ -348,7 +348,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         fetchedAt: Date.now(),
       };
-      if (Object.keys(action.files).length) {
+      if (state.dongleId === action.dongleId && Object.keys(action.files).length) {
         state.files = {
           ...(state.files !== null ? { ...state.files } : {}),
           ...action.files,

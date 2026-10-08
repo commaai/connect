@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import * as FileActions from './actions/files';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -113,6 +114,7 @@ async function mockFetch(input, init = {}) {
   }
   if (url.pathname.endsWith('/location')) return json({ error: 'no_segments_uploaded' });
   if (url.pathname.endsWith('/stats')) return json(null);
+  if (url.pathname.endsWith('/athena_offline_queue')) return json([]);
   if (/^\/v1\.1\/devices\/[a-f0-9]{16}\/$/.test(url.pathname)) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
@@ -384,6 +386,29 @@ describe('whole-app behavior', () => {
       expect(screen.queryByRole('heading', { name: 'Pair device' })).not.toBeInTheDocument();
     } finally {
       Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: original });
+    }
+  });
+
+  test('files and upload dialogs share one poller across navigation', async () => {
+    const poll = vi.spyOn(FileActions, 'fetchUploadQueue').mockReturnValue({ type: 'test/poll' });
+    const cancel = vi.spyOn(FileActions, 'cancelFetchUploadQueue');
+    try {
+      const { history } = await renderApp(`/${FIRST}/${LOG}?modal=files`);
+      expect(poll).toHaveBeenCalledOnce();
+      expect(poll).toHaveBeenCalledWith(FIRST);
+      cancel.mockClear();
+      act(() => history.push(`/${FIRST}/${LOG}?modal=uploads`));
+      expect(await screen.findByRole('heading', { name: 'Upload queue' })).toBeVisible();
+      expect(cancel).not.toHaveBeenCalled();
+      expect(poll).toHaveBeenCalledOnce();
+      act(() => history.push(`/${FIRST}/${LOG}?modal=uploads&device=${SECOND}`));
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(poll).toHaveBeenLastCalledWith(SECOND);
+      act(() => history.push(`/${FIRST}/${LOG}`));
+      expect(cancel).toHaveBeenCalledTimes(2);
+    } finally {
+      poll.mockRestore();
+      cancel.mockRestore();
     }
   });
 
