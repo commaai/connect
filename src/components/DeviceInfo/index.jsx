@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
+import { push } from 'connected-react-router';
 
 import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@material-ui/core';
 
@@ -10,6 +11,7 @@ import { deviceSupportsClips } from '../../api/clips';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
+import { routeModalUrl } from '../../url';
 import { webrtcConnectionManager } from '../../utils/webrtc';
 import VisibilityHandler from '../VisibilityHandler';
 import { subscribeWindowSize } from '../../hooks/window';
@@ -185,6 +187,10 @@ class DeviceInfo extends Component {
   componentDidUpdate(prevProps) {
     const { dongleId } = this.props;
 
+    if (prevProps.routeModal !== this.props.routeModal && !['clips', 'clip-viewer', 'clip-delete'].includes(this.props.routeModal)) {
+      this.setState({ clipMenu: null });
+    }
+
     if (prevProps.dongleId !== dongleId) {
       this.setState({
         carHealth: {},
@@ -330,10 +336,13 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
+          open={['clips', 'clip-viewer', 'clip-delete'].includes(this.props.routeModal)}
           dongleId={this.props.dongleId}
           anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          onClose={() => {
+            this.setState({ clipMenu: null });
+            this.props.dispatch(push(routeModalUrl(this.props.routeLocation, null)));
+          }}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -413,7 +422,10 @@ class DeviceInfo extends Component {
             <button
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              onClick={(event) => {
+                this.setState({ clipMenu: event.currentTarget });
+                this.props.dispatch(push(routeModalUrl(this.props.routeLocation, 'clips')));
+              }}
               disabled={offline}
             >
               <ContentCut />
@@ -517,6 +529,8 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,
+  routeLocation: state.router.location,
+  routeModal: state.routeModal,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
