@@ -43,6 +43,7 @@ export const test = base.extend({
     await context.route('**/*', async (route) => {
       const request = route.request();
       const url = new URL(request.url());
+      if (['blob:', 'data:'].includes(url.protocol)) return route.continue();
       if (url.hostname === '127.0.0.1') return route.continue();
       const json = (body) => route.fulfill({ json: body });
       if (['plausible.io', 'www.googletagmanager.com', 'fonts.googleapis.com'].includes(url.hostname)) {

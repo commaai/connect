@@ -4,6 +4,40 @@ import { createMediaFixture } from './media-fixture';
 test.use({ media: true, fault: true });
 test.beforeAll(() => createMediaFixture());
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.mediaEvents = [];
+    for (const name of ['loadedmetadata', 'canplay', 'playing', 'pause', 'seeking', 'seeked', 'waiting', 'error', 'ended']) {
+      document.addEventListener(name, event => {
+        const video = event.target;
+        if (!(video instanceof HTMLMediaElement)) return;
+        window.mediaEvents.push({ name, time: video.currentTime, paused: video.paused,
+          readyState: video.readyState, seeking: video.seeking, error: video.error?.code });
+        if (window.mediaEvents.length > 80) window.mediaEvents.shift();
+      }, true);
+    }
+  });
+});
+
+test.afterEach(async ({ page, browser }, info) => {
+  if (info.status === info.expectedStatus || page.isClosed()) return;
+  const state = await page.evaluate(() => {
+    const video = document.querySelector('video[aria-label="Drive video"]') || document.createElement('video');
+    const speed = document.querySelector('[aria-label="Increase play speed by 1 step"]');
+    const bounds = element => element?.getBoundingClientRect().toJSON();
+    return { layout: { viewport: { width: innerWidth, height: innerHeight },
+      video: bounds(video), speed: bounds(speed) }, codecs: { h264: video.canPlayType('video/mp4; codecs="avc1.42E01E"'),
+      aac: video.canPlayType('audio/mp4; codecs="mp4a.40.2"'), hls: video.canPlayType('application/vnd.apple.mpegurl') },
+      media: { time: video.currentTime, paused: video.paused, readyState: video.readyState,
+        seeking: video.seeking, duration: video.duration, muted: video.muted,
+        rate: video.playbackRate, error: video.error?.code, source: video.currentSrc },
+      events: window.mediaEvents };
+  }).catch(error => ({ diagnosticError: error.message }));
+  const diagnostics = { browser: browser.version(), ...state };
+  console.log('Playback diagnostics:', JSON.stringify(diagnostics));
+  await info.attach('media-diagnostics', { body: JSON.stringify(diagnostics, null, 2), contentType: 'application/json' });
+});
+
 test('decoded media advances, pauses, seeks and keeps its element under Map', async ({ page }) => {
   await page.goto(`/demo/${LOG}`);
   const video = page.getByLabel('Drive video');

@@ -1,9 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 
-const directory = '/tmp/connect-playback-fixture';
+const directory = mkdtempSync('/tmp/connect-playback-fixture-');
 export function createMediaFixture() {
-  mkdirSync(directory, { recursive: true });
   execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y',
     '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=15',
     '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100', '-t', '12',
