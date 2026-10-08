@@ -16,3 +16,12 @@ describe('intentional missing segment resource diagnostics', () => {
     expect(unexpectedResourceErrors(errors, new Set([url]))).toEqual(errors);
   });
 });
+
+it('allows only generic errors from positively retired empty capability workers', () => {
+  const probe = 'blob:http://127.0.0.1:3000/probe';
+  const mse = 'blob:http://127.0.0.1:3000/media';
+  const errors = [{ text: 'Failed to load resource', url: probe },
+    { text: 'Failed to load resource', url: mse }, { text: 'TypeError', url: probe }];
+  expect(unexpectedResourceErrors(errors, new Set(), new Set([probe]))).toEqual(errors.slice(1));
+  expect(unexpectedResourceErrors(errors, new Set())).toEqual(errors);
+});

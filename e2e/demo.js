@@ -1,3 +1,4 @@
+import { trackCapabilityWorkers } from './capability-worker';
 import { unexpectedResourceErrors } from './resource-errors';
 import { fixtureManifest, fixtureSegment } from './media-fixture';
 import { test as base, expect } from '@playwright/test';
@@ -26,6 +27,9 @@ export const test = base.extend({
     const unexpected = [];
     const errors = [];
     const missingSegments = new Set();
+    const retiredCapabilityWorkers = new Set();
+    await context.exposeBinding('__recordCapabilityProbe', (_source, url) => retiredCapabilityWorkers.add(url));
+    await context.addInitScript(trackCapabilityWorkers);
     const ownerId = 'aaaaaaaaaaaaaaaa';
     const device = { dongle_id: ownerId, alias: 'owner device', device_type: 'threex', is_owner: true, prime: true, version: '0.11.2', shared: false, last_athena_ping: 0 };
     if (owner) await context.addInitScript(() => {
@@ -116,7 +120,7 @@ export const test = base.extend({
     });
     await use(context);
     expect(unexpected, 'Unexpected external requests').toEqual([]);
-    const unexpectedErrors = unexpectedResourceErrors(errors, missingSegments);
+    const unexpectedErrors = unexpectedResourceErrors(errors, missingSegments, retiredCapabilityWorkers);
     expect(unexpectedErrors, 'Browser errors (with source URLs)').toEqual([]);
   },
 });
