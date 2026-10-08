@@ -53,19 +53,10 @@ export function reducer(_state, action) {
         state.loop = null;
       }
       break;
-    case Types.ACTION_BUFFER_VIDEO:
-      state = {
-        ...state,
-        isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-      };
-      break;
     case Types.ACTION_RESET:
       state = {
         ...state,
         desiredPlaySpeed: 1,
-        isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
       };
@@ -87,8 +78,7 @@ export function reducer(_state, action) {
 
   // normalize over loop
   if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
+    const offset = state.offset + (Date.now() - state.startTime) * state.desiredPlaySpeed;
     loopOffset = state.loop.startTime;
     // has loop, trap offset within the loop
     if (offset < loopOffset) {
@@ -99,8 +89,6 @@ export function reducer(_state, action) {
       state.startTime = Date.now();
     }
   }
-
-  state.isBufferingVideo = Boolean(state.isBufferingVideo);
 
   return state;
 }
@@ -133,14 +121,6 @@ export function selectLoop(start, end) {
     type: Types.ACTION_LOOP,
     start,
     end,
-  };
-}
-
-// update video buffering state
-export function bufferVideo(buffering) {
-  return {
-    type: Types.ACTION_BUFFER_VIDEO,
-    buffering,
   };
 }
 

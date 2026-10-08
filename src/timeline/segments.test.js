@@ -1,3 +1,4 @@
+import '../store'; // getSegmentNumber reads the playback clock of the app store
 import { hasRoutesData } from './segments';
 import { getSegmentNumber } from '../utils';
 

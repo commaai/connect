@@ -1,14 +1,14 @@
+import * as Types from '../actions/types';
+import store from '../store';
 import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { currentOffset, setVideo, videoReady } from '.';
+import { pause, play, reducer, seek, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
     desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
     offset: 0, // in miliseconds from the start
     startTime: Date.now(), // millisecond timestamp in which play began
-
-    isBuffering: true,
   };
 };
 
@@ -104,30 +104,88 @@ describe('playback', () => {
     expect(state.loop.startTime).toEqual(1000);
     expect(state.offset).toEqual(1000);
   });
+});
 
-  it('should buffer video and data', async () => {
+describe('video clock', () => {
+  const fakeVideo = () => ({
+    currentTime: 0,
+    paused: true,
+    playbackRate: 1,
+    play: vi.fn(function videoPlay() { this.paused = false; return Promise.resolve(); }),
+    pause: vi.fn(function videoPause() { this.paused = true; }),
+  });
+
+  beforeEach(() => {
     newNow();
-    let state = makeDefaultStruct();
+    // a route whose video starts 2 s after its logs
+    store.dispatch({
+      type: Types.ACTION_ROUTES_METADATA,
+      routes: [{ log_id: 'r', fullname: 'x|r', duration: 60000, videoStartOffset: 2000 }],
+    });
+    store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 'r', start: 0, end: 60000 });
+    store.dispatch(seek(5000));
+  });
 
-    state = reducer(state, play());
-    expect(state.desiredPlaySpeed).toEqual(1);
+  afterEach(() => setVideo(null));
 
-    // claim the video is buffering
-    state = reducer(state, bufferVideo(true));
-    expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBufferingVideo).toEqual(true);
+  it('holds the start position until the video has metadata, then moves the video there', () => {
+    const video = fakeVideo();
+    setVideo(video);
+    store.dispatch(seek(30000));
+    newNow();
+    expect(currentOffset()).toEqual(30000);
+    expect(video.currentTime).toEqual(0);
 
-    state = reducer(state, play(0.5));
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
+    videoReady();
+    expect(video.currentTime).toEqual(28);
+  });
 
-    expect(state.desiredPlaySpeed).toEqual(0.5);
+  it('reads time from the video and sends seeks, plays and pauses to it', () => {
+    const video = fakeVideo();
+    setVideo(video);
+    videoReady();
 
-    state = reducer(state, play(2));
-    state = reducer(state, bufferVideo(false));
-    expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBufferingVideo).toEqual(false);
+    video.currentTime = 40;
+    expect(currentOffset()).toEqual(42000);
 
-    expect(state.desiredPlaySpeed).toEqual(2);
+    store.dispatch(pause());
+    expect(video.pause).toHaveBeenCalled();
+    expect(store.getState().offset).toEqual(42000);
+
+    store.dispatch(play(2));
+    expect(video.playbackRate).toEqual(2);
+    expect(video.play).toHaveBeenCalled();
+
+    store.dispatch(seek(10000));
+    expect(video.currentTime).toEqual(8);
+
+    // logs start before the video: clamp to its first frame
+    store.dispatch(seek(500));
+    expect(video.currentTime).toEqual(0);
+  });
+
+  it('hands the clock back to Redux where the video stopped', () => {
+    const video = fakeVideo();
+    setVideo(video);
+    videoReady();
+    video.currentTime = 20;
+    store.dispatch(pause());
+
+    setVideo(null);
+    video.currentTime = 50;
+    expect(store.getState().offset).toEqual(22000);
+    expect(currentOffset()).toEqual(22000);
+  });
+
+  it('shows a paused state when the browser blocks play()', async () => {
+    const video = fakeVideo();
+    video.play = vi.fn(() => Promise.reject(new DOMException('blocked', 'NotAllowedError')));
+    setVideo(video);
+    store.dispatch(pause());
+    store.dispatch(play());
+    expect(store.getState().desiredPlaySpeed).toEqual(1);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(store.getState().desiredPlaySpeed).toEqual(0);
   });
 });
