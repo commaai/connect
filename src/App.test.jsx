@@ -39,20 +39,8 @@ vi.mock('react-map-gl', () => ({
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
 }));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
-}));
+vi.mock('./components/DriveVideo', () => ({ default: () => <div data-testid="video-player" /> }));
+vi.mock('./components/DriveMap', () => ({ default: () => <div data-testid="drive-map" /> }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
 const FIRST = 'aaaaaaaaaaaaaaaa';
@@ -302,5 +290,20 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('switching to the map retains the video and its playback state', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    const video = await screen.findByTestId('video-player');
+    const before = store.getState();
+    fireEvent.click(screen.getByText('Map'));
+    expect(screen.getByTestId('video-player')).toBe(video);
+    expect(store.getState()).toMatchObject({
+      offset: before.offset,
+      seekId: before.seekId,
+      desiredPlaySpeed: before.desiredPlaySpeed,
+    });
+    fireEvent.click(screen.getByText('Video'));
+    expect(screen.getByTestId('video-player')).toBe(video);
   });
 });

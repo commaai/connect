@@ -4,7 +4,8 @@ import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
 
 import * as Types from './types';
-import { resetPlayback, selectLoop } from '../timeline/playback';
+import { currentOffset } from '../timeline';
+import { resetPlayback, selectLoop, videoProgress } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
@@ -147,7 +148,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 
   if (log_id) {
     path.push(log_id);
-    if (start && end) {
+    if (start != null && end != null) {
       path.push(start);
       path.push(end);
     }
@@ -159,18 +160,23 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
-    dispatch(resetPlayback());
+  const route = state.routes?.find((candidate) => candidate.log_id === log_id);
+  const routeChanged = state.selectedRouteId !== log_id;
+  const loopStart = end == null ? null : Math.min(end, Math.max(start, route?.videoStartOffset ?? 0));
+  if (routeChanged || (state.loop?.startTime ?? null) !== loopStart
+    || (state.loop ? state.loop.startTime + state.loop.duration : null) !== end) {
+    if (!routeChanged && route && state.currentRoute?.fullname === route.fullname) {
+      dispatch(videoProgress(currentOffset(state), route.fullname));
+    }
     dispatch(selectLoop(start, end));
   }
+  if (log_id && routeChanged) dispatch(resetPlayback());
 
   if (allowPathChange) {
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
 
     const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
+    const urlEnd = wholeDrive ? null : Math.ceil(end / 1000);
     const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
 
     if (currentPathname(state) !== desiredPath) {
@@ -196,6 +202,9 @@ export function popTimelineRange(log_id, allowPathChange = true) {
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
+    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
+    start = log_id ? (start ?? 0) : null;
+    end = log_id ? (end ?? route?.duration ?? null) : null;
 
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
       dispatch({

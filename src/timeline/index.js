@@ -1,33 +1,29 @@
 import store from '../store';
 
-/**
- * Get current playback offset
- *
- * @param {object} state
- * @returns {number}
- */
-export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
-  }
+let readVideoOffset;
+let videoControls;
 
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
-
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
+// RAF consumers read the media clock directly; Redux keeps event-driven snapshots.
+export function registerPlaybackClock(readOffset, controls) {
+  readVideoOffset = readOffset;
+  videoControls = controls;
+  return () => {
+    if (readVideoOffset === readOffset) {
+      readVideoOffset = undefined;
+      videoControls = undefined;
     }
-  }
-  return offset;
+  };
+}
+
+// These calls stay inside the click gesture, including on iOS and in PWAs.
+export function playVideo(speed) { videoControls?.play(speed); }
+export function setVideoMuted(muted) { videoControls?.setMuted(muted); }
+
+/** Current position in route-relative milliseconds, never extrapolated from wall time. */
+export function currentOffset(state = store.getState()) {
+  const videoOffset = readVideoOffset?.(state);
+  if (!Number.isFinite(videoOffset)) return state.offset ?? state.loop?.startTime ?? 0;
+  const start = state.loop?.startTime ?? 0;
+  const end = state.loop ? start + state.loop.duration : Infinity;
+  return Math.max(start, Math.min(end, videoOffset));
 }
