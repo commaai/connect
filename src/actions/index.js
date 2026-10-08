@@ -374,17 +374,6 @@ export function fetchSharedDevice(dongleId) {
   };
 }
 
-export function updateDeviceOnline(dongleId, lastAthenaPing) {
-  return (dispatch) => {
-    dispatch({
-      type: Types.ACTION_UPDATE_DEVICE_ONLINE,
-      dongleId,
-      last_athena_ping: lastAthenaPing,
-      fetched_at: Math.floor(Date.now() / 1000),
-    });
-  };
-}
-
 export function fetchDeviceNetworkStatus(dongleId) {
   return async (dispatch, getState) => {
     const device = getDeviceFromState(getState(), dongleId);
@@ -402,12 +391,9 @@ export function fetchDeviceNetworkStatus(dongleId) {
             dongleId,
             networkMetered: resp.result,
           });
-          dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
-        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
-          dispatch(updateDeviceOnline(dongleId, 0));
-        } else {
+        if (!err.message?.includes('Timed out') && !err.message?.includes('Device not registered')) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'athena_fetch_networkmetered' });
         }
@@ -427,12 +413,9 @@ export function fetchDeviceNetworkStatus(dongleId) {
             dongleId,
             networkMetered: metered,
           });
-          dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
-        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
-          dispatch(updateDeviceOnline(dongleId, 0));
-        } else {
+        if (!err.message?.includes('Timed out') && !err.message?.includes('Device not registered')) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'athena_fetch_networktype' });
         }
