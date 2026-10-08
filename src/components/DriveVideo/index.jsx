@@ -297,7 +297,7 @@ class RouteVideo extends Component {
         {feedback && (
           <div
             key={feedback.id}
-            className="absolute inset-0 z-40 flex items-center pointer-events-none animate-flash text-white"
+            className={`absolute inset-0 z-40 flex items-center pointer-events-none text-white ${feedback.side ? 'animate-flash' : 'animate-fadeout'}`}
             onAnimationEnd={() => this.setState({ feedback: null })}
           >
             {feedback.side ? (

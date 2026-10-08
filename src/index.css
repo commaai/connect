@@ -12,6 +12,8 @@
 
 @theme {
   --animate-fadein: fadein 0.25s;
+  --animate-fadeout: fadeout 1.2s ease-out forwards;
+  /* taps keep jumping while the jump feedback shows, see DriveVideo */
   --animate-flash: fadeout 1s ease-out forwards;
   --breakpoint-xxs: 360px;
   --breakpoint-xs: 480px;
