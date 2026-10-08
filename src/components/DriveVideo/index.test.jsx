@@ -12,7 +12,7 @@ vi.mock('../../timeline/media', () => ({
   bindMedia: () => { const unbind = vi.fn(); mocks.unbinds.push(unbind); return unbind; },
 }));
 vi.mock('./transport', () => ({ attachSource: (video, callbacks) => {
-  const source = { destroy: vi.fn(() => mocks.events.push('destroy')), retry: vi.fn(), reportError: vi.fn(), video, callbacks };
+  const source = { destroy: vi.fn(() => { mocks.events.push('destroy'); video.pause(); video.removeAttribute('src'); video.load(); }), retry: vi.fn(), reportError: vi.fn(), video, callbacks };
   mocks.sources.push(source);
   return source;
 } }));
@@ -30,7 +30,12 @@ vi.mock('../../api/backend', () => ({ api: { video: { getQcameraStreamUrl: (full
 const ROUTE = { fullname: 'aaaaaaaaaaaaaaaa|2026-08-06--12-00-00', duration: 60000 };
 const props = () => ({ currentRoute: ROUTE, desiredPlaySpeed: 1, isMuted: true,
   zoom: { start: 0, end: 60000 }, seekRevision: 1, seekOffset: 0, dispatch: vi.fn((action) => typeof action === 'function' ? action : action), onAudioStatusChange: vi.fn() });
-beforeEach(() => { mocks.sessions = []; mocks.sources = []; mocks.unbinds = []; mocks.events = []; });
+beforeEach(() => {
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+  mocks.sessions = []; mocks.sources = []; mocks.unbinds = []; mocks.events = []; });
+
+afterEach(() => vi.restoreAllMocks());
 
 test('same element and source survive Map visibility and progress-only updates', () => {
   const initial = props();
@@ -110,6 +115,34 @@ test('Retry preserves actual media position and the same element', () => {
   screen.getByText('Retry').click();
   expect(mocks.sources[0].destroy).toHaveBeenCalledOnce();
   expect(mocks.sources).toHaveLength(2);
-  expect(initial.dispatch).toHaveBeenCalledWith({ type: 'ACTION_SEEK', offset: 12125 });
+  expect(initial.dispatch).toHaveBeenCalledWith({ type: 'ACTION_SEEK', offset: 0 });
   expect(screen.getByLabelText('Drive video')).toBe(video);
+});
+
+test('clearing the selected route stops and unloads the previous native media', () => {
+  const initial = props();
+  const view = render(<DriveVideo {...initial} />);
+  const video = screen.getByLabelText('Drive video');
+  video.src = 'https://video.example/old-route.m3u8';
+  const stop = vi.spyOn(video, 'pause').mockImplementation(() => {});
+  const load = vi.spyOn(video, 'load').mockImplementation(() => {});
+  view.rerender(<DriveVideo {...initial} currentRoute={null} />);
+  expect(stop).toHaveBeenCalled();
+  expect(video.hasAttribute('src')).toBe(false);
+  expect(load).toHaveBeenCalled();
+  expect(mocks.sessions[0].dispose).toHaveBeenCalledOnce();
+});
+
+
+test('unknown timing supplies null adapters and Retry retains last explicit target', () => {
+  const initial = { ...props(), seekOffset: 10000 };
+  render(<DriveVideo {...initial} />);
+  const update = mocks.sessions[0].update.mock.calls.at(-1)[0];
+  expect(update.toMedia(10000)).toBeNull();
+  expect(update.toRoute(10)).toBeNull();
+  const video = screen.getByLabelText('Drive video');
+  video.currentTime = 30;
+  act(() => mocks.sources[0].callbacks.onStatus({ error: 'Failed source', loading: false, blocked: false }));
+  screen.getByText('Retry').click();
+  expect(initial.dispatch).toHaveBeenCalledWith({ type: 'ACTION_SEEK', offset: 10000 });
 });

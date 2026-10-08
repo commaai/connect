@@ -40,6 +40,7 @@ export class DriveVideo extends Component {
     this.controller = null;
     this.transport = null;
     this.entries = null;
+    this.observedRevision = null;
   }
 
   changeSource(startOffset) {
@@ -55,7 +56,11 @@ export class DriveVideo extends Component {
     onAudioStatusChange?.(false);
     const controller = createController(this.video.current, {
       routeId: currentRoute.fullname,
-      onProgress: (offset, revision) => { if (active()) dispatch(progress(token, revision, offset)); },
+      onProgress: (offset, revision) => {
+        if (!active()) return;
+        this.observedRevision = revision;
+        dispatch(progress(token, revision, offset));
+      },
       onPause: () => { if (active()) dispatch(pause()); },
       onStatus: ({ buffering, blocked, error }) => {
         if (!active()) return;
@@ -73,9 +78,9 @@ export class DriveVideo extends Component {
         if (!active()) return;
         const video = this.video.current;
         const previousMapping = createVideoMapping(this.props.currentRoute, this.entries);
-        const offset = video.readyState < 1 ? this.props.seekOffset
-          : previousMapping ? mediaToRoute(previousMapping, video.currentTime)
-          : video.currentTime * 1000 + (this.props.currentRoute?.videoStartOffset ?? 0);
+        const offset = previousMapping && video.readyState >= 1 && !video.seeking
+          && this.observedRevision === this.props.seekRevision
+          ? mediaToRoute(previousMapping, video.currentTime) : this.props.seekOffset;
         this.entries = entries;
         this.updateIntent();
         if (createVideoMapping(this.props.currentRoute, entries) && Number.isFinite(offset)) dispatch(seek(offset));
@@ -91,8 +96,8 @@ export class DriveVideo extends Component {
     const range = loop ? { start: loop.startTime, end: loop.startTime + loop.duration } : zoom;
     this.controller?.update({ speed: desiredPlaySpeed, muted: isMuted, range,
       seekRevision, seekOffset,
-      toMedia: mapping ? (offset) => routeToMedia(mapping, offset) : undefined,
-      toRoute: mapping ? (seconds) => mediaToRoute(mapping, seconds) : undefined,
+      toMedia: (offset) => mapping ? routeToMedia(mapping, offset) : null,
+      toRoute: (seconds) => mapping ? mediaToRoute(mapping, seconds) : null,
       videoStartOffset: currentRoute?.videoStartOffset ?? 0 });
   }
 
@@ -101,9 +106,9 @@ export class DriveVideo extends Component {
     if (!route || !this.transport) return;
     const mapping = createVideoMapping(route, this.entries);
     const seconds = this.video.current.currentTime;
-    const offset = mapping ? mediaToRoute(mapping, seconds)
-      : seconds * 1000 + (route.videoStartOffset ?? 0);
-    if (offset !== null && Number.isFinite(offset)) this.changeSource(offset);
+    const offset = mapping ? mediaToRoute(mapping, seconds) : this.props.seekOffset;
+    // Unknown timing cannot supply a guessed position. Retain the last command.
+    this.changeSource(Number.isFinite(offset) ? offset : undefined);
   };
 
   render() {

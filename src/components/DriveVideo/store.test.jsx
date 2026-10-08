@@ -25,9 +25,11 @@ function setup() {
     desiredPlaySpeed: 0, loop: { startTime: 10000, duration: 10000 }, zoom: { start: 10000, end: 20000 } };
   const store = createAppStore(history, initial);
   const view = render(<Provider store={store}><DriveVideo isMuted /></Provider>);
+  act(() => source.callbacks.onTimeline([{ number: 0, start: 0, duration: 60 }]));
   return { store, ...view };
 }
 beforeEach(() => {
+  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
 });
@@ -62,4 +64,16 @@ test('late playlist mapping reissues the explicit target rather than leaving a l
   act(() => source.callbacks.onTimeline([{ number: 0, start: 0, duration: 60 }]));
   expect(store.getState().seekRevision).toBeGreaterThan(before);
   expect(video.currentTime).toBe(10);
+});
+
+test('late mapping retains the explicit target while native seek is still pending', () => {
+  const { store } = setup();
+  const video = screen.getByLabelText('Drive video');
+  let actual = 10;
+  Object.defineProperty(video, 'currentTime', { configurable: true, get: () => actual, set: () => {} });
+  Object.defineProperty(video, 'seeking', { configurable: true, value: true });
+  act(() => store.dispatch(seek(15000)));
+  expect(store.getState().seekOffset).toBe(15000);
+  act(() => source.callbacks.onTimeline([{ number: 0, start: 0, duration: 60 }]));
+  expect(store.getState().seekOffset).toBe(15000);
 });
