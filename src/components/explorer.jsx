@@ -14,8 +14,8 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
-import init from '../actions/startup';
+import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
+import { syncStateFromUrl, navigateTo } from '../actions/history';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
@@ -24,6 +24,7 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 const styles = (theme) => ({
   app: {
@@ -102,7 +103,7 @@ class ExplorerApp extends Component {
       this.props.dispatch(replace(q.get('r')));
     }
 
-    this.props.dispatch(init());
+    this.props.dispatch(syncStateFromUrl(window.location.pathname));
 
     let pairToken;
     try {
@@ -154,7 +155,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -165,13 +166,6 @@ class ExplorerApp extends Component {
     }
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
-    }
-
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
     }
   }
 
@@ -198,7 +192,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, settingsOpen,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -250,6 +244,13 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            { settingsOpen && (
+              <DeviceSettingsModal
+                isOpen
+                dongleId={ dongleId }
+                onClose={ () => dispatch(navigateTo({ dongleId, page: 'dashboard' })) }
+              />
+            )}
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -285,6 +286,7 @@ const stateToProps = (state) => ({
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
+  settingsOpen: state.settingsOpen,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

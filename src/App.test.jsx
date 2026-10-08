@@ -234,7 +234,7 @@ describe('whole-app behavior', () => {
   });
 
   test.each([
-    ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`],
+    ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`], ['settings', `/${FIRST}/settings`],
   ])('signed-out %s entry retains its path', async (_name, pathname) => {
     const { history } = await renderApp(pathname, { authenticated: false });
     expect(await screen.findByText('Sign in with Google')).toBeVisible();
@@ -266,6 +266,18 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
+
+  test('settings URL opens device settings modal and closes back to dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/settings`);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/settings`);
   });
 
   test('stream close and browser history restore its view', async () => {

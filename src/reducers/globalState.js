@@ -29,6 +29,52 @@ export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
+    case Types.ACTION_APPLY_DESTINATION: {
+      const { dongleId, page, drive } = action.destination;
+      const deviceChanged = state.dongleId !== dongleId;
+      state.dongleId = dongleId;
+      state.deviceNotFound = false;
+      state.settingsOpen = page === 'settings';
+      state.primeNav = page === 'prime';
+      state.streamNav = page === 'stream';
+      state.urlTransition = page === 'legacy' ? 'converting-route' : null;
+
+      if (deviceChanged) {
+        state.device = state.devices?.find((device) => device.dongle_id === dongleId) || null;
+        state.subscription = null;
+        state.subscribeInfo = null;
+        state.files = null;
+        state.routes = null;
+        state.lastRoutes = null;
+        state.limit = 0;
+        state.routesMeta = { dongleId: null, start: null, end: null };
+      }
+
+      if (page === 'drive' && drive) {
+        state.selectedRouteId = drive.logId;
+        state.segmentRange = { log_id: drive.logId, start: drive.start, end: drive.end };
+        const route = state.routes?.find((candidate) => candidate.log_id === drive.logId);
+        state.currentRoute = route || null;
+        state.zoom = drive.start != null && drive.end != null
+          ? { start: drive.start, end: drive.end, previous: state.zoom }
+          : (route ? { start: 0, end: route.duration, previous: state.zoom } : null);
+        state.loop = state.zoom
+          ? { startTime: state.zoom.start, duration: state.zoom.end - state.zoom.start }
+          : null;
+      } else {
+        state.selectedRouteId = null;
+        state.segmentRange = null;
+        state.currentRoute = null;
+        state.zoom = null;
+        state.loop = null;
+      }
+      break;
+    }
+    case Types.ACTION_DEVICE_NOT_FOUND: {
+      state.deviceNotFound = true;
+      state.device = null;
+      break;
+    }
     case Types.ACTION_STARTUP_DATA: {
       const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
 
@@ -50,6 +96,7 @@ export default function reducer(_state, action) {
         }
       }
       state.devices = devices;
+      state.rawDevices = action.devices;
       state.profile = action.profile;
       break;
     }
@@ -131,8 +178,8 @@ export default function reducer(_state, action) {
         devices: state.devices ? [...state.devices] : [],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
-      const isSelected = state.device?.dongle_id === action.device.dongle_id;
-      const previousDevice = isSelected ? state.device : state.devices[deviceIndex];
+      const isSelected = (state.device?.dongle_id || state.dongleId) === action.device.dongle_id;
+      const previousDevice = isSelected ? (state.device || state.devices[deviceIndex]) : state.devices[deviceIndex];
       const updatedDevice = populateFetchedAt({
         ...previousDevice, // retains rpc, network_metered
         ...action.device,  // updates alias and other returned fields
