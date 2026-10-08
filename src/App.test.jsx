@@ -39,20 +39,7 @@ vi.mock('react-map-gl', () => ({
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
 }));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
-}));
+vi.mock('./components/DriveVideo', () => ({ default: () => <div data-testid="video-player" /> }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
 const FIRST = 'aaaaaaaaaaaaaaaa';
@@ -177,6 +164,20 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     const request = mocks.requests.find(({ url }) => url.includes('routes_segments'));
     expect(new URL(request.url).searchParams.get('limit')).toBe('5');
+  });
+
+  test('closing a cold direct route restores the dashboard list and allows another route selection', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/5/9`);
+    expect(store.getState().routesMeta.routeId).toBe(LOG);
+    fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(store.getState().routesMeta.routeId).toBeNull();
+    const requestsBeforeSelection = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    fireEvent.click(screen.getByText('Mock recent route start'));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(store.getState().selectedRouteId).toBe(RECENT_LOG);
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requestsBeforeSelection);
   });
 
   test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects first device with %s', async (_name, selected) => {

@@ -77,6 +77,7 @@ export default function reducer(_state, action) {
           dongleId: null,
           start: null,
           end: null,
+          routeId: null,
         };
         state.routes = null;
         state.lastRoutes = null;
@@ -95,6 +96,7 @@ export default function reducer(_state, action) {
           dongleId: null,
           start: null,
           end: null,
+          routeId: null,
         },
         routes: null,
         currentRoute: null,
@@ -412,8 +414,8 @@ export default function reducer(_state, action) {
     case Types.ACTION_ROUTES_METADATA:
       // merge existing routes' event and location info with new routes
       state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+        const existingRoute = state.routes?.find((r) => r.fullname === route.fullname)
+          || state.lastRoutes?.find((r) => r.fullname === route.fullname);
         return {
           ...existingRoute,
           ...route,
@@ -423,6 +425,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         start: action.start,
         end: action.end,
+        routeId: action.routeId ?? null,
       };
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);

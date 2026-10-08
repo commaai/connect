@@ -8,7 +8,7 @@ import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
-import { currentOffset } from '../../timeline';
+import { currentOffset, subscribePlaybackFrames } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
@@ -127,11 +127,12 @@ class TimeDisplay extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    requestAnimationFrame(this.updateTime);
+    this.unsubscribePlayback = subscribePlaybackFrames(this.updateTime);
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    this.unsubscribePlayback?.();
   }
 
   getDisplayTime() {
@@ -167,8 +168,6 @@ class TimeDisplay extends Component {
     if (newDisplayTime !== displayTime) {
       this.setState({ displayTime: newDisplayTime });
     }
-
-    requestAnimationFrame(this.updateTime);
   }
 
   decreaseSpeed() {

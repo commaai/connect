@@ -23,6 +23,42 @@ jobs:
       - name: Run unit tests
         run: bun run test
 
+  playback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: bun install --frozen-lockfile
+
+      - name: Check playback scripts
+        run: bun x --no-install oxlint -A all -D no-undef -D no-unused-vars scripts/generate-playback-fixtures.mjs scripts/test-playback.mjs scripts/test-public-playback.mjs
+
+      - name: Install playback tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          bun add --no-save playwright@1.62.1
+          node node_modules/playwright/cli.js install --with-deps chromium webkit
+
+      - name: Test decoded playback without hardware
+        run: node scripts/test-playback.mjs
+
+      - name: Save playback report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playback-report
+          path: |
+            test-results/playback-report.json
+            test-results/playback-failure.png
+            test-results/playback-preview.png
+          if-no-files-found: warn
+
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 1

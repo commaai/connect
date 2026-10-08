@@ -10,7 +10,7 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
+import { currentOffset, subscribePlaybackFrames } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
@@ -178,7 +178,7 @@ class Timeline extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    requestAnimationFrame(this.getOffset);
+    this.unsubscribePlayback = subscribePlaybackFrames(this.getOffset);
     this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
@@ -197,12 +197,13 @@ class Timeline extends Component {
   componentDidUpdate(prevProps) {
     const { zoomOverride, zoom } = this.props;
     if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
-      this.setState({ zoom: zoomOverride || zoom });
+      this.setState({ zoom: zoomOverride || zoom }, this.getOffset);
     }
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    this.unsubscribePlayback?.();
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
@@ -296,7 +297,6 @@ class Timeline extends Component {
     if (!this.mounted) {
       return;
     }
-    requestAnimationFrame(this.getOffset);
     let offset = currentOffset();
     if (this.seekIndex) {
       offset = this.seekIndex;

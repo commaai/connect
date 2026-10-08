@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
-import { currentOffset } from '../../timeline';
+import { currentOffset, subscribePlaybackFrames } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
@@ -40,11 +40,11 @@ class DriveMap extends Component {
   componentDidMount() {
     this.mounted = true;
     this.componentDidUpdate({}, {});
-    this.updateMarkerPos();
+    this.unsubscribePlayback = subscribePlaybackFrames(this.updateMarkerPos);
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute, seekRequest } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -55,7 +55,7 @@ class DriveMap extends Component {
       }
     }
 
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
+    if (prevProps.seekRequest && prevProps.seekRequest.id !== seekRequest?.id) {
       this.shouldFlyTo = true;
     }
 
@@ -66,13 +66,19 @@ class DriveMap extends Component {
       this.setState({
         driveCoordsMin: Math.min(...keys),
         driveCoordsMax: Math.max(...keys),
+      }, () => {
+        this.populateMap();
+        this.updateMarkerPos();
       });
-      this.populateMap();
     }
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    this.unsubscribePlayback?.();
+    if (this.isInteractingTimeout !== null) {
+      clearTimeout(this.isInteractingTimeout);
+    }
   }
 
   onInteraction(ev) {
@@ -115,8 +121,6 @@ class DriveMap extends Component {
         });
       }
     }
-
-    requestAnimationFrame(this.updateMarkerPos);
   }
 
   moveViewportTo(pos) {
@@ -219,6 +223,7 @@ class DriveMap extends Component {
     }
 
     map.on('load', () => {
+      if (!this.mounted) return;
       map.addSource('route', {
         type: 'geojson',
         data: {
@@ -274,8 +279,10 @@ class DriveMap extends Component {
         this.setState({
           driveCoordsMin: Math.min(...keys),
           driveCoordsMax: Math.max(...keys),
+        }, () => {
+          this.populateMap();
+          this.updateMarkerPos();
         });
-        this.populateMap();
       }
     });
   }
@@ -306,9 +313,8 @@ class DriveMap extends Component {
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
+  seekRequest: state.seekRequest,
 });
 
 export default connect(stateToProps)(DriveMap);

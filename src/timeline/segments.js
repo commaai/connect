@@ -19,6 +19,13 @@ export function hasRoutesData(state) {
     console.debug('Bad dongle id');
     return false;
   }
+  if (state.routesMeta.routeId != null && state.routesMeta.routeId !== state.selectedRouteId) {
+    return false;
+  }
+  if (state.routesMeta.routeId == null && state.selectedRouteId
+      && !state.routes.some((route) => route.log_id === state.selectedRouteId)) {
+    return false;
+  }
   const fetchRange = state.filter;
   if (fetchRange.start < state.routesMeta.start) {
     console.debug('Bad start offset');

@@ -26,6 +26,29 @@ const routes = [{
 }];
 
 describe('segments', () => {
+  it('keeps route-only metadata separate from dashboard-list coverage', () => {
+    const state = {
+      dongleId: 'dongle', routes: [{ log_id: 'log' }], selectedRouteId: 'log',
+      routesMeta: { dongleId: 'dongle', start: 0, end: 100, routeId: 'log' },
+      filter: { start: 0, end: 100 },
+    };
+    expect(hasRoutesData(state)).toBe(true);
+    expect(hasRoutesData({ ...state, selectedRouteId: null })).toBe(false);
+    expect(hasRoutesData({ ...state, selectedRouteId: 'other' })).toBe(false);
+    expect(hasRoutesData({ ...state, routes: [] })).toBe(true);
+  });
+
+  it('uses a complete cached list only if it contains the requested route', () => {
+    const state = {
+      dongleId: 'dongle', routes: [{ log_id: 'log' }], selectedRouteId: 'log',
+      routesMeta: { dongleId: 'dongle', start: 0, end: 100, routeId: null },
+      filter: { start: 0, end: 100 },
+    };
+    expect(hasRoutesData(state)).toBe(true);
+    expect(hasRoutesData({ ...state, selectedRouteId: null })).toBe(true);
+    expect(hasRoutesData({ ...state, selectedRouteId: 'other' })).toBe(false);
+  });
+
   it('finds current segment', async () => {
     const [route] = routes;
     expect(getSegmentNumber(route)).toBe(0);
