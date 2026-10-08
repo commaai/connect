@@ -174,15 +174,16 @@ const Joystick = ({
     mouseDraggingRef.current = false;
     resetJoystick();
     document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+    document.removeEventListener('mouseup', handleMouseUp, true);
   }, [resetJoystick, handleMouseMove]);
 
   const handleMouseDown = useCallback((e) => {
+    if (e.button !== 0) return;
     e.preventDefault();
     mouseDraggingRef.current = true;
     applyJoystick(e.clientX, e.clientY);
     document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', handleMouseUp, true);
   }, [applyJoystick, handleMouseMove, handleMouseUp]);
 
   // Drop all active input and send a neutral command on blocking
@@ -313,10 +314,14 @@ const Joystick = ({
   // Cleanup mouse listeners on unmount
   useEffect(() => {
     return () => {
+      if (mouseDraggingRef.current) {
+        mouseDraggingRef.current = false;
+        resetJoystick();
+      }
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseup', handleMouseUp, true);
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, [handleMouseMove, handleMouseUp, resetJoystick]);
 
   const inputActive = thumbPos !== null;
   useEffect(() => {
