@@ -80,6 +80,8 @@ function useHlsErrors(hls, onError) {
     let hasTriedRecovery = false;
     const recover = (kind) => {
       if (kind === 'media') return hls.recoverMediaError();
+      const hasPlaylist = hls.levels.length > 0;
+      if (!hasPlaylist) return hls.loadSource(hls.url);
       hls.startLoad(video.currentTime);
     };
     const recoverOrReport = (error) => {
