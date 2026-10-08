@@ -259,9 +259,11 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, profile } = this.props;
     const commacare = device?.commacare;
-    if (!device) {
+    // Settings are owner-only. The dashboard only renders the gear for an owner,
+    // but `/:dongleId/settings` is reachable directly, so guard here as well.
+    if (!device || !(device.is_owner || profile?.superuser)) {
       return null;
     }
 
@@ -436,11 +438,12 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
     device,
+    profile: state.profile,
     globalDongleId: state.dongleId,
   };
 };

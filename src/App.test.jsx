@@ -278,6 +278,76 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
+  test('settings direct url and browser history restore its view', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('device settings stay owner-only when reached by url', async () => {
+    await renderApp(`/${SHARED}/settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).toBeNull();
+  });
+
+  test('closing device settings returns to the drive underneath', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`, { authenticated: true });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+
+    act(() => history.push(`/${FIRST}/settings`));
+    await screen.findByText('Device settings');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+
+  test('closing device settings returns to the drive range it was opened from', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/20`, { authenticated: true });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+
+    act(() => history.push(`/${FIRST}/settings`));
+    await screen.findByText('Device settings');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    // The range is what the url came in with, so it has to survive the round trip.
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`));
+  });
+
+  test('closing device settings does not invent a range the url never had', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`, { authenticated: true });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+
+    act(() => history.push(`/${FIRST}/settings`));
+    await screen.findByText('Device settings');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    // The redux playback window defaults to 0..duration; it is not a url range.
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+  });
+
+  test('opening settings from the dashboard closes back onto the dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+
+    act(() => history.push(`/${FIRST}/settings`));
+    await screen.findByText('Device settings');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('a settings url for a device you do not own sends you back to the device', async () => {
+    const { history } = await renderApp(`/${SHARED}/settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).toBeNull();
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SHARED}`));
+  });
+
   test('device browser history restores exact dashboards', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();

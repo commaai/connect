@@ -4,19 +4,22 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseUrl, ROUTES } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
+  // Parse the untouched pathname: replacing the dongle id first would stop the
+  // range from being recognised at all.
+  const loc = parseUrl(pathname);
   let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+  if (loc.dongleId) {
+    pageLocation = pageLocation.replace(loc.dongleId, '<dongleId>');
   }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  // Only the legacy form carries absolute timestamps, which is the part worth
+  // scrubbing. A drive range is seconds relative to that route, so it stays.
+  if (loc.page === ROUTES.LEGACY && loc.zoom) {
+    pageLocation = pageLocation.replace(String(loc.zoom.start), '<zoomStart>');
+    pageLocation = pageLocation.replace(String(loc.zoom.end), '<zoomEnd>');
   }
 
   if (pageLocation.endsWith('/')) {

@@ -24,6 +24,8 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import { buildUrl, parseUrl, ROUTES } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -78,10 +80,34 @@ class ExplorerApp extends Component {
       windowWidth: window.innerWidth,
     };
 
+    // The url settings was opened from, so closing it returns there instead of
+    // guessing. Null until a settings page is entered from another one.
+    this.settingsReturnUrl = null;
+    this.settingsKey = null;
+
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
+    this.closeSettings = this.closeSettings.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+  }
+
+  // `/<dongleId>/settings` is a page of its own, so this is a pure read of the
+  // url: the device whose settings are open, or null when they are closed.
+  get settingsTarget() {
+    const loc = parseUrl(this.props.pathname);
+    return loc.page === ROUTES.SETTINGS ? loc.dongleId : null;
+  }
+
+  closeSettings() {
+    const { dispatch, dongleId, currentRoute, selectedRouteId } = this.props;
+    const routeId = currentRoute?.log_id || selectedRouteId || null;
+    // Return to the url settings was opened from so its device, route and
+    // playback range all survive the round trip. A settings url that was typed
+    // or shared has no such url, so fall back to whatever is open now.
+    dispatch(push(this.settingsReturnUrl || (routeId
+      ? buildUrl({ page: ROUTES.DRIVE, dongleId, routeId })
+      : buildUrl({ dongleId }))));
   }
 
   closeBodyTeleop() {
@@ -154,10 +180,28 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom, dongleId, limit, devices, profile, dispatch } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
+    }
+
+    // Remember the url we came from the first time a settings page appears, so
+    // closing returns to it rather than to a rebuilt guess that drops the range.
+    const settingsKey = this.settingsTarget;
+    if (settingsKey !== this.settingsKey) {
+      this.settingsKey = settingsKey;
+      const prev = typeof prevProps.pathname === 'string' ? parseUrl(prevProps.pathname) : null;
+      this.settingsReturnUrl = prev && prev.page !== ROUTES.SETTINGS ? buildUrl(prev) : null;
+    }
+
+    // Settings are owner-only. `/<dongleId>/settings` for a device you do not own
+    // would otherwise render an empty page with no way out of it.
+    if (settingsKey && devices) {
+      const owner = devices.find((d) => d.dongle_id === settingsKey);
+      if (!owner || !(owner.is_owner || profile?.superuser)) {
+        dispatch(push(buildUrl({ dongleId: settingsKey })));
+      }
     }
 
     if (!prevProps.zoom && zoom) {
@@ -204,6 +248,7 @@ class ExplorerApp extends Component {
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const referralsOpen = pathname === '/referrals';
+    const settingsDongleId = this.settingsTarget;
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -268,6 +313,13 @@ class ExplorerApp extends Component {
                 </Button>
               </Paper>
             </Modal>
+            { settingsDongleId && (
+              <DeviceSettingsModal
+                isOpen={ true }
+                dongleId={ settingsDongleId }
+                onClose={ this.closeSettings }
+              />
+            )}
           </>
         ) }
       </div>

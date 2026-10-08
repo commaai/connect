@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
+import { parseUrl, ROUTES } from '../url';
 import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
@@ -13,21 +13,19 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
 
     next(action); // must be first, otherwise breaks history
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
+    const loc = parseUrl(action.payload.location.pathname);
+    const pathDongleId = loc.dongleId;
+
     if (pathDongleId && pathDongleId !== state.dongleId) {
       dispatch(selectDevice(pathDongleId, false, false));
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
+    if (loc.page === ROUTES.LEGACY && loc.zoom && (loc.zoom !== state.zoom)) {
+      const [start, end] = [loc.zoom.start, loc.zoom.end];
 
       api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
         if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
+          const log_id = routesData[0].fullname.split('|')[1];
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
 
           dispatch(pushTimelineRange(log_id, 0, duration, true));
@@ -37,7 +35,10 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       });
     }
 
-    
+    const pathRouteId = loc.routeId;
+    // Only a drive URL carries a playback range. A legacy timestamp URL carries
+    // absolute milliseconds, which are not a range and must not become one.
+    const pathRouteZoom = loc.page === ROUTES.DRIVE ? loc.zoom : null;
     if (pathRouteId || state.selectedRouteId) {
       dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
     }
@@ -46,12 +47,12 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       dispatch(checkRoutesData());
     }
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
+    const pathPrimeNav = loc.page === ROUTES.PRIME;
     if (pathPrimeNav !== state.primeNav) {
       dispatch(primeNav(pathPrimeNav));
     }
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
+    const pathStreamNav = loc.page === ROUTES.STREAM;
     if (pathStreamNav !== state.streamNav) {
       dispatch(streamNav(pathStreamNav, false));
     }

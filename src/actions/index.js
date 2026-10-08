@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { buildUrl, ROUTES } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -143,19 +144,12 @@ export function checkLastRoutesData() {
 }
 
 export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
+  return buildUrl({
+    page: log_id ? ROUTES.DRIVE : (prime ? ROUTES.PRIME : ROUTES.DASHBOARD),
+    dongleId,
+    routeId: log_id,
+    zoom: start && end ? { start: start * 1000, end: end * 1000 } : null,
+  });
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
