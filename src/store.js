@@ -7,6 +7,7 @@ import rootReducer from './reducers';
 import composeEnhancers from './devtools';
 import { onHistoryMiddleware } from './actions/history';
 import { analyticsMiddleware } from './analytics';
+import { playbackMiddleware } from './timeline/playback';
 
 export const history = createBrowserHistory();
 
@@ -16,6 +17,7 @@ export function createAppStore(appHistory, preloadedState) {
     preloadedState,
     composeEnhancers(Redux.applyMiddleware(
       thunk,
+      playbackMiddleware,
       onHistoryMiddleware,
       routerMiddleware(appHistory),
       analyticsMiddleware,

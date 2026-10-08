@@ -178,7 +178,7 @@ class Timeline extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    requestAnimationFrame(this.getOffset);
+    this.getOffset();
     this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
@@ -199,6 +199,7 @@ class Timeline extends Component {
     if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
       this.setState({ zoom: zoomOverride || zoom });
     }
+    this.getOffset();
   }
 
   componentWillUnmount() {
@@ -267,7 +268,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
+      const offset = currentOffset(this.props);
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
@@ -293,15 +294,10 @@ class Timeline extends Component {
   }
 
   getOffset() {
-    if (!this.mounted) {
+    if (!this.mounted || !this.state.zoom) {
       return;
     }
-    requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
+    const offset = Math.floor(currentOffset(this.props));
     const percent = this.offsetToPercent(offset);
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
@@ -311,12 +307,12 @@ class Timeline extends Component {
 
   percentToOffset(perc) {
     const { zoom } = this.state;
-    return perc * (zoom.end - zoom.start) + zoom.start;
+    return Math.max(0, Math.min(1, perc)) * (zoom.end - zoom.start) + zoom.start;
   }
 
   offsetToPercent(offset) {
     const { zoom } = this.state;
-    return (offset - zoom.start) / (zoom.end - zoom.start);
+    return zoom.end > zoom.start ? Math.max(0, Math.min(1, (offset - zoom.start) / (zoom.end - zoom.start))) : 0;
   }
 
   segmentNum(offset) {
@@ -433,7 +429,24 @@ class Timeline extends Component {
               <div
                 aria-label="Drive timeline"
                 role="slider"
+                aria-valuemin={Math.round((this.state.zoom?.start ?? 0) / 1000)}
+                aria-valuemax={Math.round((this.state.zoom?.end ?? 0) / 1000)}
+                aria-valuenow={Math.round(currentOffset(this.props) / 1000)}
+                aria-valuetext={dayjs(route.start_time_utc_millis + currentOffset(this.props)).format('HH:mm:ss')}
                 tabIndex={0}
+                onKeyDown={(event) => {
+                  const step = event.shiftKey ? 10000 : 1000;
+                  const target = {
+                    ArrowLeft: currentOffset(this.props) - step,
+                    ArrowRight: currentOffset(this.props) + step,
+                    Home: this.state.zoom.start,
+                    End: this.state.zoom.end,
+                  }[event.key];
+                  if (target !== undefined) {
+                    event.preventDefault();
+                    this.props.dispatch(seek(target));
+                  }
+                }}
                 ref={ this.onRulerRef }
                 className={classes.ruler}
                 onPointerDown={this.handlePointerDown}
@@ -458,6 +471,7 @@ class Timeline extends Component {
 }
 
 const stateToProps = (state) => ({
+  offset: state.offset,
   zoom: state.zoom,
   loop: state.loop,
 });

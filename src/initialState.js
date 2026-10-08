@@ -6,9 +6,10 @@ export function createInitialState(pathname = window.location.pathname) {
     dongleId: getDongleID(pathname),
 
     desiredPlaySpeed: 1,    // speed set by user
+    playbackRate: 1,        // retained when paused, also reported by native controls
     isBufferingVideo: true, // if we're currently buffering for more data
-    offset: null,           // in miliseconds, relative to state.zoom.start
-    startTime: Date.now(),  // millisecond timestamp in which play began
+    offset: null,           // actual media position in milliseconds from route start
+    seekRevision: 0,        // explicit seek commands, including seeking to the same position
 
     routes: null,
     routesMeta: {

@@ -44,7 +44,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute, seekRevision } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -55,7 +55,7 @@ class DriveMap extends Component {
       }
     }
 
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
+    if (prevProps.seekRevision !== seekRevision) {
       this.shouldFlyTo = true;
     }
 
@@ -97,7 +97,7 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        const pos = this.posAtOffset(currentOffset(this.props));
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -308,7 +308,7 @@ class DriveMap extends Component {
 const stateToProps = (state) => ({
   offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
+  seekRevision: state.seekRevision,
 });
 
 export default connect(stateToProps)(DriveMap);

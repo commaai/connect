@@ -3,8 +3,6 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import decodeJwt, { InvalidTokenError } from 'jwt-decode';
 
-import { currentOffset } from '../timeline';
-
 dayjs.extend(relativeTime);
 
 export const emptyDevice = {
@@ -172,13 +170,9 @@ export function getDeviceFromState(state, dongleId) {
   return state.devices.find((d) => d.dongle_id === dongleId) || null;
 }
 
-export function getSegmentNumber(route, offset) {
+export function getSegmentNumber(route, offset = 0) {
   if (!route) {
     return null;
   }
-  if (offset === undefined) {
-    offset = currentOffset();
-  }
-
   return Math.floor(offset / (60*1000));
 }

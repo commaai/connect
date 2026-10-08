@@ -111,7 +111,7 @@ const TEST_CASES = MISSING_DATA_CASES.flatMap((testCase) => [
     title: `${testCase.title} (1 segment)`,
     affectedSegment: AFFECTED_SEGMENT,
   },
-]);
+]).concat({ title: 'Normal playback', route() {} });
 
 function fileSegmentNumber(file) {
   const pathParts = new URL(file).pathname.split('/');
