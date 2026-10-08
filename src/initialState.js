@@ -1,9 +1,13 @@
-import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { parseLocation } from './url';
 import { getDefaultFilter } from './utils/filter';
 
 export function createInitialState(pathname = window.location.pathname) {
+  // The URL is parsed exactly once here; every slice of state below comes
+  // from that single route object.
+  const route = parseLocation(pathname) || {};
+
   return {
-    dongleId: getDongleID(pathname),
+    dongleId: route.dongleId || null,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
@@ -22,8 +26,8 @@ export function createInitialState(pathname = window.location.pathname) {
     profile: null,
     devices: null,
 
-    primeNav: getPrimeNav(pathname),
-    streamNav: getStreamNav(pathname),
+    primeNav: route.page === 'prime',
+    streamNav: route.page === 'stream',
     subscription: null,
     subscribeInfo: null,
 
@@ -35,9 +39,11 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: getRouteZoom(pathname),
+    zoom: (route.page === 'drive' && route.start != null)
+      ? { start: route.start * 1000, end: route.end * 1000 }
+      : null,
     loop: null,
-    selectedRouteId: getRouteId(pathname),
+    selectedRouteId: route.routeId || null,
     limit: 0,
   };
 }

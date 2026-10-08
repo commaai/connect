@@ -4,6 +4,7 @@ import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
 
 import * as Types from './types';
+import { buildLocation } from '../url';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
@@ -142,22 +143,6 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
-}
-
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
@@ -171,7 +156,15 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 
     const urlStart = wholeDrive ? null : Math.floor(start / 1000);
     const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
+    // A zero bound means "no range" in the URL, same as before.
+    const hasRange = Boolean(urlStart && urlEnd);
+    const desiredPath = buildLocation({
+      page: log_id ? 'drive' : 'device',
+      dongleId: state.dongleId,
+      routeId: log_id || null,
+      start: hasRange ? urlStart : null,
+      end: hasRange ? urlEnd : null,
+    });
 
     if (currentPathname(state) !== desiredPath) {
       dispatch(push(desiredPath));
@@ -300,7 +293,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     }
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
+      const desiredPath = buildLocation({ page: 'device', dongleId });
       if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -324,7 +317,7 @@ export function primeNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
+      const desiredPath = buildLocation({ page: nav ? 'prime' : 'device', dongleId: state.dongleId });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -348,7 +341,7 @@ export function streamNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      const desiredPath = buildLocation({ page: nav ? 'stream' : 'device', dongleId: state.dongleId });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }

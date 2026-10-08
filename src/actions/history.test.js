@@ -76,6 +76,24 @@ describe('history middleware', () => {
     expect(store.dispatch).not.toHaveBeenCalled();
   });
 
+  it('opens settings without touching drive/zoom/device state', () => {
+    const { store, invoke } = create();
+    invoke(location(`/${DONGLE}/settings`));
+    expect(store.dispatch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    '/not-a-device/prime',
+    `/${DONGLE}/banana`,
+    `/${DONGLE}/abc/def`,
+    `/${DONGLE}/10`,
+  ])('ignores an unparseable path %s', (pathname) => {
+    const { store, invoke } = create();
+    invoke(location(pathname));
+    expect(store.dispatch).not.toHaveBeenCalled();
+    expect(Drives.getRoutesSegments).not.toHaveBeenCalled();
+  });
+
   it('enters a log range', () => {
     const { invoke } = create();
     invoke(location(`/${DONGLE}/${LOG}/10/20`));

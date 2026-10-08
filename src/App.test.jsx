@@ -278,6 +278,32 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
+  test('settings gear deep-links the modal and back closes it', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
+    const gears = await screen.findAllByRole('button', { name: 'device settings' }, { timeout: 5000 });
+    fireEvent.click(gears[0]);
+    // the first gear belongs to the second device (list is sorted by alias)
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('settings URL opens the modal on direct entry', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/settings`);
+  });
+
+  test('prime settings from the modal lands on prime', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
+
   test('device browser history restores exact dashboards', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();

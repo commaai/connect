@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
 import { push, replace } from 'connected-react-router';
+import { parseLocation, buildLocation } from '../url';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -82,10 +84,20 @@ class ExplorerApp extends Component {
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+    this.closeSettings = this.closeSettings.bind(this);
   }
 
   closeBodyTeleop() {
     this.props.dispatch(streamNav(false));
+  }
+
+  closeSettings() {
+    // Backdrop/Escape only: navigate back to the device dashboard. (Flows
+    // like "Prime settings" navigate away themselves and never call this.)
+    const route = parseLocation(this.props.pathname);
+    if (route && route.page === 'settings') {
+      this.props.dispatch(push(buildLocation({ page: 'device', dongleId: route.dongleId })));
+    }
   }
 
   async componentDidMount() {
@@ -206,6 +218,15 @@ class ExplorerApp extends Component {
     const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
+    // Device settings live at /:dongleId/settings, rendered here — above the
+    // drawer — so the modal opens from a pasted link on any screen size.
+    // The gear is only shown for devices you own (or as superuser), so a
+    // settings link for any other device opens nothing.
+    const route = parseLocation(pathname);
+    const settingsDongleId = route && route.page === 'settings' ? route.dongleId : null;
+    const settingsDevice = settingsDongleId && devices?.find((d) => d.dongle_id === settingsDongleId);
+    const showSettings = Boolean(settingsDevice && (settingsDevice.is_owner || profile?.superuser));
+
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
     const headerHeight = this.state.headerRef
       ? this.state.headerRef.getBoundingClientRect().height
@@ -250,6 +271,11 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            <DeviceSettingsModal
+              isOpen={ showSettings }
+              dongleId={ settingsDongleId }
+              onClose={ this.closeSettings }
+            />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>

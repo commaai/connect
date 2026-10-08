@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -8,13 +9,13 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
+import { buildLocation } from '../../url';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
 
 const styles = (theme) => ({
   deviceList: {
@@ -88,24 +89,18 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
+  // Device settings live at /:dongleId/settings, so the modal can be
+  // deep-linked and bookmarked. From the dashboard this is a pure URL
+  // change — no drive, zoom, or device state is touched.
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    this.props.dispatch(push(buildLocation({ page: 'settings', dongleId })));
   }
 
   async onVisible() {
@@ -158,7 +153,6 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -202,11 +196,6 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }
