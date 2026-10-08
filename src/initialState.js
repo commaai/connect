@@ -40,6 +40,7 @@ export function createInitialState(location = `${window.location.pathname}${wind
     selectedRouteId: route.routeId,
     routeModal: route.modal,
     routeModalDeviceId: route.modalDeviceId,
+    routeModalClip: route.routeModalClip,
     limit: 0,
   };
 }
