@@ -278,6 +278,44 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
+  test('settings URL opens the device settings, and close and browser history restore them', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('the device settings button opens that device\'s settings URL', async () => {
+    const innerWidth = window.innerWidth;
+    window.innerWidth = 1400; // wide enough for the permanent drawer
+    try {
+      const { history } = await renderApp(`/${FIRST}`);
+      expect(await screen.findByText('Mock recent route start')).toBeVisible();
+      const row = screen.getByText(SECOND).closest('a');
+      fireEvent.click(within(row).getByRole('button', { name: 'device settings' }));
+      await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+      expect(await screen.findByText('Device settings')).toBeVisible();
+    } finally {
+      window.innerWidth = innerWidth;
+    }
+  });
+
+  test('Prime settings leave the settings URL for the Prime URL', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/prime`));
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+  });
+
+  test('settings URL of a device the user does not own returns to the device', async () => {
+    const { history } = await renderApp(`/${SHARED}/settings`);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SHARED}`));
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
   test('device browser history restores exact dashboards', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();

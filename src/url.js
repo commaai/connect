@@ -1,66 +1,85 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+// Every URL the app understands, in one place.
+//
+//   /                                    home
+//   /referrals                           referrals
+//   /:dongleId                           a device's drives
+//   /:dongleId/prime                     Prime
+//   /:dongleId/stream                    live stream
+//   /:dongleId/settings                  device settings
+//   /:dongleId/:routeId                  a drive
+//   /:dongleId/:routeId/:start/:end      a drive, zoomed to a range (seconds)
+//   /:dongleId/:startMs/:endMs           legacy link to a time range, resolved to a drive
+//
+// parseUrl turns a pathname into a destination and buildUrl turns a destination back into a
+// pathname. Nothing else should split or assemble paths.
+//
+// A destination is { page, dongleId, routeId, range }:
+//   page      'home' | 'referrals' | 'device' | 'prime' | 'stream' | 'settings' | 'drive' | 'legacyRange'
+//   dongleId  null on pages that don't belong to a device
+//   routeId   drive pages only
+//   range     { start, end } in milliseconds; for 'drive' within the drive (or null for all of it),
+//             for 'legacyRange' epoch milliseconds
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const DONGLE_ID = /^[a-f0-9]{16}$/;
+const ROUTE_ID = /^[a-f0-9-]{20}$/;
+const NUMBER = /^\d+$/;
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
+const DEVICE_PAGES = ['prime', 'stream', 'settings'];
+
+export function parseUrl(pathname) {
+  const [first, second, third, fourth] = pathname.split('/').filter(Boolean);
+
+  if (first === 'referrals' && second === undefined) {
+    return { page: 'referrals', dongleId: null };
+  }
+  if (!DONGLE_ID.test(first)) {
+    return { page: 'home', dongleId: null };
   }
 
-  return parts[0] || null;
-}
-
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
+  const dongleId = first;
+  if (second === undefined) {
+    return { page: 'device', dongleId };
+  }
+  if (DEVICE_PAGES.includes(second) && third === undefined) {
+    return { page: second, dongleId };
+  }
+  if (ROUTE_ID.test(second)) {
+    const hasRange = NUMBER.test(third) && NUMBER.test(fourth);
     return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
+      page: 'drive',
+      dongleId,
+      routeId: second,
+      range: hasRange ? { start: Number(third) * 1000, end: Number(fourth) * 1000 } : null,
     };
   }
-  return null;
+  if (NUMBER.test(second) && NUMBER.test(third)) {
+    return { page: 'legacyRange', dongleId, range: { start: Number(second), end: Number(third) } };
+  }
+  return { page: 'device', dongleId };
 }
 
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
+export function buildUrl({ page, dongleId, routeId, range }) {
+  if (page === 'referrals') {
+    return '/referrals';
   }
-  return null;
+  if (!dongleId) {
+    return '/';
+  }
+  if (DEVICE_PAGES.includes(page)) {
+    return `/${dongleId}/${page}`;
+  }
+  if (page === 'drive') {
+    return range
+      ? `/${dongleId}/${routeId}/${Math.floor(range.start / 1000)}/${Math.floor(range.end / 1000)}`
+      : `/${dongleId}/${routeId}`;
+  }
+  if (page === 'legacyRange') {
+    return `/${dongleId}/${range.start}/${range.end}`;
+  }
+  return `/${dongleId}`;
 }
 
-export function getRouteZoom(pathname) {
-  const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
-  }
-  return null;
-}
-
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
-  }
-  return false;
-}
-
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
+// A drive, or a range of one, can be opened without logging in.
+export function isShareable({ page }) {
+  return page === 'drive' || page === 'legacyRange';
 }

@@ -9,11 +9,20 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { buildUrl } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
+
+// Go to a destination (see url.js), unless we are already there.
+function navigate(dispatch, state, destination) {
+  const path = buildUrl(destination);
+  if (currentPathname(state) !== path) {
+    dispatch(push(path));
+  }
+}
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -142,22 +151,6 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
-}
-
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
@@ -169,13 +162,14 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
     const route = state.routes?.find((candidate) => candidate.log_id === log_id);
     const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
 
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
-
-    if (currentPathname(state) !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
+    // a range that starts or ends within the first second has always been shown as the whole drive
+    const inRange = !wholeDrive && Math.floor(start / 1000) && Math.floor(end / 1000);
+    navigate(dispatch, state, {
+      page: log_id ? 'drive' : 'device',
+      dongleId: state.dongleId,
+      routeId: log_id,
+      range: inRange ? { start, end } : null,
+    });
   }
 }
 
@@ -300,10 +294,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     }
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
+      navigate(dispatch, state, { page: 'device', dongleId });
     }
   };
 }
@@ -323,11 +314,7 @@ export function primeNav(nav, allowPathChange = true) {
     }
 
     if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
+      navigate(dispatch, state, { page: nav ? 'prime' : 'device', dongleId: state.dongleId });
     }
   };
 }
@@ -347,12 +334,29 @@ export function streamNav(nav, allowPathChange = true) {
     }
 
     if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
+      navigate(dispatch, state, { page: nav ? 'stream' : 'device', dongleId: state.dongleId });
     }
+  };
+}
+
+export function openSettings(dongleId) {
+  return (dispatch, getState) => {
+    if (getState().dongleId !== dongleId) {
+      dispatch(selectDevice(dongleId, false));
+    }
+    navigate(dispatch, getState(), { page: 'settings', dongleId });
+  };
+}
+
+export function openReferrals() {
+  return (dispatch, getState) => navigate(dispatch, getState(), { page: 'referrals' });
+}
+
+// leave settings or referrals
+export function goToDevice() {
+  return (dispatch, getState) => {
+    const state = getState();
+    navigate(dispatch, state, { page: 'device', dongleId: state.dongleId });
   };
 }
 

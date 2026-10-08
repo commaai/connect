@@ -5,6 +5,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { USERADMIN_URL_ROOT } from '../../api';
 import { filterRegularClick } from '../../utils';
+import { buildUrl } from '../../url';
 
 const logOut = async () => {
   await MyCommaAuth.logOut();
@@ -58,7 +59,7 @@ const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
         <div className="h-px bg-white/10" />
         <a
           className="block px-4 py-3 text-white hover:bg-white/10"
-          href="/referrals"
+          href={buildUrl({ page: 'referrals' })}
           onClick={filterRegularClick(() => {
             onClose();
             onReferrals();

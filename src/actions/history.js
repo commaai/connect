@@ -1,8 +1,10 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
+import { parseUrl } from '../url';
 import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
+// Back, forward and replace put the URL ahead of the state, so bring the state up to the URL.
+// Our own navigation (push) updates the state first and needs nothing from here.
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
   if (!action) {
     return;
@@ -13,21 +15,17 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
 
     next(action); // must be first, otherwise breaks history
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+    const { page, dongleId, routeId, range } = parseUrl(action.payload.location.pathname);
+
+    const deviceChanged = dongleId && dongleId !== state.dongleId;
+    if (deviceChanged) {
+      dispatch(selectDevice(dongleId, false, false));
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
+    if (page === 'legacyRange') {
+      api.routes.getRoutesSegments(dongleId, range.start, range.end).then((routesData) => {
         if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
+          const log_id = routesData[0].fullname.split('|')[1];
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
 
           dispatch(pushTimelineRange(log_id, 0, duration, true));
@@ -37,23 +35,20 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       });
     }
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
+    if (routeId || state.selectedRouteId) {
+      dispatch(pushTimelineRange(routeId ?? null, range?.start ?? null, range?.end ?? null, false));
     }
 
-    if (pathDongleId && pathDongleId !== state.dongleId) {
+    if (deviceChanged) {
       dispatch(checkRoutesData());
     }
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
+    if ((page === 'prime') !== state.primeNav) {
+      dispatch(primeNav(page === 'prime'));
     }
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
+    if ((page === 'stream') !== state.streamNav) {
+      dispatch(streamNav(page === 'stream', false));
     }
   } else {
     next(action);
