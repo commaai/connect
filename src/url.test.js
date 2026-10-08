@@ -9,6 +9,7 @@ describe('parseUrl', () => {
   it.each([
     ['/', { dongleId: null, page: null, logId: null, zoom: null }],
     ['/referrals', { dongleId: null, page: 'referrals', logId: null, zoom: null }],
+    ['/add-device', { dongleId: null, page: 'add-device', logId: null, zoom: null }],
     [`/${DONGLE}`, { dongleId: DONGLE, page: 'dashboard', logId: null, zoom: null }],
     [`/${DONGLE}/prime`, { dongleId: DONGLE, page: 'prime', logId: null, zoom: null }],
     [`/${DONGLE}/stream`, { dongleId: DONGLE, page: 'stream', logId: null, zoom: null }],
@@ -26,7 +27,7 @@ describe('parseUrl', () => {
 
   it.each([
     `/${DONGLE}`, `/${DONGLE}/prime`, `/${DONGLE}/stream`, `/${DONGLE}/settings`,
-    `/${DONGLE}/${LOG}`, `/${DONGLE}/${LOG}/0/20`, '/referrals',
+    `/${DONGLE}/${LOG}`, `/${DONGLE}/${LOG}/0/20`, '/referrals', '/add-device',
   ])('urlFor(parseUrl(%s)) round-trips', (pathname) => {
     expect(urlFor(parseUrl(pathname))).toBe(pathname);
   });

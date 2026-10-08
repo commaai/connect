@@ -13,6 +13,7 @@ import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import AddDevice from './Dashboard/AddDevice';
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
@@ -259,6 +260,7 @@ class ExplorerApp extends Component {
                 onClose={ () => dispatch(push(urlFor({ dongleId }))) }
               />
             ) }
+            { page === 'add-device' && <AddDevice /> }
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>

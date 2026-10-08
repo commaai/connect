@@ -1,6 +1,6 @@
 // Every URL connect understands:
 //
-//   /referrals
+//   /referrals|add-device
 //   /:dongleId                          device dashboard
 //   /:dongleId/prime|stream|settings    device page
 //   /:dongleId/:logId[/:start/:end]     drive, optional range in seconds
@@ -11,14 +11,15 @@
 const DONGLE_ID = /^[a-f0-9]{16}$/;
 const LOG_ID = /^[a-f0-9-]{20}$/;
 const NUMBER = /^\d+$/;
+const PAGES = ['referrals', 'add-device'];
 const DEVICE_PAGES = ['prime', 'stream', 'settings'];
 
 export function parseUrl(pathname) {
   const url = { dongleId: null, page: null, logId: null, zoom: null };
   const [first, ...rest] = pathname.split('/').filter(Boolean);
 
-  if (first === 'referrals' && !rest.length) {
-    return { ...url, page: 'referrals' };
+  if (PAGES.includes(first) && !rest.length) {
+    return { ...url, page: first };
   }
   if (!DONGLE_ID.test(first)) {
     return url;
@@ -45,8 +46,8 @@ export function parseUrl(pathname) {
 }
 
 export function urlFor({ dongleId, page, logId, zoom }) {
-  if (page === 'referrals') {
-    return '/referrals';
+  if (PAGES.includes(page)) {
+    return `/${page}`;
   }
   if (!dongleId) {
     return '/';

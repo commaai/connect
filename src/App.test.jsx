@@ -279,6 +279,35 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText('Device settings')).toBeVisible();
   });
 
+  test('add device opens by URL and browser history closes it', async () => {
+    const { history } = await renderApp('/', { devices: [] });
+    fireEvent.click((await screen.findAllByRole('button', { name: 'add new device' }))[0]);
+    await waitFor(() => expect(history.location.pathname).toBe('/add-device'));
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByText('Pair device')).not.toBeInTheDocument());
+    expect(history.location.pathname).toBe('/');
+  });
+
+  test('leaving add device stops a camera that is still starting', async () => {
+    const track = { stop: vi.fn() };
+    let resolveCamera;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        enumerateDevices: async () => [{ kind: 'videoinput' }],
+        getUserMedia: () => new Promise((resolve) => { resolveCamera = resolve; }),
+      },
+    });
+    const { history } = await renderApp('/', { devices: [] });
+    fireEvent.click((await screen.findAllByRole('button', { name: 'add new device' }))[0]);
+    await waitFor(() => expect(resolveCamera).toBeDefined());
+    act(() => history.goBack());
+    await act(async () => resolveCamera({ getTracks: () => [track] }));
+    expect(track.stop).toHaveBeenCalled();
+    delete navigator.mediaDevices;
+  });
+
   test('opening settings from a drive and going back reuses the loaded drive', async () => {
     const { history } = await renderApp(`/${FIRST}/${LOG}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
