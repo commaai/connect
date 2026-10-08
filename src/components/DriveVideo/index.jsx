@@ -86,6 +86,7 @@ export class DriveVideo extends Component {
 
   componentDidUpdate(prevProps) {
     if (routeSourceKey(prevProps.currentRoute) !== routeSourceKey(this.props.currentRoute)) {
+      this.props.onAudioStatusChange?.(false);
       this.resetPlayer();
       this.setState({ videoError: null, retryGeneration: 0, restartingLoop: false });
       this.props.dispatch(bufferVideo(true));
@@ -115,6 +116,12 @@ export class DriveVideo extends Component {
     if (this.audioHls && this.audioHandler) this.audioHls.off('hlsBufferCodecs', this.audioHandler);
     this.audioHls = null;
     this.audioHandler = null;
+    if (this.nativeAudioTracks && this.nativeAudioHandler) {
+      this.nativeAudioTracks.removeEventListener?.('addtrack', this.nativeAudioHandler);
+      this.nativeAudioTracks.removeEventListener?.('removetrack', this.nativeAudioHandler);
+    }
+    this.nativeAudioTracks = null;
+    this.nativeAudioHandler = null;
   }
 
   onReconnect() {
@@ -124,6 +131,7 @@ export class DriveVideo extends Component {
   }
 
   retryVideo() {
+    this.props.onAudioStatusChange?.(false);
     this.resetPlayer();
     this.setState((state) => ({ videoError: null, retryGeneration: state.retryGeneration + 1, restartingLoop: false }));
     this.props.dispatch(bufferVideo(true));
@@ -160,7 +168,18 @@ export class DriveVideo extends Component {
     this.applyPendingSeek();
     const { onAudioStatusChange } = this.props;
     if (isIos()) {
-      if (player.getInternalPlayer()?.audioTracks?.length && onAudioStatusChange) onAudioStatusChange(true);
+      const tracks = player.getInternalPlayer()?.audioTracks;
+      if (tracks && onAudioStatusChange) {
+        if (this.nativeAudioTracks !== tracks) {
+          this.nativeAudioTracks = tracks;
+          this.nativeAudioHandler = () => {
+            if (this.isCurrentPlayer(key)) onAudioStatusChange(tracks.length > 0);
+          };
+          tracks.addEventListener?.('addtrack', this.nativeAudioHandler);
+          tracks.addEventListener?.('removetrack', this.nativeAudioHandler);
+        }
+        this.nativeAudioHandler();
+      }
     } else {
       const hls = player.getInternalPlayer('hls');
       if (hls && onAudioStatusChange) {
@@ -169,9 +188,13 @@ export class DriveVideo extends Component {
         if (this.audioHls !== hls) {
           this.audioHls = hls;
           this.audioHandler = (_event, data) => {
-            if (this.isCurrentPlayer(key)) onAudioStatusChange(!!data.audio);
+            if (this.isCurrentPlayer(key)) onAudioStatusChange(Boolean(data?.audio));
           };
           hls.on('hlsBufferCodecs', this.audioHandler);
+        }
+        // The codecs event can fire before onReady; the manifest still exposes audio.
+        if (hls.audioTracks?.length || hls.levels?.some((level) => Boolean(level.audioCodec))) {
+          onAudioStatusChange(true);
         }
       }
     }

@@ -2,6 +2,9 @@ import { vi } from 'vitest';
 import { DriveVideo } from './index';
 import { seek } from '../../timeline/playback';
 import { ACTION_BUFFER_VIDEO, ACTION_SEEK, ACTION_VIDEO_PROGRESS } from '../../actions/types';
+import { isIos } from '../../utils/browser.js';
+
+vi.mock('../../utils/browser.js', () => ({ isIos: vi.fn(() => false) }));
 
 vi.mock('../../api/backend', () => ({
   api: { video: { getQcameraStreamUrl: (_route, _exp, sig) => `https://example.test/shared.m3u8${sig ? `?sig=${sig}` : ''}` } },
@@ -332,6 +335,77 @@ describe('DriveVideo player lifecycle', () => {
     video.componentWillUnmount();
     video.onReconnect();
     expect(playerElement().key).toBe(retriedKey);
+  });
+
+  it.each([
+    { audioTracks: [{ name: 'mic' }], levels: [] },
+    { audioTracks: [], levels: [{ audioCodec: 'mp4a.40.2' }] },
+  ])('detects audio metadata that arrives before onReady (%#)', ({ audioTracks, levels }) => {
+    const { media, callbacks, audio } = playerFixture();
+    const hls = { audioTracks, levels, on: vi.fn(), off: vi.fn() };
+    media.getInternalPlayer.mockReturnValue(hls);
+    callbacks().onReady(media);
+    expect(audio).toHaveBeenLastCalledWith(true);
+  });
+
+  it('clears stale audio and ignores codec callbacks from a previous route', () => {
+    const { media, callbacks, changeProps, audio } = playerFixture();
+    let oldCodec;
+    const hls = {
+      audioTracks: [], levels: [],
+      on: vi.fn((_event, handler) => { oldCodec = handler; }),
+      off: vi.fn(),
+    };
+    media.getInternalPlayer.mockReturnValue(hls);
+    callbacks().onReady(media);
+    oldCodec(null, { audio: { codec: 'mp4a.40.2' } });
+    expect(audio).toHaveBeenLastCalledWith(true);
+    changeProps({ currentRoute: route('route-B') });
+    expect(audio).toHaveBeenLastCalledWith(false);
+    expect(hls.off).toHaveBeenCalledWith('hlsBufferCodecs', oldCodec);
+    const calls = audio.mock.calls.length;
+    oldCodec(null, { audio: { codec: 'mp4a.40.2' } });
+    expect(audio).toHaveBeenCalledTimes(calls);
+  });
+
+  it('resets audio availability when retry replaces the media player', () => {
+    const { video, media, callbacks, audio } = playerFixture();
+    media.getInternalPlayer.mockReturnValue({ audioTracks: [{ name: 'mic' }], levels: [], on: vi.fn(), off: vi.fn() });
+    callbacks().onReady(media);
+    expect(audio).toHaveBeenLastCalledWith(true);
+    video.retryVideo();
+    expect(audio).toHaveBeenLastCalledWith(false);
+  });
+
+  it('updates native iOS audio-track availability and removes track listeners on route change', () => {
+    vi.mocked(isIos).mockReturnValue(true);
+    try {
+      const { media, callbacks, changeProps, audio } = playerFixture();
+      const handlers = {};
+      const tracks = {
+        length: 0,
+        addEventListener: vi.fn((name, handler) => { handlers[name] = handler; }),
+        removeEventListener: vi.fn(),
+      };
+      media.getInternalPlayer.mockReturnValue({ audioTracks: tracks });
+      callbacks().onReady(media);
+      expect(audio).toHaveBeenLastCalledWith(false);
+      tracks.length = 1;
+      handlers.addtrack();
+      expect(audio).toHaveBeenLastCalledWith(true);
+      tracks.length = 0;
+      handlers.removetrack();
+      expect(audio).toHaveBeenLastCalledWith(false);
+      changeProps({ currentRoute: route('route-B') });
+      expect(tracks.removeEventListener).toHaveBeenCalledWith('addtrack', handlers.addtrack);
+      expect(tracks.removeEventListener).toHaveBeenCalledWith('removetrack', handlers.removetrack);
+      const calls = audio.mock.calls.length;
+      tracks.length = 1;
+      handlers.addtrack();
+      expect(audio).toHaveBeenCalledTimes(calls);
+    } finally {
+      vi.mocked(isIos).mockReturnValue(false);
+    }
   });
 
   it('ignores stale ended events from previous players', () => {
