@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { popTimelineRange, primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { resetPlayback, selectLoop } from '../timeline/playback';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -40,6 +41,23 @@ describe('timeline actions', () => {
     }));
     actionThunk(dispatch, getState);
     expect(push).toBeCalledWith('/statedongle/log_id');
+  });
+
+  it.each([
+    ['selecting a section', pushTimelineRange('log_id', 10000, 20000, false), [10000, 20000]],
+    ['going back', popTimelineRange('log_id', false), [0, 60000]],
+  ])('keeps the playhead, pause state and speed when %s within a drive', (_name, thunk, loop) => {
+    resetPlayback.mockClear();
+    thunk(vi.fn(), () => ({ selectedRouteId: 'log_id', loop: null, zoom: { start: 10000, end: 20000, previous: { start: 0, end: 60000 } } }));
+    expect(resetPlayback).not.toHaveBeenCalled();
+    expect(selectLoop).toHaveBeenLastCalledWith(...loop);
+  });
+
+  it('starts playback afresh when opening a different drive', () => {
+    resetPlayback.mockClear();
+    pushTimelineRange('next', 0, 60000, false)(vi.fn(), () => ({ selectedRouteId: 'log_id', loop: null, zoom: null }));
+    expect(resetPlayback).toHaveBeenCalledOnce();
+    expect(selectLoop).toHaveBeenLastCalledWith(0, 60000);
   });
 
   it.each([

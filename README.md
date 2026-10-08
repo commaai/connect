@@ -16,6 +16,20 @@ API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
 `VITE_USERADMIN_URL_ROOT`. Docker Compose accepts the same variables.
 
+### Video playback tests
+
+`bun run test:browser` tests the production drive viewer, timeline, and controls
+with a generated H.264/AAC HLS stream. Install FFmpeg (with libx264 and AAC) and
+the browser engines first: `bunx playwright install chromium webkit`.
+
+The suite covers pause, rapid seeks, audio discovery, Map playback, nonzero clip
+loops, source replacement, and recovery from actual HTTP 404 responses for
+manifests and media fragments. Fixtures are generated in a temporary directory
+and served locally; an account or comma device is not needed. Chromium and
+Android profiles run in CI. Desktop WebKit and iPhone profiles can also be run
+locally. Browser profiles do not replace testing on physical iOS/Android devices
+and installed PWAs.
+
 ## Contributing
 
 * Use best practices

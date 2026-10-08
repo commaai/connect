@@ -289,7 +289,7 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
   });
 
-  test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
+  test('drive selection, timeline range, back, and home preserve exact URLs', async () => {
     const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
@@ -300,7 +300,7 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
-    fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+    fireEvent.click(within(document.body).getByRole('button', { name: 'Home' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
 });

@@ -1,7 +1,6 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
 
 export function reducer(_state, action) {
   let state = { ..._state };
@@ -14,7 +13,7 @@ export function reducer(_state, action) {
       state = {
         ...state,
         offset: action.offset,
-        startTime: Date.now(),
+        seekRevision: (state.seekRevision || 0) + 1,
       };
 
       if (loopOffset !== null) {
@@ -25,23 +24,16 @@ export function reducer(_state, action) {
         }
       }
       break;
+    case Types.ACTION_VIDEO_PROGRESS:
+      if (action.route === state.currentRoute?.fullname && action.seekRevision === (state.seekRevision || 0)) {
+        state.offset = action.offset;
+      }
+      break;
     case Types.ACTION_PAUSE:
-      state = {
-        ...state,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-        desiredPlaySpeed: 0,
-      };
+      state.desiredPlaySpeed = 0;
       break;
     case Types.ACTION_PLAY:
-      if (action.speed !== state.desiredPlaySpeed) {
-        state = {
-          ...state,
-          offset: currentOffset(state),
-          desiredPlaySpeed: action.speed,
-          startTime: Date.now(),
-        };
-      }
+      state.desiredPlaySpeed = action.speed;
       break;
     case Types.ACTION_LOOP:
       if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
@@ -54,12 +46,7 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_BUFFER_VIDEO:
-      state = {
-        ...state,
-        isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-      };
+      state.isBufferingVideo = action.buffering;
       break;
     case Types.ACTION_RESET:
       state = {
@@ -67,7 +54,7 @@ export function reducer(_state, action) {
         desiredPlaySpeed: 1,
         isBufferingVideo: true,
         offset: 0,
-        startTime: Date.now(),
+        seekRevision: (state.seekRevision || 0) + 1,
       };
       break;
     default:
@@ -85,19 +72,13 @@ export function reducer(_state, action) {
     }
   }
 
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
+  // A new clip or late first-frame metadata must put playback inside its
+  // bounds. Keep observations independent of this explicit seek command.
+  if (state.loop && state.offset != null
+    && (state.loop.startTime !== _state.loop?.startTime || state.loop.duration !== _state.loop?.duration)
+    && (state.offset < state.loop.startTime || state.offset >= state.loop.startTime + state.loop.duration)) {
+    state.offset = state.loop.startTime;
+    state.seekRevision = (state.seekRevision || 0) + 1;
   }
 
   state.isBufferingVideo = Boolean(state.isBufferingVideo);
@@ -111,6 +92,11 @@ export function seek(offset) {
     type: Types.ACTION_SEEK,
     offset,
   };
+}
+
+// the media restarting a clip: a seek, but not one the viewer asked for
+export function restartLoop(offset) {
+  return { ...seek(offset), loop: true };
 }
 
 // pause the playback
@@ -148,4 +134,9 @@ export function resetPlayback() {
   return {
     type: Types.ACTION_RESET,
   };
+}
+
+// Observations do not issue seek commands back to the player.
+export function videoProgress(route, offset, seekRevision) {
+  return { type: Types.ACTION_VIDEO_PROGRESS, route, offset, seekRevision };
 }
