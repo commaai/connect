@@ -201,6 +201,24 @@ test('an expired stream link offers a page reload rather than a futile retry', a
   await playing(page);
 });
 
+test('playback avoids iOS pausing invisible autoplay video, in Video and Map mode', async ({ page }) => {
+  await openPlayer(page);
+  // iOS pauses a video with the autoplay attribute once it leaves the viewport
+  // (opacity and size do not count); muted play() may continue off-screen.
+  await expect.poll(async () => (await video(page)).time, { timeout: 20000 }).toBeGreaterThan(500);
+  await expect(page.locator('video')).not.toHaveAttribute('autoplay');
+  await page.getByText('Map', { exact: true }).click();
+  // Pin the hidden player in the viewport as well, whatever the page scroll.
+  await page.evaluate(() => { document.body.style.paddingBottom = '3000px'; window.scrollTo(0, 2000); });
+  const inViewport = await page.locator('video').evaluate((video) => {
+    const rect = video.closest('[inert]').getBoundingClientRect();
+    return rect.bottom > 0 && rect.right > 0 && rect.top < innerHeight && rect.left < innerWidth;
+  });
+  expect(inViewport).toBe(true);
+  const before = (await state(page)).offset;
+  await expect.poll(async () => (await state(page)).offset).toBeGreaterThan(before + 500);
+});
+
 test('Map mode explains a video failure and retries it from the map', async ({ page }) => {
   let failed = true;
   await openPlayer(page, { manifestFails: () => failed });
