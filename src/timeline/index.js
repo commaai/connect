@@ -3,11 +3,10 @@ import store from '../store';
 const SEEK_TOLERANCE = 0.5; // hls.js may nudge its start position onto the buffer
 const END_MARGIN = 0.5; // webkit never finishes a seek to the end
 
-let video = null;
-let videoRoute = null;
-// wall clock used when no video drives the time (missing video, fatal error, past the video end)
+let current = null; // { el, route }
+// wall clock for when no video drives the time
 let clock = { offset: 0, since: Date.now(), speed: 0, hasRoute: false };
-// the route can outlast its video, the element shows its last frame while the clock plays on
+// the video can be shorter than the route
 let pastEnd = false;
 
 const videoStartOffset = () => store.getState().currentRoute?.videoStartOffset ?? 0;
@@ -15,15 +14,20 @@ const videoStartOffset = () => store.getState().currentRoute?.videoStartOffset ?
 const videoToRoute = (time) => (time * 1000) + videoStartOffset();
 export const routeToVideo = (offset) => Math.max(0, offset - videoStartOffset()) / 1000;
 
-// the element of the previous route stays mounted until the next render
+// the previous route's element stays mounted until the next render
 export function activeVideo() {
-  return video && store.getState().currentRoute?.fullname === videoRoute ? video : null;
+  return current && store.getState().currentRoute?.fullname === current.route ? current.el : null;
+}
+
+function loadedVideo() {
+  const el = activeVideo();
+  return el?.readyState >= HTMLMediaElement.HAVE_METADATA ? el : null;
 }
 
 function clockOffset() {
   const { loop, currentRoute } = store.getState();
   const el = activeVideo();
-  // hold the clock until the route and its video load so the video starts where the clock stopped
+  // hold until the video loads so it starts where the clock stopped
   const running = clock.hasRoute && (!el || pastEnd);
   const offset = clock.offset + (running ? (Date.now() - clock.since) * clock.speed : 0);
   const { startTime, duration } = loop ?? { startTime: 0, duration: currentRoute?.duration };
@@ -32,8 +36,8 @@ function clockOffset() {
 }
 
 export function currentOffset() {
-  const el = activeVideo();
-  if (pastEnd || !(el?.readyState >= HTMLMediaElement.HAVE_METADATA)) return clockOffset();
+  const el = loadedVideo();
+  if (pastEnd || !el) return clockOffset();
   return videoToRoute(el.currentTime);
 }
 
@@ -47,7 +51,7 @@ export function setClockSpeed(speed) {
   setClock(currentOffset(), speed);
 }
 
-// anchors the clock at the video end before it takes over
+// the clock takes over from the end of the video
 export function endVideo(speed) {
   setClockSpeed(speed);
   pastEnd = true;
@@ -57,8 +61,8 @@ export function seekTo(offset) {
   const { loop } = store.getState();
   if (loop != null) offset = Math.min(Math.max(offset, loop.startTime), loop.startTime + loop.duration);
   setClock(offset, clock.speed);
-  const el = activeVideo();
-  if (!(el?.readyState >= HTMLMediaElement.HAVE_METADATA)) return;
+  const el = loadedVideo();
+  if (!el) return;
   const time = routeToVideo(offset);
   pastEnd = time >= el.duration;
   const target = pastEnd ? el.duration - END_MARGIN : time;
@@ -71,19 +75,18 @@ function applyPendingSeek({ target }) {
   if (Math.abs(target.currentTime - routeToVideo(offset)) > SEEK_TOLERANCE) seekTo(offset);
 }
 
-// also re-anchors the clock to the current frame before the element reloads its media
+// the clock keeps the current frame while the element reloads
 export function attachVideo(el, fullname) {
   setClockSpeed(clock.speed);
-  video = el;
-  videoRoute = fullname;
+  current = { el, route: fullname };
   pastEnd = false;
   el.addEventListener('loadedmetadata', applyPendingSeek, { once: true });
 }
 
 export function detachVideo(el) {
-  if (el !== video) return;
+  if (el !== current?.el) return;
   setClockSpeed(clock.speed);
   el.removeEventListener('loadedmetadata', applyPendingSeek);
-  video = null;
+  current = null;
   pastEnd = false;
 }

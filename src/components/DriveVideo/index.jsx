@@ -42,14 +42,13 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
   const [attempt, setAttempt] = useState(0);
   const native = !hasMediaSource();
 
-  // the clock falls back to its wall clock so the map and timeline keep working
+  // the clock keeps the map and timeline going
   const fail = (message) => {
     detachVideo(videoRef.current);
     videoRef.current.pause();
     setError(message);
   };
 
-  // a failed element no longer drives the play state
   const sync = (speed) => {
     if (activeVideo() === videoRef.current) dispatch(syncPlayback(speed));
   };
@@ -63,13 +62,12 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
     setBuffering(false);
   };
 
-  // the next route reports its own audio
   useEffect(() => () => onAudioStatusChange?.(false), []);
 
   useEffect(() => {
     const video = videoRef.current;
     const src = api.video.getQcameraStreamUrl(route.fullname, route.share_exp, route.share_sig);
-    // attached before hls.js loads so the clock holds until the video can take over
+    // attach before hls.js loads so the clock holds meanwhile
     attachVideo(video, route.fullname);
     showBuffering();
 
@@ -84,7 +82,7 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
         hls = new Hls({ startPosition: routeToVideo(currentOffset()), maxBufferLength: 40 });
         const { MEDIA_ERROR, NETWORK_ERROR } = Hls.ErrorTypes;
         let recovered = false;
-        // every attach restarts wanted playback, including the reset hls.js does on its own
+        // also fires when hls.js re-attaches by itself
         hls.on(Hls.Events.MEDIA_ATTACHED, () => dispatch(resumePlayback()));
         hls.on(Hls.Events.BUFFER_CODECS, (_event, data) => data.audio && onAudioStatusChange?.(true));
         hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -94,8 +92,7 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
             return;
           }
           recovered = true;
-          // the clock holds the current frame while hls.js rebuilds the media buffers,
-          // and the next loadedmetadata restores the position
+          // the next loadedmetadata restores the position
           attachVideo(video, route.fullname);
           hls.recoverMediaError();
         });
@@ -114,7 +111,6 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
       if (hls) {
         hls.destroy();
       } else {
-        // release the native player now rather than at garbage collection
         video.removeAttribute('src');
         video.load();
       }
@@ -123,14 +119,14 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
 
   const onTimeUpdate = () => {
     const video = videoRef.current;
-    // native hls can send waiting and never send playing
+    // native hls can send waiting without playing
     const advancing = video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && !video.seeking && video.currentTime !== lastTime.current;
     if (advancing) hideBuffering();
     lastTime.current = video.currentTime;
     if (loop != null && !video.paused && currentOffset() > loop.startTime + loop.duration) seekTo(loop.startTime);
   };
 
-  // the route can outlast its video: the clock plays on from the video end until the loop restarts
+  // the clock plays on past the end of a short video until the loop restarts
   const scheduleRestart = () => {
     clearTimeout(restartTimer.current);
     if (!pastVideoEnd() || !desiredPlaySpeed) return;
@@ -163,7 +159,7 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
         muted={isMuted}
         preload="auto"
         onPlay={() => {
-          // the browser can play an ended element (media keys, lock screen), which restarts it from 0
+          // media keys can play an ended element, which restarts it from 0
           if (pastVideoEnd()) seekTo(currentOffset());
           sync(videoRef.current.playbackRate);
         }}
@@ -178,7 +174,7 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
         onSeeked={hideBuffering}
         onCanPlay={hideBuffering}
         onLoadedData={native ? () => onAudioStatusChange?.(videoRef.current.audioTracks?.length > 0) : undefined}
-        onError={native ? () => fail(errorMessage(videoRef.current.error?.code === MEDIA_ERR_NETWORK)) : undefined}
+        onError={native ? () => fail(errorMessage(videoRef.current.error.code === MEDIA_ERR_NETWORK)) : undefined}
       />
     </>
   );

@@ -1,5 +1,5 @@
 // basic helper functions for controlling playback
-// commands act on the video element synchronously so they keep the user gesture ios needs to play
+// commands touch the video synchronously to keep the user gesture ios needs
 import * as Types from '../actions/types';
 import { activeVideo, pastVideoEnd, seekTo, setClockSpeed } from '.';
 
@@ -24,8 +24,7 @@ export function reducer(state, action) {
   }
 }
 
-// play state changed by the element itself (lock screen, headset, refused autoplay),
-// kept apart from ACTION_PLAY/ACTION_PAUSE so analytics only counts user intents
+// the element changed its own play state (lock screen, refused autoplay), not logged as a user action
 export function syncPlayback(speed) {
   return (dispatch, getState) => {
     setClockSpeed(speed);
@@ -36,7 +35,7 @@ export function syncPlayback(speed) {
 function playVideo(dispatch, speed) {
   setClockSpeed(speed);
   const video = activeVideo();
-  // play() would restart a video at its end from 0, the clock plays on until the loop restarts
+  // play() would restart an ended video from 0
   if (!video || pastVideoEnd()) return;
   if (video.playbackRate !== speed) video.playbackRate = speed;
   video.play().catch((err) => {
@@ -50,7 +49,7 @@ export function seek(offset) {
     const wasPastEnd = pastVideoEnd();
     seekTo(offset);
     dispatch({ type: Types.ACTION_SEEK });
-    // an element left at its end stays paused when seeked back into its range
+    // an ended element stays paused after a seek back
     if (wasPastEnd && !pastVideoEnd()) dispatch(resumePlayback());
   };
 }
@@ -72,7 +71,7 @@ export function play(speed = 1) {
   };
 }
 
-// start a newly loaded element if the user wants playback
+// start a new element if the user wants playback
 export function resumePlayback() {
   return (dispatch, getState) => {
     const { desiredPlaySpeed } = getState();

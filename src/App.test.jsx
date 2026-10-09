@@ -222,7 +222,7 @@ describe('whole-app behavior', () => {
     });
   });
 
-  test('native hls drive view hides the speed control, keeps the video under the map and resets audio per route', async () => {
+  test('hides the speed control on native hls, keeps the video under the map and resets audio per route', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     fireEvent.click(await screen.findByText('Mock route start'));
     expect(await screen.findByRole('button', { name: 'Jump back 10 seconds' })).toBeVisible();
