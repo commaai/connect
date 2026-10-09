@@ -1,59 +1,97 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { build, parse } from '../location';
 import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
+let legacyGeneration = 0;
+
+export function resetLegacyGeneration() {
+  legacyGeneration = 0;
+}
+
+function isStillWatching(getState, generation, watched) {
+  if (generation !== legacyGeneration) return false;
+  const current = parse(getState().router.location);
+  return current.kind === 'legacy' && build(current).pathname === watched;
+}
+
+// A pre-redesign URL spells a unix-millisecond range. Ask the API which route
+// covers it and replace the entry with that route's URL, so Back skips the
+// legacy format instead of converting it again. A response that arrives after
+// the user navigated elsewhere is dropped.
+function resolveLegacy(dispatch, getState, location) {
+  legacyGeneration += 1;
+  const generation = legacyGeneration;
+  const watched = build(location).pathname;
+
+  api.routes.getRoutesSegments(location.dongleId, location.startMs, location.endMs)
+    .then((routes) => {
+      if (!isStillWatching(getState, generation, watched)) {
+        console.debug('dropped stale legacy response', watched);
+        return;
+      }
+      if (!routes || routes.length === 0) return;
+      const logId = routes[0].fullname.split('|')[1];
+      dispatch(replace(build({
+        kind: 'drive',
+        dongleId: location.dongleId,
+        logId,
+        zoom: null,
+        query: {},
+        passthrough: location.passthrough,
+      })));
+    })
+    .catch((err) => {
+      if (!isStillWatching(getState, generation, watched)) {
+        console.debug('dropped stale legacy rejection', watched);
+        return;
+      }
+      console.error('Error fetching routes data for log ID conversion', err);
+    });
+}
+
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (!action) {
     return;
   }
 
   if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
+    const prev = getState();
 
     next(action); // must be first, otherwise breaks history
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+    const location = parse(action.payload.location);
+
+    if (location.dongleId && location.dongleId !== prev.dongleId) {
+      dispatch(selectDevice(location.dongleId, false, false));
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
+    if (location.kind === 'legacy') {
+      resolveLegacy(dispatch, getState, location);
+      if (prev.selectedRouteId && prev.dongleId === location.dongleId) {
+        dispatch(pushTimelineRange(null, null, null, false)); // selectDevice cleared it on a dongle change
+      }
+    } else if (location.kind === 'drive' || prev.selectedRouteId) {
+      const zoom = location.kind === 'drive' ? location.zoom : null;
+      dispatch(pushTimelineRange(
+        location.kind === 'drive' ? location.logId : null,
+        zoom ? zoom.start : null,
+        zoom ? zoom.end : null,
+        false,
+      ));
     }
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
+    if (location.dongleId && location.dongleId !== prev.dongleId) {
       dispatch(checkRoutesData());
     }
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
+    if ((location.kind === 'prime') !== prev.primeNav) {
+      // flag only: the URL already says where the user is going
+      dispatch(primeNav(location.kind === 'prime', false));
     }
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
+    if ((location.kind === 'stream') !== prev.streamNav) {
+      dispatch(streamNav(location.kind === 'stream', false));
     }
   } else {
     next(action);

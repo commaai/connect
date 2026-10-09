@@ -7,6 +7,7 @@ import Typography from '@material-ui/core/Typography';
 
 import { config as AuthConfig } from '@commaai/my-comma-auth';
 
+import { parse } from '../location';
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 import { stringifyQuery } from '../utils/query';
 
@@ -50,8 +51,8 @@ const styles = () => ({
 const AnonymousLanding = ({ classes, pathname }) => {
   useEffect(() => {
     if (typeof window.sessionStorage !== 'undefined') {
-      const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
+      const { r } = parse(window.location).passthrough;
+      const redirectURL = r ?? sessionStorage.getItem('redirectURL') ?? pathname;
       sessionStorage.setItem('redirectURL', redirectURL);
     }
 

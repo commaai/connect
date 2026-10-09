@@ -3,15 +3,11 @@ import { connect } from 'react-redux';
 import { Typography } from '@material-ui/core';
 import PrimeManage from './PrimeManage';
 import PrimeCheckout from './PrimeCheckout';
+import { parse } from '../../location';
 
 const Prime = (props) => {
-  let stripeCancelled;
-  let stripeSuccess;
-  if (window.location) {
-    const params = new URLSearchParams(window.location.search);
-    stripeCancelled = params.get('stripe_cancelled');
-    stripeSuccess = params.get('stripe_success');
-  }
+  // declared on the prime kind only: raw strings, not booleans
+  const { stripeCancelled, stripeSuccess } = parse(window.location);
 
   const { device, profile } = props;
   if (!profile) {

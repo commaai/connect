@@ -241,6 +241,13 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
   });
 
+  test('signed-out junk path shows the login page and keeps its path', async () => {
+    const pathname = `/${FIRST}/prime/extra`;
+    const { history } = await renderApp(pathname, { authenticated: false });
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+    expect(history.location.pathname).toBe(pathname);
+  });
+
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });

@@ -344,7 +344,7 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
+      if (!state.zoom || action.start == null || action.end == null || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
 

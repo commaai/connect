@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
+import { parse } from './location';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -30,7 +30,7 @@ class App extends Component {
 
     let pairToken;
     if (window.location) {
-      pairToken = new URLSearchParams(window.location.search).get('pair');
+      pairToken = parse(window.location).passthrough.pair;
     }
 
     if (pairToken) {
@@ -56,9 +56,8 @@ class App extends Component {
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
-          const authParams = new URLSearchParams(window.location.search);
-          const provider = authParams.get('provider');
-          const token = await api.auth.refreshAccessToken(authParams.get('code'), provider);
+          const { code, provider } = parse(window.location);
+          const token = await api.auth.refreshAccessToken(code, provider);
           if (token) {
             AuthStorage.setCommaAccessToken(token);
             localStorage.setItem('lastLoginProvider', provider);
@@ -78,10 +77,9 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { pathname } = window.location;
-      const teleopDongleId = getDongleID(pathname);
-      if (teleopDongleId && getStreamNav(pathname)) {
-        webrtcConnectionManager.reconnect(teleopDongleId);
+      const bootLocation = parse(window.location);
+      if (bootLocation.kind === 'stream') {
+        webrtcConnectionManager.reconnect(bootLocation.dongleId);
       }
 
       fetchTurnCredentials().catch((err) => {
@@ -130,8 +128,9 @@ class App extends Component {
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
+    const location = parse(history.location);
+    const anonymousOk = location.kind === 'drive' || location.kind === 'legacy';
+    const showLogin = !api.auth.isAuthenticated() && !anonymousOk;
     let content = (
       <Suspense fallback={<FullPageLoading />}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }

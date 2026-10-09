@@ -17,6 +17,7 @@ import BodyTeleop from './BodyTeleop';
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
+import { parse } from '../location';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
@@ -97,9 +98,9 @@ class ExplorerApp extends Component {
 
     window.scrollTo({ top: 0 }); // for ios header
 
-    const q = new URLSearchParams(window.location.search);
-    if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
+    const { r } = parse(window.location).passthrough;
+    if (r != null) {
+      this.props.dispatch(replace(r));
     }
 
     this.props.dispatch(init());
