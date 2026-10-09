@@ -154,6 +154,15 @@ const styles = () => ({
       marginTop: 36,
     },
   },
+  detailEvents: {
+    position: 'absolute',
+    width: '100%',
+    height: 12,
+    marginTop: 32,
+    overflow: 'hidden',
+    zIndex: 1,
+    cursor: 'pointer',
+  },
   selection: {
     position: 'absolute',
     height: 44,
@@ -204,19 +213,27 @@ const styles = () => ({
   },
 });
 
-// how close to the playhead a press grabs it, in pixels
-const PLAYHEAD_GRAB_RADIUS = 24;
+// how close to the playhead line a press on the bar grabs it, in pixels;
+// the handle below the bar has its own, larger target
+const PLAYHEAD_GRAB_RADIUS = 6;
 const SEGMENT_DURATION = 60 * 1000;
 // minimum room for a segment number label, in pixels
 const SEGMENT_LABEL_SPACING = 28;
 // after the lens is moved by hand, playback leaves it alone for this long
 const MANUAL_VIEW_GRACE = 2000;
+// selection edges snap to event and segment edges this close, in pixels
+const SNAP_DISTANCE = 10;
 
 const AlertStatusCodes = [
   'normal',
   'userPrompt',
   'critical',
 ];
+
+// events that span a stretch of the drive, drawn as colored bands
+function rangedEvents(route) {
+  return (route?.events || []).filter((event) => event.data && event.data.end_route_offset_millis);
+}
 
 function percentFromPointerEvent(ev) {
   const boundingBox = ev.currentTarget.getBoundingClientRect();
@@ -327,10 +344,48 @@ class Timeline extends Component {
 
     // pressing on the playhead drags it, anywhere else selects a range
     const playhead = this.playhead.current?.getBoundingClientRect();
-    if (playhead && Math.abs(ev.clientX - playhead.left) <= PLAYHEAD_GRAB_RADIUS) {
+    const onHandle = this.playhead.current?.contains(ev.target);
+    if (onHandle || (playhead && Math.abs(ev.clientX - playhead.left) <= PLAYHEAD_GRAB_RADIUS)) {
       this.setState({ scrubbing: true, hoverX: ev.pageX });
     } else {
-      this.setState({ dragging: [ev.pageX, ev.pageX] });
+      const x = this.snapX(ev.pageX);
+      this.setState({ dragging: [x, x] });
+    }
+    // a tap on a segment number or an event band selects it, a drag from there still selects freely
+    this.pressedSegment = ev.target.closest('[data-segment]')?.dataset.segment;
+    this.pressedEvents = Boolean(ev.target.closest('[data-events]'));
+  }
+
+  // pull x onto a nearby event edge, or failing that a segment edge
+  snapX(x) {
+    const { route } = this.props;
+    const { view } = this.state;
+    const bounds = this.rulerRef.current.getBoundingClientRect();
+    const offset = this.offsetAtX(x);
+    const reach = (SNAP_DISTANCE * (view.end - view.start)) / bounds.width;
+    const nearest = (edges) => edges
+      .filter((edge) => Math.abs(edge - offset) <= reach)
+      .sort((a, b) => Math.abs(a - offset) - Math.abs(b - offset))[0];
+
+    const segmentEdges = [route.duration];
+    for (let edge = 0; edge < route.duration; edge += SEGMENT_DURATION) {
+      segmentEdges.push(edge);
+    }
+    const eventEdges = rangedEvents(route).flatMap((event) => [event.route_offset_millis, event.data.end_route_offset_millis]);
+
+    const edge = nearest(eventEdges) ?? nearest(segmentEdges);
+    return edge === undefined ? x : bounds.x + (this.offsetToPercent(edge) * bounds.width);
+  }
+
+  // select the event band under the pointer (the shortest one, where they overlap)
+  selectEventAt(x) {
+    const { dispatch, route } = this.props;
+    const offset = this.offsetAtX(x);
+    const event = rangedEvents(route)
+      .filter((ev) => ev.route_offset_millis <= offset && offset <= ev.data.end_route_offset_millis)
+      .sort((a, b) => (a.data.end_route_offset_millis - a.route_offset_millis) - (b.data.end_route_offset_millis - b.route_offset_millis))[0];
+    if (event) {
+      dispatch(pushTimelineRange(route.log_id, event.route_offset_millis, event.data.end_route_offset_millis, true));
     }
   }
 
@@ -351,7 +406,7 @@ class Timeline extends Component {
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.pageX));
     if (dragging) {
-      this.setState({ dragging: [dragging[0], endDrag] });
+      this.setState({ dragging: [dragging[0], this.snapX(endDrag)] });
     }
     if (this.state.scrubbing) {
       seekVideo(this.offsetAtX(endDrag));
@@ -396,6 +451,10 @@ class Timeline extends Component {
       const endTime = endOffset;
 
       dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+    } else if (this.pressedSegment !== undefined) {
+      this.selectSegment(Number(this.pressedSegment));
+    } else if (this.pressedEvents) {
+      this.selectEventAt(ev.pageX);
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
@@ -504,8 +563,7 @@ class Timeline extends Component {
       return null;
     }
 
-    return route.events
-      .filter((event) => event.data && event.data.end_route_offset_millis)
+    return rangedEvents(route)
       .map((event) => {
         const style = {
           left: `${(event.route_offset_millis / route.duration) * 100}%`,
@@ -556,9 +614,10 @@ class Timeline extends Component {
           {labeled && (
             <button
               type="button"
+              data-segment={segment}
               aria-label={`Select segment ${segment}`}
-              onPointerDown={(ev) => ev.stopPropagation()}
-              onClick={() => this.selectSegment(segment)}
+              // pointer taps are handled by the ruler, this is for the keyboard
+              onClick={(ev) => ev.detail === 0 && this.selectSegment(segment)}
             >
               {segment}
             </button>
@@ -694,6 +753,9 @@ class Timeline extends Component {
                 onPointerLeave={this.handlePointerLeave}
               >
                 <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                <div data-events className={classes.detailEvents}>
+                  { route && this.renderRoute() }
+                </div>
                 { this.renderSelection() }
                 { this.renderSegmentTicks() }
                 <div ref={this.playhead} className={classes.playhead}>
