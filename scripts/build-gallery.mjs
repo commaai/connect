@@ -320,25 +320,6 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
     return request.continue();
   }
 
-  if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/hls.js@')) {
-    return request.respond({
-      status: 200,
-      contentType: 'text/javascript',
-      body: `
-        class GalleryHls {
-          static Events = { ERROR: 'error', MANIFEST_PARSED: 'manifestParsed' };
-          static isSupported() { return true; }
-          constructor() { this.handlers = {}; }
-          on(name, handler) { this.handlers[name] = handler; }
-          loadSource() { queueMicrotask(() => this.handlers.manifestParsed?.()); }
-          attachMedia() {}
-          destroy() {}
-        }
-        window.Hls = GalleryHls;
-      `,
-    });
-  }
-
   const apiHosts = new Set(['api.comma.ai', 'athena.comma.ai', 'billing.comma.ai']);
   if (!apiHosts.has(url.hostname)) return request.abort('blockedbyclient');
   if (request.method() === 'OPTIONS') {

@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
 import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { resetPlayback } from '../timeline/playback';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -40,6 +41,15 @@ describe('timeline actions', () => {
     }));
     actionThunk(dispatch, getState);
     expect(push).toBeCalledWith('/statedongle/log_id');
+  });
+
+  it('resets playback only when another drive is opened', () => {
+    vi.mocked(resetPlayback).mockClear();
+    const state = { dongleId: 'dongle', selectedRouteId: 'log_id', loop: null, zoom: null };
+    pushTimelineRange('log_id', 1000, 2000, false)(vi.fn(), () => state);
+    expect(resetPlayback).not.toHaveBeenCalled();
+    pushTimelineRange('other_log', 1000, 2000, false)(vi.fn(), () => state);
+    expect(resetPlayback).toHaveBeenCalledTimes(1);
   });
 
   it.each([

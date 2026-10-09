@@ -161,7 +161,10 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
-    dispatch(resetPlayback());
+    // a new section of the same drive keeps play/pause and speed
+    if (state.selectedRouteId !== log_id) {
+      dispatch(resetPlayback());
+    }
     dispatch(selectLoop(start, end));
   }
 
