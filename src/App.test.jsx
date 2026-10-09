@@ -119,7 +119,8 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.pathname.endsWith('/athena_offline_queue')) return json([]);
+  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: init.body?.includes('listUploadQueue') ? [] : {} });
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -366,6 +367,26 @@ describe('whole-app behavior', () => {
     expect(routeRequests()).toBe(before);
   });
 
+  test('uploads opened from settings close back to settings', async () => {
+    const { history } = await renderApp(`/${FIRST}?settings=${FIRST}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Uploads' }));
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    expect(history.location.search).toBe(`?settings=${FIRST}&uploads=${FIRST}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(`?settings=${FIRST}`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('the drive files menu opens the upload queue by URL', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    fireEvent.click(await screen.findByText('Files'));
+    const item = await screen.findByRole('menuitem', { name: 'View upload queue' });
+    await waitFor(() => expect(item.className).not.toMatch(/disabled/));
+    fireEvent.click(item);
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    expect(history.location.search).toBe(`?uploads=${FIRST}`);
+  });
+
   test('a settings link opens nothing for a device you do not own', async () => {
     const shared = [devices[0], { ...devices[1], is_owner: false }];
     await renderApp(`/${FIRST}?settings=${SECOND}`, { devices: shared });
@@ -382,6 +403,7 @@ describe('whole-app behavior', () => {
   test.each([
     [`/${FIRST}/${LOG}?settings=${SECOND}`, () => screen.findByDisplayValue('Alpha')],
     [`/${FIRST}?filter`, () => screen.findByText('Start date:')],
+    [`/${FIRST}/${LOG}?uploads=${FIRST}`, () => screen.findByText('Upload queue')],
   ])('%s opens with the drawer closed', async (path, find) => {
     const { history } = await renderApp(path);
     expect(await find()).toBeVisible();

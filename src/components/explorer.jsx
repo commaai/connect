@@ -15,6 +15,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 import TimeSelect from './TimeSelect';
+import UploadQueue from './Files/UploadQueue';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
@@ -202,7 +203,7 @@ class ExplorerApp extends Component {
   render() {
     const {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
-      settingsDongleId, filterOpen,
+      settingsDongleId, filterOpen, uploadsDevice,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -258,6 +259,14 @@ class ExplorerApp extends Component {
               <DeviceSettingsModal key={ settingsDongleId } dongleId={ settingsDongleId } onClose={ () => dispatch(push(pathname)) } />
             ) }
             { filterOpen && <TimeSelect onClose={ () => dispatch(push(pathname)) } /> }
+            { uploadsDevice && (
+              <UploadQueue
+                open
+                update
+                device={ uploadsDevice }
+                onClose={ () => dispatch(push(settingsDongleId ? `${pathname}?settings=${settingsDongleId}` : pathname)) }
+              />
+            ) }
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -283,6 +292,12 @@ class ExplorerApp extends Component {
   }
 }
 
+// a shared device isn't in state.devices, only in state.device
+function findUploadsDevice(state) {
+  const dongleId = queryParam(state.router.location, 'uploads');
+  return dongleId && [state.device, ...(state.devices || [])].find((device) => device?.dongle_id === dongleId);
+}
+
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
@@ -295,6 +310,7 @@ const stateToProps = (state) => ({
   profile: state.profile,
   settingsDongleId: queryParam(state.router.location, 'settings'),
   filterOpen: queryParam(state.router.location, 'filter') !== null,
+  uploadsDevice: findUploadsDevice(state),
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
