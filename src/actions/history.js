@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
+import { destinationFromUrl } from '../url';
 import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
@@ -8,54 +8,78 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     return;
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
+  if (action.type !== LOCATION_CHANGE || !['POP', 'REPLACE'].includes(action.payload.action)) {
+    next(action);
+    return;
+  }
 
-    next(action); // must be first, otherwise breaks history
+  const state = getState();
+  const destination = destinationFromUrl(action.payload.location.pathname);
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+  next(action); // must be first, otherwise breaks history
+
+  if (destination.kind === 'home' || destination.kind === 'unknown') {
+    if (state.selectedRouteId) {
+      dispatch(pushTimelineRange(null, null, null, false));
     }
+    if (state.primeNav) {
+      dispatch(primeNav(false));
+    }
+    if (state.streamNav) {
+      dispatch(streamNav(false, false));
+    }
+    return;
+  }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
+  const pathDongleId = destination.dongleId;
 
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
+  if (pathDongleId !== state.dongleId) {
+    dispatch(selectDevice(pathDongleId, false, false));
+  }
 
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
+  if (pathDongleId !== state.dongleId) {
+    dispatch(checkRoutesData());
+  }
+
+  if (destination.kind === 'legacy') {
+    api.routes.getRoutesSegments(pathDongleId, destination.start, destination.end)
+      .then((routesData) => {
         if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
+          const log_id = routesData[0].fullname.split('|')[1];
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
 
           dispatch(pushTimelineRange(log_id, 0, duration, true));
         }
-      }).catch((err) => {
+      })
+      .catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);
       });
-    }
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
+    return;
+  }
 
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
+  if (destination.kind === 'drive') {
+    const start = destination.start == null ? null : destination.start * 1000;
+    const end = destination.end == null ? null : destination.end * 1000;
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
+    if (
+      destination.logId !== state.selectedRouteId ||
+      start !== state.zoom?.start ||
+      end !== state.zoom?.end
+    ) {
+      dispatch(pushTimelineRange(destination.logId, start, end, false));
     }
+  } else if (state.selectedRouteId) {
+    dispatch(pushTimelineRange(null, null, null, false));
+  }
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  const shouldPrime = destination.kind === 'prime';
+  if (shouldPrime !== state.primeNav) {
+    dispatch(primeNav(shouldPrime));
+  }
+
+  const shouldStream = destination.kind === 'stream';
+  if (shouldStream !== state.streamNav) {
+    dispatch(streamNav(shouldStream, false));
   }
 };
