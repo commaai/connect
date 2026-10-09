@@ -151,7 +151,7 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
 
   // double tap on the left or right half to jump 10s, like youtube
   const onPointerUp = (ev) => {
-    if (ev.pointerType !== 'touch') {
+    if (ev.pointerType !== 'touch' || ev.target.closest('button')) {
       return;
     }
     if (ev.timeStamp - lastTap.current > DOUBLE_TAP) {
@@ -173,7 +173,7 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
       className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] bg-black touch-manipulation"
       onPointerUp={onPointerUp}
     >
-      <VideoOverlay loading={loading} error={error} onRetry={() => setAttempt(attempt + 1)} />
+      {src && <VideoOverlay loading={loading} error={error} onRetry={() => setAttempt(attempt + 1)} />}
       <video
         ref={videoRef}
         className="h-full w-full"

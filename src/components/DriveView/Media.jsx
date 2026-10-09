@@ -544,7 +544,7 @@ class Media extends Component {
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {/* stays mounted behind the map: the video is the playback clock */}
+            {/* Keep streaming behind the map: video is the playback clock, with audio if unmuted. */}
             <div className={inView === MediaType.VIDEO ? '' : 'hidden'}>
               <DriveVideo
                 isMuted={isMuted}

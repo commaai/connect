@@ -435,10 +435,13 @@ class Timeline extends Component {
     if (!view) {
       return;
     }
-    // keep the playhead in sight
-    if (route?.duration && (offset < view.start || offset > view.end)) {
+    // keep the playhead in sight on the main drive timeline
+    if (this.props.hasRuler && route?.duration && (offset < view.start || offset > view.end)) {
       const width = view.end - view.start;
-      this.setState({ view: clampView(offset - (width / 4), offset + (width * 3 / 4), route.duration) });
+      const next = clampView(offset - (width / 4), offset + (width * 3 / 4), route.duration);
+      if (next.start !== view.start || next.end !== view.end) {
+        this.setState({ view: next });
+      }
     }
     const percent = Math.floor(10000 * this.offsetToPercent(Math.floor(offset))) / 100;
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
