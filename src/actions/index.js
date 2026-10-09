@@ -163,9 +163,9 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(selectLoop(start, end));
-    // not seek(), which also flies the map and logs a video_seek event
+    // seekTo (not seek(), which flies the map) must run before resetPlayback,
+    // or the video still counts as ended and play() is skipped
     seekTo(start ?? 0);
-    // after seekTo, play() is skipped while the video is at its end
     dispatch(resetPlayback());
   }
 
