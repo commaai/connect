@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import dayjs from 'dayjs';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -9,7 +8,7 @@ import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { VideoStatus, seek, play, pause, setPlaybackSpeed } from '../../timeline/playback';
-import { getSegmentNumber } from '../../utils';
+import { formatVideoTime, getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
 const timerSteps = [
@@ -93,22 +92,18 @@ const styles = (theme) => ({
     display: 'block',
     flexGrow: 1,
   },
+  segment: {
+    '@media (max-width: 380px)': {
+      display: 'none',
+    },
+  },
 });
 
 class TimeDisplay extends Component {
   getDisplayTime() {
     const { currentRoute, offset } = this.props;
-    const now = new Date(offset + currentRoute?.start_time_utc_millis);
-    if (Number.isNaN(now.getTime())) {
-      return '...';
-    }
-    let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute, offset);
-    if (seg !== null) {
-      dateString = `${dateString} \u2013 ${seg}`;
-    }
-
-    return dateString;
+    if (offset == null || currentRoute?.duration == null) return '...';
+    return `${formatVideoTime(offset)} / ${formatVideoTime(currentRoute.duration)}`;
   }
 
   changeSpeed(direction) {
@@ -119,7 +114,9 @@ class TimeDisplay extends Component {
   render() {
     const {
       classes, zoom, isThin, onMuteToggle, isMuted, hasAudio, desiredPlaySpeed, isPlaying, videoStatus, dispatch, offset,
+      currentRoute,
     } = this.props;
+    const seg = getSegmentNumber(currentRoute, offset);
     const speedIndex = timerSteps.indexOf(desiredPlaySpeed);
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
@@ -153,6 +150,7 @@ class TimeDisplay extends Component {
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
           {this.getDisplayTime()}
+          {seg !== null && <span className={classes.segment}>{` \u2013 ${seg}`}</span>}
         </Typography>
         {!isIos() && (
           <div className={ classes.desiredPlaySpeedContainer }>

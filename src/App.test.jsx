@@ -234,6 +234,8 @@ describe('whole-app behavior', () => {
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
+    expect(screen.getByText(`${ranged ? '00:10' : '00:00'} / 01:00`)).toBeVisible();
+    expect(screen.getByText('\u2013 0')).toBeVisible();
   });
 
   test.each([
