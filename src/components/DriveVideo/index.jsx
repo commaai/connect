@@ -202,7 +202,7 @@ class DriveVideo extends Component {
       this.seekTo(loop.startTime);
       this.updatePlayback();
     } else {
-      dispatch(pause());
+      dispatch(pause(true));
     }
   }
 
@@ -296,13 +296,13 @@ class DriveVideo extends Component {
       this.setState({ noVideo: { resume: isPlaying } });
     }
     if (isPlaying) {
-      dispatch(pause());
+      dispatch(pause(true));
     }
   }
 
   clearNoVideo() {
     if (this.state.noVideo?.resume) {
-      this.props.dispatch(play());
+      this.props.dispatch(play(true));
     }
     this.setState({ noVideo: null });
   }
@@ -389,7 +389,7 @@ class DriveVideo extends Component {
     }
     video.play().catch((err) => {
       if (err.name === 'NotAllowedError') {
-        dispatch(pause());
+        dispatch(pause(true));
       }
     });
   }

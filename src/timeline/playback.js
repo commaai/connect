@@ -86,17 +86,19 @@ export function videoProgress(offset) {
   };
 }
 
-// pause the playback
-export function pause() {
+// pause the playback, auto when the user didn't ask for it
+export function pause(auto = false) {
   return {
     type: Types.ACTION_PAUSE,
+    auto,
   };
 }
 
-// resume the playback
-export function play() {
+// resume the playback, auto when the user didn't ask for it
+export function play(auto = false) {
   return {
     type: Types.ACTION_PLAY,
+    auto,
   };
 }
 
