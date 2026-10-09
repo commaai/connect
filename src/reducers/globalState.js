@@ -1,5 +1,4 @@
 import * as Types from '../actions/types';
-import { emptyDevice } from '../utils';
 import { getDefaultFilter } from '../utils/filter';
 
 const eventsMap = {};
@@ -13,15 +12,9 @@ function populateFetchedAt(d) {
 }
 
 function deviceCompareFn(a, b) {
-  if (a.is_owner !== b.is_owner) {
-    return b.is_owner - a.is_owner;
-  }
-  if (a.alias && b.alias) {
-    return a.alias.localeCompare(b.alias);
-  }
-  if (!a.alias && !b.alias) {
-    return a.dongle_id.localeCompare(b.dongle_id);
-  }
+  if (a.is_owner !== b.is_owner) return b.is_owner - a.is_owner;
+  if (a.alias && b.alias) return a.alias.localeCompare(b.alias);
+  if (!a.alias && !b.alias) return a.dongle_id.localeCompare(b.dongle_id);
   return Boolean(b.alias) - Boolean(a.alias);
 }
 
@@ -31,6 +24,7 @@ export default function reducer(_state, action) {
   switch (action.type) {
     case Types.ACTION_APPLY_DESTINATION: {
       const { page, dongleId = null, logId, range } = action.destination;
+
       // device changed
       const deviceChanged = state.dongleId !== dongleId;
       if (deviceChanged) {
@@ -38,10 +32,8 @@ export default function reducer(_state, action) {
         state.filter = getDefaultFilter();
         state.subscription = null;
         state.subscribeInfo = null;
-        state.files = null;
         state.routes = null;
         state.lastRoutes = null;
-        state.currentRoute = null;
         state.routesMeta = { dongleId: null, start: null, end: null };
         state.limit = 0;
       }
@@ -84,26 +76,7 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_STARTUP_DATA: {
-      const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
-
-      if (!state.dongleId && devices.length > 0) {
-        state = {
-          ...state,
-          device: devices[0],
-        };
-      } else {
-        state = {
-          ...state,
-          device: devices.find((device) => device.dongle_id === state.dongleId),
-        };
-        if (!state.device) {
-          state.device = {
-            ...emptyDevice,
-            dongle_id: state.dongleId,
-          };
-        }
-      }
-      state.devices = devices;
+      state.devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
       state.profile = action.profile;
       break;
     }

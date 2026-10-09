@@ -8,6 +8,8 @@ import { resetPlayback, selectLoop } from '../timeline/playback';
 
 export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
   const state = getState();
+  if (state.devices === null) return;
+
   const parsed = parseURL(pathname);
 
   let selectedDongleId = parsed.dongleId ?? state.dongleId;
@@ -17,10 +19,13 @@ export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
     selectedDongleId = device.dongle_id;
   }
 
+  if (parsed.page === 'root' && selectedDongleId) {
+    dispatch(replace(buildURL({ page: 'dashboard', dongleId: selectedDongleId })));
+    return;
+  }
   const destination = { ...parsed, dongleId: selectedDongleId };
   const { page, dongleId, range } = destination;
   const deviceChanged = state.dongleId !== dongleId;
-  const isCurrent = () => getState().router.location.pathname === pathname;
 
   if (deviceChanged && state.dongleId) webrtcConnectionManager.disconnect();
 
@@ -55,17 +60,16 @@ export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
     }
   }
 
-  const isDrive = page === 'drive';
   if (deviceChanged) {
     dispatch(checkLastRoutesData());
-  } else if (dongleId && isDrive) {
+  } else if (dongleId && page === 'drive') {
     dispatch(checkRoutesData());
   }
 
   if (page === 'legacy-drive') {
     try {
       const routesData = await api.routes.getRoutesSegments(dongleId, range.start, range.end);
-      if (!isCurrent()) return;
+      if (getState().router.location.pathname !== pathname) return;
 
       const logId = routesData?.[0]?.fullname?.split('|')[1];
       if (logId) dispatch(replace(buildURL({ page: 'drive', dongleId, logId, range: null })));

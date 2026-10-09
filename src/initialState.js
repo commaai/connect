@@ -1,11 +1,8 @@
-import { parseURL } from './url';
 import { getDefaultFilter } from './utils/filter';
 
-export function createInitialState(pathname = window.location.pathname) {
-  const destination = parseURL(pathname);
-
+export function createInitialState() {
   return {
-    dongleId: destination.dongleId ?? null,
+    dongleId: null,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
@@ -35,9 +32,9 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: destination.page === 'drive' ? destination.range : null,
+    zoom: null,
     loop: null,
-    selectedRouteId: destination.page === 'drive' ? destination.logId : null,
+    selectedRouteId: null,
     limit: 0,
   };
 }
