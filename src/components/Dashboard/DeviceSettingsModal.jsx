@@ -130,6 +130,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -140,16 +141,6 @@ class DeviceSettingsModal extends Component {
     this.shareDevice = this.shareDevice.bind(this);
     this.unpairDevice = this.unpairDevice.bind(this);
     this.closeUnpair = this.closeUnpair.bind(this);
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
-      this.setState({
-        ...initialState,
-        deviceAlias: alias,
-      });
-    }
   }
 
   handleAliasChange(e) {
@@ -227,7 +218,6 @@ class DeviceSettingsModal extends Component {
 
   onPrimeSettings() {
     this.props.dispatch(push(`/${this.props.dongleId}/prime`));
-    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -436,7 +426,9 @@ class DeviceSettingsModal extends Component {
 const stateToProps = (state, ownProps) => {
   const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
-  return { device };
+  return {
+    device: device?.is_owner || state.profile?.superuser ? device : null,
+  };
 };
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));

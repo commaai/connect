@@ -12,7 +12,7 @@ const parseDriveRange = (start, end, legacy = false) => {
   return { start: startMillis, end: endMillis };
 }
 
-export const parseURL = (pathname) => {
+const parsePathname = (pathname) => {
   const rootRoutes = ['auth', 'demo', 'referrals'];
   const deviceRoutes = ['prime', 'stream'];
 
@@ -35,4 +35,15 @@ export const parseURL = (pathname) => {
     if (range) return { page: 'legacy-drive', dongleId, range };
   }
   return { page: 'not-found' };
+}
+
+export const parseURL = ({ pathname, search = '' }) => {
+  const destination = parsePathname(pathname);
+  const params = new URLSearchParams(search);
+
+  // optional query params
+  const settingsDongleId = params.get('settings');
+  if (settingsDongleId) destination.settingsDongleId = settingsDongleId;
+
+  return destination;
 }

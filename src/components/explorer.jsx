@@ -23,6 +23,7 @@ import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 import { parseURL } from '../url';
 
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
@@ -188,7 +189,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, search, settingsDongleId, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -214,6 +215,12 @@ class ExplorerApp extends Component {
     }
     const drawerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
+    };
+
+    const closeSettings = () => {
+      const params = new URLSearchParams(search);
+      params.delete('settings');
+      dispatch(replace({ pathname, search: params.toString() }));
     };
 
     return (
@@ -264,20 +271,33 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        {settingsDongleId && (
+          <DeviceSettingsModal
+            key={settingsDongleId}
+            isOpen
+            dongleId={settingsDongleId}
+            onClose={closeSettings}
+          />
+        )}
       </div>
     );
   }
 }
 
-const stateToProps = (state) => ({
-  zoom: state.zoom,
-  pathname: state.router.location.pathname,
-  dongleId: state.dongleId,
-  devices: state.devices,
-  currentRoute: state.currentRoute,
-  selectedRouteId: state.selectedRouteId,
-  bodyTeleopOpen: parseURL(state.router.location.pathname).page === 'stream',
-  profile: state.profile,
-});
+const stateToProps = (state) => {
+  const parsedURL = parseURL(state.router.location);
+  return {
+    zoom: state.zoom,
+    pathname: state.router.location.pathname,
+    search: state.router.location.search,
+    dongleId: state.dongleId,
+    devices: state.devices,
+    currentRoute: state.currentRoute,
+    selectedRouteId: state.selectedRouteId,
+    settingsDongleId: parsedURL.settingsDongleId,
+    bodyTeleopOpen: parsedURL.page === 'stream',
+    profile: state.profile,
+  };
+};
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

@@ -1,4 +1,3 @@
-/* eslint-disable no-import-assign */
 import { vi } from 'vitest';
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
@@ -20,17 +19,17 @@ vi.mock('./index', () => ({
   checkRoutesData: vi.fn(), checkLastRoutesData: vi.fn(),
   primeFetchSubscription: vi.fn(), fetchDeviceOnline: vi.fn(), fetchSharedDevice: vi.fn(),
 }));
-vi.mock('../timeline', () => ({
-  currentOffset: vi.fn(() => 0),
-}));
-vi.mock('../utils/webrtc', () => ({
-  webrtcConnectionManager: { disconnect: vi.fn() },
-}));
+//vi.mock('../timeline', () => ({
+//  currentOffset: vi.fn(() => 0),
+//}));
+//vi.mock('../utils/webrtc', () => ({
+//  webrtcConnectionManager: { disconnect: vi.fn() },
+//}));
 
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
-const baseState = { dongleId: DONGLE, zoom: null, selectedRouteId: null };
+const baseState = { dongleId: DONGLE, zoom: null, selectedRouteId: null, router: { location: { pathname: '/', search: '' } }};
 
 function create(state = baseState) {
   const store = { getState: vi.fn(() => state), dispatch: vi.fn() };
@@ -47,9 +46,7 @@ describe('history middleware', () => {
   it('passes through a non-history action', () => {
     const { store, next, invoke } = create();
     const action = { type: 'TEST' };
-
     invoke(action);
-
     expect(next).toHaveBeenCalledWith(action);
     expect(store.dispatch).not.toHaveBeenCalled();
   });
@@ -60,9 +57,7 @@ describe('history middleware', () => {
       type: LOCATION_CHANGE,
       payload: { action: historyAction, location: { pathname: `/${DONGLE}` } },
     };
-
     invoke(action);
-
     expect(next).toHaveBeenCalledWith(action);
     expect(store.dispatch).toHaveBeenCalledWith(expect.any(Function));
   });
@@ -76,18 +71,14 @@ describe('history middleware', () => {
     ['stream', `/${DONGLE}/stream`, { page: 'stream', dongleId: DONGLE }],
   ])('applies the %s destination', async (_name, pathname, destination) => {
     const { store } = create();
-
     await syncStateFromURL(pathname)(store.dispatch, store.getState);
-
     expect(store.dispatch).toHaveBeenCalledWith({ type: ACTION_APPLY_DESTINATION, destination });
     expect(actions.checkRoutesData).toHaveBeenCalledTimes(destination.page === 'drive' ? 1 : 0);
   });
 
   it('selects a changed device and refreshes routes', async () => {
     const { store } = create();
-
     await syncStateFromURL(`/${OTHER}`)(store.dispatch, store.getState);
-
     expect(store.dispatch).toHaveBeenCalledWith({
       type: ACTION_APPLY_DESTINATION,
       destination: { page: 'dashboard', dongleId: OTHER },
@@ -99,10 +90,19 @@ describe('history middleware', () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}` }]);
     const pathname = `/${DONGLE}/1000/2000`;
     const { store } = create({ ...baseState, router: { location: { pathname } } });
-
     await syncStateFromURL(pathname)(store.dispatch, store.getState);
-
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
     expect(store.dispatch).toHaveBeenCalledWith(replace(`/${DONGLE}/${LOG}`));
+  });
+
+  it('skips synchronization for query-only changes', () => {
+    const { store, next, invoke } = create();
+    const action = {
+      type: LOCATION_CHANGE,
+      payload: { action: 'PUSH', location: { pathname: '/', search: `?settings=${OTHER}` } },
+    };
+    invoke(action);
+    expect(next).toHaveBeenCalledWith(action);
+    expect(store.dispatch).not.toHaveBeenCalled();
   });
 });

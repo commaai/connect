@@ -10,7 +10,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   const state = getState();
   if (state.devices === null) return;
 
-  const parsed = parseURL(pathname);
+  const parsed = parseURL({ pathname });
 
   let selectedDongleId = parsed.dongleId ?? state.dongleId;
   if (!selectedDongleId && state.devices?.length) {
@@ -78,12 +78,13 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   }
 }
 
-export const onHistoryMiddleware = ({ dispatch }) => (next) => (action) => {
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (!action) return;
+  const previousPathname = getState().router.location.pathname;
 
   next(action); // must be first, otherwise breaks history
 
-  if (action.type === LOCATION_CHANGE) {
+  if (action.type === LOCATION_CHANGE && previousPathname !== action.payload.location.pathname) {
     dispatch(syncStateFromURL(action.payload.location.pathname));
   }
 };

@@ -19,13 +19,13 @@ const destinations = [
 ];
 
 describe('parseURL', () => {
-  it.each(destinations)('parses %s: %s', (_name, url, destination) => {
-    expect(parseURL(url)).toEqual(destination);
+  it.each(destinations)('parses %s: %s', (_name, pathname, destination) => {
+    expect(parseURL({ pathname })).toEqual(destination);
   });
 
   it('parses legacy timestamps as milliseconds', () => {
-    expect(parseURL(`/${DONGLE}/1000/2000`)).toEqual({
-      page: 'legacy-drive', dongleId: DONGLE, range: { start: 1000, end: 2000 },
+    expect(parseURL({ pathname: `/${DONGLE}/1000/2000` })).toEqual({
+      page: 'legacy-drive', dongleId: DONGLE, range: { start: 1000, end: 2000 }
     });
   });
 
@@ -35,7 +35,7 @@ describe('parseURL', () => {
     [`/${DONGLE}/${LOG}/9007199254741/9007199254742`],
     [`/${DONGLE}/${LOG}/${'9'.repeat(400)}/${'9'.repeat(401)}`],
   ])('falls back to the whole drive for an invalid range: %s', (pathname) => {
-    expect(parseURL(pathname)).toEqual({
+    expect(parseURL({ pathname })).toEqual({
       page: 'drive', dongleId: DONGLE, logId: LOG, range: null,
     });
   });
@@ -47,7 +47,14 @@ describe('parseURL', () => {
     `/${DONGLE}/20/10`,
     `/${DONGLE}/10/10`,
     `/${DONGLE}/9007199254740992/9007199254740993`,
-  ])('rejects %s', (url) => {
-    expect(parseURL(url)).toEqual({ page: 'not-found' });
+  ])('rejects %s', (pathname) => {
+    expect(parseURL({ pathname })).toEqual({ page: 'not-found' });
+  });
+
+  it('parses settings independently of the background device', () => {
+    const settingsDongleId = '1111bbbb1111bbbb';
+    expect(parseURL({ pathname: `/${DONGLE}/${LOG}/10/20`, search: `?settings=${settingsDongleId}`})).toEqual({
+      page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10000, end: 20000 }, settingsDongleId
+    });
   });
 });

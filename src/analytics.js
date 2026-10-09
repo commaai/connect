@@ -8,7 +8,7 @@ import { parseURL } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
-  const { page, dongleId, logId, range } = parseURL(pathname);
+  const { page, dongleId, logId, range } = parseURL({ pathname });
   if (!dongleId) return pathname.replace(/\/$/, '');
   if (page === 'drive') return `/<dongleId>/${logId}${range ? '/<zoomStart>/<zoomEnd>' : ''}`;
   if (page === 'legacy-drive') return '/<dongleId>/<zoomStart>/<zoomEnd>';

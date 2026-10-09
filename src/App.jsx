@@ -78,7 +78,7 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { page, dongleId } = parseURL(window.location.pathname);
+      const { page, dongleId } = parseURL(window.location);
       if (page === 'stream') webrtcConnectionManager.reconnect(dongleId);
 
       fetchTurnCredentials().catch((err) => {
@@ -128,7 +128,7 @@ class App extends Component {
     let content = (
       <Suspense fallback={<FullPageLoading />}>
         <Route render={({ location }) => {
-          const { page } = parseURL(location.pathname);
+          const { page } = parseURL(location);
           const isDrive = page === 'drive' || page === 'legacy-drive';
           return !api.auth.isAuthenticated() && !isDrive ? this.anonymousRoutes() : this.authRoutes();
         }} />
