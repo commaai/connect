@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -14,11 +15,12 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
+import { Page, buildUrl } from '../../url';
 
 const styles = (theme) => ({
   modal: {
@@ -129,6 +131,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -142,12 +145,10 @@ class DeviceSettingsModal extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
-      this.setState({
-        ...initialState,
-        deviceAlias: alias,
-      });
+    // a deep link can open before the device's details arrive; take the real name unless it was edited
+    const prevAlias = prevProps.device?.alias || '';
+    if (this.props.device?.alias !== prevProps.device?.alias && this.state.deviceAlias === prevAlias) {
+      this.setState({ deviceAlias: this.props.device?.alias || '' });
     }
   }
 
@@ -225,11 +226,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
-    this.props.onClose();
+    this.props.dispatch(push(buildUrl({ dongleId: this.props.dongleId, page: Page.PRIME })));
   }
 
   async unpairDevice() {
@@ -270,7 +267,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
+          open
           onClose={this.props.onClose}
         >
           <Paper className={classes.modal}>
@@ -441,7 +438,6 @@ const stateToProps = (state, ownProps) => {
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
   };
 };
 

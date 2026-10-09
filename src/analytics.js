@@ -4,25 +4,14 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
+// anonymize the device and time range, even in paths the app doesn't recognize
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
+  return pathname
+    .replace(/^\/[a-f0-9]{16}(?=\/|$)/, '/<dongleId>')
+    .replace(/\/\d+\/\d+\/?$/, '/<zoomStart>/<zoomEnd>')
+    .replace(/\/$/, '');
 }
 
 const clusterMap = {
@@ -106,7 +95,7 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.TIMELINE_PUSH_SELECTION:
+    case Types.ACTION_SELECT_DRIVE:
       if (!prevState.zoom && state.zoom) {
         params = {
           ...params,

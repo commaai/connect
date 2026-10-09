@@ -3,16 +3,17 @@
 // rapid seeking, etc
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import { withStyles } from '@material-ui/core/styles';
 import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
+import { buildUrl } from '../../url';
 
 const styles = () => ({
   base: {
@@ -275,7 +276,7 @@ class Timeline extends Component {
       const startTime = startOffset;
       const endTime = endOffset;
 
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      dispatch(push(buildUrl({ dongleId: route.dongle_id, logId: route.log_id, zoom: { start: startTime, end: endTime } })));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

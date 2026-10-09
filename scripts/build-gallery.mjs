@@ -30,6 +30,7 @@ const GALLERY_STATES = [
   { name: 'checkout', label: 'Prime checkout', path: `/${DONGLE_ID}/prime`, readyText: '24/7 connectivity' },
   { name: 'management', label: 'Prime management', path: `/${DONGLE_ID}/prime`, readyText: 'Next payment' },
   { name: 'teleop', label: 'Teleop', path: `/${DONGLE_ID}/stream`, readyText: 'comma body' },
+  { name: 'settings', label: 'Device settings', path: `/${DONGLE_ID}/settings`, readyText: 'Device settings' },
   {
     name: 'pair-device-modal',
     label: 'Pair device modal',
