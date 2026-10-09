@@ -17,9 +17,6 @@ import { isIos, isFirefox } from '../../utils/browser.js';
 const MAX_PLAYBACK_RATE = 16;
 const FIREFOX_AUDIO_PLAYBACK_RATE = 8;
 
-// the <video> element is only trusted for positions we can observe; anything
-// closer than this counts as "already where we asked it to be"
-const SEEK_TOLERANCE_MS = 250;
 // nothing has played after this long: offer a retry, but it isn't an error yet
 const SLOW_LOAD_TIMEOUT_MS = 15000;
 
@@ -119,6 +116,9 @@ class DriveVideo extends Component {
     this.missingFirstSegmentRecovery = false;
     this.publishRafId = null;
     this.mounted = false;
+    // the last position the element itself published; our own publishes must
+    // never be mistaken for a user-initiated seek
+    this.lastPublishedOffset = null;
 
     this.state = {
       src: null,
@@ -140,7 +140,7 @@ class DriveVideo extends Component {
     // a new user-requested position: hand it over to the video element
     const { offset } = this.props;
     if (typeof offset === 'number' && typeof prevProps.offset === 'number'
-      && Math.abs(offset - prevProps.offset) > SEEK_TOLERANCE_MS) {
+      && offset !== prevProps.offset && offset !== this.lastPublishedOffset) {
       this.seekVideoTo(offset);
     }
 
@@ -184,7 +184,8 @@ class DriveVideo extends Component {
     if (this.publishRafId !== null) {
       return;
     }
-    this.publishRafId = requestAnimationFrame(this.publishLoop);
+    // bound: requestAnimationFrame calls the callback without a receiver
+    this.publishRafId = requestAnimationFrame(() => this.publishLoop());
   }
 
   stopPublishLoop() {
@@ -215,6 +216,7 @@ class DriveVideo extends Component {
       offset += currentRoute.videoStartOffset;
     }
 
+    this.lastPublishedOffset = offset;
     dispatch(videoProgress(offset));
   }
 
@@ -453,7 +455,7 @@ class DriveVideo extends Component {
     }
   }
 
-  updateVideoSource(prevProps) {
+  updateVideoSource(prevProps = {}) {
     let { src } = this.state;
     const { currentRoute } = this.props;
     if (!currentRoute) {
@@ -488,6 +490,7 @@ class DriveVideo extends Component {
     this.destroyHls();
     this.clearSlowLoadTimer();
     this.missingFirstSegmentRecovery = false;
+    this.lastPublishedOffset = null;
 
     // remember where we are so the element can be sent there once it loads
     const target = typeof startOffset === 'number' ? startOffset : this.props.offset;
