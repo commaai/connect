@@ -5,44 +5,25 @@ import { api } from '../api/backend';
 import { ACTION_STARTUP_DATA } from './types';
 import { syncStateFromURL } from './history';
 
-async function initProfile() {
-  const { auth, account } = api;
-  if (auth.isAuthenticated()) {
-    try {
-      return await account.getProfile();
-    } catch (err) {
-      if (err.resp && err.resp.status === 401) {
-        await auth.logOut();
-      } else {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'init_api_get_profile' });
-      }
-    }
-  }
-  return null;
-}
-
-async function initDevices() {
-  let devices = [];
-
-  const { auth, devices: devicesApi } = api;
-  if (auth.isAuthenticated()) {
-    try {
-      devices = devices.concat(await devicesApi.listDevices());
-    } catch (err) {
-      if (!err.resp || err.resp.status !== 401) {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'init_api_list_devices' });
-      }
-    }
-  }
-
-  return devices;
+const loadStartupData = async () => {
+  const { auth, account, devices } = api;
+  if (!auth.isAuthenticated()) return [null, []];
+  return Promise.all([
+    account.getProfile().catch(async (err) => {
+      if (err?.resp?.status === 401) await auth.logOut();
+      else Sentry.captureException(err, { fingerprint: 'init_api_get_profile' });
+      return null;
+    }),
+    devices.listDevices().catch((err) => {
+      if (err?.resp?.status !== 401) Sentry.captureException(err, { fingerprint: 'init_api_list_devices' });
+      return [];
+    }),
+  ]);
 }
 
 export default function init() {
   return async (dispatch, getState) => {
-    const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
+    const [profile, devices] = await loadStartupData();
     if (profile) Sentry.setUser({ id: profile.id });
 
     dispatch({
