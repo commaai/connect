@@ -17,10 +17,13 @@ The suite covers playback and audio controls, paused and rapid seeks,
 pre-metadata seeks, nonzero loops, Map/video element retention, terminal
 errors and Retry/Play recovery, refreshed sources, and a late video origin.
 The midstream missing-fragment case requires a terminal error within five
-seconds and bounds repeated 404 requests. Separate cases inject one transient
-404, one, two and three consecutive 503 responses, plus one real first-byte
-timeout under the production 10-second policy, and require automatic recovery
-with playback intent, media identity, speed and mute state preserved.
+seconds and bounds repeated 404 requests; when the missing fragment is found
+while buffering ahead, the video before it must play out first. A load held
+for over 15 seconds must offer Retry without reporting an error. Separate cases
+inject one transient 404, one, two and three consecutive 503 responses, plus one
+real first-byte timeout under the production 10-second policy, and require
+automatic recovery with playback intent, media identity, speed and mute state
+preserved.
 Results are written to `test-results/playback/` (ignored by Git). Failures include
 a screenshot plus media state and request/event traces; receipts include
 response/abort timestamps. CI uploads these details as a failure artifact.

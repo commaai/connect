@@ -14,14 +14,16 @@ const LOAD_FAILED = 'Unable to load video';
 const NETWORK_FAILED = 'Unable to load video. Check network connection.';
 const HLS_TYPE = 'application/vnd.apple.mpegurl';
 const MAX_RECOVERIES = 2;
+const STALL_RETRY_MS = 15000;
 const HAVE_METADATA = 1;
 const HAVE_FUTURE_DATA = 3;
 
-// hls.js loads on demand so iOS, which plays HLS natively, never downloads it.
+// hls.js loads on demand so iOS, which plays HLS natively, never downloads it. The light build
+// covers route streams: one rendition with muxed audio, no subtitles, DRM or interstitials.
 let Hls;
 let hlsImport;
 const loadHls = () => {
-  hlsImport ??= import('hls.js').then(
+  hlsImport ??= import('hls.js/light').then(
     (mod) => { Hls = mod.default; return Hls; },
     (err) => { hlsImport = null; throw err; },
   );
@@ -42,24 +44,37 @@ const sourceFor = (route) => {
   return { key: `${route.fullname} ${src}`, src };
 };
 
-const VideoOverlay = ({ loading, error, onRetry }) => {
+const VideoOverlay = ({ loading, stalled, error, onRetry }) => {
+  const retry = (
+    <Button
+      className="mt-1 min-h-8 rounded-full border border-solid border-white/10 px-4 text-xs font-medium normal-case"
+      onClick={onRetry}
+    >
+      Retry
+    </Button>
+  );
   let content;
   if (error) {
     content = (
       <>
-        <ErrorOutline className="mb-2" />
+        <ErrorOutline />
         <Typography>{error}</Typography>
-        <Button className="!mt-2" onClick={onRetry}>Retry</Button>
+        {retry}
       </>
     );
   } else if (loading) {
-    content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />;
+    content = (
+      <>
+        <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
+        {stalled && retry}
+      </>
+    );
   } else {
     return null;
   }
   return (
     <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
-      <div className="relative text-center top-[calc(50%_-_25px)]">
+      <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
         {content}
       </div>
     </div>
@@ -74,7 +89,7 @@ class DriveVideo extends Component {
   constructor(props) {
     super(props);
     this.videoRef = React.createRef();
-    this.state = { error: null, buffering: false };
+    this.state = { error: null, buffering: false, stalled: false };
     this.session = null; // listeners and hls.js instance of the attached source
     this.seekId = undefined; // latest explicit seek taken from the store
     this.pending = null; // route offset to seek to once metadata is available
@@ -84,12 +99,16 @@ class DriveVideo extends Component {
     this.hasAudio = false;
     this.readOffset = this.readOffset.bind(this);
     this.retry = () => {
-      const resume = this.resumeOnRetry;
+      // A failed source left the controls paused; a stalled one still has its playback request.
+      const resume = this.failed() && this.resumeOnRetry;
       this.load(this.position());
       if (resume) {
         this.startPlayback(this.speed);
         this.props.dispatch(play(this.speed));
       }
+    };
+    this.onOnline = () => {
+      if (this.failed() && this.state.error === NETWORK_FAILED) this.retry();
     };
   }
 
@@ -104,6 +123,7 @@ class DriveVideo extends Component {
       },
       setMuted: (muted) => { video.muted = muted; },
     });
+    window.addEventListener('online', this.onOnline);
     this.componentDidUpdate({});
   }
 
@@ -117,7 +137,9 @@ class DriveVideo extends Component {
         this.seekId = seekId;
         this.pending = offset ?? 0;
         this.unanchoredSeek = currentRoute?.videoStartOffset == null ? this.pending : null;
-        this.applyPending();
+        // Seeking after a failure tries again from the new position, like Retry.
+        if (this.failed()) this.retry();
+        else this.applyPending();
       }
       if (desiredPlaySpeed !== prevProps.desiredPlaySpeed) {
         // A play command after a failure reloads the source, e.g. when the overlay is hidden.
@@ -142,6 +164,8 @@ class DriveVideo extends Component {
 
   componentWillUnmount() {
     this.unregisterClock();
+    clearTimeout(this.stallTimer);
+    window.removeEventListener('online', this.onOnline);
     this.release();
     this.sourceKey = undefined;
     this.videoRef.current?.removeAttribute('src');
@@ -188,14 +212,16 @@ class DriveVideo extends Component {
     this.sourceRoute = route?.fullname;
     this.seekId = seekId;
     this.pending = target ?? 0;
-    if (this.state.error) this.setState({ error: null });
+    clearTimeout(this.stallTimer);
+    this.stallTimer = null;
+    if (this.state.error || this.state.stalled) this.setState({ error: null, stalled: false });
     if (!route) {
       video.removeAttribute('src');
       video.load();
       return;
     }
 
-    const session = { fullname: route.fullname, decodeRecoveries: 0, resets: 0, missingFragment: null, offs: [] };
+    const session = { fullname: route.fullname, decodeRecoveries: 0, resets: 0, missingFragment: null, gap: null, offs: [] };
     this.session = session;
     const on = (type, fn, eventTarget = video) => {
       eventTarget.addEventListener(type, fn);
@@ -260,6 +286,16 @@ class DriveVideo extends Component {
       if (code === 3 && session.hls) this.recoverDecode(session);
       else this.fail(code === 2 ? NETWORK_FAILED : LOAD_FAILED);
     });
+    // With loading stopped at a missing fragment, the only stall left is at the gap. A seek
+    // resumes loading from the new position.
+    on('waiting', () => {
+      if (session.gap != null) this.fail(MISSING_VIDEO);
+    });
+    on('seeking', () => {
+      if (session.gap == null) return;
+      session.gap = null;
+      session.hls.startLoad(video.currentTime);
+    });
     for (const type of ['loadeddata', 'canplay', 'waiting', 'playing', 'seeking', 'seeked', 'play', 'pause', 'emptied']) {
       on(type, () => this.updateBuffering());
     }
@@ -270,9 +306,6 @@ class DriveVideo extends Component {
         const hls = new HlsClass({
           maxBufferLength: 40,
           startPosition: toMediaTime(this.pending ?? 0, route),
-          // Route streams have no ads. Interstitial scheduling can replay from a queued 'play'
-          // after the user paused; keep playback decisions in this player.
-          enableInterstitialPlayback: false,
         });
         session.hls = hls;
         hls.on(HlsClass.Events.ERROR, (_event, data) => {
@@ -280,13 +313,20 @@ class DriveVideo extends Component {
           const missing = data.response?.code === 404;
           // hls.js retries errors itself and reports them fatal only once its retries are exhausted.
           // A listed fragment that 404s is the exception: with no alternate stream to switch to, it
-          // is re-requested with backoff for ~30s. Allow one transient miss, then show the existing
-          // missing-video error if the same fragment still returns 404.
+          // is re-requested with backoff for ~30s. Allow one transient miss; if the same fragment
+          // still returns 404, stop loading and let the video before it play out. The missing-video
+          // error shows once playback stalls at the gap, or right away if it is already there.
           if (!data.fatal) {
             if (missing && data.details === HlsClass.ErrorDetails.FRAG_LOAD_ERROR) {
-              const url = data.frag?.url;
-              if (session.missingFragment === url) this.fail(MISSING_VIDEO);
-              else session.missingFragment = url;
+              const { url, start } = data.frag ?? {};
+              if (session.missingFragment !== url) {
+                session.missingFragment = url;
+              } else if (start > video.currentTime + 1 && video.readyState >= HAVE_FUTURE_DATA) {
+                hls.stopLoad();
+                session.gap = start;
+              } else {
+                this.fail(MISSING_VIDEO);
+              }
             }
             return;
           }
@@ -335,7 +375,11 @@ class DriveVideo extends Component {
     }
     session.decodeRecoveries += 1;
     this.pending = this.position();
+    // hls.js resumes loading after the reattach only if it was loading, so restart it past a gap.
+    const stopped = session.gap != null;
+    session.gap = null;
     session.hls.recoverMediaError();
+    if (stopped) session.hls.startLoad(toMediaTime(this.pending, this.props.currentRoute));
   }
 
   /** Whether the source failed and nothing has been reloaded since. */
@@ -428,7 +472,15 @@ class DriveVideo extends Component {
     // While paused, only an in-flight seek is worth a spinner.
     const buffering = Boolean(this.session)
       && (this.props.desiredPlaySpeed > 0 ? video.readyState < HAVE_FUTURE_DATA : video.seeking);
-    this.setState((state) => (state.buffering === buffering ? null : { buffering }));
+    // Native HLS can wait on a segment indefinitely without an error, so a long wait offers Retry.
+    if (buffering && !this.stallTimer) {
+      this.stallTimer = setTimeout(() => this.setState({ stalled: true }), STALL_RETRY_MS);
+    } else if (!buffering && this.stallTimer) {
+      clearTimeout(this.stallTimer);
+      this.stallTimer = null;
+    }
+    this.setState((state) => (state.buffering === buffering && (buffering || !state.stalled)
+      ? null : { buffering, stalled: buffering && state.stalled }));
   }
 
   setAudio(hasAudio) {
@@ -438,10 +490,10 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { error, buffering } = this.state;
+    const { error, buffering, stalled } = this.state;
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] isolate">
-        <VideoOverlay loading={buffering} error={error} onRetry={this.retry} />
+        <VideoOverlay loading={buffering} stalled={stalled} error={error} onRetry={this.retry} />
         <video ref={this.videoRef} playsInline preload="auto" style={{ width: '100%', height: '100%' }} />
       </div>
     );

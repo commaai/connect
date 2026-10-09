@@ -15,7 +15,7 @@ vi.mock('../../store', () => ({ default: { getState: () => ({}) } }));
 vi.mock('../../api/backend', () => ({
   api: { video: { getQcameraStreamUrl: (name, exp, sig) => `https://api.test/v1/route/${name}/qcamera.m3u8?sig=${sig}` } },
 }));
-vi.mock('hls.js', () => {
+vi.mock('hls.js/light', () => {
   class FakeHls {
     static Events = { ERROR: 'hlsError', BUFFER_CODECS: 'hlsBufferCodecs', MEDIA_DETACHING: 'hlsMediaDetaching', FRAG_LOADED: 'hlsFragLoaded' };
 
@@ -30,6 +30,8 @@ vi.mock('hls.js', () => {
       this.handlers = {};
       this.destroyed = false;
       this.recoverMediaError = vi.fn(() => this.detachMedia());
+      this.stopLoad = vi.fn();
+      this.startLoad = vi.fn();
       hlsMock.instances.push(this);
     }
 
@@ -641,25 +643,104 @@ describe('DriveVideo', () => {
     expect(hlsMock.instances).toHaveLength(2);
   });
 
-  it('reloads a failed source at a seek made while it had no source', async () => {
+  it('reloads a failed source at a later seek, resuming only if it was playing', async () => {
     const { store, m, ready, seeked, progress, dispatch, hls } = await setup();
     ready();
     dispatch(play(2));
     progress(42);
     hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
-    dispatch(seek(51000));
-    expect(hlsMock.instances).toHaveLength(1);
-    expect(m.seeks).toEqual([]);
-    expect(offset(store)).toBe(51000);
+    expect(store.getState().desiredPlaySpeed).toBe(0);
 
-    act(() => { playVideo(2); store.dispatch(play(2)); });
+    dispatch(seek(51000));
+    expect(screen.queryByText('Retry')).toBeNull();
     expect(hlsMock.instances).toHaveLength(2);
     expect(hls().config.startPosition).toBe(51);
+    expect(m.paused).toBe(false);
     m.currentTime = 0;
     ready();
     expect(m.seeks).toEqual([51]);
     seeked();
     expect(store.getState()).toMatchObject({ offset: 51000, desiredPlaySpeed: 2 });
+
+    dispatch(pause());
+    hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    dispatch(seek(20000));
+    expect(hlsMock.instances).toHaveLength(3);
+    expect(hls().config.startPosition).toBe(20);
+    expect(store.getState().desiredPlaySpeed).toBe(0);
+  });
+
+  describe('when loading stalls for a long time', () => {
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('offers Retry under the spinner without an error, and Retry reloads in place', async () => {
+      const { store, m, fire, ready, progress, dispatch, hls } = await setup();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      ready();
+      dispatch(play(2));
+      progress(42);
+      const stall = () => { m.readyState = 2; fire('waiting'); };
+      stall();
+      act(() => { vi.advanceTimersByTime(14000); });
+      m.readyState = 4;
+      fire('canplay'); // data arrived in time, so the wait starts over
+      stall();
+      act(() => { vi.advanceTimersByTime(14000); });
+      expect(screen.queryByText('Retry')).toBeNull();
+
+      act(() => { vi.advanceTimersByTime(1000); });
+      expect(spinner()).not.toBeNull();
+      expect(screen.queryByText(/Unable to load|not uploaded/)).toBeNull();
+      act(() => { screen.getByText('Retry').click(); });
+      expect(hlsMock.instances).toHaveLength(2);
+      expect(hls().config.startPosition).toBe(42);
+      expect(m.paused).toBe(false);
+      expect(screen.queryByText('Retry')).toBeNull();
+      expect(store.getState().desiredPlaySpeed).toBe(2);
+    });
+
+    it('keeps a paused video paused on Retry, even after an earlier failure while playing', async () => {
+      const { store, m, ready, seeked, progress, dispatch, hls } = await setup();
+      ready();
+      dispatch(play(2));
+      progress(42);
+      hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+      act(() => { screen.getByText('Retry').click(); });
+      m.currentTime = 0;
+      ready();
+      seeked();
+      dispatch(pause());
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      dispatch(seek(20000));
+      act(() => { vi.advanceTimersByTime(15000); });
+      const plays = m.plays;
+      act(() => { screen.getByText('Retry').click(); });
+      expect(hlsMock.instances).toHaveLength(3);
+      expect(m.plays).toBe(plays);
+      expect(store.getState().desiredPlaySpeed).toBe(0);
+    });
+  });
+
+  it('retries a network failure once the device is back online', async () => {
+    const { store, m, ready, progress, dispatch, hls } = await setup();
+    ready();
+    dispatch(play(2));
+    progress(42);
+    hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' });
+    expect(screen.getByText('Unable to load video. Check network connection.')).toBeInTheDocument();
+
+    act(() => { window.dispatchEvent(new Event('online')); });
+    expect(screen.queryByText('Retry')).toBeNull();
+    expect(hlsMock.instances).toHaveLength(2);
+    expect(hls().config.startPosition).toBe(42);
+    expect(m.paused).toBe(false);
+    expect(store.getState().desiredPlaySpeed).toBe(2);
+
+    // Other failures are not network problems, so coming online again leaves them alone.
+    hls().emit('hlsError', { fatal: true, type: 'networkError', details: 'manifestLoadError', response: { code: 404 } });
+    act(() => { window.dispatchEvent(new Event('online')); });
+    expect(screen.getByText('This video segment has not uploaded yet or has been deleted.')).toBeInTheDocument();
+    expect(hlsMock.instances).toHaveLength(2);
   });
 
   it('reloads a failed source on a play command that does not come through the gesture bridge', async () => {
@@ -801,6 +882,70 @@ describe('DriveVideo', () => {
       hls().emit('hlsError', missingFrag('seg/6.ts'));
       expect(screen.queryByText(/not uploaded/)).toBeNull();
       expect(hls().destroyed).toBe(false);
+    });
+
+    it('plays the video buffered before a missing fragment and reports it once playback stalls there', async () => {
+      const { store, m, fire, ready, seeked, progress, dispatch, hls } = await setup();
+      ready();
+      dispatch(play(2));
+      progress(20);
+      const frag = { url: 'seg/1.ts', start: 40 };
+      hls().emit('hlsError', missingFrag('seg/1.ts'));
+      hls().emit('hlsError', { ...missingFrag('seg/1.ts'), frag });
+      expect(hls().stopLoad).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText(/not uploaded/)).toBeNull();
+      progress(39.9);
+      expect(m.paused).toBe(false);
+
+      // A seek resumes loading from there, so a stall afterwards is ordinary buffering.
+      dispatch(seek(10000));
+      fire('seeking');
+      expect(hls().startLoad).toHaveBeenCalledWith(10);
+      seeked();
+      m.readyState = 2;
+      fire('waiting');
+      expect(screen.queryByText(/not uploaded/)).toBeNull();
+      expect(spinner()).not.toBeNull();
+      m.readyState = 4;
+      fire('canplay');
+
+      // The fragment is confirmed missing on its next 404; playback then stalls at the gap.
+      hls().emit('hlsError', { ...missingFrag('seg/1.ts'), frag });
+      expect(hls().stopLoad).toHaveBeenCalledTimes(2);
+      progress(40);
+      m.readyState = 2;
+      fire('waiting');
+      expect(screen.getByText('This video segment has not uploaded yet or has been deleted.')).toBeInTheDocument();
+      expect(m.paused).toBe(true);
+      expect(store.getState()).toMatchObject({ offset: 40000, desiredPlaySpeed: 0 });
+    });
+
+    it('resumes loading when a decode error is recovered while stopped at a gap', async () => {
+      const { store, fire, ready, progress, dispatch, hls } = await setup();
+      ready();
+      dispatch(play(2));
+      progress(20);
+      hls().emit('hlsError', missingFrag('seg/1.ts'));
+      hls().emit('hlsError', { ...missingFrag('seg/1.ts'), frag: { url: 'seg/1.ts', start: 40 } });
+      hls().emit('hlsError', { fatal: true, type: 'mediaError', details: 'bufferAppendError' });
+      expect(hls().recoverMediaError).toHaveBeenCalledTimes(1);
+      expect(hls().startLoad).toHaveBeenCalledWith(20);
+      // The reattached media stalls while it reloads; that is not the gap.
+      fire('waiting');
+      expect(screen.queryByText(/not uploaded/)).toBeNull();
+      expect(store.getState().desiredPlaySpeed).toBe(2);
+    });
+
+    it('reports a missing fragment right away when playback is already at it', async () => {
+      const { m, ready, progress, dispatch, hls } = await setup();
+      ready();
+      dispatch(play(2));
+      progress(59.5);
+      hls().emit('hlsError', missingFrag('seg/1.ts'));
+      hls().emit('hlsError', { ...missingFrag('seg/1.ts'), frag: { url: 'seg/1.ts', start: 60 } });
+      expect(hls().stopLoad).not.toHaveBeenCalled();
+      expect(screen.getByText('This video segment has not uploaded yet or has been deleted.')).toBeInTheDocument();
+      expect(m.paused).toBe(true);
     });
 
     it('leaves retryable fragment errors and non-fatal media errors to hls.js', async () => {

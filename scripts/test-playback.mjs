@@ -384,6 +384,48 @@ const cases = [
       await wait(page, (s) => !s.mapVisible && !s.error && !s.paused, 'Video returns to recovered playback');
     },
   },
+  {
+    name: 'missing-fragment-ahead-plays-to-gap',
+    setup: (control) => { control.failFrom = 3; },
+    async run({ page, control }) {
+      await ready(page);
+      const misses = () => control.requests.filter((request) => request.segment === 3 && request.status === 404).length;
+      const deadline = Date.now() + 15000;
+      while (misses() < 2) {
+        assert(Date.now() < deadline, 'buffering ahead confirms the missing fragment');
+        await new Promise((resolve) => { setTimeout(resolve, 20); });
+      }
+      const early = await snapshot(page);
+      assert(!early.error && early.currentTime < 1, 'a missing fragment ahead must not stop the video before it');
+      await click(page, 'Unpause');
+      const failed = await wait(page, (s) => Boolean(s.error) && !s.spinner, 'missing fragment reported at the gap', null, 20000);
+      assert(failed.offset >= 5500, `the video before the gap plays out (stopped at ${failed.offset} ms)`);
+      assert.equal(failed.desiredSpeed, 0);
+      assert.equal(misses(), 2, 'a confirmed missing fragment is not requested again');
+    },
+  },
+  {
+    name: 'long-stall-offers-retry',
+    setup: (control) => { control.holdFrom = 2; },
+    async run({ page, control }) {
+      await ready(page);
+      await click(page, 'Unpause');
+      await wait(page, (s) => s.spinner && s.currentTime >= 3.5, 'playback stalls at the held fragment');
+      await page.waitForFunction(() => [...document.querySelectorAll('button')].some((button) => button.textContent.trim() === 'Retry'),
+        { timeout: 20000 });
+      const stalled = await snapshot(page);
+      assert(stalled.spinner && !stalled.error, 'a long stall offers Retry without reporting an error');
+      assert(stalled.desiredSpeed > 0, 'a long stall keeps the playback request');
+      const mark = control.requests.length;
+      control.holdFrom = Infinity;
+      const retry = await page.evaluateHandle(() => [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Retry'));
+      await retry.asElement().click();
+      await retry.dispose();
+      await ready(page);
+      await moving(page);
+      assert(control.requests.slice(mark).some((request) => request.segment === null && request.status === 200), 'Retry reloads the source');
+    },
+  },
   ...[1, 2, 3].map((count) => transientFragmentCase(count, 503)),
   transientFragmentCase(1, 404),
   transientFragmentCase(1, null),
