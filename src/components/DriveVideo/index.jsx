@@ -123,7 +123,6 @@ class DriveVideo extends Component {
 
   // A paused video shows its frame at once, and hls.js browsers report the paint. iOS native HLS
   // went black on drive close with that report, so there 0.3 s of playing stands in for it.
-  // (Events can still reach a closed player until React detaches it: it ignores them.)
   onLoadedData() {
     if (!this.video.current) return;
     if (this.video.current.paused) this.setState({ picture: true });
@@ -197,6 +196,7 @@ class DriveVideo extends Component {
   onTimeUpdate() {
     const { dispatch, loop } = this.props;
     const video = this.video.current;
+    if (!video) return;
     if (!this.state.picture && !video.paused && !video.seeking && performance.now() - this.playingAt >= 300) {
       this.setState({ picture: true });
     }
