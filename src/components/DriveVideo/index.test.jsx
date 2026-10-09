@@ -228,6 +228,16 @@ describe('DriveVideo', () => {
     expect(video.play).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the displayed time when the first camera frame event arrives after the seek', () => {
+    const { video, writes } = renderVideo();
+    act(() => store.dispatch(seek(6000)));
+    const firstFrame = { type: 'event', route_offset_millis: 2000, data: { event_type: 'first_road_camera_frame' } };
+    act(() => { store.dispatch({ type: Types.ACTION_UPDATE_ROUTE_EVENTS, fullname: `${DONGLE}|${LOG}`, events: [firstFrame] }); });
+    expect(currentOffset()).toBe(6000);
+    expect(writes).toEqual([6, 4]);
+    expect(video.currentTime).toBe(4);
+  });
+
   it('shows the spinner after a short delay', () => {
     const { video } = renderVideo();
     fireEvent.playing(video);

@@ -10,6 +10,8 @@ let clock = { offset: 0, since: Date.now(), speed: 0, hasRoute: false };
 let pastEnd = false;
 
 const videoStartOffset = () => store.getState().currentRoute?.videoStartOffset ?? 0;
+let knownStartOffset = 0;
+let subscribed = false;
 
 const videoToRoute = (time) => (time * 1000) + videoStartOffset();
 export const routeToVideo = (offset) => Math.max(0, offset - videoStartOffset()) / 1000;
@@ -77,11 +79,24 @@ function applyPendingSeek({ target }) {
   if (Math.abs(target.currentTime - routeToVideo(offset)) > SEEK_TOLERANCE) seekTo(offset);
 }
 
+// route events often arrive after the video was positioned: keep the shown time and move the video
+function keepTimeOnStartOffsetChange() {
+  const previous = knownStartOffset;
+  knownStartOffset = videoStartOffset();
+  const el = loadedVideo();
+  if (el && !pastEnd && knownStartOffset !== previous) seekTo((el.currentTime * 1000) + previous);
+}
+
 // the clock keeps the current frame while the element reloads
 export function attachVideo(el, fullname) {
   setClockSpeed(clock.speed);
   current = { el, route: fullname };
   pastEnd = false;
+  knownStartOffset = videoStartOffset();
+  if (!subscribed) {
+    store.subscribe(keepTimeOnStartOffsetChange);
+    subscribed = true;
+  }
   el.addEventListener('loadedmetadata', applyPendingSeek, { once: true });
 }
 
