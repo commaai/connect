@@ -52,6 +52,23 @@ describe('drive video', () => {
     expect(videoPause).toHaveBeenCalled();
   });
 
+  it('follows a speed change from the browser', () => {
+    const { store, video } = renderVideo();
+    video.playbackRate = 1.5;
+    fireEvent.rateChange(video);
+    expect(store.getState().desiredPlaySpeed).toEqual(1.5);
+  });
+
+  it('keeps its own speed change while paused', () => {
+    const { store, video } = renderVideo({ isPlaying: false });
+    act(() => store.dispatch(setPlaybackSpeed(2)));
+    act(() => store.dispatch(setPlaybackSpeed(4)));
+    fireEvent.rateChange(video);
+    fireEvent.rateChange(video);
+    expect(store.getState().desiredPlaySpeed).toEqual(4);
+    expect(video.defaultPlaybackRate).toEqual(4);
+  });
+
   it('seeks even if progress is reported before the render', () => {
     const { store, video } = renderVideo();
     act(() => {

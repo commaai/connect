@@ -22,6 +22,11 @@ const timerSteps = [
   8,
 ];
 
+// the browser's speed menu can leave the speed between steps
+function nextSpeed(speed, step) {
+  return step > 0 ? timerSteps.find((s) => s > speed) : timerSteps.filter((s) => s < speed).pop();
+}
+
 const styles = (theme) => ({
   base: {
     display: 'flex',
@@ -135,7 +140,7 @@ class TimeDisplay extends Component {
 
   changeSpeed(step) {
     const { desiredPlaySpeed, dispatch } = this.props;
-    dispatch(setPlaybackSpeed(timerSteps[timerSteps.indexOf(desiredPlaySpeed) + step]));
+    dispatch(setPlaybackSpeed(nextSpeed(desiredPlaySpeed, step)));
   }
 
   togglePause() {
@@ -145,7 +150,6 @@ class TimeDisplay extends Component {
 
   render() {
     const { classes, zoom, desiredPlaySpeed, isPlaying, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const speedIndex = timerSteps.indexOf(desiredPlaySpeed);
     const isPaused = !isPlaying;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
@@ -182,19 +186,19 @@ class TimeDisplay extends Component {
             <IconButton
               className={classes.tinyArrowIcon}
               onClick={() => this.changeSpeed(1)}
-              disabled={speedIndex === timerSteps.length - 1}
+              disabled={nextSpeed(desiredPlaySpeed, 1) === undefined}
               aria-label="Increase play speed by 1 step"
             >
               <UpArrow className={classes.tinyArrowIcon} />
             </IconButton>
             <Typography variant="body2" align="center">
-              {desiredPlaySpeed}
+              {Math.round(desiredPlaySpeed * 100) / 100}
               ×
             </Typography>
             <IconButton
               className={classes.tinyArrowIcon}
               onClick={() => this.changeSpeed(-1)}
-              disabled={speedIndex === 0}
+              disabled={nextSpeed(desiredPlaySpeed, -1) === undefined}
               aria-label="Decrease play speed by 1 step"
             >
               <DownArrow className={classes.tinyArrowIcon} />

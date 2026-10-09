@@ -9,7 +9,7 @@ import { api } from '../../api/backend';
 
 import Colors from '../../colors';
 import { ErrorOutline, RefreshIcon } from '../../icons';
-import { pause, play, videoProgress } from '../../timeline/playback';
+import { pause, play, setPlaybackSpeed, videoProgress } from '../../timeline/playback';
 
 let hlsModule = null;
 // a failed chunk fetch is cached, so only a page reload retries it
@@ -74,6 +74,7 @@ class DriveVideo extends Component {
     this.onWaiting = this.onWaiting.bind(this);
     this.onPlay = this.onPlay.bind(this);
     this.onPause = this.onPause.bind(this);
+    this.onRateChange = this.onRateChange.bind(this);
     this.onEnded = this.onEnded.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
@@ -170,6 +171,15 @@ class DriveVideo extends Component {
       dispatch(pause());
     }
     this.updateBuffering();
+  }
+
+  // the browser's speed menu and extensions can set the rate too
+  onRateChange() {
+    const { desiredPlaySpeed, dispatch } = this.props;
+    const { playbackRate } = this.videoPlayer.current;
+    if (playbackRate > 0 && playbackRate !== desiredPlaySpeed) {
+      dispatch(setPlaybackSpeed(playbackRate));
+    }
   }
 
   onEnded() {
@@ -339,9 +349,18 @@ class DriveVideo extends Component {
     return Math.max(0, (offset - (this.props.currentRoute?.videoStartOffset || 0)) / 1000);
   }
 
-  updatePlayback() {
-    const { isPlaying, desiredPlaySpeed, dispatch } = this.props;
+  // loading a source resets playbackRate to defaultPlaybackRate
+  updateSpeed() {
+    const { desiredPlaySpeed } = this.props;
     const video = this.videoPlayer.current;
+    video.playbackRate = desiredPlaySpeed;
+    video.defaultPlaybackRate = desiredPlaySpeed;
+  }
+
+  updatePlayback() {
+    const { isPlaying, dispatch } = this.props;
+    const video = this.videoPlayer.current;
+    this.updateSpeed();
     if (!isPlaying) {
       // pausing again stops Chrome resuming it when a hidden tab comes back
       if (!video.paused) {
@@ -349,7 +368,6 @@ class DriveVideo extends Component {
       }
       return;
     }
-    video.playbackRate = desiredPlaySpeed;
     video.play().catch((err) => {
       if (err.name === 'NotAllowedError') {
         dispatch(pause());
@@ -368,6 +386,7 @@ class DriveVideo extends Component {
   loadSource() {
     const { currentRoute, onAudioStatusChange } = this.props;
     const video = this.videoPlayer.current;
+    this.updateSpeed();
     this.hls?.destroy();
     this.hls = null;
     this.pendingHls = null;
@@ -422,6 +441,7 @@ class DriveVideo extends Component {
           onPlaying={this.updateBuffering}
           onPlay={this.onPlay}
           onPause={this.onPause}
+          onRateChange={this.onRateChange}
           onEnded={this.onEnded}
           onError={this.onVideoError}
         />
