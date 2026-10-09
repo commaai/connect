@@ -228,15 +228,18 @@ class ClipMenu extends Component {
     super(props);
     this.state = {
       clips: [], camera: 'fcamera.hevc', bitrate: 5, speedup: 1, filename: '',
-      cameraRanges: null, loading: false, creating: false, error: null,
+      cameraRanges: null, loading: Boolean(props.open), creating: false, error: null,
+      clipsContext: null,
       autoDownloadFilename: null,
       downloadedClips: new Set(),
-      viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0,
-      deletingClip: null, deleteDialogOpen: false, deleting: false,
+      previewingClip: null, previewUrl: null, previewProgress: 0,
+      deleting: false,
     };
     this.poll = null;
     this.mounted = false;
+    this.clipLoadRequest = 0;
     this.previewRequest = 0;
+    this.requestedPreviewFilename = null;
   }
 
   componentDidMount() {
@@ -244,19 +247,32 @@ class ClipMenu extends Component {
     if (this.props.open) this.loadClips();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
     const opened = this.props.open && !prevProps.open;
     const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
     const deviceChanged = this.props.dongleId !== prevProps.dongleId;
     const reconnected = this.props.deviceOnline && !prevProps.deviceOnline;
-    if ((opened || routeChanged || deviceChanged || reconnected) && this.props.open) this.loadClips();
+    const selectionChanged = this.props.modal !== prevProps.modal
+      || this.props.clipFilename !== prevProps.clipFilename;
+    const clipsChanged = prevState.clips !== this.state.clips;
+    const previewContextChanged = selectionChanged || routeChanged || deviceChanged;
+    const clipsContextChanged = opened || routeChanged || deviceChanged || reconnected;
+    if (clipsContextChanged && this.props.open) this.loadClips();
     if (!this.props.deviceOnline && prevProps.deviceOnline) {
       this.stopPolling();
       this.setState({ loading: false });
     }
-    if (!this.props.open && prevProps.open) {
-      this.stopPolling();
-      if (this.state.viewingClip) this.closeViewer();
+    if (!this.props.open && prevProps.open) this.stopPolling();
+    if (previewContextChanged) this.clearPreview();
+
+    if (!this.state.loading && !this.state.deleting && !clipsContextChanged
+      && (selectionChanged || clipsChanged)
+      && this.props.modal === 'clip') {
+      const clip = this.getSelectedClip();
+      if (clip?.status === 'ready' && this.props.deviceOnline
+        && this.requestedPreviewFilename !== clip.filename) {
+        this.openViewer(clip);
+      }
     }
   }
 
@@ -267,40 +283,67 @@ class ClipMenu extends Component {
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
   }
 
+  getSelectedClip() {
+    const context = this.state.clipsContext;
+    if (!this.isCurrentClipsContext(context)) return undefined;
+    return this.state.clips.find(clip => clip.filename === this.props.clipFilename);
+  }
+
+  isCurrentClipsContext(context) {
+    return Boolean(context)
+      && context.dongleId === this.props.dongleId
+      && context.routeName === deviceRouteName(this.props.route);
+  }
+
   stopPolling() {
     if (this.poll) clearTimeout(this.poll);
     this.poll = null;
   }
 
   async loadClips(showLoading = true) {
+    this.clipLoadRequest += 1;
+    const request = this.clipLoadRequest;
     const routeName = deviceRouteName(this.props.route);
     const { dongleId } = this.props;
+    const isCurrentRequest = () => this.mounted
+      && request === this.clipLoadRequest
+      && routeName === deviceRouteName(this.props.route)
+      && dongleId === this.props.dongleId;
     if (!this.props.deviceOnline) {
-      this.setState({ clips: [], cameraRanges: null, loading: false, error: null });
+      this.setState({ clips: [], downloadedClips: new Set(), cameraRanges: null, loading: false, clipsContext: null, error: null });
       return;
     }
-    if (showLoading) this.setState({ loading: true, error: null });
+    if (showLoading) {
+      this.setState({ clips: [], downloadedClips: new Set(), cameraRanges: null, loading: true, clipsContext: null, error: null, deleting: false });
+    }
     try {
       const state = await clipDevice.getClipState(dongleId, routeName ? { route: this.props.route.fullname } : {});
-      if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
+      if (!isCurrentRequest()) return;
       const { clips } = state;
       const downloadedClips = new Set((await Promise.all(clips
         .filter(clip => clip.status === 'ready')
         .map(async clip => ([clip.filename, await clipDevice.hasClipBlob(dongleId, clip.filename, clip.requested_at)]))))
         .filter(([, downloaded]) => downloaded)
         .map(([filename]) => filename));
-      if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
+      if (!isCurrentRequest()) return;
       const cameraRanges = routeName ? state.cameras || {} : null;
-      this.setState({ clips, downloadedClips, cameraRanges, loading: false }, () => {
+      this.setState({
+        clips, downloadedClips, cameraRanges, loading: false,
+        clipsContext: { dongleId, routeName },
+      }, () => {
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
-        if (this.props.open && autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
+        if (this.props.open && autoClip) {
+          this.setState({ autoDownloadFilename: null }, () => this.props.onNavigate({ modal: 'clip', clipFilename: autoClip.filename }));
+        }
       });
       this.stopPolling();
       if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
         this.poll = setTimeout(() => this.loadClips(false), POLL_INTERVAL);
       }
     } catch (err) {
-      if (this.mounted) this.setState({ loading: false, error: err.message || 'Could not reach the device' });
+      if (isCurrentRequest()) {
+        this.setState({ loading: false, error: err.message || 'Could not reach the device' });
+      }
     }
   }
 
@@ -332,7 +375,8 @@ class ClipMenu extends Component {
   }
 
   async downloadViewedClip() {
-    const { previewUrl, viewingClip } = this.state;
+    const { previewUrl } = this.state;
+    const viewingClip = this.getSelectedClip();
     if (!previewUrl || !viewingClip) return;
     const defaultName = `comma-clip-${viewingClip.camera}-${formatTime(viewingClip.source_start_time).replaceAll(':', '-')}-${formatTime(viewingClip.source_end_time).replaceAll(':', '-')}`;
     const filename = `${(viewingClip.filename || defaultName).replace(/\.mp4$/i, '')}.mp4`;
@@ -340,33 +384,45 @@ class ClipMenu extends Component {
     await shareOrDownload({ url: previewUrl, filename, mimeType: 'video/mp4', share: mobile });
   }
 
-  async removeClip(clip) {
-    if (!this.props.deviceOnline) return false;
+  async removeClip(clip, context = this.state.clipsContext) {
+    if (!this.props.deviceOnline || !this.isCurrentClipsContext(context)) return false;
     if (clip.filename === this.state.previewingClip) {
       this.previewRequest += 1;
       this.setState({ previewingClip: null, previewProgress: 0 });
     }
     try {
-      await clipDevice.deleteClip(this.props.dongleId, { filename: clip.filename });
+      await clipDevice.deleteClip(context.dongleId, { filename: clip.filename });
+      if (!this.mounted || !this.isCurrentClipsContext(context)) return true;
       if (clip.filename === this.state.autoDownloadFilename) this.setState({ autoDownloadFilename: null });
-      if (this.mounted) await this.loadClips(false);
+      await this.loadClips(false);
       return true;
     } catch (err) {
-      if (this.mounted) this.setState({ error: err.message || 'Could not remove clip' });
+      if (this.mounted && this.isCurrentClipsContext(context)) {
+        this.setState({ error: err.message || 'Could not remove clip' });
+      }
       return false;
     }
   }
 
   async confirmDelete() {
-    const { deletingClip } = this.state;
-    if (!deletingClip || this.state.deleting) return;
+    const deletingClip = this.getSelectedClip();
+    const clipsContext = this.state.clipsContext;
+    if (!deletingClip || ACTIVE_STATUSES.has(deletingClip.status)
+      || !this.props.deviceOnline || this.state.loading || this.state.deleting
+      || !this.isCurrentClipsContext(clipsContext)) return;
+    const context = { ...clipsContext, filename: deletingClip.filename };
     this.setState({ deleting: true });
-    const deleted = await this.removeClip(deletingClip);
-    if (this.mounted) this.setState({ deleteDialogOpen: !deleted, deleting: false });
+    const deleted = await this.removeClip(deletingClip, context);
+    if (!this.mounted) return;
+    this.setState({ deleting: false });
+    if (deleted && this.props.modal === 'delete-clip'
+      && this.props.clipFilename === context.filename
+      && this.isCurrentClipsContext(context)) this.props.onNavigate({ modal: 'clips' });
   }
 
   async openViewer(clip) {
     if (!this.props.deviceOnline) return;
+    this.requestedPreviewFilename = clip.filename;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
     const request = this.previewRequest;
@@ -379,9 +435,8 @@ class ClipMenu extends Component {
         URL.revokeObjectURL(previewUrl);
         return;
       }
-      if (this.props.open) {
+      if (this.props.modal === 'clip' && this.props.clipFilename === clip.filename) {
         this.setState(({ downloadedClips }) => ({
-          viewingClip: clip,
           previewingClip: null,
           previewUrl,
           previewProgress: 0,
@@ -399,21 +454,29 @@ class ClipMenu extends Component {
   }
 
   closeViewer() {
-    this.previewRequest += 1;
-    if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
-    this.setState({ viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0 });
+    this.clearPreview();
+    this.props.onNavigate({ modal: 'clips' });
   }
 
-  renderViewer() {
+  clearPreview() {
+    this.previewRequest += 1;
+    this.requestedPreviewFilename = null;
+    if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
+    if (this.state.previewUrl || this.state.previewingClip || this.state.previewProgress) {
+      this.setState({ previewingClip: null, previewUrl: null, previewProgress: 0 });
+    }
+  }
+
+  renderViewer(viewingClip) {
     const { classes } = this.props;
-    const { previewUrl, viewingClip } = this.state;
-    const title = viewingClip?.filename?.replace(/\.mp4$/i, '') || 'Clip';
+    const { previewUrl, previewingClip } = this.state;
+    const title = viewingClip?.filename?.replace(/\.mp4$/i, '') || (this.state.loading ? 'Loading clip' : 'Clip unavailable');
     const camera = CAMERAS.find(([value]) => value === viewingClip?.camera)?.[1] || viewingClip?.camera;
     const duration = viewingClip
       ? formatDuration((viewingClip.source_end_time - viewingClip.source_start_time) / (viewingClip.speedup || 1))
       : '';
     return (
-      <Dialog open={Boolean(viewingClip)} onClose={() => this.closeViewer()} classes={{ paper: classes.viewerPaper }} maxWidth="md">
+      <Dialog open={this.props.modal === 'clip'} onClose={() => this.closeViewer()} classes={{ paper: classes.viewerPaper }} maxWidth="md">
         <DialogTitle disableTypography className={classes.viewerTitle}>
           <div className={classes.viewerDetails}>
             <Typography className={`${classes.header} ${classes.viewerHeader}`}>{title}</Typography>
@@ -422,7 +485,7 @@ class ClipMenu extends Component {
             </Typography>
           </div>
           <div className={classes.viewerActions}>
-            <IconButton aria-label="Download clip" title="Download clip" onClick={() => this.downloadViewedClip()}>
+            <IconButton aria-label="Download clip" title="Download clip" disabled={!previewUrl} onClick={() => this.downloadViewedClip()}>
               <DownloadIcon className={classes.actionIcon} />
             </IconButton>
             <IconButton aria-label="Close video" title="Close" onClick={() => this.closeViewer()}>
@@ -431,32 +494,43 @@ class ClipMenu extends Component {
           </div>
         </DialogTitle>
         <DialogContent className={classes.viewerContent}>
+          {previewingClip && <CircularProgress size={18} />}
           {previewUrl && <video className={classes.viewerVideo} src={previewUrl} controls autoPlay playsInline />}
+          {!this.state.loading && !previewingClip && !previewUrl && (
+            <Typography>{this.state.error || (viewingClip?.status === 'ready'
+              ? 'Could not preview clip.'
+              : (viewingClip ? 'This clip is not ready to view.' : 'This clip is not available.'))}</Typography>
+          )}
         </DialogContent>
       </Dialog>
     );
   }
 
-  renderDeleteConfirmation() {
+  renderDeleteConfirmation(deletingClip) {
     const { classes } = this.props;
-    const { deleteDialogOpen, deleting, deletingClip } = this.state;
+    const { deleting } = this.state;
+    const canDelete = Boolean(deletingClip && !ACTIVE_STATUSES.has(deletingClip.status)
+      && this.props.deviceOnline && !this.state.loading);
     const title = deletingClip?.filename?.replace(/\.mp4$/i, '') || 'this clip';
     return (
       <Dialog
-        open={deleteDialogOpen}
-        onClose={() => !deleting && this.setState({ deleteDialogOpen: false })}
+        open={this.props.modal === 'delete-clip'}
+        onClose={() => !deleting && this.props.onNavigate({ modal: 'clips' })}
         classes={{ paper: classes.deletePaper }}
-        TransitionProps={{ onExited: () => this.setState({ deletingClip: null }) }}
       >
         <DialogTitle className={classes.deleteTitle}>Delete clip?</DialogTitle>
         <DialogContent>
           <Typography className={classes.deleteContent}>
-            {`${title} will be permanently deleted from your comma device.`}
+            {deletingClip
+              ? (ACTIVE_STATUSES.has(deletingClip.status)
+                ? `${title} is still processing and cannot be deleted yet.`
+                : `${title} will be permanently deleted from your comma device.`)
+              : (this.state.loading ? 'Loading clip details...' : 'This clip is not available.')}
           </Typography>
         </DialogContent>
         <DialogActions className={classes.deleteActions}>
-          <Button disabled={deleting} onClick={() => this.setState({ deleteDialogOpen: false })}>Cancel</Button>
-          <Button className={classes.deleteButton} disabled={deleting} onClick={() => this.confirmDelete()}>
+          <Button disabled={deleting} onClick={() => this.props.onNavigate({ modal: 'clips' })}>Cancel</Button>
+          <Button className={classes.deleteButton} disabled={deleting || !canDelete} onClick={() => this.confirmDelete()}>
             {deleting ? <CircularProgress size={18} /> : 'Delete'}
           </Button>
         </DialogActions>
@@ -494,7 +568,7 @@ class ClipMenu extends Component {
                 className={classes.clipAction}
                 disabled={!this.props.deviceOnline || previewing}
                 title={this.props.deviceOnline ? (previewing ? 'Downloading' : (downloaded ? 'Play clip' : 'Download clip')) : 'Device offline'}
-                onClick={() => this.openViewer(clip)}
+                onClick={() => this.props.onNavigate({ modal: 'clip', clipFilename: clip.filename })}
               >
                 {downloaded
                   ? <PlayArrow className={classes.playIcon} />
@@ -510,7 +584,7 @@ class ClipMenu extends Component {
               title={this.props.deviceOnline ? (ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip') : 'Device offline'}
               onClick={() => (ACTIVE_STATUSES.has(clip.status)
                 ? this.removeClip(clip)
-                : this.setState({ deletingClip: clip, deleteDialogOpen: true }))}
+                : this.props.onNavigate({ modal: 'delete-clip', clipFilename: clip.filename }))}
             >
               {ACTIVE_STATUSES.has(clip.status)
                 ? <CloseBold className={classes.actionIcon} />
@@ -530,8 +604,9 @@ class ClipMenu extends Component {
   }
 
   render() {
-    const { anchorEl, classes, deviceOnline, inventoryOnly, onClose, open, route, zoom } = this.props;
+    const { anchorEl, classes, deviceOnline, inventoryOnly, open, route, zoom } = this.props;
     const { bitrate, camera, cameraRanges, clips, creating, error, filename, loading, speedup } = this.state;
+    const selectedClip = this.getSelectedClip();
     const startTime = zoom ? zoom.start / 1000 : 0;
     const endTime = zoom ? zoom.end / 1000 : 0;
     const duration = endTime - startTime;
@@ -548,7 +623,7 @@ class ClipMenu extends Component {
         <Menu
           open={open}
           anchorEl={anchorEl}
-          onClose={onClose}
+          onClose={() => this.props.onNavigate({ modal: null })}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           classes={{ paper: `${classes.paper} ${!inventoryOnly ? classes.createPaper : ''}` }}
@@ -558,7 +633,7 @@ class ClipMenu extends Component {
           {!inventoryOnly && <div className={classes.body}>
           <div className={classes.createHeader}>
             <Typography className={classes.header}>Create a clip</Typography>
-            <IconButton aria-label="Close clip menu" className={classes.mobileClose} onClick={onClose}><CloseBold /></IconButton>
+            <IconButton aria-label="Close clip menu" className={classes.mobileClose} onClick={() => this.props.onNavigate({ modal: null })}><CloseBold /></IconButton>
           </div>
           <div className={classes.range}>
             <Typography className={classes.supporting}>Selected timeline range</Typography>
@@ -635,8 +710,8 @@ class ClipMenu extends Component {
             {!loading && clips.map(clip => this.renderClip(clip))}
           </div>
         </Menu>
-        {this.renderViewer()}
-        {this.renderDeleteConfirmation()}
+        {this.renderViewer(selectedClip)}
+        {this.renderDeleteConfirmation(selectedClip)}
       </>
     );
   }

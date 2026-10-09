@@ -1,71 +1,95 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { buildUrl, parseUrl, sameOriginPath } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
+const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
+const OVERFLOW_SECONDS = `1${'0'.repeat(306)}`;
 
-describe('URL pathname helpers', () => {
+describe('URL parsing and building', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
+    [`/${DONGLE}`, { page: 'dashboard', dongleId: DONGLE, routeId: null }],
+    [`/${DONGLE}/${LOG}`, { page: 'drive', dongleId: DONGLE, routeId: LOG }],
+    [`/${DONGLE}/${LOG}/0/20`, { page: 'drive', dongleId: DONGLE, routeId: LOG, zoom: { start: 0, end: 20000 } }],
+    ['/demo?modal=filter', { page: 'demo', dongleId: 'deadbeefdeadbeef', modal: 'filter' }],
+    [`/${DONGLE}/prime`, { page: 'prime', dongleId: DONGLE }],
+    [`/${DONGLE}/stream`, { page: 'stream', dongleId: DONGLE }],
+    ['/referrals?modal=pair', { page: 'referrals', modal: 'pair' }],
+  ])('parses %s', (location, expected) => {
+    expect(parseUrl(location)).toMatchObject(expected);
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
+  it('parses a full location string and modal target', () => {
+    expect(parseUrl(`https://connect.comma.ai/${DONGLE}?modal=settings&device=${OTHER}&ci=1`)).toMatchObject({
+      page: 'dashboard', dongleId: DONGLE, modal: 'settings', targetDeviceId: OTHER,
+    });
   });
 
-  it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
+  it.each(['files', 'info', 'clips', 'prime-cancel', 'prime-switch', 'unpair'])('parses the %s modal', (modal) => {
+    expect(parseUrl(`/${DONGLE}?modal=${modal}`)).toMatchObject({ page: 'dashboard', modal });
   });
 
-  it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
+  it('preserves a selected clip in the URL and clears it when returning to the clips menu', () => {
+    const filename = 'saved drive clip.mp4';
+    const clipsUrl = `/${DONGLE}/${LOG}?ci=1&modal=clips#video`;
+    const viewerUrl = buildUrl({
+      ...parseUrl(clipsUrl),
+      modal: 'clip',
+      clipFilename: filename,
+    }, clipsUrl);
+    expect(viewerUrl).toBe(`/${DONGLE}/${LOG}?ci=1&modal=clip&clip=saved+drive+clip.mp4#video`);
+    expect(parseUrl(viewerUrl)).toMatchObject({ modal: 'clip', clipFilename: filename });
+    expect(buildUrl({ ...parseUrl(viewerUrl), modal: 'clips' }, viewerUrl))
+      .toBe(`/${DONGLE}/${LOG}?ci=1&modal=clips#video`);
   });
 
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
+  it('keeps the target device on an unpair URL', () => {
+    const settingsUrl = `/${DONGLE}?modal=settings&device=${OTHER}`;
+    const unpairUrl = buildUrl({
+      ...parseUrl(settingsUrl),
+      modal: 'unpair',
+      targetDeviceId: OTHER,
+    }, settingsUrl);
+    expect(unpairUrl).toBe(`/${DONGLE}?modal=unpair&device=${OTHER}`);
+    expect(parseUrl(unpairUrl)).toMatchObject({ modal: 'unpair', targetDeviceId: OTHER });
   });
 
   it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+    [`/${DONGLE}/${LOG}/2/2`, 'dashboard'],
+    [`/${DONGLE}/${LOG}/-1/2`, 'dashboard'],
+    [`/${DONGLE}/${LOG}/0/${OVERFLOW_SECONDS}`, 'dashboard'],
+    [`/${DONGLE}/${LOG}/1/2/extra`, 'dashboard'],
+    [`/${DONGLE}/1/2/extra`, 'dashboard'],
+    [`/${DONGLE}/0/20`, 'legacy'],
+  ])('validates suffix shape in %s', (location, page) => {
+    expect(parseUrl(location).page).toBe(page);
+  });
+
+  it('builds drive and modal URLs without losing other location state', () => {
+    expect(buildUrl({
+      page: 'drive', dongleId: DONGLE, routeId: LOG,
+      zoom: { start: 0, end: 10001 }, modal: 'uploads', targetDeviceId: OTHER,
+    }, '/referrals?ci=1#timeline')).toBe(
+      `/${DONGLE}/${LOG}/0/11?ci=1&modal=uploads&device=${OTHER}#timeline`,
+    );
+  });
+
+  it('opens and closes a modal on global pages', () => {
+    const current = '/referrals?ci=1';
+    expect(buildUrl({ ...parseUrl(current), modal: 'pair' }, current)).toBe('/referrals?ci=1&modal=pair');
+    expect(buildUrl({ ...parseUrl('/referrals?ci=1&modal=pair'), modal: null }, '/referrals?ci=1&modal=pair'))
+      .toBe('/referrals?ci=1');
+  });
+
+  it('keeps demo navigation on the demo backend path', () => {
+    expect(buildUrl({ ...parseUrl('/demo'), page: 'drive', routeId: LOG, zoom: null }, '/demo?ci=1'))
+      .toBe(`/demo/${LOG}?ci=1`);
+  });
+
+  it('accepts only same-origin return paths', () => {
+    expect(sameOriginPath(`/${DONGLE}/${LOG}?modal=filter#video`)).toBe(`/${DONGLE}/${LOG}?modal=filter#video`);
+    expect(sameOriginPath('https://example.com/private')).toBeNull();
+    expect(sameOriginPath('//example.com/private')).toBeNull();
   });
 });

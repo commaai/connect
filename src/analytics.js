@@ -4,24 +4,23 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseUrl } from './url';
 import { deviceIsOnline } from './utils';
 
-function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+function getPageViewEventLocation(location) {
+  const url = parseUrl(location);
+  const parts = location.pathname.split('/').filter(Boolean);
+  const deviceIndex = parts.indexOf(url.dongleId);
+  if (deviceIndex !== -1) parts[deviceIndex] = '<dongleId>';
+  const routeIndex = url.routeId ? parts.indexOf(url.routeId) : -1;
+  if (routeIndex !== -1) {
+    parts[routeIndex] = '<routeId>';
+    if (url.zoom) parts.splice(routeIndex + 1, 2, '<zoomStart>', '<zoomEnd>');
+  } else if (url.legacyRange) {
+    const rangeIndex = deviceIndex === -1 ? parts.indexOf('demo') + 1 : deviceIndex + 1;
+    parts.splice(rangeIndex, 2, '<legacyStart>', '<legacyEnd>');
   }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
+  const pageLocation = `/${parts.join('/')}`;
   return pageLocation;
 }
 
@@ -82,7 +81,7 @@ function logAction(action, prevState, state) {
     };
   }
 
-  if (state.profile?.user_id === 'github_92103660' || new URLSearchParams(window.location.search).get('ci')) {
+  if (state.profile?.user_id === 'github_92103660' || new URLSearchParams(state.router?.location?.search || '').get('ci')) {
     params = {
       ...params,
       traffic_type: 'ci',
@@ -102,12 +101,12 @@ function logAction(action, prevState, state) {
   switch (action.type) {
     case LOCATION_CHANGE:
       gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(action.payload.location.pathname),
+        page_location: getPageViewEventLocation(action.payload.location),
       });
       return;
 
-    case Types.TIMELINE_PUSH_SELECTION:
-      if (!prevState.zoom && state.zoom) {
+    case Types.ACTION_APPLY_URL:
+      if (state.zoom && (prevState.zoom?.start !== state.zoom.start || prevState.zoom?.end !== state.zoom.end)) {
         params = {
           ...params,
           start: state.zoom.start,
@@ -117,8 +116,30 @@ function logAction(action, prevState, state) {
         attachRelTime(params, 'end', true, 'h');
         gtag('event', 'select_zoom', params);
       }
+      if (prevState.dongleId !== state.dongleId) {
+        gtag('event', 'select_device', {
+          ...params,
+          device_prime_type: state.device?.prime_type,
+          device_type: state.device?.device_type,
+          device_version: state.device?.openpilot_version,
+          device_owner: state.device?.is_owner,
+          device_online: state.device ? deviceIsOnline(state.device) : undefined,
+          device_sim_type: state.device?.sim_type,
+          device_trial_claimed: state.device?.trial_claimed,
+        });
+        gtag('set', {
+          user_properties: {
+            device_prime_type: state.device?.prime_type,
+            device_type: state.device?.device_type,
+            device_version: state.device?.openpilot_version,
+            device_owner: state.device?.is_owner,
+            device_online: state.device ? deviceIsOnline(state.device) : undefined,
+            device_sim_type: state.device?.sim_type,
+            device_trial_claimed: state.device?.trial_claimed,
+          },
+        });
+      }
       return;
-
     case Types.ACTION_STARTUP_DATA:
       gtag('set', {
         user_id: state.profile?.user_id,
@@ -138,32 +159,7 @@ function logAction(action, prevState, state) {
 
       gtag('event', 'page_view', {
         ...params,
-        page_location: getPageViewEventLocation(window.location.pathname),
-      });
-      return;
-
-    case Types.ACTION_SELECT_DEVICE:
-      gtag('event', 'select_device', {
-        ...params,
-        device_prime_type: state.device?.prime_type,
-        device_type: state.device?.device_type,
-        device_version: state.device?.openpilot_version,
-        device_owner: state.device?.is_owner,
-        device_online: state.device ? deviceIsOnline(state.device) : undefined,
-        device_sim_type: state.device?.sim_type,
-        device_trial_claimed: state.device?.trial_claimed,
-      });
-
-      gtag('set', {
-        user_properties: {
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
-        },
+        page_location: getPageViewEventLocation(state.router?.location || window.location),
       });
       return;
 

@@ -1,66 +1,132 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+const dongleIdPattern = /^[a-f0-9]{16}$/;
+const routeIdPattern = /^[a-f0-9-]{20}$/;
+const modalNames = new Set([
+  'settings', 'uploads', 'pair', 'filter', 'files', 'info', 'clips',
+  'clip', 'delete-clip', 'prime-cancel', 'prime-switch', 'unpair',
+]);
+const demoDongleId = 'deadbeefdeadbeef';
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (!dongleIdRegex.test(parts[0])) {
+export function sameOriginPath(value) {
+  if (!value) return null;
+  try {
+    const requested = new URL(value, window.location.origin);
+    return requested.origin === window.location.origin
+      ? `${requested.pathname}${requested.search}${requested.hash}`
+      : null;
+  } catch {
     return null;
   }
-
-  return parts[0] || null;
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
+function getLocation(location) {
+  if (typeof location === 'string') {
+    const parsed = new URL(location, window.location.origin);
+    return { pathname: parsed.pathname, search: parsed.search, hash: parsed.hash };
   }
-  return null;
+  return location || window.location;
 }
 
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+export function parseUrl(location) {
+  const { pathname, search } = getLocation(location);
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const demoPath = parts[0] === 'demo';
+  const pathParts = demoPath ? parts.slice(1) : parts;
+  const dongleId = demoPath ? demoDongleId : (dongleIdPattern.test(pathParts[0] || '') ? pathParts[0] : null);
+  const partsAfterDevice = dongleId ? (demoPath ? pathParts : pathParts.slice(1)) : [];
+  let page = pathname === '/referrals' ? 'referrals' : 'home';
+  let routeId = null;
+  let zoom = null;
+  let legacyRange = null;
+
+  if (dongleId) {
+    page = demoPath && partsAfterDevice.length === 0 ? 'demo' : 'dashboard';
+    if (partsAfterDevice.length === 1 && partsAfterDevice[0] === 'prime') {
+      page = 'prime';
+    } else if (partsAfterDevice.length === 1 && partsAfterDevice[0] === 'stream') {
+      page = 'stream';
+    } else if (routeIdPattern.test(partsAfterDevice[0] || '') && [1, 3].includes(partsAfterDevice.length)) {
+      routeId = partsAfterDevice[0];
+      page = 'drive';
+      if (partsAfterDevice.length === 3) {
+        const start = Number(partsAfterDevice[1]);
+        const end = Number(partsAfterDevice[2]);
+        if (Number.isFinite(start) && Number.isFinite(end * 1000) && start >= 0 && start < end) {
+          zoom = { start: start * 1000, end: end * 1000 };
+        } else {
+          routeId = null;
+          page = 'dashboard';
+        }
+      }
+    } else if (partsAfterDevice.length === 2 && /^\d+$/.test(partsAfterDevice[0]) && /^\d+$/.test(partsAfterDevice[1])) {
+      const start = Number(partsAfterDevice[0]);
+      const end = Number(partsAfterDevice[1]);
+      if (Number.isFinite(start) && Number.isFinite(end) && start >= 0 && start < end) {
+        legacyRange = { start, end };
+        page = 'legacy';
+      }
+    }
   }
-  return null;
+
+  const params = new URLSearchParams(search || '');
+  const requestedModal = params.get('modal');
+  const modal = modalNames.has(requestedModal) ? requestedModal : null;
+  const clipFilename = ['clip', 'delete-clip'].includes(modal) ? params.get('clip') : null;
+  const targetDeviceId = modal && dongleIdPattern.test(params.get('device') || '')
+    ? params.get('device')
+    : null;
+
+  return {
+    page,
+    dongleId,
+    routeId,
+    zoom,
+    legacyRange,
+    modal,
+    clipFilename,
+    targetDeviceId,
+  };
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+export function buildUrl(url, currentLocation) {
+  const location = getLocation(currentLocation);
+  const params = new URLSearchParams(location.search || '');
+  const parts = [];
+  const demoPath = location.pathname === '/demo' || location.pathname.startsWith('/demo/');
+  const devicePage = ['dashboard', 'drive', 'prime', 'stream'].includes(url.page);
 
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+  if (url.page === 'drive' && url.routeId) {
+    parts.push(url.routeId);
+    if (url.zoom?.start != null && url.zoom?.end != null) {
+      parts.push(Math.floor(url.zoom.start / 1000), Math.ceil(url.zoom.end / 1000));
+    }
+  } else if (url.page === 'prime' || url.page === 'stream') {
+    parts.push(url.page);
   }
-  return false;
-}
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
+  let pathname = location.pathname || '/';
+  if (url.page === 'demo' || (demoPath && url.dongleId === demoDongleId && devicePage)) {
+    pathname = `/demo${parts.length ? `/${parts.join('/')}` : ''}`;
+  } else if (devicePage) {
+    pathname = `/${url.dongleId}${parts.length ? `/${parts.join('/')}` : ''}`;
+  } else if (url.page === 'home') {
+    pathname = '/';
+  } else if (url.page === 'referrals') {
+    pathname = '/referrals';
   }
-  return false;
+
+  if (modalNames.has(url.modal)) params.set('modal', url.modal);
+  else params.delete('modal');
+  if (['clip', 'delete-clip'].includes(url.modal) && url.clipFilename) {
+    params.set('clip', url.clipFilename);
+  } else {
+    params.delete('clip');
+  }
+  if (url.targetDeviceId && ['settings', 'uploads', 'unpair'].includes(url.modal)) {
+    params.set('device', url.targetDeviceId);
+  } else {
+    params.delete('device');
+  }
+
+  const query = params.toString();
+  return `${pathname}${query ? `?${query}` : ''}${location.hash || ''}`;
 }

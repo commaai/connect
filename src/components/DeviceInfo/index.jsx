@@ -7,7 +7,7 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
-import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { analyticsEvent, navigate, navigateModal, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
@@ -16,6 +16,7 @@ import { subscribeWindowSize } from '../../hooks/window';
 import CommacareBadge from '../CommacareBadge';
 import ClipMenu from '../DriveView/ClipMenu';
 import { LivestreamIcon, CarBatteryIcon, CameraIcon, ContentCut, GamepadIcon } from '../../icons';
+import { parseUrl } from '../../url';
 
 const styles = (theme) => ({
   container: {
@@ -153,11 +154,11 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
-      clipMenu: null,
       clipsSupported: false,
     };
 
     this.snapshotButtonRef = React.createRef();
+    this.clipButtonRef = React.createRef();
 
     this.onVisible = this.onVisible.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
@@ -190,7 +191,6 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
-        clipMenu: null,
         clipsSupported: false,
       });
       this.checkClipsSupport();
@@ -311,7 +311,7 @@ class DeviceInfo extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, url, dispatch } = this.props;
     const { snapshot, windowWidth } = this.state;
     const commacare = device?.commacare;
 
@@ -330,10 +330,12 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
+          open={['clips', 'clip', 'delete-clip'].includes(url.modal)}
           dongleId={this.props.dongleId}
-          anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          anchorEl={() => this.clipButtonRef.current || document.body}
+          onNavigate={(changes) => dispatch(navigate({ ...url, ...changes }))}
+          modal={url.modal}
+          clipFilename={url.clipFilename}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -368,7 +370,7 @@ class DeviceInfo extends Component {
   }
 
   renderButtons() {
-    const { classes, device } = this.props;
+    const { classes, device, dispatch } = this.props;
     const { snapshot, carHealth, clipsSupported } = this.state;
     const isCommaBody = device?.rpc?.not_car;
 
@@ -411,9 +413,10 @@ class DeviceInfo extends Component {
         >
           <span className="inline-flex">
             <button
+              ref={this.clipButtonRef}
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              onClick={() => dispatch(navigateModal('clips'))}
               disabled={offline}
             >
               <ContentCut />
@@ -514,6 +517,7 @@ class DeviceInfo extends Component {
 }
 
 const stateToProps = (state) => ({
+  url: parseUrl(state.router.location),
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,

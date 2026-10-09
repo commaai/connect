@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav, navigateModal } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -23,6 +23,11 @@ import { subscribeWindowSize } from '../hooks/window';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
+import AddDevice from './Dashboard/AddDevice';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import UploadQueue from './Files/UploadQueue';
+import TimeSelect from './TimeSelect';
+import { parseUrl, sameOriginPath } from '../url';
 import Referrals from './Referrals';
 
 const styles = (theme) => ({
@@ -99,7 +104,10 @@ class ExplorerApp extends Component {
 
     const q = new URLSearchParams(window.location.search);
     if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
+      const requested = sameOriginPath(q.get('r'));
+      const current = new URL(window.location.href);
+      current.searchParams.delete('r');
+      this.props.dispatch(replace(requested || `${current.pathname}${current.search}${current.hash}`));
     }
 
     this.props.dispatch(init());
@@ -154,7 +162,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -167,12 +175,6 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
 
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
-    }
   }
 
   async closePair() {
@@ -199,6 +201,7 @@ class ExplorerApp extends Component {
   render() {
     const {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      modal, targetDeviceId, modalDevice,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -270,21 +273,50 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        {modal === 'pair' && <AddDevice open hideButton />}
+        {['settings', 'unpair'].includes(modal) && (modalDevice?.is_owner || profile?.superuser) && (
+          <DeviceSettingsModal
+            isOpen
+            unpairOpen={modal === 'unpair'}
+            dongleId={targetDeviceId || dongleId}
+            onClose={() => dispatch(navigateModal(null))}
+            onUnpairOpen={() => dispatch(navigateModal('unpair', targetDeviceId || dongleId))}
+            onUnpairClose={() => dispatch(navigateModal('settings', targetDeviceId || dongleId))}
+          />
+        )}
+        {modal === 'uploads' && modalDevice && (!modalDevice.shared || profile?.superuser) && (
+          <UploadQueue
+            open
+            update
+            device={modalDevice}
+            onClose={() => dispatch(navigateModal(null))}
+          />
+        )}
+        {modal === 'filter' && <TimeSelect onClose={() => dispatch(navigateModal(null))} />}
       </div>
     );
   }
 }
 
-const stateToProps = (state) => ({
-  zoom: state.zoom,
-  pathname: state.router.location.pathname,
-  dongleId: state.dongleId,
-  devices: state.devices,
-  currentRoute: state.currentRoute,
-  selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
-  profile: state.profile,
-});
+const stateToProps = (state) => {
+  const url = parseUrl(state.router.location);
+  const modalDevice = url.targetDeviceId
+    ? state.devices?.find((device) => device.dongle_id === url.targetDeviceId)
+      || (state.device?.dongle_id === url.targetDeviceId ? state.device : null)
+    : state.device;
+  return {
+    zoom: state.zoom,
+    pathname: state.router.location.pathname,
+    dongleId: state.dongleId,
+    devices: state.devices,
+    currentRoute: state.currentRoute,
+    selectedRouteId: state.selectedRouteId,
+    bodyTeleopOpen: state.streamNav,
+    profile: state.profile,
+    modal: url.modal,
+    targetDeviceId: url.targetDeviceId,
+    modalDevice,
+  };
+};
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

@@ -1,6 +1,6 @@
 import React, { Component, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
-import { Route, Switch, Redirect } from 'react-router-dom';
+import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 import { ConnectedRouter } from 'connected-react-router';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
+import { parseUrl, sameOriginPath } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -20,6 +20,23 @@ import FullPageLoading from './components/FullPageLoading';
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
 
+function AppRoutes({ authenticated, redirectLink }) {
+  const location = useLocation();
+  const page = parseUrl(location).page;
+  const showLogin = !authenticated && page !== 'drive' && page !== 'legacy';
+  return (
+    <Suspense fallback={<FullPageLoading />}>
+      <Switch>
+        <Route
+          path="/auth/"
+          render={() => <Redirect to={showLogin ? '/' : redirectLink()} />}
+        />
+        <Route path="/" component={showLogin ? AnonymousLanding : Explorer} />
+      </Switch>
+    </Suspense>
+  );
+}
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -28,18 +45,6 @@ class App extends Component {
       initialized: false,
     };
 
-    let pairToken;
-    if (window.location) {
-      pairToken = new URLSearchParams(window.location.search).get('pair');
-    }
-
-    if (pairToken) {
-      try {
-        localforage.setItem('pairToken', pairToken);
-      } catch (err) {
-        console.error(err);
-      }
-    }
   }
 
   apiErrorResponseCallback(resp) {
@@ -52,6 +57,19 @@ class App extends Component {
     // Select the API backend once during startup: /demo gets the demo backend,
     // everything else the real backend.
     initBackend();
+
+    const currentUrl = new URL(window.location.href);
+    const pairToken = currentUrl.searchParams.get('pair');
+    if (pairToken) {
+      try {
+        await localforage.setItem('pairToken', pairToken);
+        currentUrl.searchParams.delete('pair');
+        const history = this.props.history || defaultHistory;
+        history.replace(`${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+      } catch (err) {
+        console.error(err);
+      }
+    }
 
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
@@ -78,9 +96,9 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { pathname } = window.location;
-      const teleopDongleId = getDongleID(pathname);
-      if (teleopDongleId && getStreamNav(pathname)) {
+      const location = parseUrl(window.location);
+      const teleopDongleId = location.dongleId;
+      if (teleopDongleId && location.page === 'stream') {
         webrtcConnectionManager.reconnect(teleopDongleId);
       }
 
@@ -95,33 +113,12 @@ class App extends Component {
 
   redirectLink() {
     let url = '/';
-    if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
-      url = sessionStorage.getItem('redirectURL');
+    if (typeof window.sessionStorage !== 'undefined') {
+      const saved = sessionStorage.getItem('redirectURL');
       sessionStorage.removeItem('redirectURL');
+      url = sameOriginPath(saved) || '/';
     }
     return url;
-  }
-
-  authRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to={this.redirectLink()} />
-        </Route>
-        <Route path="/" component={Explorer} />
-      </Switch>
-    );
-  }
-
-  anonymousRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to="/" />
-        </Route>
-        <Route path="/" component={AnonymousLanding} />
-      </Switch>
-    );
   }
 
   render() {
@@ -130,13 +127,7 @@ class App extends Component {
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
-    let content = (
-      <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
-      </Suspense>
-    );
+    let content = <AppRoutes authenticated={api.auth.isAuthenticated()} redirectLink={() => this.redirectLink()} />;
 
     // Use ErrorBoundary in production only
     if (import.meta.env.PROD) {

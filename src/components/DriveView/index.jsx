@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { pushTimelineRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -18,9 +18,7 @@ class DriveView extends Component {
   }
 
   onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
+    if (currentRoute && (zoom.start !== 0 || zoom.end !== currentRoute.duration)) {
       this.props.dispatch(
         pushTimelineRange(currentRoute.log_id, null, null),
       );
@@ -32,18 +30,18 @@ class DriveView extends Component {
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dongleId, zoom, currentRoute, routes, currentRouteFetched } = this.props;
 
     if (!currentRoute) {
       return (
         <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+          <Typography>{routes === null && !currentRouteFetched ? 'Loading...' : 'Route does not exist.'}</Typography>
         </div>
       );
     }
 
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const backButtonDisabled = currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -101,6 +99,7 @@ const stateToProps = (state) => ({
   routes: state.routes,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
+  currentRouteFetched: state.currentRouteFetched,
 });
 
 export default connect(stateToProps)(DriveView);

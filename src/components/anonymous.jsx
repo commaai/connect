@@ -9,6 +9,7 @@ import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 import { stringifyQuery } from '../utils/query';
+import { sameOriginPath } from '../url';
 
 const AUTH_PROVIDERS = { GOOGLE: 'g', APPLE: 'a', GITHUB: 'h' };
 
@@ -47,14 +48,17 @@ const styles = () => ({
   },
 });
 
-const AnonymousLanding = ({ classes, pathname }) => {
+const AnonymousLanding = ({ classes, location }) => {
   useEffect(() => {
     if (typeof window.sessionStorage !== 'undefined') {
-      const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
-      sessionStorage.setItem('redirectURL', redirectURL);
+      const current = new URL(location, window.location.origin);
+      const requested = sameOriginPath(current.searchParams.get('r'));
+      current.searchParams.delete('r');
+      sessionStorage.setItem('redirectURL', requested || `${current.pathname}${current.search}${current.hash}`);
     }
+  }, [location]);
 
+  useEffect(() => {
     const handleSuccess = (data) => {
       const { code, state } = data.detail.authorization;
       window.location = `${AuthConfig.APPLE_REDIRECT_PATH}?${stringifyQuery({ code, state })}`;
@@ -128,7 +132,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
 };
 
 const stateToProps = (state) => ({
-  pathname: state.router.location.pathname,
+  location: `${state.router.location.pathname}${state.router.location.search}${state.router.location.hash}`,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));
