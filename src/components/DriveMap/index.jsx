@@ -13,8 +13,6 @@ const INTERACTION_TIMEOUT = 5000;
 const SEGMENT_DURATION = 60 * 1000;
 // how close to the marker a press grabs it, in pixels
 const MARKER_GRAB_RADIUS = 24;
-// points this close (in degrees, ~20m) count as the same place
-const SAME_PLACE = 0.0002;
 
 // alternate shades tell segments apart, the one being played stands out
 function routeLineColor(currentSegment) {
@@ -68,23 +66,18 @@ function selectionLine(driveCoords, selection) {
   return { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } };
 }
 
-// The drive offset whose position is nearest to [lng, lat]. Where the drive
-// passes the same place more than once, the pass closest in time to `around`
-// wins, so dragging along the route stays continuous.
-export function offsetNearest(driveCoords, [lng, lat], around) {
-  const scale = Math.cos((lat * Math.PI) / 180);
-  const points = Object.entries(driveCoords).map(([second, [x, y]]) => ({
-    offset: second * 1000,
-    distance: Math.hypot((x - lng) * scale, y - lat),
-  }));
-  if (!points.length) {
-    return null;
-  }
-  const closest = Math.min(...points.map((point) => point.distance));
-  const tolerance = Math.max(closest * 2, SAME_PLACE);
-  return points
-    .filter((point) => point.distance <= tolerance)
-    .sort((a, b) => Math.abs(a.offset - around) - Math.abs(b.offset - around))[0].offset;
+// the drive offset whose position is nearest to [lng, lat]
+export function offsetNearest(driveCoords, [lng, lat]) {
+  let nearest = null;
+  let nearestDistance = Infinity;
+  Object.entries(driveCoords).forEach(([second, [x, y]]) => {
+    const distance = Math.hypot(x - lng, y - lat);
+    if (distance < nearestDistance) {
+      nearest = second * 1000;
+      nearestDistance = distance;
+    }
+  });
+  return nearest;
 }
 
 class DriveMap extends Component {
@@ -187,7 +180,7 @@ class DriveMap extends Component {
       }
       return;
     }
-    this.dragOffset = offsetNearest(this.props.currentRoute.driveCoords, ev.lngLat, this.dragOffset);
+    this.dragOffset = offsetNearest(this.props.currentRoute.driveCoords, ev.lngLat);
     seekVideo(this.dragOffset);
   }
 

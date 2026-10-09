@@ -65,7 +65,7 @@ const styles = () => ({
     },
   },
   thumbnails: {
-    height: 20,
+    height: 40,
     width: '100%',
     overflow: 'hidden',
     whiteSpace: 'nowrap',
@@ -120,13 +120,9 @@ const styles = () => ({
       background: Colors.white,
       boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.35)',
       transform: 'translateX(-50%)',
-      transition: 'transform 0.15s ease-out',
     },
     '&.scrubbing': {
       cursor: 'grabbing',
-    },
-    '&.scrubbing::after': {
-      transform: 'translateX(-50%) scale(1.4)',
     },
   },
   segmentTick: {
@@ -151,10 +147,6 @@ const styles = () => ({
         color: Colors.white,
       },
     },
-    '&.minor': {
-      height: 8,
-      marginTop: 36,
-    },
   },
   detailEvents: {
     position: 'absolute',
@@ -163,7 +155,6 @@ const styles = () => ({
     marginTop: 32,
     overflow: 'hidden',
     zIndex: 1,
-    cursor: 'pointer',
   },
   selection: {
     position: 'absolute',
@@ -215,18 +206,9 @@ const styles = () => ({
   },
 });
 
-// how close to the playhead line a press on the bar grabs it, in pixels;
-// the handle below the bar has its own, larger target
-const PLAYHEAD_GRAB_RADIUS = 6;
 const SEGMENT_DURATION = 60 * 1000;
 // minimum room for a segment number label, in pixels
 const SEGMENT_LABEL_SPACING = 28;
-// after the view is changed by hand, playback leaves it alone for this long
-const MANUAL_VIEW_GRACE = 2000;
-// selection edges snap to event and segment edges this close, in pixels
-const SNAP_DISTANCE = 10;
-// the view never gets narrower than this, in milliseconds
-const MIN_VIEW = 10 * 1000;
 
 const AlertStatusCodes = [
   'normal',
@@ -234,13 +216,9 @@ const AlertStatusCodes = [
   'critical',
 ];
 
-// events that span a stretch of the drive, drawn as colored bands
-function rangedEvents(route) {
-  return (route?.events || []).filter((event) => event.data && event.data.end_route_offset_millis);
-}
-
+// keep a view of the given width inside the drive
 function clampView(start, end, duration) {
-  const width = Math.min(duration, Math.max(MIN_VIEW, end - start));
+  const width = Math.min(duration, end - start);
   const clampedStart = Math.min(Math.max(0, start), duration - width);
   return { start: clampedStart, end: clampedStart + width };
 }
@@ -265,8 +243,6 @@ class Timeline extends Component {
     this.segmentNum = this.segmentNum.bind(this);
     this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
-    this.setView = this.setView.bind(this);
-    this.onRulerWheel = this.onRulerWheel.bind(this);
 
     this.rulerRemaining = React.createRef();
     this.playhead = React.createRef();
@@ -274,7 +250,6 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
     this.thumbnailsRef = React.createRef();
-    this.manualViewAt = 0;
 
     const { zoomOverride, zoom } = this.props;
     this.state = {
@@ -309,21 +284,10 @@ class Timeline extends Component {
 
   componentDidUpdate(prevProps) {
     const { zoomOverride, zoom, route } = this.props;
-    if (zoomOverride) {
-      if (prevProps.zoomOverride !== zoomOverride) {
-        this.setState({ view: zoomOverride });
-      }
-    } else if (prevProps.route?.fullname !== route?.fullname || (!this.state.view && zoom)) {
-      // a new drive opens on its selection; after that, selecting no longer zooms
-      this.setState({ view: zoom });
+    // a drive opens on its selection; after that, selecting no longer zooms
+    if (prevProps.zoomOverride !== zoomOverride || prevProps.route?.fullname !== route?.fullname || !this.state.view) {
+      this.setState({ view: zoomOverride || zoom });
     }
-  }
-
-  setView(view, manual = true) {
-    if (manual) {
-      this.manualViewAt = Date.now();
-    }
-    this.setState({ view });
   }
 
   componentWillUnmount() {
@@ -351,52 +315,15 @@ class Timeline extends Component {
     document.addEventListener('pointerup', this.handlePointerUp);
     document.addEventListener('pointermove', this.handlePointerMove);
 
-    // pressing on the playhead drags it, anywhere else selects a range
-    const playhead = this.playhead.current?.getBoundingClientRect();
-    const onHandle = this.playhead.current?.contains(ev.target);
-    if (onHandle || (playhead && Math.abs(ev.clientX - playhead.left) <= PLAYHEAD_GRAB_RADIUS)) {
+    // pressing on the playhead handle drags it, anywhere else selects a range
+    if (this.playhead.current?.contains(ev.target)) {
       this.selectionReleased = false;
       this.setState({ scrubbing: true, hoverX: ev.pageX });
     } else {
-      const x = this.snapX(ev.pageX);
-      this.setState({ dragging: [x, x] });
+      this.setState({ dragging: [ev.pageX, ev.pageX] });
     }
-    // a tap on a segment number or an event band selects it, a drag from there still selects freely
+    // a tap on a segment number selects it, a drag from there still selects freely
     this.pressedSegment = ev.target.closest('[data-segment]')?.dataset.segment;
-    this.pressedEvents = Boolean(ev.target.closest('[data-events]'));
-  }
-
-  // pull x onto a nearby event edge, or failing that a segment edge
-  snapX(x) {
-    const { route } = this.props;
-    const { view } = this.state;
-    const bounds = this.rulerRef.current.getBoundingClientRect();
-    const offset = this.offsetAtX(x);
-    const reach = (SNAP_DISTANCE * (view.end - view.start)) / bounds.width;
-    const nearest = (edges) => edges
-      .filter((edge) => Math.abs(edge - offset) <= reach)
-      .sort((a, b) => Math.abs(a - offset) - Math.abs(b - offset))[0];
-
-    const segmentEdges = [route.duration];
-    for (let edge = 0; edge < route.duration; edge += SEGMENT_DURATION) {
-      segmentEdges.push(edge);
-    }
-    const eventEdges = rangedEvents(route).flatMap((event) => [event.route_offset_millis, event.data.end_route_offset_millis]);
-
-    const edge = nearest(eventEdges) ?? nearest(segmentEdges);
-    return edge === undefined ? x : bounds.x + (this.offsetToPercent(edge) * bounds.width);
-  }
-
-  // select the event band under the pointer (the shortest one, where they overlap)
-  selectEventAt(x) {
-    const { dispatch, route } = this.props;
-    const offset = this.offsetAtX(x);
-    const event = rangedEvents(route)
-      .filter((ev) => ev.route_offset_millis <= offset && offset <= ev.data.end_route_offset_millis)
-      .sort((a, b) => (a.data.end_route_offset_millis - a.route_offset_millis) - (b.data.end_route_offset_millis - b.route_offset_millis))[0];
-    if (event) {
-      dispatch(pushTimelineRange(route.log_id, event.route_offset_millis, event.data.end_route_offset_millis, true));
-    }
   }
 
   offsetAtX(x) {
@@ -416,10 +343,11 @@ class Timeline extends Component {
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.pageX));
     if (dragging) {
-      const end = this.snapX(endDrag);
-      this.setState({ dragging: [dragging[0], end] });
-      const [a, b] = [this.offsetAtX(dragging[0]), this.offsetAtX(end)];
-      this.props.dispatch(previewTimelineRange(Math.min(a, b), Math.max(a, b)));
+      this.setState({ dragging: [dragging[0], endDrag] });
+      // show the range on the map while it is being dragged
+      const start = this.offsetAtX(Math.min(dragging[0], endDrag));
+      const end = this.offsetAtX(Math.max(dragging[0], endDrag));
+      this.props.dispatch(previewTimelineRange(start, end));
     }
     if (this.state.scrubbing) {
       this.scrubTo(this.offsetAtX(endDrag));
@@ -480,8 +408,6 @@ class Timeline extends Component {
       dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
     } else if (this.pressedSegment !== undefined) {
       this.selectSegment(Number(this.pressedSegment));
-    } else if (this.pressedEvents) {
-      this.selectEventAt(ev.pageX);
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
@@ -495,24 +421,7 @@ class Timeline extends Component {
     this.rulerRef.current = el;
     if (el) {
       el.addEventListener('touchstart', (ev) => ev.stopPropagation());
-      el.addEventListener('wheel', this.onRulerWheel, { passive: false });
     }
-  }
-
-  // pinch on a trackpad (or ctrl + wheel) zooms around the pointer
-  onRulerWheel(ev) {
-    if (!ev.ctrlKey && !ev.metaKey) {
-      return;
-    }
-    ev.preventDefault();
-    const { view } = this.state;
-    const anchor = this.offsetAtX(ev.pageX);
-    const scale = Math.exp(ev.deltaY * 0.01);
-    this.setView(clampView(
-      anchor - ((anchor - view.start) * scale),
-      anchor + ((view.end - anchor) * scale),
-      this.props.route.duration,
-    ));
   }
 
   getOffset() {
@@ -526,12 +435,10 @@ class Timeline extends Component {
     if (!view) {
       return;
     }
-    if (route?.duration) {
-      // keep the playhead in sight, unless the view was just changed by hand
+    // keep the playhead in sight
+    if (route?.duration && (offset < view.start || offset > view.end)) {
       const width = view.end - view.start;
-      if ((offset < view.start || offset > view.end) && Date.now() - this.manualViewAt > MANUAL_VIEW_GRACE) {
-        this.setView(clampView(offset - (width / 4), offset + (width * 3 / 4), route.duration), false);
-      }
+      this.setState({ view: clampView(offset - (width / 4), offset + (width * 3 / 4), route.duration) });
     }
     const percent = Math.floor(10000 * this.offsetToPercent(Math.floor(offset))) / 100;
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
@@ -561,8 +468,9 @@ class Timeline extends Component {
     return null;
   }
 
-  renderRoute(view = this.state.view) {
+  renderRoute() {
     const { classes, route } = this.props;
+    const { view } = this.state;
 
     if (!route.events) {
       return null;
@@ -589,7 +497,8 @@ class Timeline extends Component {
       return null;
     }
 
-    return rangedEvents(route)
+    return route.events
+      .filter((event) => event.data && event.data.end_route_offset_millis)
       .map((event) => {
         const style = {
           left: `${(event.route_offset_millis / route.duration) * 100}%`,
@@ -613,11 +522,11 @@ class Timeline extends Component {
     const start = segment * SEGMENT_DURATION;
     const end = Math.min(start + SEGMENT_DURATION, route.duration);
     const margin = (end - start) / 6;
-    this.setView(clampView(start - margin, end + margin, route.duration));
+    this.setState({ view: clampView(start - margin, end + margin, route.duration) });
     dispatch(pushTimelineRange(route.log_id, start, end, true));
   }
 
-  // a tick at every segment start, numbered (and selectable) as often as there is room for
+  // numbered, selectable segment starts, as often as there is room for them
   renderSegmentTicks() {
     const { classes, route } = this.props;
     const { view, thumbnail } = this.state;
@@ -625,29 +534,30 @@ class Timeline extends Component {
       return null;
     }
 
+    // number every segment, or every 2nd, 5th, 10th... when they do not fit
     const segmentWidth = (thumbnail.width * SEGMENT_DURATION) / (view.end - view.start);
-    const labelEvery = [1, 2, 5, 10, 20, 50].find((n) => n * segmentWidth >= SEGMENT_LABEL_SPACING) || 100;
+    const step = [1, 2, 5, 10, 20, 50].find((n) => n * segmentWidth >= SEGMENT_LABEL_SPACING) || 100;
     const ticks = [];
-    const end = Math.min(view.end, route.duration);
-    for (let segment = Math.ceil(view.start / SEGMENT_DURATION); segment * SEGMENT_DURATION < end; segment++) {
-      const labeled = segment % labelEvery === 0;
+    for (let segment = 0; segment * SEGMENT_DURATION < route.duration; segment += step) {
+      const start = segment * SEGMENT_DURATION;
+      if (start < view.start || start > view.end) {
+        continue;
+      }
       ticks.push(
         <div
           key={segment}
-          className={`${classes.segmentTick} ${labeled ? '' : 'minor'}`}
-          style={{ left: `${this.offsetToPercent(segment * SEGMENT_DURATION) * 100}%` }}
+          className={classes.segmentTick}
+          style={{ left: `${this.offsetToPercent(start) * 100}%` }}
         >
-          {labeled && (
-            <button
-              type="button"
-              data-segment={segment}
-              aria-label={`Select segment ${segment}`}
-              // pointer taps are handled by the ruler, this is for the keyboard
-              onClick={(ev) => ev.detail === 0 && this.selectSegment(segment)}
-            >
-              {segment}
-            </button>
-          )}
+          <button
+            type="button"
+            data-segment={segment}
+            aria-label={`Select segment ${segment}`}
+            // pointer taps are handled by the ruler, this is for the keyboard
+            onClick={(ev) => ev.detail === 0 && this.selectSegment(segment)}
+          >
+            {segment}
+          </button>
         </div>,
       );
     }
@@ -674,7 +584,7 @@ class Timeline extends Component {
       <button
         type="button"
         className="absolute right-1 top-1 z-10 whitespace-nowrap rounded-full bg-[#1D2225]/90 px-2 text-xs leading-5 text-white/80 hover:text-white"
-        onClick={() => this.setView({ start: 0, end: route.duration })}
+        onClick={() => this.setState({ view: { start: 0, end: route.duration } })}
       >
         whole drive
       </button>
@@ -767,7 +677,7 @@ class Timeline extends Component {
                 onPointerLeave={this.handlePointerLeave}
               >
                 <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
-                <div data-events className={classes.detailEvents}>
+                <div className={classes.detailEvents}>
                   { route && this.renderRoute() }
                 </div>
                 { this.renderSelection() }

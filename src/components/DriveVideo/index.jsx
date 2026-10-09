@@ -1,18 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
+import Hls from 'hls.js';
 
 import { api } from '../../api/backend';
+import { seek } from '../../actions';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { attachVideo, detachVideo } from '../../timeline';
+import { attachVideo, currentOffset, detachVideo } from '../../timeline';
 import { pause } from '../../timeline/playback';
 import { isIos } from '../../utils/browser.js';
 
 const NOT_UPLOADED = 'This video segment has not uploaded yet or has been deleted.';
 const NETWORK_ERROR = 'Unable to load video. Check network connection.';
 const LOAD_ERROR = 'Unable to load video';
+// two taps closer than this are a double tap, in milliseconds
+const DOUBLE_TAP = 300;
 
 const VideoOverlay = ({ loading, error, onRetry }) => {
   let content;
@@ -38,22 +42,15 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
   );
 };
 
-function loadNative(video, src, onAudio) {
-  video.src = src;
-  video.addEventListener('loadedmetadata', () => onAudio(video.audioTracks?.length > 0), { once: true });
-  return null;
-}
-
-// iOS plays HLS natively, everywhere else hls.js feeds the video through MSE
-async function loadStream(video, src, { onAudio, onError }) {
-  if (isIos()) {
-    return loadNative(video, src, onAudio);
+// Start loading the video. iOS plays the stream by itself, other browsers need hls.js.
+// Returns the hls.js player, or null when the browser plays the stream by itself.
+function loadVideo(video, src, onAudio, onError) {
+  if (isIos() || !Hls.isSupported()) {
+    video.src = src;
+    video.addEventListener('loadedmetadata', () => onAudio(video.audioTracks?.length > 0), { once: true });
+    return null;
   }
 
-  const { default: Hls } = await import('hls.js');
-  if (!Hls.isSupported()) {
-    return loadNative(video, src, onAudio);
-  }
   const hls = new Hls({ maxBufferLength: 40 });
   let mediaRecoveries = 0;
   hls.on(Hls.Events.BUFFER_CODECS, (_event, data) => onAudio(Boolean(data.audio)));
@@ -62,12 +59,15 @@ async function loadStream(video, src, { onAudio, onError }) {
       return;
     }
     if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveries < 2) {
+      // a broken frame: hls.js can usually skip past it
       mediaRecoveries += 1;
       hls.recoverMediaError();
     } else if (data.response?.code === 404) {
       onError(NOT_UPLOADED);
+    } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+      onError(NETWORK_ERROR);
     } else {
-      onError(data.type === Hls.ErrorTypes.NETWORK_ERROR ? NETWORK_ERROR : LOAD_ERROR);
+      onError(LOAD_ERROR);
     }
   });
   hls.loadSource(src);
@@ -77,6 +77,7 @@ async function loadStream(video, src, { onAudio, onError }) {
 
 const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudioStatusChange }) => {
   const videoRef = useRef(null);
+  const lastTap = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -92,28 +93,18 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
     return detachVideo;
   }, [videoStartOffset]);
 
+  // load the drive's video, again on every retry
   useEffect(() => {
-    const video = videoRef.current;
     if (!src) {
       return undefined;
     }
-
-    let cancelled = false;
-    let hls = null;
+    const video = videoRef.current;
     setError(null);
     onAudioStatusChange?.(false);
-    loadStream(video, src, {
-      onAudio: (hasAudio) => onAudioStatusChange?.(hasAudio),
-      onError: setError,
-    }).then((instance) => {
-      hls = instance;
-      if (cancelled) {
-        hls?.destroy();
-      }
-    }).catch(() => !cancelled && setError(NETWORK_ERROR));
+    const hls = loadVideo(video, src, (hasAudio) => onAudioStatusChange?.(hasAudio), setError);
 
+    // stop loading when the drive changes or the video goes away
     return () => {
-      cancelled = true;
       hls?.destroy();
       video.removeAttribute('src');
       video.load();
@@ -152,21 +143,45 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
 
   const onError = () => {
     const code = videoRef.current.error?.code;
-    if (code && code !== MediaError.MEDIA_ERR_ABORTED) {
-      setError((current) => current || (code === MediaError.MEDIA_ERR_NETWORK ? NETWORK_ERROR : LOAD_ERROR));
+    if (!code || code === MediaError.MEDIA_ERR_ABORTED) {
+      return; // we stopped the loading ourselves
+    }
+    setError(code === MediaError.MEDIA_ERR_NETWORK ? NETWORK_ERROR : LOAD_ERROR);
+  };
+
+  // double tap on the left or right half to jump 10s, like youtube
+  const onPointerUp = (ev) => {
+    if (ev.pointerType !== 'touch') {
+      return;
+    }
+    if (ev.timeStamp - lastTap.current > DOUBLE_TAP) {
+      lastTap.current = ev.timeStamp;
+      return;
+    }
+    lastTap.current = 0;
+    const box = ev.currentTarget.getBoundingClientRect();
+    const onRightHalf = ev.clientX > box.left + (box.width / 2);
+    if (onRightHalf) {
+      dispatch(seek(currentOffset() + 10000));
+    } else {
+      dispatch(seek(currentOffset() - 10000));
     }
   };
 
   return (
-    <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] bg-black">
+    <div
+      className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] bg-black touch-manipulation"
+      onPointerUp={onPointerUp}
+    >
       <VideoOverlay loading={loading} error={error} onRetry={() => setAttempt(attempt + 1)} />
       <video
         ref={videoRef}
         className="h-full w-full"
         playsInline
         muted={isMuted}
-        onLoadStart={() => setLoading(true)}
         onLoadedMetadata={applyPlayIntent}
+        // spinner while the video has nothing to show yet
+        onLoadStart={() => setLoading(true)}
         onWaiting={() => setLoading(true)}
         onSeeking={() => setLoading(true)}
         onCanPlay={() => setLoading(false)}

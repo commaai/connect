@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import dayjs from 'dayjs';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
@@ -82,14 +81,6 @@ const styles = () => ({
   },
   filesItem: {
     justifyContent: 'space-between',
-    opacity: 1,
-  },
-  filesHeading: {
-    height: 'unset',
-    paddingTop: 10,
-    paddingBottom: 2,
-    fontSize: '0.75rem',
-    color: Colors.white60,
     opacity: 1,
   },
   switchListItem: {
@@ -667,17 +658,6 @@ class Media extends Component {
       [rlog, 'Log data', 'logs'],
     ];
 
-    // say which stretch each kind of upload covers
-    const clock = (offset) => dayjs(currentRoute.start_time_utc_millis + offset).format('HH:mm:ss');
-    const segment = currentRoute ? getSegmentNumber(currentRoute) : null;
-    const segmentStart = segment * 60 * 1000;
-    const segmentEnd = currentRoute ? Math.min(segmentStart + (60 * 1000), currentRoute.duration) : 0;
-    const { loop } = this.props;
-    const wholeDrive = !loop || !currentRoute || (loop.startTime <= 0 && loop.duration >= currentRoute.duration);
-    const rangeHeading = wholeDrive
-      ? 'Whole drive'
-      : `Selection · ${clock(loop.startTime)}–${clock(loop.startTime + loop.duration)}`;
-
     const stats = this.getUploadStats();
     const rlogUploadDisabled = !stats || stats.isUploadedRlog || stats.isUploadingRlog || !stats.canRequestRlog;
     const allUploadDisabled = !stats || stats.isUploadedAll || stats.isUploadingAll || !stats.canRequestAll;
@@ -708,16 +688,8 @@ class Media extends Component {
             <CircularProgress size={ 36 } style={{ color: Colors.white }} />
           </div>
           )}
-          { currentRoute && (
-            <MenuItem className={ classes.filesHeading } disabled>
-              {`Segment ${segment} · ${clock(segmentStart)}–${clock(segmentEnd)}`}
-            </MenuItem>
-          )}
           { buttons.filter((b) => Boolean(b)).map(this.renderUploadMenuItem)}
           <hr />
-          <MenuItem className={ classes.filesHeading } disabled>
-            { rangeHeading }
-          </MenuItem>
           <MenuItem
             className={ classes.filesItem }
             disabled

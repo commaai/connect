@@ -5,19 +5,26 @@ import store from '../store';
 
 let video = null;
 let videoStartOffset = 0; // route offset of the first video frame
-let pendingOffset = 0; // position to report and restore while the video has none
+let lastOffset = 0; // the position to use while the video has none, e.g. still loading
 
-function loopBounds() {
+// the selected loop as { start, end }, or null
+function getLoop() {
   const { loop } = store.getState();
-  return loop ? [loop.startTime, loop.startTime + loop.duration] : null;
+  if (!loop) {
+    return null;
+  }
+  return { start: loop.startTime, end: loop.startTime + loop.duration };
 }
 
-function clampToLoop(offset) {
-  const bounds = loopBounds();
-  return bounds ? Math.min(Math.max(offset, bounds[0]), bounds[1]) : offset;
+function keepInLoop(offset) {
+  const loop = getLoop();
+  if (!loop) {
+    return offset;
+  }
+  return Math.min(Math.max(offset, loop.start), loop.end);
 }
 
-function hasPosition() {
+function videoIsReady() {
   return video !== null && video.readyState >= HTMLMediaElement.HAVE_METADATA;
 }
 
@@ -29,46 +36,48 @@ function videoOffset() {
  * @returns {number} current playback offset in milliseconds from route start
  */
 export function currentOffset() {
-  return clampToLoop(hasPosition() ? videoOffset() : pendingOffset);
+  if (videoIsReady()) {
+    return keepInLoop(videoOffset());
+  }
+  return keepInLoop(lastOffset);
 }
 
 /**
- * Move playback, clamped to the selected loop. Before the video has loaded the
- * offset is kept and applied as soon as it can be.
+ * Move playback, kept inside the selected loop. Before the video has loaded the
+ * offset is remembered and applied as soon as it can be.
  *
  * @param {number} offset milliseconds from route start
  */
 export function seek(offset) {
-  pendingOffset = clampToLoop(offset);
-  if (hasPosition()) {
-    video.currentTime = Math.max(0, pendingOffset - videoStartOffset) / 1000;
+  lastOffset = keepInLoop(offset);
+  if (videoIsReady()) {
+    video.currentTime = Math.max(0, lastOffset - videoStartOffset) / 1000;
   }
 }
 
 function onLoadedMetadata() {
-  seek(pendingOffset);
+  seek(lastOffset);
 }
 
-// keep playback inside the selected loop, wrapping at its end, and remember
-// the position for when the video reloads
+// while playing, jump back to the start of the loop when it is over
 function onTimeUpdate() {
-  if (!hasPosition()) {
+  if (!videoIsReady()) {
     return;
   }
-  const bounds = loopBounds();
+  const loop = getLoop();
   const offset = videoOffset();
-  if (bounds && !video.paused && (offset < bounds[0] || offset >= bounds[1])) {
-    seek(bounds[0]);
+  if (loop && !video.paused && (offset < loop.start || offset >= loop.end)) {
+    seek(loop.start);
   } else {
-    pendingOffset = clampToLoop(offset);
+    lastOffset = keepInLoop(offset);
   }
 }
 
-// the loop can end after the video does
+// the video can end before the loop does
 function onEnded() {
-  const bounds = loopBounds();
-  if (bounds) {
-    seek(bounds[0]);
+  const loop = getLoop();
+  if (loop) {
+    seek(loop.start);
     video.play()?.catch(() => {});
   }
 }
@@ -86,8 +95,8 @@ export function attachVideo(element, startOffset = 0) {
   video.addEventListener('loadedmetadata', onLoadedMetadata);
   video.addEventListener('timeupdate', onTimeUpdate);
   video.addEventListener('ended', onEnded);
-  if (hasPosition()) {
-    seek(pendingOffset);
+  if (videoIsReady()) {
+    seek(lastOffset);
   }
 }
 
@@ -95,7 +104,7 @@ export function detachVideo() {
   if (!video) {
     return;
   }
-  pendingOffset = currentOffset();
+  lastOffset = currentOffset();
   video.removeEventListener('loadedmetadata', onLoadedMetadata);
   video.removeEventListener('timeupdate', onTimeUpdate);
   video.removeEventListener('ended', onEnded);
