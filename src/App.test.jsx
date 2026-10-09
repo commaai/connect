@@ -289,6 +289,83 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
   });
 
+  test('cold-linked settings open for a different device without changing the dashboard selection', async () => {
+    const { store, history } = await renderApp(`/${FIRST}?dialog=settings&settingsDevice=${SECOND}`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(store.getState().dongleId).toBe(FIRST);
+    expect(screen.getByDisplayValue('Alpha')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(store.getState().dongleId).toBe(FIRST);
+  });
+
+  test('opening settings over a drive preserves route data, selection, and playback state across back/forward', async () => {
+    const { store, history } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const before = store.getState();
+    const requests = mocks.requests.filter((request) => request.url.includes('routes_segments')).length;
+    act(() => history.push({ pathname: history.location.pathname, search: `?dialog=settings&settingsDevice=${SECOND}` }));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    for (const key of ['routes', 'currentRoute', 'zoom', 'filter', 'subscription', 'startTime', 'desiredPlaySpeed']) {
+      expect(store.getState()[key]).toBe(before[key]);
+    }
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(store.getState().zoom).toBe(before.zoom);
+    act(() => history.goForward());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(mocks.requests.filter((request) => request.url.includes('routes_segments'))).toHaveLength(requests);
+  });
+
+  test('PUSH to an uncached drive loads it and retains the previously loaded drive for Back', async () => {
+    const { store, history } = await renderApp(`/${FIRST}`);
+    await screen.findByText('Mock recent route start');
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    expect(store.getState().routes.some((route) => route.log_id === RECENT_LOG)).toBe(true);
+    const requests = mocks.requests.filter((request) => request.url.includes('routes_segments')).length;
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}`));
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(RECENT_LOG));
+    act(() => history.goBack());
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    expect(mocks.requests.filter((request) => request.url.includes('routes_segments'))).toHaveLength(requests);
+  });
+
+  test('cold-linked pairing renders only one scanner when no devices are paired', async () => {
+    await renderApp('/?dialog=pair', { devices: [] });
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    expect(screen.getAllByText('Pair device')).toHaveLength(1);
+  });
+
+  test('root account link survives default-device initialization', async () => {
+    const { history } = await renderApp('/?dialog=account');
+    expect(await screen.findByText('Manage account')).toBeVisible();
+    expect(history.location.pathname).toMatch(new RegExp(`^/(${FIRST}|${SECOND})$`));
+    expect(history.location.search).toBe('?dialog=account');
+  });
+
+  test('closing a cold-linked drive fetches the dashboard without losing that drive from cache', async () => {
+    const { store, history } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    expect(store.getState().routesMeta.complete).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    await screen.findByText('Mock recent route start');
+    expect(store.getState().routesMeta.complete).toBe(true);
+    const requests = mocks.requests.filter((request) => request.url.includes('routes_segments')).length;
+    act(() => history.goBack());
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    expect(mocks.requests.filter((request) => request.url.includes('routes_segments'))).toHaveLength(requests);
+  });
+
+  test('same-log cross-device navigation restores the destination drive and range', async () => {
+    const { store, history } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => history.push(`/${SECOND}/${LOG}/10/20`));
+    await waitFor(() => expect(store.getState().currentRoute?.fullname).toBe(`${SECOND}|${LOG}`));
+    expect(store.getState()).toMatchObject({ dongleId: SECOND, selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
+  });
+
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
     const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));
@@ -297,7 +374,7 @@ describe('whole-app behavior', () => {
     fireEvent.pointerDown(timeline, { button: 0, clientX: 200, pageX: 200 });
     fireEvent.pointerMove(document, { clientX: 700, pageX: 700 });
     fireEvent.pointerUp(document, { button: 0, clientX: 700, pageX: 700 });
-    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
+    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+(\\.\\d+)?/\\d+(\\.\\d+)?$`)));
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));

@@ -15,6 +15,7 @@ export function hasRoutesData(state) {
     console.debug('Still loading...');
     return false;
   }
+  if (state.routesMeta.complete === false && !state.selectedRouteId) return false;
   if (state.dongleId !== state.routesMeta.dongleId) {
     console.debug('Bad dongle id');
     return false;

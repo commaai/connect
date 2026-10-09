@@ -19,7 +19,7 @@ const NoDeviceUpsell = () => (
         may have used previously.
       </p>
       <div className="mt-2 w-full">
-        <AddDevice buttonText="add new device" />
+        <AddDevice buttonText="add new device" buttonOnly />
       </div>
     </div>
     <picture className="max-w-3xl mt-4 p-4">

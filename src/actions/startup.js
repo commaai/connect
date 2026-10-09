@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { replace } from 'connected-react-router';
 
 import { api } from '../api/backend';
 
@@ -56,13 +57,16 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
+        const allowPathChange = ['/', '/demo'].includes(state.router.location.pathname);
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
+        let dongleId;
         if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
+          dongleId = selectedDongleId;
         } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+          dongleId = devices[0].dongle_id;
         }
+        dispatch(selectDevice(dongleId, false));
+        if (allowPathChange) dispatch(replace({ ...getState().router.location, pathname: `/${dongleId}` }));
       }
       const dongleId = getState().dongleId;
       const device = devices.find((dev) => dev.dongle_id === dongleId);

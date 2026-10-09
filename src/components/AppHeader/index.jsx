@@ -8,6 +8,7 @@ import { Typography, IconButton, AppBar } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { selectDevice } from '../../actions';
+import { openDialog, closeDialog } from '../../actions/navigation';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
@@ -79,24 +80,23 @@ const styles = () => ({
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
+  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname, dialog,
 }) => {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
     window.localStorage.getItem(REFERRALS_SEEN_KEY) !== 'true'
   ));
 
   const handleClickedAccount = useCallback(() => {
     if (MyCommaAuth.isAuthenticated()) {
-      setMenuOpen((prev) => !prev);
+      dispatch(dialog === 'account' ? closeDialog() : openDialog('account'));
     } else if (window.location) {
       window.location = window.location.origin;
     }
-  }, []);
+  }, [dispatch, dialog]);
 
   const handleClose = useCallback(() => {
-    setMenuOpen(false);
-  }, []);
+    dispatch(closeDialog());
+  }, [dispatch]);
 
   const openReferrals = useCallback(() => {
     if (pathname === '/referrals') return;
@@ -113,7 +113,7 @@ const AppHeader = ({
     handleDrawerStateChanged(!drawerIsOpen);
   }, [drawerIsOpen, handleDrawerStateChanged]);
 
-  const open = menuOpen;
+  const open = dialog === 'account';
   const referralsOpen = pathname === '/referrals';
   const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
 
@@ -189,6 +189,7 @@ const stateToProps = (state) => ({
   profile: state.profile,
   primeNav: state.primeNav,
   pathname: state.router.location.pathname,
+  dialog: state.navigation?.dialog,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

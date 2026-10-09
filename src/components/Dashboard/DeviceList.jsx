@@ -8,6 +8,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
+import { openDialog, closeDialog } from '../../actions/navigation';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
@@ -88,10 +89,6 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
     this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
@@ -101,11 +98,11 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
+    this.props.dispatch(openDialog('settings', { settingsDongleId: dongleId }));
   }
 
   handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    this.props.dispatch(closeDialog());
   }
 
   async onVisible() {
@@ -158,8 +155,10 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
-    const { classes, device, selectedDevice: dongleId } = this.props;
+    const { classes, device, selectedDevice: dongleId, navigation, globalDongleId } = this.props;
+    const settingsOpen = ['settings', 'unpair'].includes(navigation?.dialog)
+      || (navigation?.dialog === 'uploads' && Boolean(navigation.settingsDongleId));
+    const settingsModalDongleId = settingsOpen ? navigation?.settingsDongleId || globalDongleId : null;
 
     let { devices } = this.props;
     if (devices === null) {
@@ -203,7 +202,7 @@ class DeviceList extends Component {
           )}
         </div>
         <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
+          isOpen={settingsOpen}
           dongleId={settingsModalDongleId}
           onClose={this.handleClosedSettingsModal}
         />
@@ -216,6 +215,8 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  navigation: state.navigation,
+  globalDongleId: state.dongleId,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));
