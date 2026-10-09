@@ -140,18 +140,18 @@ export function checkLastRoutesData() {
   };
 }
 
-export const popTimelineRange = (log_id) => (dispatch, getState) => {
+export const popTimelineRange = (logId) => (dispatch, getState) => {
   const previous = getState().zoom?.previous;
-  if (previous) dispatch(pushTimelineRange(log_id, previous.start, previous.end));
+  if (previous) dispatch(pushTimelineRange(logId, previous.start, previous.end));
 }
 
-export const pushTimelineRange = (log_id, start, end) => (dispatch, getState) => {
+export const pushTimelineRange = (logId, start, end) => (dispatch, getState) => {
   const state = getState();
-  const route = state.routes?.find((candidate) => candidate.log_id === log_id);
+  const route = state.routes?.find((route) => route.log_id === logId);
   const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
   const path = state.dongleId ? [state.dongleId] : [];
-  if (state.dongleId && log_id) {
-    path.push(log_id);
+  if (state.dongleId && logId) {
+    path.push(logId);
     if (!wholeDrive) path.push(start / 1000, end / 1000);
   }
   const pathname = `/${path.join('/')}`;

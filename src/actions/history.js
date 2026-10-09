@@ -11,39 +11,42 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   if (state.devices === null) return;
 
   const parsed = parseURL({ pathname });
+  const { page, range } = parsed;
 
-  let selectedDongleId = parsed.dongleId ?? state.dongleId;
-  if (!selectedDongleId && state.devices?.length) {
-    const remembered = window.localStorage.getItem('selectedDongleId');
-    const selectedDevice = state.devices.find((device) => device.dongle_id === remembered)
-      || state.devices.find((device) => device.dongle_id === defaultDongleId)
-      || state.devices[0];
-    selectedDongleId = selectedDevice.dongle_id;
-  }
-
-  if (parsed.page === 'root' && selectedDongleId) {
-    dispatch(replace(`/${selectedDongleId}`));
+  if (page === 'not-found') {
+    dispatch(replace('/'));
     return;
   }
-  const destination = { ...parsed, dongleId: selectedDongleId };
-  const { page, dongleId, range } = destination;
-  const deviceChanged = state.dongleId !== dongleId;
 
+  let dongleId = parsed.dongleId ?? state.dongleId;
+  if (!dongleId && state.devices?.length) {
+    const rememberedDongleId = window.localStorage.getItem('selectedDongleId');
+    const device = state.devices.find((device) => device.dongle_id === rememberedDongleId)
+      || state.devices.find((device) => device.dongle_id === defaultDongleId)
+      || state.devices[0];
+    dongleId = device.dongle_id;
+  }
+
+  if (page === 'root' && dongleId) {
+    dispatch(replace(`/${dongleId}`));
+    return;
+  }
+
+  const deviceChanged = state.dongleId !== dongleId;
   if (deviceChanged && state.dongleId) webrtcConnectionManager.disconnect();
 
   dispatch({
     type: ACTION_APPLY_DESTINATION,
-    destination,
+    destination: { ...parsed, dongleId },
   });
 
   const updated = getState();
-  if (state.zoom !== updated.zoom || state.selectedRouteId !== updated.selectedRouteId) {
-    const { start, end } = updated.zoom || {};
+  const { zoom, loop, selectedRouteId } = updated;
+  if (state.zoom !== zoom || state.selectedRouteId !== selectedRouteId) {
+    const { start, end } = zoom || {};
 
-    if (!updated.loop || !updated.loop.startTime || !updated.loop.duration
-      || updated.loop.startTime < start
-      || updated.loop.startTime + updated.loop.duration > end
-      || updated.loop.duration < end - start) {
+    if (!loop?.startTime || !loop?.duration || loop.startTime < start
+      || loop.startTime + loop.duration > end || loop.duration < end - start) {
       dispatch(resetPlayback());
       dispatch(selectLoop(start, end));
     }
