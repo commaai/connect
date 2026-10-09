@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
@@ -8,7 +8,7 @@ import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
-import { useVideo, useVideoControls, useVideoFrame } from '../../hooks/video';
+import { useVideo, useVideoControls, useVideoTime } from '../../hooks/video';
 import { getCurrentRouteMs, seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
 import { videoPaused, videoPlayed, videoSeeked } from '../../timeline/playback';
 import { getPlaybackSpeed, playIgnoringInterruptions, setPlaybackRate } from '../../timeline/video';
@@ -112,25 +112,15 @@ function speedStepIndex(playbackRate) {
 }
 
 function usePlaybackTimeText(routeStartMs, videoStartOffset) {
-  const textRef = useRef(null);
-
-  const updateText = useCallback((videoSeconds) => {
-    const node = textRef.current;
-    if (!node) return;
-    const text = formatPlaybackTime(routeStartMs, toRouteMs(videoStartOffset, videoSeconds));
-    if (node.textContent === text) return;
-    node.textContent = text;
-  }, [routeStartMs, videoStartOffset]);
-
-  useVideoFrame(updateText);
-  return textRef;
+  const format = (videoSeconds) => formatPlaybackTime(routeStartMs, toRouteMs(videoStartOffset, videoSeconds));
+  return useVideoTime(format, format(0));
 }
 
 function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasAudio }) {
   const video = useVideo();
   const { paused, playbackRate, muted } = useVideoControls();
   const videoStartOffset = currentRoute?.videoStartOffset;
-  const timeTextRef = usePlaybackTimeText(currentRoute?.start_time_utc_millis, videoStartOffset);
+  const playbackTimeText = usePlaybackTimeText(currentRoute?.start_time_utc_millis, videoStartOffset);
 
   const speedIndex = speedStepIndex(playbackRate);
   const canIncreaseSpeed = speedIndex < timerSteps.length - 1;
@@ -195,7 +185,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
         </Typography>
       )}
       <Typography variant="body1" align="center" className={classes.currentTime}>
-        <span ref={timeTextRef} />
+        {playbackTimeText}
       </Typography>
       {!playsHlsNatively() && (
         <div className={ classes.desiredPlaySpeedContainer }>

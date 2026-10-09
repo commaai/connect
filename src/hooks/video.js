@@ -4,6 +4,8 @@ import { getVideo, subscribeVideo } from '../timeline/video';
 
 const CONTROL_EVENTS = ['play', 'pause', 'ratechange', 'volumechange', 'emptied'];
 
+const TIME_EVENTS = ['loadstart', 'loadedmetadata', 'timeupdate', 'seeking', 'emptied'];
+
 const STATUS_EVENTS = [
   'loadstart', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough',
   'waiting', 'playing', 'play', 'pause', 'seeking', 'seeked', 'emptied', 'error',
@@ -39,6 +41,10 @@ function useVideoValue(events, read, fallback) {
   };
 
   return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+export function useVideoTime(format, fallback) {
+  return useVideoValue(TIME_EVENTS, (video) => format(video.currentTime), fallback);
 }
 
 export function useVideoControls() {
