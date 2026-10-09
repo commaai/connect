@@ -95,6 +95,7 @@ test('shows media errors without overwriting timeline navigation and recovers wh
   fireEvent.waiting(video);
   expect(store.getState().videoStatus).toBe(VideoStatus.FAILED);
   expect(getByText('Unable to load video')).toBeVisible();
+  expect(getByText('Unable to load video').parentElement).toHaveClass('flex', 'h-full', 'px-4');
 
   act(() => store.dispatch(seek(16000)));
   video.currentTime = 0;

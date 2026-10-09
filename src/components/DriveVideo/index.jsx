@@ -39,7 +39,7 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
   }
   return (
     <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
-      <div className="relative text-center top-[calc(50%_-_25px)]">
+      <div className="flex h-full flex-col items-center justify-center px-4 text-center">
         {content}
       </div>
     </div>
