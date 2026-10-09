@@ -142,7 +142,7 @@ class MiniMap extends Component {
         aria-label="Open map"
         onClick={onExpand}
         onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') onExpand(); }}
-        className="absolute bottom-3 left-3 z-[60] aspect-[4/3] w-[38%] max-w-[240px] cursor-pointer overflow-hidden rounded-xl border-2 border-white/25 bg-[#1D2225] shadow-[0_2px_12px_rgba(0,0,0,0.5)]"
+        className="absolute bottom-3 left-3 z-[60] aspect-[4/3] h-[45%] max-h-[180px] cursor-pointer overflow-hidden rounded-xl border-2 border-white/25 bg-[#1D2225] shadow-[0_2px_12px_rgba(0,0,0,0.5)]"
       >
         <div className="pointer-events-none h-full w-full">
           <ReactMapGL

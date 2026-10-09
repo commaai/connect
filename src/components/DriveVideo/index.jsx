@@ -356,7 +356,7 @@ class DriveVideo extends Component {
     const { src, videoError } = this.state;
 
     return (
-      <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
+      <div className="relative mx-auto aspect-[1.593] min-h-[200px] max-w-[min(964px,calc((100svh_-_90px)_*_1.593))]">
         <VideoOverlay loading={isBufferingVideo} error={videoError} />
         <ReactPlayer
           url={src}
