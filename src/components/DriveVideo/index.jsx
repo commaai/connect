@@ -58,6 +58,8 @@ class DriveVideo extends Component {
     setVideo(null);
     this.loading = null;
     this.hls = null;
+    // a MediaSource opening late must not start loading again
+    if (hls) hls.config.autoStartLoad = false;
     hls?.stopLoad();
     setTimeout(() => { hls?.destroy(); video.removeAttribute('src'); video.load(); }, 1000);
   }
@@ -94,7 +96,7 @@ class DriveVideo extends Component {
       // start where playback starts (deep links, seeks during the download), not at segment 0
       this.hls = new Hls({ maxBufferLength: 40, startPosition: Math.max(0, this.videoTime(currentOffset())) });
       this.hls.on(Hls.Events.ERROR, this.onHlsError);
-      this.hls.on(Hls.Events.BUFFER_CODECS, (_, data) => this.props.onAudioStatusChange?.(Boolean(data.audio)));
+      this.hls.on(Hls.Events.BUFFER_CODECS, (_, data) => this.hls && this.props.onAudioStatusChange?.(Boolean(data.audio)));
       this.hls.loadSource(this.src);
       this.hls.attachMedia(video);
     }
