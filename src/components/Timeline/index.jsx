@@ -114,6 +114,25 @@ const styles = () => ({
       transform: 'translate(-50%, -50%) scale(1.5)',
     },
   },
+  segmentTick: {
+    position: 'absolute',
+    height: 44,
+    borderLeft: `1px solid ${Colors.white20}`,
+    pointerEvents: 'none',
+    zIndex: 2,
+    '& > span': {
+      position: 'absolute',
+      top: 2,
+      left: 3,
+      fontSize: 10,
+      color: Colors.white60,
+      userSelect: 'none',
+    },
+    '&.minor': {
+      height: 8,
+      marginTop: 36,
+    },
+  },
   loopStart: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRight: '1px solid rgba(0, 0, 0, 0.8)',
@@ -150,12 +169,16 @@ const styles = () => ({
     position: 'absolute',
     top: 83,
     left: 0,
-    width: 80,
+    minWidth: 80,
+    whiteSpace: 'nowrap',
   },
 });
 
 // how close to the playhead a press grabs it, in pixels
 const PLAYHEAD_GRAB_RADIUS = 24;
+const SEGMENT_DURATION = 60 * 1000;
+// minimum room for a segment number label, in pixels
+const SEGMENT_LABEL_SPACING = 28;
 
 const AlertStatusCodes = [
   'normal',
@@ -422,6 +445,33 @@ class Timeline extends Component {
       });
   }
 
+  // a tick at every segment start, numbered as often as there is room for
+  renderSegmentTicks() {
+    const { classes, route } = this.props;
+    const { zoom, thumbnail } = this.state;
+    if (!route?.duration || !thumbnail.width) {
+      return null;
+    }
+
+    const segmentWidth = (thumbnail.width * SEGMENT_DURATION) / (zoom.end - zoom.start);
+    const labelEvery = [1, 2, 5, 10, 20, 50].find((n) => n * segmentWidth >= SEGMENT_LABEL_SPACING) || 100;
+    const ticks = [];
+    const end = Math.min(zoom.end, route.duration);
+    for (let segment = Math.ceil(zoom.start / SEGMENT_DURATION); segment * SEGMENT_DURATION < end; segment++) {
+      const labeled = segment % labelEvery === 0;
+      ticks.push(
+        <div
+          key={segment}
+          className={`${classes.segmentTick} ${labeled ? '' : 'minor'}`}
+          style={{ left: `${this.offsetToPercent(segment * SEGMENT_DURATION) * 100}%` }}
+        >
+          {labeled && <span>{segment}</span>}
+        </div>,
+      );
+    }
+    return ticks;
+  }
+
   render() {
     const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
     const { thumbnail, hoverX, dragging, scrubbing } = this.state;
@@ -442,7 +492,7 @@ class Timeline extends Component {
         hoverString = dayjs(route.start_time_utc_millis + hoverOffset).format('HH:mm:ss');
         const segNum = this.segmentNum(hoverOffset);
         if (segNum !== null) {
-          hoverString = `${segNum}, ${hoverString}`;
+          hoverString = `seg ${segNum} · ${hoverString}`;
         }
       }
     }
@@ -489,6 +539,7 @@ class Timeline extends Component {
                 onPointerLeave={this.handlePointerLeave}
               >
                 <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                { this.renderSegmentTicks() }
                 <div ref={this.playhead} className={`${classes.playhead} ${scrubbing ? 'scrubbing' : ''}`} />
                 { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
               </div>

@@ -9,6 +9,38 @@ import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocod
 
 const INTERACTION_TIMEOUT = 5000;
 
+const SEGMENT_DURATION = 60 * 1000;
+
+// alternate shades tell segments apart, the one being played stands out
+function routeLineColor(currentSegment) {
+  return [
+    'case',
+    ['==', ['get', 'segment'], currentSegment], '#3d9be0',
+    ['==', ['%', ['get', 'segment'], 2], 0], '#8a8a8a',
+    '#5c656b',
+  ];
+}
+
+// one line per segment, each joined to the start of the next
+export function segmentLines(driveCoords) {
+  const features = [];
+  Object.entries(driveCoords).forEach(([second, coord]) => {
+    const segment = Math.floor((second * 1000) / SEGMENT_DURATION);
+    const last = features[features.length - 1];
+    if (last?.properties.segment === segment) {
+      last.geometry.coordinates.push(coord);
+      return;
+    }
+    last?.geometry.coordinates.push(coord);
+    features.push({
+      type: 'Feature',
+      properties: { segment },
+      geometry: { type: 'LineString', coordinates: [coord] },
+    });
+  });
+  return { type: 'FeatureCollection', features };
+}
+
 class DriveMap extends Component {
   constructor(props) {
     super(props);
@@ -36,6 +68,7 @@ class DriveMap extends Component {
     this.isInteractingTimeout = null;
     this.lastMapPos = [0, 0];
     this.lastOffset = null;
+    this.currentSegment = null;
   }
 
   componentDidMount() {
@@ -50,7 +83,7 @@ class DriveMap extends Component {
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
     if (prevRoute !== route) {
-      this.setPath([]);
+      this.setPath(segmentLines({}));
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
@@ -100,6 +133,11 @@ class DriveMap extends Component {
           this.shouldFlyTo = true;
         }
         this.lastOffset = offset;
+        const segment = Math.floor(offset / SEGMENT_DURATION);
+        if (segment !== this.currentSegment) {
+          this.currentSegment = segment;
+          this.map.getMap().setPaintProperty('routeLine', 'line-color', routeLineColor(segment));
+        }
         const pos = this.posAtOffset(offset);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
@@ -148,7 +186,7 @@ class DriveMap extends Component {
       return;
     }
 
-    this.setPath(Object.values(currentRoute.driveCoords));
+    this.setPath(segmentLines(currentRoute.driveCoords));
   }
 
   onRef(el) {
@@ -161,18 +199,11 @@ class DriveMap extends Component {
     this.setState({ viewport });
   }
 
-  setPath(coords) {
+  setPath(lines) {
     const map = this.map && this.map.getMap();
 
     if (map) {
-      map.getSource('route').setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: coords,
-        },
-      });
+      map.getSource('route').setData(lines);
     }
   }
 
@@ -224,14 +255,7 @@ class DriveMap extends Component {
     map.on('load', () => {
       map.addSource('route', {
         type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: [],
-          },
-        },
+        data: segmentLines({}),
       });
       map.addSource('seekPoint', {
         type: 'geojson',
@@ -250,7 +274,7 @@ class DriveMap extends Component {
           'line-cap': 'round',
         },
         paint: {
-          'line-color': '#888',
+          'line-color': routeLineColor(this.currentSegment ?? -1),
           'line-width': 8,
         },
       };
