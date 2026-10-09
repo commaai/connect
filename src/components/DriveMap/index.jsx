@@ -142,7 +142,7 @@ class DriveMap extends Component {
       }
     }
 
-    if (zoom !== prevProps.zoom) {
+    if (zoom !== prevProps.zoom || this.props.selectionPreview !== prevProps.selectionPreview) {
       this.updateSelection();
     }
 
@@ -297,13 +297,15 @@ class DriveMap extends Component {
   }
 
   updateSelection() {
-    const { currentRoute, zoom } = this.props;
+    const { currentRoute, zoom, selectionPreview } = this.props;
     const map = this.map && this.map.getMap();
     if (!map || !currentRoute?.driveCoords) {
       return;
     }
-    const partial = zoom && (zoom.start > 0 || zoom.end < currentRoute.duration);
-    map.getSource('selection').setData(selectionLine(currentRoute.driveCoords, partial ? zoom : null));
+    // follow a range while it is being dragged out on the timeline
+    const selection = selectionPreview || zoom;
+    const partial = selection && (selection.start > 0 || selection.end < currentRoute.duration);
+    map.getSource('selection').setData(selectionLine(currentRoute.driveCoords, partial ? selection : null));
   }
 
   onRef(el) {
@@ -514,6 +516,7 @@ class DriveMap extends Component {
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
+  selectionPreview: state.selectionPreview,
 });
 
 export default connect(stateToProps)(DriveMap);

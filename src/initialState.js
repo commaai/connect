@@ -33,6 +33,7 @@ export function createInitialState(pathname = window.location.pathname) {
 
     filter: getDefaultFilter(),
     zoom: getRouteZoom(pathname),
+    selectionPreview: null,
     loop: null,
     selectedRouteId: getRouteId(pathname),
     limit: 0,

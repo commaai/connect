@@ -8,7 +8,7 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange, seek } from '../../actions';
+import { previewTimelineRange, pushTimelineRange, seek } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset, seek as seekVideo } from '../../timeline';
 import { getSegmentNumber } from '../../utils';
@@ -416,7 +416,10 @@ class Timeline extends Component {
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.pageX));
     if (dragging) {
-      this.setState({ dragging: [dragging[0], this.snapX(endDrag)] });
+      const end = this.snapX(endDrag);
+      this.setState({ dragging: [dragging[0], end] });
+      const [a, b] = [this.offsetAtX(dragging[0]), this.offsetAtX(end)];
+      this.props.dispatch(previewTimelineRange(Math.min(a, b), Math.max(a, b)));
     }
     if (this.state.scrubbing) {
       this.scrubTo(this.offsetAtX(endDrag));
@@ -457,6 +460,7 @@ class Timeline extends Component {
       return;
     }
     this.setState({ dragging: null });
+    this.props.dispatch(previewTimelineRange(null, null));
 
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const startPercent = (Math.min(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;

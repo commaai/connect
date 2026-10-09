@@ -222,6 +222,15 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
 }
 
 
+// the range being dragged out on the timeline, before it is selected; null when done
+export function previewTimelineRange(start, end) {
+  return {
+    type: Types.TIMELINE_PREVIEW_SELECTION,
+    start,
+    end,
+  };
+}
+
 export function primeGetSubscription(dongleId, subscription) {
   return {
     type: Types.ACTION_PRIME_SUBSCRIPTION,

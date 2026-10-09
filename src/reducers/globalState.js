@@ -335,6 +335,9 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
+    case Types.TIMELINE_PREVIEW_SELECTION:
+      state.selectionPreview = action.start != null && action.end != null ? { start: action.start, end: action.end } : null;
+      break;
     case Types.TIMELINE_POP_SELECTION:
       if (state.zoom.previous) {
         state.zoom = state.zoom.previous;
