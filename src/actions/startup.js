@@ -51,6 +51,6 @@ export default function init() {
       devices,
     });
 
-    dispatch(syncStateFromURL(getState().router.location.pathname));
+    dispatch(syncStateFromURL(getState().router.location.pathname, devices[0]?.dongle_id));
   }
 }

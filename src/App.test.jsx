@@ -241,6 +241,13 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
   });
 
+  test('signed-out navigation from a public drive to dashboard shows login', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`, { authenticated: false });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${FIRST}`));
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+  });
+
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });

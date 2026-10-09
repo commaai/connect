@@ -122,17 +122,16 @@ class App extends Component {
   }
 
   render() {
-    if (!this.state.initialized) {
-      return <FullPageLoading />;
-    }
+    if (!this.state.initialized) return <FullPageLoading />;
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const { page } = parseURL(history.location.pathname);
-    const isDrive = page === 'drive' || page === 'legacy-drive';
-    const showLogin = !api.auth.isAuthenticated() && !isDrive;
     let content = (
       <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+        <Route render={({ location }) => {
+          const { page } = parseURL(location.pathname);
+          const isDrive = page === 'drive' || page === 'legacy-drive';
+          return !api.auth.isAuthenticated() && !isDrive ? this.anonymousRoutes() : this.authRoutes();
+        }} />
       </Suspense>
     );
 

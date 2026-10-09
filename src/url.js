@@ -12,21 +12,25 @@ const parseDriveRange = (start, end, legacy = false) => {
   return { start: startMillis, end: endMillis };
 }
 
+const rootRoutes = ['auth', 'demo', 'referrals'];
+const deviceRoutes = ['prime', 'stream'];
+
 export const parseURL = (pathname) => {
   const parts = pathname.split('/').filter(Boolean);
-  if (parts.length === 0) return { page: 'root' };
-  if (parts.length === 1 && ['auth', 'demo', 'referrals'].includes(parts[0])) return { page: parts[0] };
 
-  const [dongleId, branch, start, end] = parts;
-  if (!dongleIdRegex.test(dongleId)) return { page: 'not-found' };
-  if (parts.length === 1) return { page: 'dashboard', dongleId };
-  if (parts.length === 2 && ['prime', 'stream'].includes(branch)) return { page: branch, dongleId };
+  if (!parts.length) return { page: 'root' };
+  if (parts.length === 1 && rootRoutes.includes(parts[0])) return { page: parts[0] };
 
-  if (logIdRegex.test(branch) && (parts.length === 2 || parts.length === 4)) {
-    const range = parts.length === 4 ? parseDriveRange(start, end) : null;
+  const [dongleId, branch, start, end, ...rest] = parts;
+  if (!dongleIdRegex.test(dongleId) || rest.length) return { page: 'not-found' };
+  if (!branch) return { page: 'dashboard', dongleId };
+  if (!start && deviceRoutes.includes(branch)) return { page: branch, dongleId };
+
+  if (logIdRegex.test(branch) && (!start || end)) {
+    const range = end ? parseDriveRange(start, end) : null;
     return { page: 'drive', dongleId, logId: branch, range };
   }
-  if (parts.length === 3) {
+  if (start && !end) {
     const range = parseDriveRange(branch, start, true);
     if (range) return { page: 'legacy-drive', dongleId, range };
   }
@@ -36,11 +40,11 @@ export const parseURL = (pathname) => {
 export const buildURL = (destination) => {
   const { page, dongleId, logId, range } = destination;
 
-  if (['auth', 'demo', 'referrals'].includes(page)) return `/${page}`;
+  if (rootRoutes.includes(page)) return `/${page}`;
   if (page === 'root' || !dongleId) return '/';
 
   const path = [dongleId];
-  if (['prime', 'stream'].includes(page)) path.push(page);
+  if (deviceRoutes.includes(page)) path.push(page);
 
   if (page === 'drive') {
     path.push(logId);

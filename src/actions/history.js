@@ -6,7 +6,7 @@ import { api } from '../api/backend';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 
-export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
+export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, getState) => {
   const state = getState();
   if (state.devices === null) return;
 
@@ -15,7 +15,9 @@ export const syncStateFromURL = (pathname) => async (dispatch, getState) => {
   let selectedDongleId = parsed.dongleId ?? state.dongleId;
   if (!selectedDongleId && state.devices?.length) {
     const remembered = window.localStorage.getItem('selectedDongleId');
-    const device = state.devices.find((device) => device.dongle_id === remembered) || state.devices[0];
+    const device = state.devices.find((device) => device.dongle_id === remembered)
+      || state.devices.find((device) => device.dongle_id === defaultDongleId)
+      || state.devices[0];
     selectedDongleId = device.dongle_id;
   }
 
