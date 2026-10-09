@@ -247,10 +247,13 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
   });
 
-  test('legacy timestamp URL converts after a successful lookup', async () => {
-    const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
+  test.each([false, true])('legacy timestamp converts with cached drive %s', async (cached) => {
+    const legacy = `/${FIRST}/${START}/${START + 60_000}`;
+    const { history, store } = await renderApp(cached ? `/${FIRST}/${LOG}` : legacy);
+    if (cached) act(() => history.replace(legacy));
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(store.getState().loop).toEqual({ startTime: 0, duration: 60000 });
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {

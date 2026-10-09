@@ -92,8 +92,20 @@ describe('history middleware', () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
     const { invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
+    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, false));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
+  });
+
+  it('ignores a legacy lookup that answers after leaving the device', async () => {
+    let answer;
+    Drives.getRoutesSegments.mockImplementation(() => new Promise((resolve) => { answer = resolve; }));
+    const state = { ...baseState };
+    const { invoke } = create(state);
+    invoke(location(`/${DONGLE}/1000/2000`));
+    state.dongleId = OTHER;
+    answer([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
   });
 
   it.each([null, []])('keeps a legacy range unchanged for an empty lookup (%j)', async (routes) => {
