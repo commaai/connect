@@ -13,6 +13,7 @@ import {
 } from '../../timeline/playback';
 
 const getVideoStartOffset = (route) => route.videoStartOffset || 0;
+const OFFLINE = 'You\'re offline';
 
 const VideoOverlay = ({ loading, error, onRetry }) => {
   let content;
@@ -52,6 +53,7 @@ class RouteVideo extends Component {
 
   componentDidMount() {
     this.props.dispatch(resetPlayback());
+    window.addEventListener('online', this.onOnline);
   }
 
   componentDidUpdate(prevProps) {
@@ -65,6 +67,7 @@ class RouteVideo extends Component {
 
   componentWillUnmount() {
     cancelAnimationFrame(this.frameId);
+    window.removeEventListener('online', this.onOnline);
     this.audioTracks?.removeEventListener('addtrack', this.onAddTrack);
   }
 
@@ -150,15 +153,19 @@ class RouteVideo extends Component {
       error = data;
     }
     if (!error || error.name === 'AbortError') return;
-    const { dispatch } = this.props;
+    const { currentRoute, dispatch } = this.props;
     if (error.name === 'NotAllowedError') {
       dispatch(setVideoStatus(VideoStatus.READY));
       dispatch(pause()); // Leave the play button available after blocked autoplay.
       return;
     }
-    this.failure = error.response?.code === 404
-      ? 'This video segment has not uploaded yet or has been deleted.'
-      : 'Unable to load video';
+    const status = error.response?.code;
+    const expired = currentRoute.share_exp && Number(currentRoute.share_exp) * 1000 < Date.now();
+    if (status === 404) this.failure = 'This video segment has not uploaded yet or has been deleted.';
+    else if (navigator.onLine === false) this.failure = OFFLINE;
+    else if (expired) this.failure = 'This link has expired';
+    else if (status === 401 || status === 403) this.failure = 'You don\'t have access to this video';
+    else this.failure = 'Unable to load video';
     // hls.js can give up on a segment ahead of the playhead, so play what is buffered first.
     const video = this.player.current.getInternalPlayer();
     if (!(error.frag?.start > this.player.current.getCurrentTime() && video.readyState >= 3)) this.onBuffer();
@@ -188,6 +195,10 @@ class RouteVideo extends Component {
     this.failure = null;
     this.setState(({ attempt }) => ({ videoError: null, attempt: attempt + 1 }));
     this.props.dispatch(setVideoStatus(VideoStatus.LOADING));
+  };
+
+  onOnline = () => {
+    if (this.failure === OFFLINE) this.onRetry();
   };
 
   onPlaybackRateChange = (rate) => {

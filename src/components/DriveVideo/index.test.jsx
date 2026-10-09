@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 
@@ -24,10 +24,10 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-async function mountVideo() {
+async function mountVideo(currentRoute = route) {
   const store = createStore((state, action) => action.type === 'TEST_ROUTE'
     ? { ...state, currentRoute: action.route, loop: null }
-    : reducer(state, action), { ...createInitialState('/'), currentRoute: route });
+    : reducer(state, action), { ...createInitialState('/'), currentRoute });
   const view = render(<Provider store={store}><DriveVideo isMuted /></Provider>);
   await waitFor(() => expect(view.container.querySelector('video')).not.toBeNull());
   const video = view.container.querySelector('video');
@@ -104,6 +104,30 @@ test('shows media errors without overwriting timeline navigation and recovers wh
   fireEvent.canPlay(video);
   expect(store.getState().videoStatus).toBe(VideoStatus.READY);
   expect(queryByText('Unable to load video')).toBeNull();
+});
+
+test.each([
+  [401, 4000000000, "You don't have access to this video"],
+  [403, 4000000000, "You don't have access to this video"],
+  [403, 1, 'This link has expired'],
+  [undefined, 1, 'This link has expired'],
+  [404, 1, 'This video segment has not uploaded yet or has been deleted.'],
+])('explains a %i video response', async (code, shareExp, message) => {
+  const { video, getByText } = await mountVideo({ ...route, share_exp: shareExp });
+  const error = Object.assign(createEvent.error(video), { response: { code } });
+  fireEvent(video, error);
+  expect(getByText(message)).toBeVisible();
+});
+
+test('retries an offline failure when the browser comes online', async () => {
+  const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+  const { video, container, getByText } = await mountVideo();
+  fireEvent.error(video);
+  expect(getByText("You're offline")).toBeVisible();
+
+  online.mockReturnValue(true);
+  fireEvent.online(window);
+  await waitFor(() => expect(container.querySelector('video')).not.toBe(video));
 });
 
 test('retrying a failed video loads it again at the current offset', async () => {
