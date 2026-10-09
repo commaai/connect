@@ -7,6 +7,7 @@ import { withStyles } from '@material-ui/core/styles';
 import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
+import Overview, { clampView } from './Overview';
 import theme from '../../theme';
 import { pushTimelineRange, seek } from '../../actions';
 import Colors from '../../colors';
@@ -145,6 +146,15 @@ const styles = () => ({
       marginTop: 36,
     },
   },
+  selection: {
+    position: 'absolute',
+    height: 44,
+    background: 'rgba(255, 255, 255, 0.08)',
+    borderLeft: `1px solid ${Colors.white40}`,
+    borderRight: `1px solid ${Colors.white40}`,
+    pointerEvents: 'none',
+    zIndex: 1,
+  },
   loopStart: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRight: '1px solid rgba(0, 0, 0, 0.8)',
@@ -191,6 +201,8 @@ const PLAYHEAD_GRAB_RADIUS = 24;
 const SEGMENT_DURATION = 60 * 1000;
 // minimum room for a segment number label, in pixels
 const SEGMENT_LABEL_SPACING = 28;
+// after the lens is moved by hand, playback leaves it alone for this long
+const MANUAL_VIEW_GRACE = 2000;
 
 const AlertStatusCodes = [
   'normal',
@@ -218,6 +230,8 @@ class Timeline extends Component {
     this.segmentNum = this.segmentNum.bind(this);
     this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
+    this.setView = this.setView.bind(this);
+    this.onRulerWheel = this.onRulerWheel.bind(this);
 
     this.rulerRemaining = React.createRef();
     this.playhead = React.createRef();
@@ -225,13 +239,15 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
     this.thumbnailsRef = React.createRef();
+    this.overviewPlayhead = React.createRef();
+    this.manualViewAt = 0;
 
     const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
       scrubbing: false,
       hoverX: null,
-      zoom: zoomOverride || zoom,
+      view: zoomOverride || zoom, // the part of the drive the timeline shows
       thumbnail: {
         height: 0,
         width: 0,
@@ -258,10 +274,22 @@ class Timeline extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { zoomOverride, zoom } = this.props;
-    if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
-      this.setState({ zoom: zoomOverride || zoom });
+    const { zoomOverride, zoom, route } = this.props;
+    if (zoomOverride) {
+      if (prevProps.zoomOverride !== zoomOverride) {
+        this.setState({ view: zoomOverride });
+      }
+    } else if (prevProps.route?.fullname !== route?.fullname || (!this.state.view && zoom)) {
+      // a new drive opens on its selection; after that, selecting no longer zooms
+      this.setState({ view: zoom });
     }
+  }
+
+  setView(view, manual = true) {
+    if (manual) {
+      this.manualViewAt = Date.now();
+    }
+    this.setState({ view });
   }
 
   componentWillUnmount() {
@@ -373,7 +401,24 @@ class Timeline extends Component {
     this.rulerRef.current = el;
     if (el) {
       el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+      el.addEventListener('wheel', this.onRulerWheel, { passive: false });
     }
+  }
+
+  // pinch on a trackpad (or ctrl + wheel) zooms around the pointer
+  onRulerWheel(ev) {
+    if (!ev.ctrlKey && !ev.metaKey) {
+      return;
+    }
+    ev.preventDefault();
+    const { view } = this.state;
+    const anchor = this.offsetAtX(ev.pageX);
+    const scale = Math.exp(ev.deltaY * 0.01);
+    this.setView(clampView(
+      anchor - ((anchor - view.start) * scale),
+      anchor + ((view.end - anchor) * scale),
+      this.props.route.duration,
+    ));
   }
 
   getOffset() {
@@ -381,7 +426,21 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    const percent = Math.floor(10000 * this.offsetToPercent(Math.floor(currentOffset()))) / 100;
+    const offset = currentOffset();
+    const { route } = this.props;
+    const { view } = this.state;
+    if (!view) {
+      return;
+    }
+    if (this.overviewPlayhead.current && route?.duration) {
+      this.overviewPlayhead.current.style.left = `${(100 * offset) / route.duration}%`;
+      // keep the playhead in sight, unless the lens was just moved by hand
+      const width = view.end - view.start;
+      if ((offset < view.start || offset > view.end) && Date.now() - this.manualViewAt > MANUAL_VIEW_GRACE) {
+        this.setView(clampView(offset - (width / 4), offset + (width * 3 / 4), route.duration), false);
+      }
+    }
+    const percent = Math.floor(10000 * this.offsetToPercent(Math.floor(offset))) / 100;
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${percent}%`;
       this.rulerRemaining.current.style.width = `${100 - percent}%`;
@@ -392,13 +451,13 @@ class Timeline extends Component {
   }
 
   percentToOffset(perc) {
-    const { zoom } = this.state;
-    return perc * (zoom.end - zoom.start) + zoom.start;
+    const { view } = this.state;
+    return perc * (view.end - view.start) + view.start;
   }
 
   offsetToPercent(offset) {
-    const { zoom } = this.state;
-    return (offset - zoom.start) / (zoom.end - zoom.start);
+    const { view } = this.state;
+    return (offset - view.start) / (view.end - view.start);
   }
 
   segmentNum(offset) {
@@ -409,17 +468,16 @@ class Timeline extends Component {
     return null;
   }
 
-  renderRoute() {
+  renderRoute(view = this.state.view) {
     const { classes, route } = this.props;
-    const { zoom } = this.state;
 
     if (!route.events) {
       return null;
     }
 
-    const zoomDuration = zoom.end - zoom.start;
-    const startPerc = (100 * (-zoom.start)) / zoomDuration;
-    const widthPerc = (100 * route.duration) / zoomDuration;
+    const viewDuration = view.end - view.start;
+    const startPerc = (100 * (-view.start)) / viewDuration;
+    const widthPerc = (100 * route.duration) / viewDuration;
 
     const style = {
       width: `${widthPerc}%`,
@@ -460,16 +518,16 @@ class Timeline extends Component {
   // a tick at every segment start, numbered as often as there is room for
   renderSegmentTicks() {
     const { classes, route } = this.props;
-    const { zoom, thumbnail } = this.state;
+    const { view, thumbnail } = this.state;
     if (!route?.duration || !thumbnail.width) {
       return null;
     }
 
-    const segmentWidth = (thumbnail.width * SEGMENT_DURATION) / (zoom.end - zoom.start);
+    const segmentWidth = (thumbnail.width * SEGMENT_DURATION) / (view.end - view.start);
     const labelEvery = [1, 2, 5, 10, 20, 50].find((n) => n * segmentWidth >= SEGMENT_LABEL_SPACING) || 100;
     const ticks = [];
-    const end = Math.min(zoom.end, route.duration);
-    for (let segment = Math.ceil(zoom.start / SEGMENT_DURATION); segment * SEGMENT_DURATION < end; segment++) {
+    const end = Math.min(view.end, route.duration);
+    for (let segment = Math.ceil(view.start / SEGMENT_DURATION); segment * SEGMENT_DURATION < end; segment++) {
       const labeled = segment % labelEvery === 0;
       ticks.push(
         <div
@@ -484,9 +542,65 @@ class Timeline extends Component {
     return ticks;
   }
 
+  // the selection, unless it is the whole drive
+  partialSelection() {
+    const { zoom, route } = this.props;
+    if (!zoom || !route || (zoom.start <= 0 && zoom.end >= route.duration)) {
+      return null;
+    }
+    return zoom;
+  }
+
+  renderOverview() {
+    const { route } = this.props;
+    const { view } = this.state;
+    const whole = { start: 0, end: route.duration };
+    const zoomed = view.start > 0 || view.end < route.duration;
+    return (
+      <div className="relative">
+        <Overview
+          duration={route.duration}
+          view={view}
+          selection={this.partialSelection()}
+          playheadRef={this.overviewPlayhead}
+          onViewChange={this.setView}
+          onSeek={(offset) => this.props.dispatch(seek(offset))}
+        >
+          { this.renderRoute(whole) }
+        </Overview>
+        { zoomed && (
+          <button
+            type="button"
+            className="absolute right-1 top-6 z-10 whitespace-nowrap rounded-full bg-[#1D2225]/90 px-2 text-xs leading-5 text-white/80 hover:text-white"
+            onClick={() => this.setView(whole)}
+          >
+            whole drive
+          </button>
+        ) }
+      </div>
+    );
+  }
+
+  renderSelection() {
+    const { classes } = this.props;
+    const selection = this.partialSelection();
+    if (!selection) {
+      return null;
+    }
+    const left = Math.max(0, this.offsetToPercent(selection.start));
+    const right = Math.min(1, this.offsetToPercent(selection.end));
+    if (right <= 0 || left >= 1) {
+      return null;
+    }
+    return <div className={classes.selection} style={{ left: `${left * 100}%`, width: `${(right - left) * 100}%` }} />;
+  }
+
   render() {
     const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
-    const { thumbnail, hoverX, dragging, scrubbing } = this.state;
+    const { thumbnail, hoverX, dragging, scrubbing, view } = this.state;
+    if (!view) {
+      return null;
+    }
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
 
@@ -522,10 +636,12 @@ class Timeline extends Component {
     return (
       <div className={className}>
         <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
-          <div className={ `${classes.segments} ${hasRulerCls}` }>
-            { route && this.renderRoute() }
-            <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
-          </div>
+          { hasRuler && route ? this.renderOverview() : (
+            <div className={ `${classes.segments} ${hasRulerCls}` }>
+              { route && this.renderRoute() }
+              <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
+            </div>
+          ) }
           <div ref={this.thumbnailsRef} className={`${classes.thumbnails} ${hasRulerCls}`}>
             {thumbnailsVisible && (
               <Thumbnails
@@ -551,6 +667,7 @@ class Timeline extends Component {
                 onPointerLeave={this.handlePointerLeave}
               >
                 <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                { this.renderSelection() }
                 { this.renderSegmentTicks() }
                 <div ref={this.playhead} className={classes.playhead}>
                   <div className={`${classes.playheadHandle} ${scrubbing ? 'scrubbing' : ''}`} />
