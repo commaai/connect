@@ -48,7 +48,6 @@ function renderVideo(props = {}, duration = 60) {
   let time = 0;
   setMedia(video, { readyState: 1, duration, ended: false });
   Object.defineProperty(video, 'currentTime', { configurable: true, get: () => time, set: (t) => {
-    // webkit never finishes a seek to the end
     expect(t).toBeLessThan(duration);
     writes.push(t);
     time = t;
@@ -66,7 +65,7 @@ function renderVideo(props = {}, duration = 60) {
 async function renderHls(props) {
   vi.stubGlobal('MediaSource', class {});
   const view = renderVideo(props);
-  view.video.readyState = 0; // no media until hls.js attaches
+  view.video.readyState = 0;
   await vi.waitFor(() => expect(hls.instances).toHaveLength(1));
   return { ...view, player: hls.instances[0] };
 }
@@ -187,7 +186,7 @@ describe('DriveVideo', () => {
     const { video, playToEnd } = renderVideo({}, 30);
     playToEnd();
     act(() => vi.advanceTimersByTime(20000));
-    video.currentTime = 0; // media keys restart an ended element
+    video.currentTime = 0;
     fireEvent.play(video);
     expect(video.currentTime).toBe(29.5);
     expect(currentOffset()).toBe(50000);
@@ -237,32 +236,17 @@ describe('DriveVideo', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
-  it('reports no audio without audio tracks', () => {
-    const onAudioStatusChange = vi.fn();
-    const { video } = renderVideo({ onAudioStatusChange });
-    setMedia(video, { audioTracks: { length: 0 } });
-    fireEvent.loadedData(video);
-    expect(onAudioStatusChange).toHaveBeenCalledWith(false);
-  });
-
   it.each([
     [2, 'Unable to load video. Check network connection.'], [3, 'Unable to load video'],
-  ])('shows native error %s with retry', (code, message) => {
-    const { video } = renderVideo();
-    setMedia(video, { error: { code } });
+  ])('shows native error %s with retry and reports no audio', (code, message) => {
+    const onAudioStatusChange = vi.fn();
+    const { video } = renderVideo({ onAudioStatusChange });
+    setMedia(video, { error: { code }, audioTracks: { length: 0 } });
+    fireEvent.loadedData(video);
+    expect(onAudioStatusChange).toHaveBeenCalledWith(false);
     fireEvent.error(video);
     expect(screen.getByText(message)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
-  });
-
-  it('plays through hls.js and reports audio', async () => {
-    const onAudioStatusChange = vi.fn();
-    const { video, player } = await renderHls({ onAudioStatusChange });
-    expect(player.attachMedia).toHaveBeenCalledWith(video);
-    player.emit('hlsBufferCodecs', { video: {} });
-    expect(onAudioStatusChange).not.toHaveBeenCalled();
-    player.emit('hlsBufferCodecs', { audio: {}, video: {} });
-    expect(onAudioStatusChange).toHaveBeenCalledWith(true);
   });
 
   it.each([
@@ -275,8 +259,14 @@ describe('DriveVideo', () => {
     expect(hls.instances).toHaveLength(0);
   });
 
-  it('recovers once from a fatal media error', async () => {
-    const { video, player } = await renderHls();
+  it('plays through hls.js, reports audio and recovers once from a fatal media error', async () => {
+    const onAudioStatusChange = vi.fn();
+    const { video, player } = await renderHls({ onAudioStatusChange });
+    expect(player.attachMedia).toHaveBeenCalledWith(video);
+    player.emit('hlsBufferCodecs', { video: {} });
+    expect(onAudioStatusChange).not.toHaveBeenCalled();
+    player.emit('hlsBufferCodecs', { audio: {}, video: {} });
+    expect(onAudioStatusChange).toHaveBeenCalledWith(true);
     player.emit('hlsMediaAttached');
     Object.assign(video, { readyState: 1, currentTime: 12 });
     player.emit('hlsError', { fatal: false, type: 'networkError' });

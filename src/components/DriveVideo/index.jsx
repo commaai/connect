@@ -10,7 +10,7 @@ import { activeVideo, attachVideo, currentOffset, detachVideo, endVideo, pastVid
 import { resumePlayback, syncPlayback } from '../../timeline/playback';
 import { hasMediaSource } from '../../utils/browser.js';
 
-const BUFFERING_DELAY = 250; // no spinner flash on quick seeks
+const BUFFERING_DELAY = 250;
 const MEDIA_ERR_NETWORK = 2;
 
 function errorMessage(network, httpCode) {
@@ -42,7 +42,6 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
   const [attempt, setAttempt] = useState(0);
   const native = !hasMediaSource();
 
-  // the clock keeps the map and timeline going
   const fail = (message) => {
     detachVideo(videoRef.current);
     videoRef.current.pause();
@@ -72,26 +71,26 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
     showBuffering();
 
     let hls = null;
-    let cancelled = false;
+    let unmounted = false;
     if (native) {
       video.src = src;
       dispatch(resumePlayback());
     } else {
       import('hls.js/light').then(({ default: Hls }) => {
-        if (cancelled) return;
+        if (unmounted) return;
         hls = new Hls({ startPosition: routeToVideo(currentOffset()), maxBufferLength: 40 });
         const { MEDIA_ERROR, NETWORK_ERROR } = Hls.ErrorTypes;
-        let recovered = false;
+        let triedRecovery = false;
         // also fires when hls.js re-attaches by itself
         hls.on(Hls.Events.MEDIA_ATTACHED, () => dispatch(resumePlayback()));
         hls.on(Hls.Events.BUFFER_CODECS, (_event, data) => data.audio && onAudioStatusChange?.(true));
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (!data.fatal) return; // hls.js already retries these
-          if (data.type !== MEDIA_ERROR || recovered) {
+          if (data.type !== MEDIA_ERROR || triedRecovery) {
             fail(errorMessage(data.type === NETWORK_ERROR, data.response?.code));
             return;
           }
-          recovered = true;
+          triedRecovery = true;
           // the next loadedmetadata restores the position
           attachVideo(video, route.fullname);
           hls.recoverMediaError();
@@ -99,12 +98,12 @@ const RouteVideo = ({ dispatch, route, loop, desiredPlaySpeed, seekCount, isMute
         hls.attachMedia(video);
         hls.loadSource(src);
       }).catch(() => {
-        if (!cancelled) fail(errorMessage(true));
+        if (!unmounted) fail(errorMessage(true));
       });
     }
 
     return () => {
-      cancelled = true;
+      unmounted = true;
       detachVideo(video);
       clearTimeout(bufferingTimer.current);
       clearTimeout(restartTimer.current);

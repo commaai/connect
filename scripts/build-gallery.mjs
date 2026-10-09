@@ -21,8 +21,6 @@ const LOCALE = 'en-US';
 const TIMEZONE = 'America/Los_Angeles';
 const CHANGE_THRESHOLD = 0.0001;
 const CAPTURE_CONCURRENCY = 4;
-// one black 64x40 H.264 frame, so the drive video loads and ends like a partially uploaded route
-const BLACK_FRAME_TS = Buffer.from('R0AAEAAAsA0AAcEAAAAB8AAqsQSy//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////9HUAAQAAKwEgABwQAA4QDwABvhAPAAFb1NVv///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////0dBADBoUAAAewx+AP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AAAHgAACAgAUhAAfYYQAAAAEJ8AAAAAFnQsAK2QR/lwEQAAADABAAAAMCgPEiZIAAAAABaMuDyyAAAAFliIQK8mKAAKe8nJydddddddde', 'base64');
 
 const GALLERY_STATES = [
   { name: 'signin', label: 'Sign in', path: '/', readyText: 'Sign in with Google', anonymous: true },
@@ -320,7 +318,8 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
       return jsonResponse(request, []);
     }
     if (url.pathname === '/__gallery-route/0/qcamera.ts') {
-      return request.respond({ status: 200, contentType: 'video/mp2t', body: BLACK_FRAME_TS });
+      // one black H.264 frame, so the drive video loads and ends like a partial upload
+      return request.respond({ status: 200, contentType: 'video/mp2t', body: await readFile(new URL('black-frame.mpegts', import.meta.url)) });
     }
     return request.continue();
   }

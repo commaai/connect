@@ -6,7 +6,7 @@ const END_MARGIN = 0.5; // webkit never finishes a seek to the end
 let current = null; // { el, route }
 // wall clock for when no video drives the time
 let clock = { offset: 0, since: Date.now(), speed: 0, hasRoute: false };
-// the video can be shorter than the route
+// the video ended or a seek landed past it: the clock drives time until a seek lands back inside it
 let pastEnd = false;
 
 const videoStartOffset = () => store.getState().currentRoute?.videoStartOffset ?? 0;
@@ -51,7 +51,6 @@ export function setClockSpeed(speed) {
   setClock(currentOffset(), speed);
 }
 
-// the clock takes over from the end of the video
 export function endVideo(speed) {
   setClockSpeed(speed);
   pastEnd = true;

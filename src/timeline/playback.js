@@ -71,7 +71,6 @@ export function play(speed = 1) {
   };
 }
 
-// start a new element if the user wants playback
 export function resumePlayback() {
   return (dispatch, getState) => {
     const { desiredPlaySpeed } = getState();
