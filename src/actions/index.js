@@ -147,8 +147,8 @@ export const popTimelineRange = (logId) => (dispatch, getState) => {
 
 export const pushTimelineRange = (logId, start, end) => (dispatch, getState) => {
   const state = getState();
-  const route = state.routes?.find((route) => route.log_id === logId);
-  const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+  const selectedRoute = state.routes?.find((route) => route.log_id === logId);
+  const wholeDrive = start == null || end == null || (start === 0 && end === selectedRoute?.duration);
   const path = state.dongleId ? [state.dongleId] : [];
   if (state.dongleId && logId) {
     path.push(logId);
