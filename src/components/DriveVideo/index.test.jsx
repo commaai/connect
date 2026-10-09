@@ -15,13 +15,13 @@ vi.mock('../../api/backend', () => ({
 
 const currentRoute = { fullname: 'aaaaaaaaaaaaaaaa|2026-08-06--12-00-00', videoStartOffset: 2000 };
 
-function renderVideo(state = {}) {
+function renderVideo(state = {}, props = {}) {
   const store = Redux.createStore(
     rootReducer,
     { ...createInitialState('/'), currentRoute, ...state },
     Redux.applyMiddleware(thunk),
   );
-  const { container } = render(<DriveVideo store={store} />);
+  const { container } = render(<DriveVideo store={store} {...props} />);
   const video = container.querySelector('video');
   Object.defineProperty(video, 'readyState', { value: video.HAVE_ENOUGH_DATA });
   return { store, video };
@@ -62,6 +62,16 @@ describe('drive video', () => {
     video.playbackRate = 1.5;
     fireEvent.rateChange(video);
     expect(store.getState().desiredPlaySpeed).toEqual(1.5);
+  });
+
+  it('follows a mute from the browser', () => {
+    const onMuteChange = vi.fn();
+    const { video } = renderVideo({}, { isMuted: true, onMuteChange });
+    fireEvent.volumeChange(video);
+    expect(onMuteChange).not.toHaveBeenCalled();
+    video.muted = false;
+    fireEvent.volumeChange(video);
+    expect(onMuteChange).toHaveBeenCalledWith(false);
   });
 
   it('keeps its own speed change while paused', () => {

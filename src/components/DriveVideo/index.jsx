@@ -75,6 +75,7 @@ class DriveVideo extends Component {
     this.onPlay = this.onPlay.bind(this);
     this.onPause = this.onPause.bind(this);
     this.onRateChange = this.onRateChange.bind(this);
+    this.onVolumeChange = this.onVolumeChange.bind(this);
     this.onEnded = this.onEnded.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
@@ -178,12 +179,20 @@ class DriveVideo extends Component {
     this.updateBuffering();
   }
 
-  // the browser's speed menu and extensions can set the rate too
+  // the browser's menu and extensions can set the speed and mute too
   onRateChange() {
     const { desiredPlaySpeed, dispatch } = this.props;
     const { playbackRate } = this.videoPlayer.current;
     if (playbackRate > 0 && playbackRate !== desiredPlaySpeed) {
       dispatch(setPlaybackSpeed(playbackRate));
+    }
+  }
+
+  onVolumeChange() {
+    const { isMuted, onMuteChange } = this.props;
+    const { muted } = this.videoPlayer.current;
+    if (muted !== isMuted) {
+      onMuteChange?.(muted);
     }
   }
 
@@ -448,6 +457,7 @@ class DriveVideo extends Component {
           onPlay={this.onPlay}
           onPause={this.onPause}
           onRateChange={this.onRateChange}
+          onVolumeChange={this.onVolumeChange}
           onEnded={this.onEnded}
           onError={this.onVideoError}
         />

@@ -216,6 +216,7 @@ class Media extends Component {
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
+    this.handleMuteChange = this.handleMuteChange.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
@@ -237,6 +238,10 @@ class Media extends Component {
 
   handleMuteToggle() {
     this.setState(prevState => ({ isMuted: !prevState.isMuted }));
+  }
+
+  handleMuteChange(isMuted) {
+    this.setState({ isMuted });
   }
 
   handleAudioStatusChange(hasAudio) {
@@ -548,6 +553,7 @@ class Media extends Component {
             <div className={inView === MediaType.VIDEO ? '' : 'hidden'}>
               <DriveVideo
                 isMuted={isMuted}
+                onMuteChange={this.handleMuteChange}
                 onAudioStatusChange={this.handleAudioStatusChange}
               />
             </div>
