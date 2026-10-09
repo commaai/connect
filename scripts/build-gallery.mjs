@@ -320,25 +320,6 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
     return request.continue();
   }
 
-  if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/hls.js@')) {
-    return request.respond({
-      status: 200,
-      contentType: 'text/javascript',
-      body: `
-        class GalleryHls {
-          static Events = { ERROR: 'error', MANIFEST_PARSED: 'manifestParsed' };
-          static isSupported() { return true; }
-          constructor() { this.handlers = {}; }
-          on(name, handler) { this.handlers[name] = handler; }
-          loadSource() { queueMicrotask(() => this.handlers.manifestParsed?.()); }
-          attachMedia() {}
-          destroy() {}
-        }
-        window.Hls = GalleryHls;
-      `,
-    });
-  }
-
   const apiHosts = new Set(['api.comma.ai', 'athena.comma.ai', 'billing.comma.ai']);
   if (!apiHosts.has(url.hostname)) return request.abort('blockedbyclient');
   if (request.method() === 'OPTIONS') {
@@ -372,14 +353,8 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
     if (path === `/v1/devices/${DONGLE_ID}/routes_segments`) return jsonResponse(request, [data.route]);
     if (path === `/v1/devices/${DONGLE_ID}/routes/preserved`) return jsonResponse(request, [data.route]);
     if (path === `/v1/route/${ROUTE_NAME}/files`) return jsonResponse(request, {});
-    if (path === `/v1/route/${ROUTE_NAME}/qcamera.m3u8`) {
-      return request.respond({
-        status: 200,
-        contentType: 'application/vnd.apple.mpegurl',
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        body: '#EXTM3U\n#EXT-X-ENDLIST\n',
-      });
-    }
+    // Keep the video loading so drive pages capture a stable frame.
+    if (path === `/v1/route/${ROUTE_NAME}/qcamera.m3u8`) return undefined;
     // Keep the pairing request pending long enough to capture its loading modal.
     if (path === '/v2/pilotpair') return undefined;
   }

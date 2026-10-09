@@ -1,14 +1,17 @@
 import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
 import { getDefaultFilter } from './utils/filter';
+import { VideoStatus } from './timeline/playback';
 
 export function createInitialState(pathname = window.location.pathname) {
   return {
     dongleId: getDongleID(pathname),
 
     desiredPlaySpeed: 1,    // speed set by user
-    isBufferingVideo: true, // if we're currently buffering for more data
-    offset: null,           // in miliseconds, relative to state.zoom.start
-    startTime: Date.now(),  // millisecond timestamp in which play began
+    isPlaying: true,        // requested play/pause state
+    videoStatus: VideoStatus.LOADING,
+    hasAudio: false,
+    seekRequest: null,      // the last seek, for the video to apply
+    offset: null,           // in milliseconds from the start of the route, reported by the video
 
     routes: null,
     routesMeta: {

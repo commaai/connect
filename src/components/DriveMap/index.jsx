@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
-import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
@@ -38,13 +37,12 @@ class DriveMap extends Component {
   }
 
   componentDidMount() {
-    this.mounted = true;
     this.componentDidUpdate({}, {});
-    this.updateMarkerPos();
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute, seekRequest } = this.props;
+    this.updateMarkerPos();
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -55,7 +53,7 @@ class DriveMap extends Component {
       }
     }
 
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
+    if (prevProps.seekRequest && prevProps.seekRequest !== seekRequest) {
       this.shouldFlyTo = true;
     }
 
@@ -72,7 +70,7 @@ class DriveMap extends Component {
   }
 
   componentWillUnmount() {
-    this.mounted = false;
+    clearTimeout(this.isInteractingTimeout);
   }
 
   onInteraction(ev) {
@@ -90,14 +88,10 @@ class DriveMap extends Component {
   }
 
   updateMarkerPos() {
-    if (!this.mounted) {
-      return;
-    }
-
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        const pos = this.posAtOffset(this.props.offset);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -115,8 +109,6 @@ class DriveMap extends Component {
         });
       }
     }
-
-    requestAnimationFrame(this.updateMarkerPos);
   }
 
   moveViewportTo(pos) {
@@ -308,7 +300,7 @@ class DriveMap extends Component {
 const stateToProps = (state) => ({
   offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
+  seekRequest: state.seekRequest,
 });
 
 export default connect(stateToProps)(DriveMap);
