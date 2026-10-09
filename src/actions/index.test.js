@@ -54,11 +54,20 @@ describe('timeline actions', () => {
 
   it('collapses a whole-drive selection to the short URL', () => {
     const dispatch = vi.fn();
-    pushTimelineRange('log_id', null, null)(
+    pushTimelineRange('log_id', 0, 60000)(
       dispatch,
       () => STATE({ routes: [{ log_id: 'log_id', duration: 60000 }] }),
     );
     expect(push).toBeCalledWith({ pathname: '/statedongle/log_id', search: '' });
+  });
+
+  it('keeps a near-whole-drive range that is not exactly the duration', () => {
+    const dispatch = vi.fn();
+    pushTimelineRange('log_id', 0, 59999)(
+      dispatch,
+      () => STATE({ routes: [{ log_id: 'log_id', duration: 60000 }] }),
+    );
+    expect(push).toBeCalledWith({ pathname: '/statedongle/log_id/0/59', search: '' });
   });
 
   it('pushes the device URL when leaving a drive', () => {
@@ -100,20 +109,29 @@ describe('timeline actions', () => {
     expect(push).toBeCalledWith({ pathname: '/otherdongle', search: '' });
   });
 
-  it.each([
-    ['Prime', primeNav, 'primeNav', false, { pathname: '/statedongle/prime', search: '' }],
-    ['stream', streamNav, 'streamNav', false, { pathname: '/statedongle/stream', search: '' }],
-  ])('generates the %s URL while opening', (_name, action, stateKey, initialFlag, expected) => {
+  it('does not push the device URL from selectDevice when it already matches, ?ci=1 included', () => {
     const dispatch = vi.fn();
-    action(true)(dispatch, () => STATE({ [stateKey]: initialFlag }));
+    selectDevice('statedongle')(
+      dispatch,
+      () => STATE({ router: { location: { pathname: '/statedongle', search: '?ci=1' } } }),
+    );
+    expect(push).not.toBeCalled();
+  });
+
+  it.each([
+    ['Prime', primeNav, 'primeNav', { pathname: '/statedongle/prime', search: '' }],
+    ['stream', streamNav, 'streamNav', { pathname: '/statedongle/stream', search: '' }],
+  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
+    const dispatch = vi.fn();
+    action(true)(dispatch, () => STATE({ [stateKey]: false }));
     expect(push).toHaveBeenCalledWith(expected);
   });
 
-  it('does not push Prime again when the path and search already match', () => {
+  it('does not push Prime again when the path and search already match, ?ci=1 included', () => {
     const dispatch = vi.fn();
     primeNav(true)(
       dispatch,
-      () => STATE({ primeNav: false, router: { location: { pathname: '/statedongle/prime', search: '' } } }),
+      () => STATE({ primeNav: false, router: { location: { pathname: '/statedongle/prime', search: '?ci=1' } } }),
     );
     expect(push).not.toBeCalled();
   });

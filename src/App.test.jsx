@@ -192,6 +192,20 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe('/');
   });
 
+  test('a pair query is consumed and stripped from the address bar', async () => {
+    const { history } = await renderApp('/?pair=tok', { selected: FIRST });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    await waitFor(() => expect(history.location.search).toBe(''));
+  });
+
+  test('a /demo boot selects the demo device without storing it', async () => {
+    localStorage.setItem('selectedDongleId', FIRST);
+    await renderApp('/demo');
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+  });
+
   test('referrals URL opens the referrals page', async () => {
     await renderApp('/referrals');
     expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();

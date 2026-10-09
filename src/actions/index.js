@@ -18,6 +18,15 @@ const currentPathname = (state) => state.router?.location?.pathname || window.lo
 const currentLocation = (state) => state.router?.location
   || { pathname: window.location.pathname, search: window.location.search };
 
+// push the desired location, keeping passthrough query keys, unless the
+// address bar already shows exactly it
+function pushLocation(state, dispatch, desired) {
+  const next = build(inheritPassthrough(desired, parse(currentLocation(state))));
+  if (!historyLocationMatches(currentLocation(state), next)) {
+    dispatch(push(next));
+  }
+}
+
 export function checkRoutesData() {
   return (dispatch, getState) => {
     let state = getState();
@@ -158,10 +167,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
     const desired = log_id
       ? { kind: 'drive', dongleId: state.dongleId, logId: log_id, zoom: wholeDrive ? null : { start, end }, query: {} }
       : { kind: 'device', dongleId: state.dongleId };
-    const next = build(inheritPassthrough(desired, parse(currentLocation(state))));
-    if (!historyLocationMatches(currentLocation(state), next)) {
-      dispatch(push(next));
-    }
+    pushLocation(state, dispatch, desired);
   }
 }
 
@@ -286,10 +292,7 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     }
 
     if (allowPathChange) {
-      const next = build(inheritPassthrough({ kind: 'device', dongleId }, parse(currentLocation(state))));
-      if (!historyLocationMatches(currentLocation(state), next)) {
-        dispatch(push(next));
-      }
+      pushLocation(state, dispatch, { kind: 'device', dongleId });
     }
   };
 }
@@ -312,10 +315,7 @@ export function primeNav(nav, allowPathChange = true) {
       const desired = nav
         ? { kind: 'prime', dongleId: state.dongleId, stripeCancelled: null, stripeSuccess: null }
         : { kind: 'device', dongleId: state.dongleId };
-      const next = build(inheritPassthrough(desired, parse(currentLocation(state))));
-      if (!historyLocationMatches(currentLocation(state), next)) {
-        dispatch(push(next));
-      }
+      pushLocation(state, dispatch, desired);
     }
   };
 }
@@ -338,10 +338,7 @@ export function streamNav(nav, allowPathChange = true) {
       const desired = nav
         ? { kind: 'stream', dongleId: state.dongleId }
         : { kind: 'device', dongleId: state.dongleId };
-      const next = build(inheritPassthrough(desired, parse(currentLocation(state))));
-      if (!historyLocationMatches(currentLocation(state), next)) {
-        dispatch(push(next));
-      }
+      pushLocation(state, dispatch, desired);
     }
   };
 }

@@ -23,6 +23,7 @@ vi.mock('./index', () => ({
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
+const OTHER_LOG = '2026-08-06--13-00-00';
 const LEGACY_PATH = `/${DONGLE}/1000/2000`;
 
 const routerAt = (pathname, search = '') => ({ location: { pathname, search } });
@@ -112,15 +113,30 @@ describe('history middleware', () => {
       replaceAction({ pathname: `/${DONGLE}/${LOG}`, search: '' }),
     ));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
-    expect(actions.pushTimelineRange).not.toHaveBeenCalledWith(LOG, 0, 60000, true);
+    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+  });
+
+  it('clears an open drive on a same-dongle legacy range', () => {
+    const { invoke } = create({
+      ...baseState,
+      selectedRouteId: LOG,
+      zoom: { start: 10000, end: 20000 },
+      router: routerAt(LEGACY_PATH),
+    });
+    invoke(location(LEGACY_PATH));
+    expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
   });
 
   it.each([null, []])('keeps a legacy range unchanged for an empty lookup (%j)', async (routes) => {
     Drives.getRoutesSegments.mockResolvedValue(routes);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { store, invoke } = create({ ...baseState, router: routerAt(LEGACY_PATH) });
     invoke(location(LEGACY_PATH));
     await vi.waitFor(() => expect(Drives.getRoutesSegments).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(store.dispatch).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it('keeps a legacy range unchanged when lookup rejects', async () => {
@@ -144,6 +160,21 @@ describe('history middleware', () => {
     resolveLookup([{ fullname: `${DONGLE}|${LOG}` }]);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(store.dispatch).not.toHaveBeenCalledWith(replaceAction({ pathname: `/${DONGLE}/${LOG}`, search: '' }));
+  });
+
+  it('drops the first lookup when the same legacy range is requested again', async () => {
+    const resolvers = [];
+    Drives.getRoutesSegments.mockImplementation(() => new Promise((resolve) => { resolvers.push(resolve); }));
+    const { store, invoke } = create({ ...baseState, router: routerAt(LEGACY_PATH) });
+    invoke(location(LEGACY_PATH));
+    invoke(location(LEGACY_PATH), 'REPLACE'); // a second conversion bumps the generation
+    resolvers[0]([{ fullname: `${DONGLE}|${OTHER_LOG}` }]); // stale response arrives late
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(store.dispatch).not.toHaveBeenCalledWith(replaceAction({ pathname: `/${DONGLE}/${OTHER_LOG}`, search: '' }));
+    resolvers[1]([{ fullname: `${DONGLE}|${LOG}` }]);
+    await vi.waitFor(() => expect(store.dispatch).toHaveBeenCalledWith(
+      replaceAction({ pathname: `/${DONGLE}/${LOG}`, search: '' }),
+    ));
   });
 
   it('logs a stale legacy rejection at debug level, not error', async () => {

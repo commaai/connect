@@ -5,11 +5,40 @@
 
 import { DEMO_DONGLE_ID } from './api/demo';
 
+/**
+ * @typedef {object} PassThrough
+ * @property {string | null} pair
+ * @property {string | null} r
+ * @property {string | null} ci
+ */
+
+/**
+ * Milliseconds. Path segments are integer seconds. The conversion happens
+ * only inside parse and build.
+ * @typedef {{ start: number, end: number }} ZoomMs
+ */
+
+/**
+ * @typedef {(
+ *   { kind: 'root' } |
+ *   { kind: 'auth', code: string | null, provider: string | null, state: string | null } |
+ *   { kind: 'demo' } |
+ *   { kind: 'referrals' } |
+ *   { kind: 'unknown', pathname: string } |
+ *   { kind: 'device', dongleId: string } |
+ *   { kind: 'prime', dongleId: string, stripeCancelled: string | null, stripeSuccess: string | null } |
+ *   { kind: 'stream', dongleId: string } |
+ *   { kind: 'settings', dongleId: string } |
+ *   { kind: 'drive', dongleId: string, logId: string, zoom: ZoomMs | null, query: Record<string, never> } |
+ *   { kind: 'legacy', dongleId: string, startMs: number, endMs: number }
+ * ) & { passthrough: PassThrough }} AppLocation
+ */
+
 const DONGLE_ID = /^[a-f0-9]{16}$/;
 const LOG_ID = /^[a-f0-9-]{20}$/;
 const CANONICAL_INT = /^(0|[1-9]\d*)$/;
 
-const RESERVED_WORDS = ['prime', 'stream', 'settings'];
+const DEVICE_PAGES = ['prime', 'stream', 'settings'];
 const PASSTHROUGH_KEYS = ['pair', 'r', 'ci'];
 
 /**
@@ -48,7 +77,7 @@ export function parse(loc) {
   if (segments.length === 1) {
     return { kind: 'device', dongleId, passthrough };
   }
-  if (segments.length === 2 && RESERVED_WORDS.includes(segments[1])) {
+  if (segments.length === 2 && DEVICE_PAGES.includes(segments[1])) {
     if (segments[1] === 'prime') {
       return {
         kind: 'prime',
@@ -170,42 +199,12 @@ export function parent(location) {
 
 /** gtag page_view template. Pathname only, never the raw query string. */
 export function analyticsPath(location) {
-  const d = '<dongleId>';
-  switch (location.kind) {
-    case 'device':
-      return `/${d}`;
-    case 'demo':
-      return '/demo';
-    case 'drive': {
-      const path = `/${d}/${location.logId}`;
-      return location.zoom
-        ? `${path}/${Math.floor(location.zoom.start / 1000)}/${Math.floor(location.zoom.end / 1000)}`
-        : path;
-    }
-    case 'legacy':
-      return `/${d}/${location.startMs}/${location.endMs}`;
-    case 'prime':
-      return `/${d}/prime`;
-    case 'stream':
-      return `/${d}/stream`;
-    case 'settings':
-      return `/${d}/settings`;
-    case 'referrals':
-      return '/referrals';
-    case 'auth':
-      return '/auth';
-    case 'root':
-      return '';
-    case 'unknown': {
-      const segments = location.pathname.split('/').filter(Boolean);
-      if (DONGLE_ID.test(segments[0] || '')) {
-        segments[0] = d;
-      }
-      return `/${segments.join('/')}`;
-    }
-    default:
-      return '';
+  const segments = build(location).pathname.split('/').filter(Boolean);
+  if (segments.length === 0) return '';
+  if (DONGLE_ID.test(segments[0])) {
+    segments[0] = '<dongleId>';
   }
+  return `/${segments.join('/')}`;
 }
 
 /** Is the current history location already exactly what we want to write? */

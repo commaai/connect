@@ -94,6 +94,6 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
       dispatch(streamNav(location.kind === 'stream', false));
     }
   } else {
-    next(action);
+    return next(action); // PUSH is still ignored: thunks own those writes
   }
 };

@@ -9,9 +9,7 @@ const LOG = '2026-08-06--12-00-00';
 
 function roundTrip(pathname, search = '') {
   const location = parse({ pathname, search });
-  const built = build(location);
-  expect(built).toEqual({ pathname: built.pathname, search: built.search });
-  expect(parse(built)).toEqual(location);
+  expect(parse(build(location))).toEqual(location);
   return location;
 }
 
@@ -50,6 +48,11 @@ describe('parse and build', () => {
     expect(build(location).pathname).toBe(`/${DONGLE}/${LOG}/0/20`);
   });
 
+  it('round-trips a zoom that does not start at zero', () => {
+    const location = roundTrip(`/${DONGLE}/${LOG}/10/20`);
+    expect(location.zoom).toEqual({ start: 10000, end: 20000 });
+  });
+
   it('parses a zoom whose seconds are both zero', () => {
     const location = roundTrip(`/${DONGLE}/${LOG}/0/0`);
     expect(location.zoom).toEqual({ start: 0, end: 0 });
@@ -79,6 +82,16 @@ describe('search', () => {
     expect(location.stripeSuccess).toBe('cs_test');
     expect(location.stripeCancelled).toBe('1');
     expect(build(location).search).toBe('?stripe_cancelled=1&stripe_success=cs_test');
+    expect(roundTrip(`/${DONGLE}/prime`, '?stripe_success=cs_test&stripe_cancelled=1')).toMatchObject({
+      kind: 'prime',
+      stripeSuccess: 'cs_test',
+      stripeCancelled: '1',
+    });
+  });
+
+  it('drops a stuffed stripe_success when building another kind', () => {
+    const next = build({ kind: 'device', dongleId: DONGLE, stripeSuccess: 'cs_test' });
+    expect(next).toEqual({ pathname: `/${DONGLE}`, search: '' });
   });
 
   it('carries passthrough keys decoded, in a fixed order', () => {
@@ -104,6 +117,7 @@ describe('rejections', () => {
     [`/${DONGLE}/${LOG}/10`, 'zoom with only a start'],
     [`/${DONGLE}/${LOG}/10/20/extra`, 'extra segment'],
     [`/${DONGLE}/prime/extra`, 'prime with an extra segment'],
+    [`/${DONGLE}/stream/extra`, 'stream with an extra segment'],
     [`/${DONGLE}/referrals`, 'referrals is not a device sub-path'],
     ['/not-a-device/prime', 'not a device'],
   ])('treats %s (%s) as unknown', (pathname) => {

@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { parse } from './location';
+import { build, parse } from './location';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -28,17 +28,20 @@ class App extends Component {
       initialized: false,
     };
 
-    let pairToken;
-    if (window.location) {
-      pairToken = parse(window.location).passthrough.pair;
-    }
-
-    if (pairToken) {
+    const { history: bootHistory = defaultHistory } = this.props;
+    const bootLocation = parse(bootHistory.location);
+    if (bootLocation.passthrough.pair) {
       try {
-        localforage.setItem('pairToken', pairToken);
+        localforage.setItem('pairToken', bootLocation.passthrough.pair);
       } catch (err) {
         console.error(err);
       }
+      // the token is consumed: strip it so a reload never re-pairs and a
+      // shared link never carries it
+      bootHistory.replace(build({
+        ...bootLocation,
+        passthrough: { ...bootLocation.passthrough, pair: null },
+      }));
     }
   }
 
@@ -53,19 +56,18 @@ class App extends Component {
     // everything else the real backend.
     initBackend();
 
-    if (window.location) {
-      if (window.location.pathname === AuthConfig.AUTH_PATH) {
-        try {
-          const { code, provider } = parse(window.location);
-          const token = await api.auth.refreshAccessToken(code, provider);
-          if (token) {
-            AuthStorage.setCommaAccessToken(token);
-            localStorage.setItem('lastLoginProvider', provider);
-          }
-        } catch (err) {
-          console.error(err);
-          Sentry.captureException(err, { fingerprint: 'app_auth_refresh_token' });
+    const { history: bootHistory = defaultHistory } = this.props;
+    if (bootHistory.location.pathname === AuthConfig.AUTH_PATH) {
+      try {
+        const { code, provider } = parse(bootHistory.location);
+        const token = await api.auth.refreshAccessToken(code, provider);
+        if (token) {
+          AuthStorage.setCommaAccessToken(token);
+          localStorage.setItem('lastLoginProvider', provider);
         }
+      } catch (err) {
+        console.error(err);
+        Sentry.captureException(err, { fingerprint: 'app_auth_refresh_token' });
       }
     }
 
@@ -77,9 +79,9 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const bootLocation = parse(window.location);
-      if (bootLocation.kind === 'stream') {
-        webrtcConnectionManager.reconnect(bootLocation.dongleId);
+      const location = parse(bootHistory.location);
+      if (location.kind === 'stream') {
+        webrtcConnectionManager.reconnect(location.dongleId);
       }
 
       fetchTurnCredentials().catch((err) => {
