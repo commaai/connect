@@ -3,13 +3,18 @@ import { connect } from 'react-redux';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
+import { seek } from '../../actions';
 import { fetchDriveCoords } from '../../actions/cached';
-import { currentOffset } from '../../timeline';
+import { currentOffset, seek as seekVideo } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
 
 const SEGMENT_DURATION = 60 * 1000;
+// how close to the marker a press grabs it, in pixels
+const MARKER_GRAB_RADIUS = 24;
+// points this close (in degrees, ~20m) count as the same place
+const SAME_PLACE = 0.0002;
 
 // alternate shades tell segments apart, the one being played stands out
 function routeLineColor(currentSegment) {
@@ -41,11 +46,41 @@ export function segmentLines(driveCoords) {
   return { type: 'FeatureCollection', features };
 }
 
+// the selected stretch of the drive, drawn as a halo under the route
+function selectionLine(driveCoords, selection) {
+  const coordinates = selection
+    ? Object.entries(driveCoords)
+      .filter(([second]) => second * 1000 >= selection.start && second * 1000 <= selection.end)
+      .map(([, coord]) => coord)
+    : [];
+  return { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } };
+}
+
+// The drive offset whose position is nearest to [lng, lat]. Where the drive
+// passes the same place more than once, the pass closest in time to `around`
+// wins, so dragging along the route stays continuous.
+export function offsetNearest(driveCoords, [lng, lat], around) {
+  const scale = Math.cos((lat * Math.PI) / 180);
+  const points = Object.entries(driveCoords).map(([second, [x, y]]) => ({
+    offset: second * 1000,
+    distance: Math.hypot((x - lng) * scale, y - lat),
+  }));
+  if (!points.length) {
+    return null;
+  }
+  const closest = Math.min(...points.map((point) => point.distance));
+  const tolerance = Math.max(closest * 2, SAME_PLACE);
+  return points
+    .filter((point) => point.distance <= tolerance)
+    .sort((a, b) => Math.abs(a.offset - around) - Math.abs(b.offset - around))[0].offset;
+}
+
 class DriveMap extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
+      markerDragging: false,
       viewport: {
         ...DEFAULT_LOCATION,
         zoom: 14,
@@ -62,6 +97,10 @@ class DriveMap extends Component {
     this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onInteraction = this.onInteraction.bind(this);
+    this.onPointerDown = this.onPointerDown.bind(this);
+    this.onPointerMove = this.onPointerMove.bind(this);
+    this.onPointerUp = this.onPointerUp.bind(this);
+    this.onClick = this.onClick.bind(this);
 
     this.shouldFlyTo = false;
     this.isInteracting = false;
@@ -69,6 +108,7 @@ class DriveMap extends Component {
     this.lastMapPos = [0, 0];
     this.lastOffset = null;
     this.currentSegment = null;
+    this.dragOffset = null;
   }
 
   componentDidMount() {
@@ -78,7 +118,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute } = this.props;
+    const { dispatch, currentRoute, zoom } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -87,6 +127,10 @@ class DriveMap extends Component {
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
+    }
+
+    if (zoom !== prevProps.zoom) {
+      this.updateSelection();
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
@@ -103,6 +147,43 @@ class DriveMap extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+  }
+
+  // press on the marker to drag it along the route
+  onPointerDown(ev) {
+    const map = this.map && this.map.getMap();
+    if (!map || !this.props.currentRoute?.driveCoords) {
+      return;
+    }
+    const marker = map.project(this.lastMapPos);
+    if (Math.hypot(marker.x - ev.point[0], marker.y - ev.point[1]) <= MARKER_GRAB_RADIUS) {
+      this.dragOffset = currentOffset();
+      this.setState({ markerDragging: true });
+    }
+  }
+
+  onPointerMove(ev) {
+    if (!this.state.markerDragging) {
+      return;
+    }
+    this.dragOffset = offsetNearest(this.props.currentRoute.driveCoords, ev.lngLat, this.dragOffset);
+    seekVideo(this.dragOffset);
+  }
+
+  onPointerUp() {
+    if (!this.state.markerDragging) {
+      return;
+    }
+    this.setState({ markerDragging: false });
+    this.props.dispatch(seek(this.dragOffset));
+  }
+
+  // tap the route to jump there
+  onClick(ev) {
+    const { currentRoute, dispatch } = this.props;
+    if (ev.features?.length && currentRoute?.driveCoords) {
+      dispatch(seek(offsetNearest(currentRoute.driveCoords, ev.lngLat, currentOffset())));
+    }
   }
 
   onInteraction(ev) {
@@ -145,7 +226,7 @@ class DriveMap extends Component {
             type: 'Point',
             coordinates: pos,
           });
-          if (!this.isInteracting) {
+          if (!this.isInteracting && !this.state.markerDragging) {
             this.moveViewportTo(pos);
           }
         }
@@ -187,6 +268,17 @@ class DriveMap extends Component {
     }
 
     this.setPath(segmentLines(currentRoute.driveCoords));
+    this.updateSelection();
+  }
+
+  updateSelection() {
+    const { currentRoute, zoom } = this.props;
+    const map = this.map && this.map.getMap();
+    if (!map || !currentRoute?.driveCoords) {
+      return;
+    }
+    const partial = zoom && (zoom.start > 0 || zoom.end < currentRoute.duration);
+    map.getSource('selection').setData(selectionLine(currentRoute.driveCoords, partial ? zoom : null));
   }
 
   onRef(el) {
@@ -257,6 +349,10 @@ class DriveMap extends Component {
         type: 'geojson',
         data: segmentLines({}),
       });
+      map.addSource('selection', {
+        type: 'geojson',
+        data: selectionLine({}, null),
+      });
       map.addSource('seekPoint', {
         type: 'geojson',
         data: {
@@ -278,6 +374,20 @@ class DriveMap extends Component {
           'line-width': 8,
         },
       };
+      map.addLayer({
+        id: 'selectionLine',
+        type: 'line',
+        source: 'selection',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 16,
+          'line-opacity': 0.5,
+        },
+      });
       map.addLayer(lineGeoJson);
 
       const markerGeoJson = {
@@ -286,6 +396,8 @@ class DriveMap extends Component {
         paint: {
           'circle-radius': 10,
           'circle-color': '#007cbf',
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#ffffff',
         },
         source: 'seekPoint',
       };
@@ -308,7 +420,7 @@ class DriveMap extends Component {
   }
 
   render() {
-    const { viewport } = this.state;
+    const { viewport, markerDragging } = this.state;
     return (
       <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
         <ReactMapGL
@@ -326,6 +438,16 @@ class DriveMap extends Component {
           onViewportChange={this.onViewportChange}
           attributionControl={false}
           onInteractionStateChange={this.onInteraction}
+          dragPan={!markerDragging}
+          interactiveLayerIds={['routeLine']}
+          clickRadius={10}
+          onMouseDown={this.onPointerDown}
+          onTouchStart={this.onPointerDown}
+          onMouseMove={this.onPointerMove}
+          onTouchMove={this.onPointerMove}
+          onMouseUp={this.onPointerUp}
+          onTouchEnd={this.onPointerUp}
+          onClick={this.onClick}
         />
       </div>
     );
@@ -334,6 +456,7 @@ class DriveMap extends Component {
 
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
+  zoom: state.zoom,
 });
 
 export default connect(stateToProps)(DriveMap);
