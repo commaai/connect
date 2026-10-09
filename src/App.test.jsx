@@ -305,4 +305,59 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('settings overlay opens over a drive, Back closes it, Forward reopens it', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    // open the overlay the same way DeviceList does: push ?settings=
+    act(() => history.push(`/${FIRST}/${LOG}/10/20?settings=${FIRST}`));
+    expect(await screen.findByRole('button', { name: 'Prime settings' })).toBeVisible();
+    // the drive stays mounted underneath the overlay (MUI aria-hides
+    // background content while a modal is open, hence hidden: true)
+    expect(screen.getByRole('slider', { name: 'Drive timeline', hidden: true })).toBeInTheDocument();
+    expect(store.getState()).toMatchObject({ selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
+    // Back closes the overlay; the drive and zoom are untouched
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(screen.queryByRole('button', { name: 'Prime settings' })).not.toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(store.getState()).toMatchObject({ selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
+    // Forward reopens the overlay over the same drive
+    act(() => history.goForward());
+    await waitFor(() => expect(history.location.search).toBe(`?settings=${FIRST}`));
+    expect(await screen.findByRole('button', { name: 'Prime settings' })).toBeVisible();
+    expect(screen.getByRole('slider', { name: 'Drive timeline', hidden: true })).toBeInTheDocument();
+  });
+
+  test('settings overlay Close button restores the drive URL', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/20?settings=${FIRST}`);
+    expect(await screen.findByRole('button', { name: 'Prime settings' })).toBeVisible();
+    expect(screen.getByRole('slider', { name: 'Drive timeline', hidden: true })).toBeInTheDocument();
+    // the modal's own Close (scoped to the dialog; the drive has its own Close)
+    const modal = document.querySelector('[aria-labelledby="device-settings-modal"]');
+    fireEvent.click(within(modal).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`));
+    expect(history.location.search).toBe('');
+    expect(screen.queryByRole('button', { name: 'Prime settings' })).not.toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
+
+  test('prime settings from the overlay adds a single history entry', async () => {
+    // Regression test: opening Prime from the settings overlay used to push
+    // an intermediate /<dongle> entry, so Back from Prime lost the drive and
+    // a second Back reopened the settings overlay.
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/20?settings=${FIRST}`);
+    expect(await screen.findByRole('button', { name: 'Prime settings' })).toBeVisible();
+    expect(history.entries).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    // exactly one new entry: the ?settings= entry was replaced, not stacked
+    expect(history.entries).toHaveLength(2);
+    // Back returns to the drive itself — overlay stays closed, drive intact
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Prime settings' })).not.toBeInTheDocument();
+  });
 });

@@ -146,8 +146,11 @@ export function checkLastRoutesData() {
 /**
  * Push the canonical URL for the current navigation state, if it differs from
  * the current URL. This is the only place navigation URLs are built, so the
- * URL always reflects state. `patch` overrides derived fields. Overlay query
- * params (?settings=, ?pair=) are preserved unless explicitly overridden.
+ * URL always reflects state. `patch` overrides derived fields. The settings
+ * overlay query param (?settings=) is preserved unless explicitly overridden.
+ * The one-time ?pair= boot token is deliberately NOT preserved: carrying it
+ * into a new URL would let a refresh re-run the pair flow after the token
+ * was consumed.
  */
 function syncUrl(dispatch, getState, patch = {}) {
   const state = getState();
@@ -161,7 +164,6 @@ function syncUrl(dispatch, getState, patch = {}) {
     routeId: state.selectedRouteId,
     zoom: state.zoom ? { start: state.zoom.start, end: state.zoom.end } : null,
     settings: query.settings,
-    pair: query.pair,
     ...patch,
   };
   if (!nav.dongleId && nav.page !== 'dashboard' && nav.page !== 'referrals') {

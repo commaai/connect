@@ -14,7 +14,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { primeNav, selectDeviceState, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -225,11 +225,17 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
+    // Close the overlay first (replace, not push): the ?settings= entry is
+    // swapped out, so the Prime navigation below is the only new history
+    // entry — Back returns to the underlying view instead of reopening
+    // settings. This mirrors the old flow, where selectDevice(..., false)
+    // pushed nothing and primeNav pushed a single entry.
+    this.props.onClose();
     if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId));
+      // state-only: primeNav performs the single URL update below
+      this.props.dispatch(selectDeviceState(this.props.dongleId, true));
     }
     this.props.dispatch(primeNav(true));
-    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -436,7 +442,9 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  // devices is null until the device list loads (e.g. a cold ?settings= deep
+  // link); the modal renders nothing until then.
+  const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,

@@ -61,19 +61,43 @@ ranges now survive refresh/share instead of silently widening to the whole drive
    state removed.
 10. `src/components/Dashboard/DriveListItem.jsx`, `src/components/Timeline/index.jsx`,
     `src/components/Dashboard/DeviceSettingsModal.jsx` — dropped `allowPathChange` args
-    (calls otherwise unchanged).
-11. Tests: rewrote `src/url.test.js` (48), `src/actions/history.test.js` (16),
-    `src/actions/index.test.js` (14); updated one `src/App.test.jsx` expectation
+    (calls otherwise unchanged); `DeviceSettingsModal.jsx` additionally: `onPrimeSettings`
+    now closes the overlay first (replace), then does a state-only device select and a
+    single `primeNav` push (no intermediate history entry); `stateToProps` guards
+    `state.devices` being null on cold `?settings=` deep links.
+11. `src/actions/index.js` — `syncUrl` no longer preserves the one-time `?pair=` token.
+12. Tests: rewrote `src/url.test.js` (48), `src/actions/history.test.js` (16),
+    `src/actions/index.test.js` (16, +2 pair-token tests); `src/App.test.jsx` (+3:
+    settings-overlay open/close/Back/Forward, overlay Close button, prime-settings
+    single-history-entry regression); updated one `src/App.test.jsx` expectation
     (legacy conversion now lands on `/<d>/<log>/0/60`, see above).
+13. `src/url.js` header — documents the intentional `/demo` round-trip exception.
 
 ## Validation (2026-10-09, bun 1.4.2 / node v24.20.0)
 
-- `bun run test` — **13 files, 126/126 pass** (true-baseline `109edb3` was 24/24 in App.test.jsx;
-  intermediate work caught 2 real regressions via a pristine worktree baseline — startup deep-link
-  clobbering and legacy serialization — both fixed, suite now fully green).
+- `bun run test` — **13 files, 131/131 pass** (was 126/126 before the review
+  fixes; +5 new tests: pair-token drop x2, settings-overlay integration x2,
+  prime-settings single-entry regression x1).
 - `bun run lint` (oxlint) — **0 warnings, 0 errors** (100 files).
-- `vite build` (production) — **succeeds** in ~26s (pre-existing >500kB chunk-size warning only).
-- Diff vs master: **17 files, +797 / −325**.
+- `vite build` (production) — **succeeds** in ~23s (pre-existing >500kB chunk-size warning only).
+- Diff vs master: **17 files, +839 / −325** (PLAN.md included; code-only +731/−325).
+
+## Known limitations
+
+- Legacy conversion device ordering: when the middleware sees a legacy
+  `/<dongle>/<start>/<end>` URL it returns early and dispatches
+  `resolveLegacyZoom` without selecting the device first (the old code selected
+  the device before converting). For full-page loads this is fine because
+  `initialState` already parsed the dongle; only an in-app navigation to a
+  legacy URL with a *different* dongle than the current one could build the
+  canonical URL from stale state. Deliberately left as-is: fixing it would
+  require re-introducing device selection into the conversion path (the
+  architectural coupling this change removes), for a path that is rare and
+  self-heals via the middleware diff on the resulting navigation.
+- `/demo` intentionally does not round-trip through `buildUrl` (see `src/url.js`
+  header): the demo backend is selected by pathname once at boot, not as
+  navigation state.
+- Clips/files/uploads dialogs remain local component state (out of scope).
 
 ## Manual verification needed (no live browser here)
 
@@ -85,7 +109,7 @@ login `?r=` redirect; legacy `/{dongle}/{start}/{end}` bookmark conversion.
 
 **Title:** Beautiful URL handling: single URL grammar, URL-as-truth navigation, overlay dialogs (#770)
 
-**Description:** Implements #770 with a minimal, reviewable diff (17 files, +797/−325 —
+**Description:** Implements #770 with a minimal, reviewable diff (17 files, +839/−325 —
 far smaller than the competing attempts).
 - `src/url.js`: one strict, invertible grammar — `parseLocation`/`buildUrl` cover every
   existing URL shape (drive, ranged drive, legacy second-timestamps, prime, stream, referrals,

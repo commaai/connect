@@ -20,6 +20,10 @@
  * `parseLocation` and `buildUrl` are strict inverses for every canonical URL:
  *   buildUrl(parseLocation(url)) === url
  * Parsing never throws: unparsable input yields a safe fallback nav state.
+ *
+ * One intentional exception: `/demo` parses as the dashboard (the demo
+ * backend is selected by pathname once at boot, not as navigation state),
+ * so buildUrl never emits it.
  */
 
 const DONGLE_ID_RE = /^[a-f0-9]{16}$/;
@@ -113,7 +117,7 @@ export function parseLocation(location) {
 
 /**
  * Serialize canonical nav state to a URL. Inverse of parseLocation for every
- * canonical URL. `routeDuration` (ms) lets whole-drive zooms serialize without
+ * canonical URL (except `/demo`, see above). `routeDuration` (ms) lets whole-drive zooms serialize without
  * a range, matching historical URLs.
  */
 export function buildUrl(nav, opts = {}) {

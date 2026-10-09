@@ -92,6 +92,24 @@ describe('navigation actions', () => {
     expect(push).toHaveBeenCalledWith(`/${DONGLE}/${LOG}/1/2?settings=${DONGLE}`);
   });
 
+  it('drops the one-time pair token when syncing the URL', () => {
+    // ?pair= is a boot token, not nav state: navigating with it in the URL
+    // must not carry it forward, or a refresh would re-run the pair flow.
+    const { dispatch, getState } = mockStore({
+      router: { location: { pathname: `/${DONGLE}`, search: '?pair=spent-token' } },
+    });
+    pushTimelineRange(LOG, 1000, 2000)(dispatch, getState);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}/${LOG}/1/2`);
+  });
+
+  it('keeps the settings overlay but drops pair and login-redirect params', () => {
+    const { dispatch, getState } = mockStore({
+      router: { location: { pathname: `/${DONGLE}`, search: `?settings=${DONGLE}&pair=t&r=%2F${DONGLE}` } },
+    });
+    pushTimelineRange(LOG, 1000, 2000)(dispatch, getState);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}/${LOG}/1/2?settings=${DONGLE}`);
+  });
+
   it.each([
     ['prime', primeNav, 'primeNav', `/${DONGLE}/prime`],
     ['stream', streamNav, 'streamNav', `/${DONGLE}/stream`],
