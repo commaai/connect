@@ -71,7 +71,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
       if (getState().router.location.pathname !== pathname) return;
 
       const logId = routesData?.[0]?.fullname?.split('|')[1];
-      if (logId) dispatch(replace(buildURL({ page: 'drive', dongleId, logId, range: null })));
+      if (logId) dispatch(replace(buildURL({ page: 'drive', dongleId, logId })));
     } catch (err) {
       console.error('Error fetching routes data for log ID conversion', err);
     }
