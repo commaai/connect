@@ -13,10 +13,19 @@ import Colors from '../../colors';
 import { currentOffset, seek as seekVideo } from '../../timeline';
 import { getSegmentNumber } from '../../utils';
 
+// room either side of the drive timeline, clear of browser edge gestures and the media buttons
+const TIMELINE_PADDING = 24;
+
 const styles = () => ({
-  interactive: {
-    // Keep the touch handle clear of browser edge gestures and the media buttons.
-    padding: '0 24px 44px',
+  // a long drive scrolls sideways rather than squeezing its segments
+  scroller: {
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    scrollbarWidth: 'thin',
+  },
+  scrollContent: {
+    // the bottom room is for the playhead handle hanging below the bar
+    padding: `0 ${TIMELINE_PADDING}px 44px`,
   },
   base: {
     position: 'relative',
@@ -77,6 +86,10 @@ const styles = () => ({
     '& > div': {
       display: 'inline-block',
     },
+    // the drive's storyboard, a little bigger than in the drive list
+    '&.hasRuler': {
+      height: 52,
+    },
   },
   ruler: {
     backgroundColor: 'rgb(37, 51, 61)',
@@ -135,21 +148,15 @@ const styles = () => ({
     borderLeft: `1px solid ${Colors.white20}`,
     pointerEvents: 'none',
     zIndex: 2,
-    '& > button': {
+    // a label only: a tap anywhere on the segment selects it
+    '& > span': {
       position: 'absolute',
       top: 0,
       left: 0,
-      minWidth: 24,
-      padding: '2px 3px 6px',
-      textAlign: 'left',
+      padding: '2px 3px',
       fontSize: 10,
       color: Colors.white60,
       userSelect: 'none',
-      pointerEvents: 'auto',
-      cursor: 'pointer',
-      '&:hover': {
-        color: Colors.white,
-      },
     },
   },
   detailEvents: {
@@ -211,8 +218,10 @@ const styles = () => ({
 });
 
 const SEGMENT_DURATION = 60 * 1000;
-// minimum room for a segment number label, in pixels
-const SEGMENT_LABEL_SPACING = 28;
+// the narrowest a segment gets, in pixels, with room for its number and a finger
+const SEGMENT_MIN_WIDTH = 32;
+// how long the timeline stays where the user scrolled it before following playback again
+const SCROLL_TIMEOUT = 5000;
 
 const AlertStatusCodes = [
   'normal',
@@ -227,22 +236,17 @@ function clampView(start, end, duration) {
   return { start: clampedStart, end: clampedStart + width };
 }
 
-function percentFromPointerEvent(ev) {
-  const boundingBox = ev.currentTarget.getBoundingClientRect();
-  const x = ev.pageX - boundingBox.left;
-  return x / boundingBox.width;
-}
-
 class Timeline extends Component {
   constructor(props) {
     super(props);
 
     this.getOffset = this.getOffset.bind(this);
-    this.handleClick = this.handleClick.bind(this);
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerCancel = this.handlePointerCancel.bind(this);
+    this.showWholeDrive = this.showWholeDrive.bind(this);
+    this.handleScroll = this.handleScroll.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.segmentNum = this.segmentNum.bind(this);
@@ -255,7 +259,11 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
     this.thumbnailsRef = React.createRef();
+    this.scrollerRef = React.createRef();
     this.activePointerId = null;
+    this.renderCache = {};
+    this.userScrolledAt = -Infinity;
+    this.scrollingTo = null;
 
     const { zoomOverride, zoom } = this.props;
     this.state = {
@@ -267,24 +275,29 @@ class Timeline extends Component {
         height: 0,
         width: 0,
       },
+      scrollerWidth: 0,
     };
   }
 
   componentDidMount() {
     this.mounted = true;
-    requestAnimationFrame(this.getOffset);
+    // only the drive's own timeline shows playback; the drive list's ones stay still
+    if (this.props.hasRuler) {
+      requestAnimationFrame(this.getOffset);
+    }
     this.componentDidUpdate({});
 
-    if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
+    if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        if (!entry) {
-          return;
-        }
-        const { width, height } = entry.contentRect;
-        this.setState({ thumbnail: { width, height } });
+        entries.forEach(({ target, contentRect }) => {
+          if (target === this.thumbnailsRef.current) {
+            this.setState({ thumbnail: { width: contentRect.width, height: contentRect.height } });
+          } else {
+            this.setState({ scrollerWidth: contentRect.width });
+          }
+        });
       });
-      this.resizeObserver.observe(this.thumbnailsRef.current);
+      [this.thumbnailsRef.current, this.scrollerRef.current].forEach((el) => el && this.resizeObserver.observe(el));
     }
   }
 
@@ -293,6 +306,10 @@ class Timeline extends Component {
     // a drive opens on its selection; after that, selecting no longer zooms
     if (prevProps.zoomOverride !== zoomOverride || prevProps.route?.fullname !== route?.fullname || !this.state.view) {
       this.setState({ view: zoomOverride || zoom });
+    } else if (!zoomOverride && route && !this.state.scrubbing
+      && !this.partialSelection() && this.partialSelection(prevProps.zoom)) {
+      // the selection is gone (back button, playhead dragged out of it): show the whole drive again
+      this.setState({ view: { start: 0, end: route.duration } });
     }
   }
 
@@ -308,14 +325,6 @@ class Timeline extends Component {
     }
   }
 
-  handleClick(ev) {
-    const { dragging } = this.state;
-    if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
-      const percent = percentFromPointerEvent(ev);
-      this.props.dispatch(seek(this.percentToOffset(percent)));
-    }
-  }
-
   handlePointerDown(ev) {
     if (ev.button !== 0 || ev.isPrimary === false || this.activePointerId !== null) {
       return;
@@ -327,15 +336,17 @@ class Timeline extends Component {
     document.addEventListener('pointermove', this.handlePointerMove);
     document.addEventListener('pointercancel', this.handlePointerCancel);
 
-    // pressing on the playhead handle drags it, anywhere else selects a range
+    // only dragging the playhead handle moves playback; on the bar a tap selects
+    // the segment under it and a drag selects a range
     if (this.playhead.current?.contains(ev.target)) {
       this.selectionReleased = false;
-      this.setState({ scrubbing: true, hoverX: ev.pageX });
+      // keep the handle where it was grabbed instead of jumping it under the finger
+      const playheadX = this.playhead.current.getBoundingClientRect().x;
+      this.scrub = { grab: ev.pageX - playheadX, startX: ev.pageX, moved: false };
+      this.setState({ scrubbing: true, hoverX: playheadX });
     } else {
       this.setState({ dragging: [ev.pageX, ev.pageX] });
     }
-    // a tap on a segment number selects it, a drag from there still selects freely
-    this.pressedSegment = ev.target.closest('[data-segment]')?.dataset.segment;
   }
 
   offsetAtX(x) {
@@ -364,7 +375,15 @@ class Timeline extends Component {
       this.props.dispatch(previewTimelineRange(start, end));
     }
     if (this.state.scrubbing) {
-      this.scrubTo(this.offsetAtX(endDrag));
+      if (Math.abs(ev.pageX - this.scrub.startX) > 3) {
+        this.scrub.moved = true;
+      }
+      if (this.scrub.moved) {
+        const playheadX = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.pageX - this.scrub.grab));
+        this.scrubTo(this.offsetAtX(playheadX));
+        this.setState({ hoverX: playheadX });
+      }
+      return;
     }
     this.setState({ hoverX: endDrag });
   }
@@ -393,10 +412,13 @@ class Timeline extends Component {
 
     this.releasePointer();
     if (this.state.scrubbing) {
-      this.setState({ scrubbing: false, hoverX: ev.pointerType === 'mouse' ? ev.pageX : null });
-      const offset = this.offsetAtX(ev.pageX);
-      this.scrubTo(offset);
-      this.props.dispatch(seek(offset));
+      this.setState({ scrubbing: false, hoverX: null });
+      // a tap on the handle leaves playback where it is
+      if (this.scrub.moved) {
+        const offset = this.offsetAtX(ev.pageX - this.scrub.grab);
+        this.scrubTo(offset);
+        this.props.dispatch(seek(offset));
+      }
       return;
     }
     const { dragging } = this.state;
@@ -422,11 +444,19 @@ class Timeline extends Component {
       const endTime = endOffset;
 
       dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
-    } else if (this.pressedSegment !== undefined) {
-      this.selectSegment(Number(this.pressedSegment));
     } else if (ev.currentTarget !== document) {
-      this.handleClick(ev);
+      this.selectSegmentAt(this.offsetAtX(ev.pageX));
     }
+  }
+
+  // zoom on the segment and select exactly it, ready to loop, upload or share
+  selectSegmentAt(offset) {
+    const { dispatch, route } = this.props;
+    const start = Math.floor(offset / SEGMENT_DURATION) * SEGMENT_DURATION;
+    const end = Math.min(start + SEGMENT_DURATION, route.duration);
+    const margin = (end - start) / 6;
+    this.setState({ view: clampView(start - margin, end + margin, route.duration) });
+    dispatch(pushTimelineRange(route.log_id, start, end, true));
   }
 
   releasePointer() {
@@ -476,6 +506,10 @@ class Timeline extends Component {
       }
     }
     const percent = Math.floor(10000 * this.offsetToPercent(Math.floor(offset))) / 100;
+    if (percent === this.lastPercent) {
+      return; // paused, or moving less than the bar can show
+    }
+    this.lastPercent = percent;
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${percent}%`;
       this.rulerRemaining.current.style.width = `${100 - percent}%`;
@@ -483,6 +517,33 @@ class Timeline extends Component {
     if (this.playhead.current) {
       this.playhead.current.style.left = `${percent}%`;
     }
+    this.followPlayhead(percent);
+  }
+
+  // scroll a long drive to bring the playhead back into sight when playback leaves
+  // the visible part, unless the user has just scrolled somewhere else
+  followPlayhead(percent) {
+    const scroller = this.scrollerRef.current;
+    if (!scroller || !this.rulerRef.current || this.state.scrubbing || this.state.dragging
+      || performance.now() - this.userScrolledAt < SCROLL_TIMEOUT) {
+      return;
+    }
+    const x = TIMELINE_PADDING + ((percent / 100) * this.rulerRef.current.offsetWidth);
+    const { scrollLeft, clientWidth } = scroller;
+    if (x < scrollLeft || x > scrollLeft + clientWidth) {
+      scroller.scrollLeft = x - (clientWidth / 4);
+      this.scrollingTo = scroller.scrollLeft;
+    }
+  }
+
+  // tell the user's scrolling from the timeline following playback
+  handleScroll() {
+    const { scrollLeft } = this.scrollerRef.current;
+    if (this.scrollingTo !== null && Math.abs(scrollLeft - this.scrollingTo) <= 1) {
+      this.scrollingTo = null;
+      return;
+    }
+    this.userScrolledAt = performance.now();
   }
 
   percentToOffset(perc) {
@@ -551,29 +612,16 @@ class Timeline extends Component {
       });
   }
 
-  // zoom on a segment and select it, ready to loop, upload or open in cabana
-  selectSegment(segment) {
-    const { dispatch, route } = this.props;
-    const start = segment * SEGMENT_DURATION;
-    const end = Math.min(start + SEGMENT_DURATION, route.duration);
-    const margin = (end - start) / 6;
-    this.setState({ view: clampView(start - margin, end + margin, route.duration) });
-    dispatch(pushTimelineRange(route.log_id, start, end, true));
-  }
-
-  // numbered, selectable segment starts, as often as there is room for them
+  // a numbered tick at every segment start, so each one can be told apart and tapped
   renderSegmentTicks() {
     const { classes, route } = this.props;
-    const { view, thumbnail } = this.state;
-    if (!route?.duration || !thumbnail.width) {
+    const { view } = this.state;
+    if (!route?.duration) {
       return null;
     }
 
-    // number every segment, or every 2nd, 5th, 10th... when they do not fit
-    const segmentWidth = (thumbnail.width * SEGMENT_DURATION) / (view.end - view.start);
-    const step = [1, 2, 5, 10, 20, 50].find((n) => n * segmentWidth >= SEGMENT_LABEL_SPACING) || 100;
     const ticks = [];
-    for (let segment = 0; segment * SEGMENT_DURATION < route.duration; segment += step) {
+    for (let segment = 0; segment * SEGMENT_DURATION < route.duration; segment += 1) {
       const start = segment * SEGMENT_DURATION;
       if (start < view.start || start > view.end) {
         continue;
@@ -584,42 +632,57 @@ class Timeline extends Component {
           className={classes.segmentTick}
           style={{ left: `${this.offsetToPercent(start) * 100}%` }}
         >
-          <button
-            type="button"
-            data-segment={segment}
-            aria-label={`Select segment ${segment}`}
-            // pointer taps are handled by the ruler, this is for the keyboard
-            onClick={(ev) => ev.detail === 0 && this.selectSegment(segment)}
-          >
-            {segment}
-          </button>
+          <span>{segment}</span>
         </div>,
       );
     }
     return ticks;
   }
 
+  // The same elements as last time while their inputs are unchanged, so React skips
+  // them: hovering and dragging re-render the timeline on every pointer move.
+  cached(name, deps, render) {
+    const entry = this.renderCache[name];
+    if (entry && entry.deps.every((dep, i) => dep === deps[i])) {
+      return entry.elements;
+    }
+    const elements = render();
+    this.renderCache[name] = { deps, elements };
+    return elements;
+  }
+
   // the selection, unless it is the whole drive
-  partialSelection() {
-    const { zoom, route } = this.props;
+  partialSelection(zoom = this.props.zoom) {
+    const { route } = this.props;
     if (!zoom || !route || (zoom.start <= 0 && zoom.end >= route.duration)) {
       return null;
     }
     return zoom;
   }
 
-  // a way back out of a zoomed view
+  // zoom out and drop the selection, carrying on from where playback is
+  showWholeDrive() {
+    const { dispatch, route } = this.props;
+    this.setState({ view: { start: 0, end: route.duration } });
+    if (this.partialSelection()) {
+      const offset = currentOffset();
+      dispatch(pushTimelineRange(route.log_id, 0, route.duration, true));
+      seekVideo(offset);
+    }
+  }
+
+  // a way back out of a zoomed view or a selection
   renderWholeDriveButton() {
     const { route } = this.props;
     const { view } = this.state;
-    if (view.start <= 0 && view.end >= route.duration) {
+    if (view.start <= 0 && view.end >= route.duration && !this.partialSelection()) {
       return null;
     }
     return (
       <button
         type="button"
-        className="absolute right-1 top-1 z-10 whitespace-nowrap rounded-full bg-[#1D2225]/90 px-2 text-xs leading-5 text-white/80 hover:text-white"
-        onClick={() => this.setState({ view: { start: 0, end: route.duration } })}
+        className="absolute right-7 top-1 z-10 whitespace-nowrap rounded-full bg-[#1D2225]/90 px-2 text-xs leading-5 text-white/80 hover:text-white"
+        onClick={this.showWholeDrive}
       >
         whole drive
       </button>
@@ -642,7 +705,7 @@ class Timeline extends Component {
 
   render() {
     const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
-    const { thumbnail, hoverX, dragging, scrubbing, view } = this.state;
+    const { thumbnail, hoverX, dragging, scrubbing, view, scrollerWidth } = this.state;
     if (!view) {
       return null;
     }
@@ -678,57 +741,76 @@ class Timeline extends Component {
 
     const baseWidthStyle = { width: '100%' };
 
-    return (
-      <div className={`${className || ''} ${hasRuler ? classes.interactive : ''}`}>
-        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
-          { hasRuler && route ? this.renderWholeDriveButton() : (
-            <div className={ `${classes.segments} ${hasRulerCls}` }>
-              { route && this.renderRoute() }
-              <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
-            </div>
-          ) }
-          <div ref={this.thumbnailsRef} className={`${classes.thumbnails} ${hasRulerCls}`}>
-            {thumbnailsVisible && (
-              <Thumbnails
-                className={classes.thumbnail}
-                currentRoute={route}
-                percentToOffset={this.percentToOffset}
-                thumbnail={thumbnail}
-                hasRuler={hasRuler}
-              />
-            )}
+    const base = (
+      <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
+        { !(hasRuler && route) && (
+          <div className={ `${classes.segments} ${hasRulerCls}` }>
+            { route && this.cached('route', [route, route.events, view], this.renderRoute) }
+            <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
           </div>
-          { hasRuler && (
-            <>
-              <div
-                aria-label="Drive timeline"
-                role="slider"
-                tabIndex={0}
-                ref={ this.onRulerRef }
-                className={classes.ruler}
-                onPointerDown={this.handlePointerDown}
-                onPointerUp={this.handlePointerUp}
-                onPointerMove={this.handlePointerMove}
-                onPointerLeave={this.handlePointerLeave}
-              >
-                <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
-                <div className={classes.detailEvents}>
-                  { route && this.renderRoute() }
-                </div>
-                { this.renderSelection() }
-                { this.renderSegmentTicks() }
-                <div ref={this.playhead} className={classes.playhead}>
-                  <div className={`${classes.playheadHandle} ${scrubbing ? 'scrubbing' : ''}`} />
-                </div>
-                { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
+        ) }
+        <div ref={this.thumbnailsRef} className={`${classes.thumbnails} ${hasRulerCls}`}>
+          {thumbnailsVisible && this.cached('thumbnails', [route, view, thumbnail], () => (
+            <Thumbnails
+              className={classes.thumbnail}
+              currentRoute={route}
+              percentToOffset={this.percentToOffset}
+              thumbnail={thumbnail}
+              hasRuler={hasRuler}
+            />
+          ))}
+        </div>
+        { hasRuler && (
+          <>
+            <div
+              aria-label="Drive timeline"
+              role="slider"
+              tabIndex={0}
+              ref={ this.onRulerRef }
+              className={classes.ruler}
+              onPointerDown={this.handlePointerDown}
+              onPointerUp={this.handlePointerUp}
+              onPointerMove={this.handlePointerMove}
+              onPointerLeave={this.handlePointerLeave}
+            >
+              <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+              <div className={classes.detailEvents}>
+                { route && this.cached('route', [route, route.events, view], this.renderRoute) }
               </div>
-              { hoverString && (
-                <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>
-                  { hoverString }
-                </div>
-              ) }
-            </>
-          ) }
+              { this.renderSelection() }
+              { this.cached('ticks', [route, view], () => this.renderSegmentTicks()) }
+              <div ref={this.playhead} className={classes.playhead}>
+                <div className={`${classes.playheadHandle} ${scrubbing ? 'scrubbing' : ''}`} />
+              </div>
+              { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
+            </div>
+            { hoverString && (
+              <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>
+                { hoverString }
+              </div>
+            ) }
+          </>
+        ) }
+      </div>
+    );
+
+    if (!hasRuler) {
+      return <div className={className || ''}>{base}</div>;
+    }
+
+    // wider than the screen when the segments would not fit at their minimum width
+    let contentWidth;
+    if (scrollerWidth) {
+      const segments = (view.end - view.start) / SEGMENT_DURATION;
+      contentWidth = Math.max(scrollerWidth, (segments * SEGMENT_MIN_WIDTH) + (2 * TIMELINE_PADDING));
+    }
+    return (
+      <div className={`relative ${className || ''}`}>
+        { route && this.renderWholeDriveButton() }
+        <div ref={this.scrollerRef} className={classes.scroller} onScroll={this.handleScroll}>
+          <div className={classes.scrollContent} style={{ width: contentWidth }}>
+            {base}
+          </div>
         </div>
       </div>
     );

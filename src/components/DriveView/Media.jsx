@@ -14,6 +14,7 @@ import TimeDisplay from '../TimeDisplay';
 import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
+import SmallWindow from './SmallWindow';
 import SwitchLoading from '../utils/SwitchLoading';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
@@ -197,13 +198,30 @@ const MediaType = {
   MAP: 'map',
 };
 
+// remembered choice of showing the other view in a small window, per view
+const SMALL_WINDOW_KEYS = {
+  [MediaType.VIDEO]: 'driveView.smallMap',
+  [MediaType.MAP]: 'driveView.smallVideo',
+};
+
+function smallWindowShown(view) {
+  try {
+    return window.localStorage.getItem(SMALL_WINDOW_KEYS[view]) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
 class Media extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
       inView: MediaType.VIDEO,
-      mapOpened: false,
+      smallWindow: {
+        [MediaType.VIDEO]: smallWindowShown(MediaType.VIDEO),
+        [MediaType.MAP]: smallWindowShown(MediaType.MAP),
+      },
       windowWidth: window.innerWidth,
       downloadMenu: null,
       clipMenu: null,
@@ -217,6 +235,7 @@ class Media extends Component {
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
+    this.toggleSmallWindow = this.toggleSmallWindow.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
@@ -240,6 +259,18 @@ class Media extends Component {
     this.setState(prevState => ({ isMuted: !prevState.isMuted }));
   }
 
+  // show or hide the other view's small window in the corner of the current one
+  toggleSmallWindow() {
+    const { inView, smallWindow } = this.state;
+    const shown = !smallWindow[inView];
+    this.setState({ smallWindow: { ...smallWindow, [inView]: shown } });
+    try {
+      window.localStorage.setItem(SMALL_WINDOW_KEYS[inView], String(shown));
+    } catch {
+      // not remembered, e.g. in a private window
+    }
+  }
+
   handleAudioStatusChange(hasAudio) {
     this.setState({ hasAudio });
   }
@@ -255,9 +286,6 @@ class Media extends Component {
   componentDidUpdate(prevProps, prevState) {
     const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
-    if (showMapAlways && !this.state.mapOpened) {
-      this.setState({ mapOpened: true });
-    }
     if (prevProps.dongleId !== this.props.dongleId) {
       this.setState({ clipsSupported: false, clipMenu: null });
       this.checkClipsSupport();
@@ -535,32 +563,78 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted, hasAudio, mapOpened } = this.state;
+    const { inView, windowWidth, isMuted, hasAudio, smallWindow } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
     const showMapAlways = windowWidth >= 1536;
-    const mapVisible = showMapAlways || inView === MediaType.MAP;
+    // without room for both side by side, one fills the frame and the other can be a small window in its corner
+    const mapBig = !showMapAlways && inView === MediaType.MAP;
+    const smallVideo = mapBig && smallWindow[MediaType.MAP];
+    const smallMap = !showMapAlways && !mapBig && smallWindow[MediaType.VIDEO];
+    const smallWindowCls = 'absolute z-20 overflow-hidden rounded-lg shadow-lg ring-1 ring-white/20';
+    const miniShown = smallWindow[inView];
 
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
-        <div className={`relative flex flex-row gap-5 ${mapVisible && !showMapAlways ? 'min-h-[300px]' : ''}`}>
-          {/* The map covers the video rather than hiding it: the video is the playback clock,
-              and iOS pauses a muted video that is not displayed. */}
-          <div className={`isolate ${showMapAlways ? 'w-[60%]' : 'w-full'}`}>
-            <DriveVideo
-              isMuted={isMuted}
-              onAudioStatusChange={this.handleAudioStatusChange}
-            />
-          </div>
-          {(mapOpened || showMapAlways) &&
-            <div className={showMapAlways ? 'w-[40%]' : (mapVisible ? 'absolute inset-0 z-10' : 'hidden')}>
-              <DriveMap visible={mapVisible} />
+        <div className="flex flex-row gap-5">
+          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
+            {/* a set width, or the minimum height would widen the frame past the screen to keep its shape */}
+            <div className={`relative mx-auto aspect-[1.593] w-full max-w-[964px] ${mapBig ? 'min-h-[300px]' : 'min-h-[200px]'}`}>
+              {/* The video always stays on screen, small or covered by the map: it is the playback clock,
+                  and iOS pauses a muted video that is not displayed. */}
+              <SmallWindow
+                small={smallVideo}
+                dragAnywhere
+                storageKey="driveView.smallVideoBox"
+                aspect={1.593}
+                resizeCorner="bottom-right"
+                fullClassName="absolute inset-0 isolate"
+                smallClassName={`${smallWindowCls} aspect-[1.593]`}
+                defaultClassName="left-2 top-2 w-[38%] max-w-[280px]"
+                closeLabel="Hide mini video"
+                onClose={this.toggleSmallWindow}
+              >
+                <DriveVideo
+                  isMuted={isMuted}
+                  onAudioStatusChange={this.handleAudioStatusChange}
+                />
+              </SmallWindow>
+              {(mapBig || smallMap) && (
+                <SmallWindow
+                  small={!mapBig}
+                  storageKey="driveView.smallMapBox"
+                  aspect={4 / 3}
+                  resizeCorner="top-left"
+                  fullClassName="absolute inset-0 z-10"
+                  smallClassName={`${smallWindowCls} aspect-[4/3]`}
+                  defaultClassName="bottom-1 right-1 w-[38%] max-w-[280px]"
+                  closeLabel="Hide mini map"
+                  onClose={this.toggleSmallWindow}
+                >
+                  <DriveMap small={!mapBig} />
+                </SmallWindow>
+              )}
+              {/* shows the other view in a small window, which then has its own close button */}
+              {!showMapAlways && !miniShown && (
+                <button
+                  type="button"
+                  className="absolute bottom-2 right-2 z-[90] rounded-full border border-fuchsia-500 bg-black/60 px-3 text-xs font-medium leading-7 text-fuchsia-300 shadow-lg hover:text-white"
+                  onClick={this.toggleSmallWindow}
+                >
+                  {inView === MediaType.MAP ? 'Mini video' : 'Mini map'}
+                </button>
+              )}
             </div>
-          }
+          </div>
+          {showMapAlways && (
+            <div className="relative w-[40%]">
+              <DriveMap />
+            </div>
+          )}
         </div>
         <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
           <TimeDisplay
@@ -592,12 +666,13 @@ class Media extends Component {
               <div
                 className={classes.mediaOption}
                 style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                onClick={() => this.setState({ inView: MediaType.MAP, mapOpened: true })}
+                onClick={() => this.setState({ inView: MediaType.MAP })}
               >
                 <Typography className={classes.mediaOptionText}>Map</Typography>
               </div>
             </div>
           )}
+
           <div className={`${classes.mediaOptions} ml-auto`}>
             {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
               <div

@@ -1,5 +1,34 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { getSegmentNumber } from '../../utils';
 import { api } from '../../api/backend';
+
+// A run of frames from one segment's sprite, fetched only once it comes into sight: a long
+// drive's storyboard is wider than the screen, and its images would compete with the video.
+function SpriteStrip({ url, style }) {
+  const ref = useRef(null);
+  const [inSight, setInSight] = useState(typeof IntersectionObserver === 'undefined');
+  useEffect(() => {
+    if (inSight) {
+      return undefined;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInSight(true);
+      }
+    });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [inSight]);
+  return (
+    <div
+      ref={ref}
+      className="thumbnailImage images"
+      role="img"
+      style={inSight ? { ...style, backgroundImage: `url(${url})` } : style}
+    />
+  );
+}
 
 export default function Thumbnails(props) {
   const { thumbnail } = props;
@@ -85,16 +114,14 @@ export default function Thumbnails(props) {
       />
     )
     : (
-      <div
+      <SpriteStrip
         key={i}
-        className="thumbnailImage images"
-        role="img"
+        url={data.url}
         style={{
           ...imgStyles,
           width: imgStyles.width * data.length,
           backgroundSize: `auto ${imgStyles.height * 1.2}px`,
           backgroundRepeat: 'repeat-x',
-          backgroundImage: `url(${data.url})`,
           backgroundPositionX: `-${data.startImage * imgStyles.width}px`,
         }}
       />

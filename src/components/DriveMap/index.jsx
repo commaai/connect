@@ -11,6 +11,11 @@ import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocod
 
 const INTERACTION_TIMEOUT = 5000;
 
+// the zoom of a map following the car
+const ZOOM = 14;
+// room around the whole drive in the small map in a corner, in pixels
+const FIT_PADDING = 12;
+
 const SEGMENT_DURATION = 60 * 1000;
 // how close to the marker a press grabs it, in pixels
 const MARKER_GRAB_RADIUS = 24;
@@ -123,6 +128,7 @@ class DriveMap extends Component {
     this.lastOffset = null;
     this.currentSegment = null;
     this.dragOffset = null;
+    this.followZoom = ZOOM; // kept while the map is small and shows the whole drive
   }
 
   componentDidMount() {
@@ -133,7 +139,7 @@ class DriveMap extends Component {
       style: MAPBOX_STYLE,
       accessToken: MAPBOX_TOKEN,
       center: [DEFAULT_LOCATION.longitude, DEFAULT_LOCATION.latitude],
-      zoom: 14,
+      zoom: ZOOM,
       maxPitch: 0,
       dragRotate: false,
       pitchWithRotate: false,
@@ -161,9 +167,14 @@ class DriveMap extends Component {
     window.addEventListener('mouseup', this.onPointerUp);
     this.map = map;
 
-    // the map is hidden and shown again with the map/video tabs
+    // the map switches between filling the frame and a small window in its corner
     if (window.ResizeObserver) {
-      this.resizeObserver = new ResizeObserver(() => map.resize());
+      this.resizeObserver = new ResizeObserver(() => {
+        map.resize();
+        if (this.props.small) {
+          this.fitDrive();
+        }
+      });
       this.resizeObserver.observe(this.container.current);
     }
 
@@ -172,7 +183,19 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, zoom } = this.props;
+    const { dispatch, currentRoute, zoom, small } = this.props;
+
+    // small, the map shows the whole drive; big again, it follows the car at the zoom it had
+    if (this.mapReady && prevProps.small !== undefined && Boolean(small) !== Boolean(prevProps.small)) {
+      this.map.resize();
+      if (small) {
+        this.followZoom = this.map.getZoom();
+        this.fitDrive();
+      } else {
+        this.shouldFlyTo = false;
+        this.map.jumpTo({ center: this.lastMapPos, zoom: this.followZoom });
+      }
+    }
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -256,6 +279,7 @@ class DriveMap extends Component {
       // keep the map still while the marker moves
       ev.preventDefault();
       this.markerDragging = true;
+      this.selectionReleased = false;
       this.dragOffset = currentOffset();
       this.updateCursor();
     }
@@ -269,7 +293,18 @@ class DriveMap extends Component {
       return;
     }
     this.dragOffset = offsetNearest(this.props.currentRoute.driveCoords, ev.lngLat.toArray());
+    this.releaseSelectionOutside(this.dragOffset);
     seekVideo(this.dragOffset);
+  }
+
+  // dragging the marker out of the selection gives way to the whole drive, as on the timeline
+  releaseSelectionOutside(offset) {
+    const { currentRoute, zoom, dispatch } = this.props;
+    const partial = zoom && (zoom.start > 0 || zoom.end < currentRoute.duration);
+    if (!this.selectionReleased && partial && (offset < zoom.start || offset > zoom.end)) {
+      this.selectionReleased = true;
+      dispatch(pushTimelineRange(currentRoute.log_id, 0, currentRoute.duration, true));
+    }
   }
 
   onTouchEnd(ev) {
@@ -318,7 +353,7 @@ class DriveMap extends Component {
       return;
     }
 
-    if (this.props.visible === false || !this.mapReady) {
+    if (!this.mapReady) {
       requestAnimationFrame(this.updateMarkerPos);
       return;
     }
@@ -337,7 +372,7 @@ class DriveMap extends Component {
         this.map.setPaintProperty('routeLine', 'line-color', routeLineColor(segment));
       }
       const pos = this.posAtOffset(offset);
-      if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
+      if (pos && this.movedOnScreen(pos)) {
         this.lastMapPos = pos;
         markerSource.setData({
           type: 'Point',
@@ -355,9 +390,16 @@ class DriveMap extends Component {
     requestAnimationFrame(this.updateMarkerPos);
   }
 
+  // the map redraws on every change: leave out moves smaller than a screen pixel
+  movedOnScreen(pos) {
+    const from = this.map.project(this.lastMapPos);
+    const to = this.map.project(pos);
+    return Math.hypot(to.x - from.x, to.y - from.y) * window.devicePixelRatio >= 1;
+  }
+
   followMarker(pos) {
-    // moving the camera cancels the gesture the user is starting
-    if (this.isInteracting || this.pointerDown || this.markerDragging || this.map.isMoving()) {
+    // a small map shows the whole drive; moving the camera cancels the gesture the user is starting
+    if (this.props.small || this.isInteracting || this.pointerDown || this.markerDragging || this.map.isMoving()) {
       return;
     }
     if (this.shouldFlyTo) {
@@ -377,6 +419,19 @@ class DriveMap extends Component {
 
     this.setPath(segmentLines(currentRoute.driveCoords));
     this.updateSelection();
+    if (this.props.small) {
+      this.fitDrive();
+    }
+  }
+
+  // the whole drive in view, for the small map in a corner
+  fitDrive() {
+    const points = Object.values(this.props.currentRoute?.driveCoords || {});
+    if (!this.mapReady || points.length === 0) {
+      return;
+    }
+    const bounds = points.reduce((b, point) => b.extend(point), new mapboxgl.LngLatBounds(points[0], points[0]));
+    this.map.fitBounds(bounds, { padding: FIT_PADDING, maxZoom: ZOOM, duration: 0 });
   }
 
   updateSelection() {
@@ -537,7 +592,7 @@ class DriveMap extends Component {
     const loading = !mapLoaded || !currentRoute?.driveCoords;
     const missingCoordinates = !loading && !Number.isFinite(this.state.driveCoordsMin);
     return (
-      <div ref={this.onRef} className="relative h-full min-h-[300px] w-full">
+      <div ref={this.onRef} className="absolute inset-0">
         {/* important: mapbox makes its container position: relative */}
         <div ref={this.container} className="!absolute inset-0" />
         {loading && (

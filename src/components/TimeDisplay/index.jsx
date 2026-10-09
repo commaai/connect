@@ -135,8 +135,7 @@ class TimeDisplay extends Component {
     this.mounted = false;
   }
 
-  getDisplayTime() {
-    const offset = currentOffset();
+  getDisplayTime(offset = currentOffset()) {
     const { currentRoute } = this.props;
     const now = new Date(offset + currentRoute.start_time_utc_millis);
     if (Number.isNaN(now.getTime())) {
@@ -163,10 +162,15 @@ class TimeDisplay extends Component {
     if (!this.mounted || !this.textHolder.current) {
       return;
     }
-    const newDisplayTime = this.getDisplayTime();
-    const { displayTime } = this.state;
-    if (newDisplayTime !== displayTime) {
-      this.setState({ displayTime: newDisplayTime });
+    // the time shows whole seconds: format it only when the second changes
+    const offset = currentOffset();
+    const second = `${this.props.currentRoute?.fullname} ${Math.floor(offset / 1000)}`;
+    if (second !== this.lastSecond) {
+      this.lastSecond = second;
+      const newDisplayTime = this.getDisplayTime(offset);
+      if (newDisplayTime !== this.state.displayTime) {
+        this.setState({ displayTime: newDisplayTime });
+      }
     }
 
     requestAnimationFrame(this.updateTime);

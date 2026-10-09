@@ -181,7 +181,7 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
 
   return (
     <div
-      className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593] bg-black touch-manipulation"
+      className="absolute inset-0 bg-black touch-manipulation"
       onPointerUp={onPointerUp}
     >
       {src && <VideoOverlay loading={loading} error={error} onRetry={() => setAttempt(attempt + 1)} />}
