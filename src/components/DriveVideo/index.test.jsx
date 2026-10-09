@@ -219,6 +219,15 @@ describe('DriveVideo', () => {
     expect(video.play).toHaveBeenCalledTimes(plays);
   });
 
+  it('restarts at once when the video ends past the end of the route', () => {
+    const { video, playToEnd } = renderVideo({}, 65);
+    video.play.mockClear();
+    playToEnd();
+    act(() => vi.advanceTimersByTime(1000));
+    expect(video.currentTime).toBe(0);
+    expect(video.play).toHaveBeenCalledTimes(1);
+  });
+
   it('shows the spinner after a short delay', () => {
     const { video } = renderVideo();
     fireEvent.playing(video);

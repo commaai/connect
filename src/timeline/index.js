@@ -52,7 +52,10 @@ export function setClockSpeed(speed) {
 }
 
 export function endVideo(speed) {
-  setClockSpeed(speed);
+  const { loop, currentRoute } = store.getState();
+  const end = loop ? loop.startTime + loop.duration : currentRoute?.duration;
+  // a video longer than the loop must not wrap the clock into the next lap
+  setClock(Math.min(currentOffset(), end ?? Infinity), speed);
   pastEnd = true;
 }
 
