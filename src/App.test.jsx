@@ -41,6 +41,9 @@ vi.mock('react-map-gl', () => ({
 }));
 vi.mock('hls.js', () => ({
   default: class {
+    static Events = { ERROR: 'hlsError', FRAG_LOADED: 'hlsFragLoaded', BUFFER_CODECS: 'hlsBufferCodecs' };
+    static ErrorTypes = { NETWORK_ERROR: 'networkError' };
+    static ErrorDetails = { MEDIA_SOURCE_REQUIRES_RESET: 'mediaSourceRequiresReset' };
     attachMedia(media) {
       this.media = media;
     }
