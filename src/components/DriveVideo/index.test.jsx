@@ -28,9 +28,12 @@ class FakeHls {
 
   loadSource() {}
 
-  attachMedia() {}
+  attachMedia(media) { this.media = media; }
 
-  destroy() {}
+  stopLoad() { this.stopped = true; }
+
+  // hls.js resets the element it detaches from, like the real destroy()
+  destroy() { this.destroyedOnPage = this.media?.isConnected; }
 
   recoverMediaError() {}
 }
@@ -282,5 +285,21 @@ describe('DriveVideo', () => {
     vi.advanceTimersByTime(1000);
     expect(resets).toEqual([false]);
     expect(video.getAttribute('src')).toBeNull();
+  });
+
+  it('detaches hls.js from a leaving video only once it is off the page', async () => {
+    renderPlayer();
+    await act(async () => {});
+    const [player] = hls.instances;
+    vi.useFakeTimers();
+    cleanup();
+    expect(player.stopped).toBe(true);
+    // a reset on the page paints the box white on Android Chrome before the next page shows
+    vi.advanceTimersByTime(100);
+    expect(player.destroyedOnPage).toBeUndefined();
+    // a late error from the stopped player must not reach the unmounted component
+    expect(() => player.handlers.hlsError('hlsError', { fatal: true, type: 'networkError', details: 'fragLoadError' })).not.toThrow();
+    vi.advanceTimersByTime(1000);
+    expect(player.destroyedOnPage).toBe(false);
   });
 });

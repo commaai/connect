@@ -50,13 +50,16 @@ class DriveVideo extends Component {
     }
   }
 
-  // A reset on the page painted the player black on iOS, so stop the download only once it is off.
+  // A reset on the page paints the player black (iOS) or white (Android, from hls.js destroy()), so
+  // only stop loading now and reset the video once it is off the page.
   componentWillUnmount() {
+    const { hls } = this;
     const video = this.video.current;
     setVideo(null);
     this.loading = null;
-    this.hls?.destroy();
-    setTimeout(() => { video.removeAttribute('src'); video.load(); }, 1000);
+    this.hls = null;
+    hls?.stopLoad();
+    setTimeout(() => { hls?.destroy(); video.removeAttribute('src'); video.load(); }, 1000);
   }
 
   // Play the current route from the current playback offset.
@@ -139,18 +142,15 @@ class DriveVideo extends Component {
     const { error } = this.video.current;
     // hls.js reports its own errors; code 1 is an abort we asked for
     if (this.hls || !error || error.code === 1) return;
-    if (error.code !== 4) {
-      this.fail(error.code === 2 ? NETWORK : UNPLAYABLE);
-      return;
-    }
-    // native HLS reports a missing playlist as "unsupported": ask the server which it was
+    // native HLS reports a missing playlist as "unsupported" (code 4): ask the server which it was
     const { loading } = this;
     const fail = (message) => this.loading === loading && this.fail(message);
-    fetch(this.src).then((resp) => fail(resp.status === 404 ? ROUTE_NOT_UPLOADED : UNPLAYABLE), () => fail(NETWORK));
+    if (error.code !== 4) fail(error.code === 2 ? NETWORK : UNPLAYABLE);
+    else fetch(this.src).then((resp) => fail(resp.status === 404 ? ROUTE_NOT_UPLOADED : UNPLAYABLE), () => fail(NETWORK));
   }
 
   onHlsError(_, data) {
-    if (!data.fatal) return;
+    if (!data.fatal || !this.hls) return;
     if (data.type === 'mediaError' && Date.now() - this.lastMediaRecovery > 5000) {
       this.lastMediaRecovery = Date.now();
       // recovery reattaches the media, which pauses it and resets currentTime without events
@@ -177,9 +177,7 @@ class DriveVideo extends Component {
   }
 
   onPlay() {
-    if (!this.props.desiredPlaySpeed) {
-      this.props.dispatch(play(this.video.current.playbackRate));
-    }
+    if (!this.props.desiredPlaySpeed) this.props.dispatch(play(this.video.current.playbackRate));
   }
 
   videoTime(offset) {
