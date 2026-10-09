@@ -14,6 +14,10 @@ import { currentOffset, seek as seekVideo } from '../../timeline';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
+  interactive: {
+    // Keep the touch handle clear of browser edge gestures and the media buttons.
+    padding: '0 24px 44px',
+  },
   base: {
     position: 'relative',
   },
@@ -103,8 +107,8 @@ const styles = () => ({
     position: 'absolute',
     top: 44,
     left: -1,
-    width: 32,
-    height: 24,
+    width: 44,
+    height: 44,
     transform: 'translateX(-50%)',
     pointerEvents: 'auto',
     touchAction: 'none',
@@ -112,10 +116,10 @@ const styles = () => ({
     '&::after': {
       content: '""',
       position: 'absolute',
-      top: 2,
+      top: 8,
       left: '50%',
-      width: 12,
-      height: 12,
+      width: 16,
+      height: 16,
       borderRadius: '50%',
       background: Colors.white,
       boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.35)',
@@ -238,6 +242,7 @@ class Timeline extends Component {
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
+    this.handlePointerCancel = this.handlePointerCancel.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.segmentNum = this.segmentNum.bind(this);
@@ -250,6 +255,7 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
     this.thumbnailsRef = React.createRef();
+    this.activePointerId = null;
 
     const { zoomOverride, zoom } = this.props;
     this.state = {
@@ -292,6 +298,10 @@ class Timeline extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    this.releasePointer();
+    if (this.state.dragging) {
+      this.props.dispatch(previewTimelineRange(null, null));
+    }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
@@ -307,13 +317,15 @@ class Timeline extends Component {
   }
 
   handlePointerDown(ev) {
-    if (ev.button !== 0) {
+    if (ev.button !== 0 || ev.isPrimary === false || this.activePointerId !== null) {
       return;
     }
 
     ev.preventDefault();
+    this.activePointerId = ev.pointerId;
     document.addEventListener('pointerup', this.handlePointerUp);
     document.addEventListener('pointermove', this.handlePointerMove);
+    document.addEventListener('pointercancel', this.handlePointerCancel);
 
     // pressing on the playhead handle drags it, anywhere else selects a range
     if (this.playhead.current?.contains(ev.target)) {
@@ -333,7 +345,9 @@ class Timeline extends Component {
   }
 
   handlePointerMove(ev) {
-    ev.preventDefault();
+    if (this.activePointerId !== null && ev.pointerId !== this.activePointerId) {
+      return;
+    }
     const { dragging } = this.state;
     if (!this.rulerRef.current) {
       return;
@@ -367,6 +381,9 @@ class Timeline extends Component {
   }
 
   handlePointerUp(ev) {
+    if (this.activePointerId === null || ev.pointerId !== this.activePointerId) {
+      return;
+    }
     const { route } = this.props;
 
     // prevent preventDefault for back(3) and forward(4) mouse buttons
@@ -374,8 +391,7 @@ class Timeline extends Component {
       ev.preventDefault();
     }
 
-    document.removeEventListener('pointerup', this.handlePointerUp);
-    document.removeEventListener('pointermove', this.handlePointerMove);
+    this.releasePointer();
     if (this.state.scrubbing) {
       this.setState({ scrubbing: false, hoverX: ev.pointerType === 'mouse' ? ev.pageX : null });
       const offset = this.offsetAtX(ev.pageX);
@@ -411,6 +427,22 @@ class Timeline extends Component {
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
+  }
+
+  releasePointer() {
+    this.activePointerId = null;
+    document.removeEventListener('pointerup', this.handlePointerUp);
+    document.removeEventListener('pointermove', this.handlePointerMove);
+    document.removeEventListener('pointercancel', this.handlePointerCancel);
+  }
+
+  handlePointerCancel(ev) {
+    if (ev.pointerId !== this.activePointerId) {
+      return;
+    }
+    this.releasePointer();
+    this.setState({ dragging: null, scrubbing: false, hoverX: null });
+    this.props.dispatch(previewTimelineRange(null, null));
   }
 
   handlePointerLeave() {
@@ -647,7 +679,7 @@ class Timeline extends Component {
     const baseWidthStyle = { width: '100%' };
 
     return (
-      <div className={className}>
+      <div className={`${className || ''} ${hasRuler ? classes.interactive : ''}`}>
         <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
           { hasRuler && route ? this.renderWholeDriveButton() : (
             <div className={ `${classes.segments} ${hasRulerCls}` }>

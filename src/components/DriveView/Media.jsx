@@ -203,6 +203,7 @@ class Media extends Component {
 
     this.state = {
       inView: MediaType.VIDEO,
+      mapOpened: false,
       windowWidth: window.innerWidth,
       downloadMenu: null,
       clipMenu: null,
@@ -254,6 +255,9 @@ class Media extends Component {
   componentDidUpdate(prevProps, prevState) {
     const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
+    if (showMapAlways && !this.state.mapOpened) {
+      this.setState({ mapOpened: true });
+    }
     if (prevProps.dongleId !== this.props.dongleId) {
       this.setState({ clipsSupported: false, clipMenu: null });
       this.checkClipsSupport();
@@ -531,35 +535,30 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted, hasAudio } = this.state;
+    const { inView, windowWidth, isMuted, hasAudio, mapOpened } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
     const showMapAlways = windowWidth >= 1536;
+    const mapVisible = showMapAlways || inView === MediaType.MAP;
 
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
-        <div className="flex flex-row gap-5">
-          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {/* Keep streaming behind the map: video is the playback clock, with audio if unmuted. */}
-            <div className={inView === MediaType.VIDEO ? '' : 'hidden'}>
-              <DriveVideo
-                isMuted={isMuted}
-                onAudioStatusChange={this.handleAudioStatusChange}
-              />
-            </div>
-            {(inView === MediaType.MAP && !showMapAlways) && (
-              <div className="w-full">
-                <DriveMap />
-              </div>
-            )}
+        <div className={`relative flex flex-row gap-5 ${mapVisible && !showMapAlways ? 'min-h-[300px]' : ''}`}>
+          {/* The map covers the video rather than hiding it: the video is the playback clock,
+              and iOS pauses a muted video that is not displayed. */}
+          <div className={`isolate ${showMapAlways ? 'w-[60%]' : 'w-full'}`}>
+            <DriveVideo
+              isMuted={isMuted}
+              onAudioStatusChange={this.handleAudioStatusChange}
+            />
           </div>
-          {(inView === MediaType.VIDEO && showMapAlways) &&
-            <div className="w-[40%]">
-              <DriveMap />
+          {(mapOpened || showMapAlways) &&
+            <div className={showMapAlways ? 'w-[40%]' : (mapVisible ? 'absolute inset-0 z-10' : 'hidden')}>
+              <DriveMap visible={mapVisible} />
             </div>
           }
         </div>
@@ -593,7 +592,7 @@ class Media extends Component {
               <div
                 className={classes.mediaOption}
                 style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                onClick={() => this.setState({ inView: MediaType.MAP })}
+                onClick={() => this.setState({ inView: MediaType.MAP, mapOpened: true })}
               >
                 <Typography className={classes.mediaOptionText}>Map</Typography>
               </div>

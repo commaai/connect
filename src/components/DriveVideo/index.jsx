@@ -149,9 +149,9 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
     setError(code === MediaError.MEDIA_ERR_NETWORK ? NETWORK_ERROR : LOAD_ERROR);
   };
 
-  // double tap on the left or right half to jump 10s, like youtube
+  // double tap or double click on the left or right half to jump 10s, like youtube
   const onPointerUp = (ev) => {
-    if (ev.pointerType !== 'touch' || ev.target.closest('button')) {
+    if (ev.button !== 0 || ev.target.closest('button')) {
       return;
     }
     if (ev.timeStamp - lastTap.current > DOUBLE_TAP) {

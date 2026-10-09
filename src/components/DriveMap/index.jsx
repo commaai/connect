@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { CircularProgress } from '@material-ui/core';
 
-import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
+import mapboxgl from 'mapbox-gl';
 
 import { pushTimelineRange, seek } from '../../actions';
 import { fetchDriveCoords } from '../../actions/cached';
@@ -13,6 +14,9 @@ const INTERACTION_TIMEOUT = 5000;
 const SEGMENT_DURATION = 60 * 1000;
 // how close to the marker a press grabs it, in pixels
 const MARKER_GRAB_RADIUS = 24;
+// how close to the route a tap selects its segment, in pixels
+const CLICK_RADIUS = 10;
+const INTERACTIVE_LAYERS = ['routeLine', 'segmentLabels'];
 
 // alternate shades tell segments apart, the one being played stands out
 function routeLineColor(currentSegment) {
@@ -80,37 +84,41 @@ export function offsetNearest(driveCoords, [lng, lat]) {
   return nearest;
 }
 
+// Mapbox GL is driven directly rather than through React: the camera follows the
+// marker every frame, which as React state would re-render 60 times a second, and
+// the map's own touch handling is what makes it smooth on phones and tablets.
 class DriveMap extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      markerDragging: false,
-      markerHovered: false,
-      viewport: {
-        ...DEFAULT_LOCATION,
-        zoom: 14,
-      },
+      mapLoaded: false,
       driveCoordsMin: null,
       driveCoordsMax: null,
     };
 
+    this.container = React.createRef();
     this.onRef = this.onRef.bind(this);
-    this.onViewportChange = this.onViewportChange.bind(this);
-    this.initMap = this.initMap.bind(this);
+    this.onLoad = this.onLoad.bind(this);
     this.populateMap = this.populateMap.bind(this);
     this.posAtOffset = this.posAtOffset.bind(this);
     this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
-    this.onInteraction = this.onInteraction.bind(this);
+    this.onMove = this.onMove.bind(this);
     this.onPointerDown = this.onPointerDown.bind(this);
     this.onPointerMove = this.onPointerMove.bind(this);
+    this.onTouchEnd = this.onTouchEnd.bind(this);
     this.onPointerUp = this.onPointerUp.bind(this);
     this.onClick = this.onClick.bind(this);
 
+    this.map = null;
+    this.mapReady = false;
     this.shouldFlyTo = false;
     this.isInteracting = false;
     this.isInteractingTimeout = null;
+    this.pointerDown = false;
+    this.panning = false;
+    this.markerDragging = false;
     this.lastMapPos = [0, 0];
     this.lastOffset = null;
     this.currentSegment = null;
@@ -119,6 +127,46 @@ class DriveMap extends Component {
 
   componentDidMount() {
     this.mounted = true;
+
+    const map = new mapboxgl.Map({
+      container: this.container.current,
+      style: MAPBOX_STYLE,
+      accessToken: MAPBOX_TOKEN,
+      center: [DEFAULT_LOCATION.longitude, DEFAULT_LOCATION.latitude],
+      zoom: 14,
+      maxPitch: 0,
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
+      attributionControl: false,
+    });
+    map.on('load', this.onLoad);
+    map.on('move', this.onMove);
+    map.on('dragstart', () => {
+      this.panning = true;
+      this.updateCursor();
+    });
+    map.on('dragend', () => {
+      this.panning = false;
+      this.updateCursor();
+    });
+    map.on('mousedown', this.onPointerDown);
+    map.on('touchstart', this.onPointerDown);
+    map.on('mousemove', this.onPointerMove);
+    map.on('touchmove', this.onPointerMove);
+    map.on('touchend', this.onTouchEnd);
+    map.on('touchcancel', this.onTouchEnd);
+    map.on('click', this.onClick);
+    // a mouse can be released outside the map
+    window.addEventListener('mouseup', this.onPointerUp);
+    this.map = map;
+
+    // the map is hidden and shown again with the map/video tabs
+    if (window.ResizeObserver) {
+      this.resizeObserver = new ResizeObserver(() => map.resize());
+      this.resizeObserver.observe(this.container.current);
+    }
+
     this.componentDidUpdate({}, {});
     this.updateMarkerPos();
   }
@@ -153,50 +201,98 @@ class DriveMap extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    clearTimeout(this.isInteractingTimeout);
+    window.removeEventListener('mouseup', this.onPointerUp);
+    this.resizeObserver?.disconnect();
+    this.map.remove();
+    this.map = null;
+    this.mapReady = false;
   }
 
-  isOverMarker(ev) {
-    const map = this.map && this.map.getMap();
-    if (!map || !this.props.currentRoute?.driveCoords) {
+  isOverMarker(point) {
+    if (!this.mapReady || !this.props.currentRoute?.driveCoords) {
       return false;
     }
-    const marker = map.project(this.lastMapPos);
-    return Math.hypot(marker.x - ev.point[0], marker.y - ev.point[1]) <= MARKER_GRAB_RADIUS;
+    const marker = this.map.project(this.lastMapPos);
+    return Math.hypot(marker.x - point.x, marker.y - point.y) <= MARKER_GRAB_RADIUS;
+  }
+
+  // the route segments and their numbers around a point
+  featuresAt(point) {
+    if (!this.mapReady) {
+      return [];
+    }
+    return this.map.queryRenderedFeatures([
+      [point.x - CLICK_RADIUS, point.y - CLICK_RADIUS],
+      [point.x + CLICK_RADIUS, point.y + CLICK_RADIUS],
+    ], { layers: INTERACTIVE_LAYERS });
+  }
+
+  // a hand that grabs the marker, a pointing finger on a segment to select
+  updateCursor(point) {
+    let cursor = 'default';
+    if (this.markerDragging || this.panning) {
+      cursor = 'grabbing';
+    } else if (point && this.isOverMarker(point)) {
+      cursor = 'grab';
+    } else if (point && this.featuresAt(point).length > 0) {
+      cursor = 'pointer';
+    }
+    this.map.getCanvas().style.cursor = cursor;
   }
 
   // press on the marker to drag it along the route
   onPointerDown(ev) {
-    if (this.isOverMarker(ev)) {
+    this.pointerDown = true;
+    if (this.markerDragging) {
+      // no pinching while the marker is held
+      ev.preventDefault();
+      return;
+    }
+    if (ev.type === 'touchstart' && ev.points.length !== 1) {
+      return;
+    }
+    if (this.isOverMarker(ev.point)) {
+      // keep the map still while the marker moves
+      ev.preventDefault();
+      this.markerDragging = true;
       this.dragOffset = currentOffset();
-      this.setState({ markerDragging: true });
+      this.updateCursor();
     }
   }
 
   onPointerMove(ev) {
-    if (!this.state.markerDragging) {
-      const markerHovered = this.isOverMarker(ev);
-      if (markerHovered !== this.state.markerHovered) {
-        this.setState({ markerHovered });
+    if (!this.markerDragging) {
+      if (ev.type === 'mousemove' && !this.panning) {
+        this.updateCursor(ev.point);
       }
       return;
     }
-    this.dragOffset = offsetNearest(this.props.currentRoute.driveCoords, ev.lngLat);
+    this.dragOffset = offsetNearest(this.props.currentRoute.driveCoords, ev.lngLat.toArray());
     seekVideo(this.dragOffset);
   }
 
+  onTouchEnd(ev) {
+    if (ev.originalEvent.touches.length === 0) {
+      this.onPointerUp();
+    }
+  }
+
   onPointerUp() {
-    if (!this.state.markerDragging) {
+    this.pointerDown = false;
+    if (!this.markerDragging) {
       return;
     }
-    this.setState({ markerDragging: false });
+    this.markerDragging = false;
+    this.updateCursor();
     this.props.dispatch(seek(this.dragOffset));
   }
 
   // tap a segment of the route, or its number, to select the whole segment
   onClick(ev) {
     const { currentRoute, dispatch } = this.props;
-    const segment = ev.features?.[0]?.properties.segment;
-    if (segment === undefined || !currentRoute || this.isOverMarker(ev)) {
+    const segment = this.featuresAt(ev.point)[0]?.properties.segment;
+    if (segment === undefined || !currentRoute || this.isOverMarker(ev.point)) {
       return;
     }
     const start = segment * SEGMENT_DURATION;
@@ -204,18 +300,17 @@ class DriveMap extends Component {
     dispatch(pushTimelineRange(currentRoute.log_id, start, end, true));
   }
 
-  onInteraction(ev) {
-    if (ev.isDragging || ev.isRotating || ev.isZooming) {
-      this.shouldFlyTo = true;
-      this.isInteracting = true;
-
-      if (this.isInteractingTimeout !== null) {
-        clearTimeout(this.isInteractingTimeout);
-      }
-      this.isInteractingTimeout = setTimeout(() => {
-        this.isInteracting = false;
-      }, INTERACTION_TIMEOUT);
+  // the user moved the map: stop following the marker for a while
+  onMove(ev) {
+    if (!ev.originalEvent) {
+      return; // our own camera moves
     }
+    this.shouldFlyTo = true;
+    this.isInteracting = true;
+    clearTimeout(this.isInteractingTimeout);
+    this.isInteractingTimeout = setTimeout(() => {
+      this.isInteracting = false;
+    }, INTERACTION_TIMEOUT);
   }
 
   updateMarkerPos() {
@@ -223,65 +318,60 @@ class DriveMap extends Component {
       return;
     }
 
-    const markerSource = this.map && this.map.getMap().getSource('seekPoint');
-    if (markerSource) {
-      if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const offset = currentOffset();
-        // glide to the marker after a seek instead of snapping to it
-        if (this.lastOffset !== null && Math.abs(offset - this.lastOffset) > 1000) {
-          this.shouldFlyTo = true;
-        }
-        this.lastOffset = offset;
-        const segment = Math.floor(offset / SEGMENT_DURATION);
-        if (segment !== this.currentSegment) {
-          this.currentSegment = segment;
-          this.map.getMap().setPaintProperty('routeLine', 'line-color', routeLineColor(segment));
-        }
-        const pos = this.posAtOffset(offset);
-        if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
-          this.lastMapPos = pos;
-          markerSource.setData({
-            type: 'Point',
-            coordinates: pos,
-          });
-          if (!this.isInteracting && !this.state.markerDragging) {
-            this.moveViewportTo(pos);
-          }
-        }
-      } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
+    if (this.props.visible === false || !this.mapReady) {
+      requestAnimationFrame(this.updateMarkerPos);
+      return;
+    }
+
+    const markerSource = this.map.getSource('seekPoint');
+    if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
+      const offset = currentOffset();
+      // glide to the marker after a seek instead of snapping to it
+      if (this.lastOffset !== null && Math.abs(offset - this.lastOffset) > 1000) {
+        this.shouldFlyTo = true;
+      }
+      this.lastOffset = offset;
+      const segment = Math.floor(offset / SEGMENT_DURATION);
+      if (segment !== this.currentSegment) {
+        this.currentSegment = segment;
+        this.map.setPaintProperty('routeLine', 'line-color', routeLineColor(segment));
+      }
+      const pos = this.posAtOffset(offset);
+      if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
+        this.lastMapPos = pos;
         markerSource.setData({
           type: 'Point',
-          coordinates: [],
+          coordinates: pos,
         });
+        this.followMarker(pos);
       }
+    } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
+      markerSource.setData({
+        type: 'Point',
+        coordinates: [],
+      });
     }
 
     requestAnimationFrame(this.updateMarkerPos);
   }
 
-  moveViewportTo(pos) {
-    const viewport = {
-      longitude: pos[0],
-      latitude: pos[1],
-    };
-    if (this.shouldFlyTo) {
-      viewport.transitionDuration = 200;
-      viewport.transitionInterpolator = new LinearInterpolator();
-      this.shouldFlyTo = false;
+  followMarker(pos) {
+    // moving the camera cancels the gesture the user is starting
+    if (this.isInteracting || this.pointerDown || this.markerDragging || this.map.isMoving()) {
+      return;
     }
-
-    this.setState((prevState) => ({
-      viewport: {
-        ...prevState.viewport,
-        ...viewport,
-      },
-    }));
+    if (this.shouldFlyTo) {
+      this.shouldFlyTo = false;
+      this.map.easeTo({ center: pos, duration: 200, easing: (t) => t });
+    } else {
+      this.map.jumpTo({ center: pos });
+    }
   }
 
   async populateMap() {
     const { currentRoute } = this.props;
 
-    if (!this.map || !currentRoute || !currentRoute.driveCoords) {
+    if (!this.mapReady || !currentRoute || !currentRoute.driveCoords) {
       return;
     }
 
@@ -291,14 +381,13 @@ class DriveMap extends Component {
 
   updateSelection() {
     const { currentRoute, zoom, selectionPreview } = this.props;
-    const map = this.map && this.map.getMap();
-    if (!map || !currentRoute?.driveCoords) {
+    if (!this.mapReady || !currentRoute?.driveCoords) {
       return;
     }
     // follow a range while it is being dragged out on the timeline
     const selection = selectionPreview || zoom;
     const partial = selection && (selection.start > 0 || selection.end < currentRoute.duration);
-    map.getSource('selection').setData(selectionLine(currentRoute.driveCoords, partial ? selection : null));
+    this.map.getSource('selection').setData(selectionLine(currentRoute.driveCoords, partial ? selection : null));
   }
 
   onRef(el) {
@@ -307,16 +396,10 @@ class DriveMap extends Component {
     }
   }
 
-  onViewportChange(viewport) {
-    this.setState({ viewport });
-  }
-
   setPath(lines) {
-    const map = this.map && this.map.getMap();
-
-    if (map) {
-      map.getSource('route').setData(lines);
-      map.getSource('segmentLabels').setData(segmentLabelPoints(lines));
+    if (this.mapReady) {
+      this.map.getSource('route').setData(lines);
+      this.map.getSource('segmentLabels').setData(segmentLabelPoints(lines));
     }
   }
 
@@ -353,154 +436,120 @@ class DriveMap extends Component {
     ];
   }
 
-  initMap(mapComponent) {
-    if (!mapComponent) {
-      this.map = null;
-      return;
-    }
+  onLoad() {
+    const { map } = this;
+    map.touchZoomRotate.disableRotation();
 
-    const map = mapComponent.getMap();
-    if (!map) {
-      this.map = null;
-      return;
-    }
-
-    map.on('load', () => {
-      map.addSource('route', {
-        type: 'geojson',
-        data: segmentLines({}),
-      });
-      map.addSource('segmentLabels', {
-        type: 'geojson',
-        data: segmentLabelPoints(segmentLines({})),
-      });
-      map.addSource('selection', {
-        type: 'geojson',
-        data: selectionLine({}, null),
-      });
-      map.addSource('seekPoint', {
-        type: 'geojson',
-        data: {
-          type: 'Point',
-          coordinates: [],
-        },
-      });
-
-      const lineGeoJson = {
-        id: 'routeLine',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': routeLineColor(this.currentSegment ?? -1),
-          'line-width': 8,
-        },
-      };
-      map.addLayer({
-        id: 'selectionLine',
-        type: 'line',
-        source: 'selection',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#ffffff',
-          'line-width': 16,
-          'line-opacity': 0.5,
-        },
-      });
-      map.addLayer(lineGeoJson);
-      map.addLayer({
-        id: 'segmentLabels',
-        type: 'symbol',
-        source: 'segmentLabels',
-        layout: {
-          'text-field': ['to-string', ['get', 'segment']],
-          'text-size': 13,
-          'text-rotation-alignment': 'viewport',
-          'text-offset': [0, -1.2],
-        },
-        paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': 'rgba(0, 0, 0, 0.8)',
-          'text-halo-width': 2,
-        },
-      });
-
-      const markerGeoJson = {
-        id: 'marker',
-        type: 'circle',
-        paint: {
-          'circle-radius': 10,
-          'circle-color': '#007cbf',
-          'circle-stroke-width': 3,
-          'circle-stroke-color': '#ffffff',
-        },
-        source: 'seekPoint',
-      };
-
-      map.addLayer(markerGeoJson);
-
-      this.map = mapComponent;
-
-      const { currentRoute } = this.props;
-      if (currentRoute?.driveCoords) {
-        this.shouldFlyTo = false;
-        const keys = Object.keys(currentRoute.driveCoords);
-        this.setState({
-          driveCoordsMin: Math.min(...keys),
-          driveCoordsMax: Math.max(...keys),
-        });
-        this.populateMap();
-      }
+    map.addSource('route', {
+      type: 'geojson',
+      data: segmentLines({}),
     });
+    map.addSource('segmentLabels', {
+      type: 'geojson',
+      data: segmentLabelPoints(segmentLines({})),
+    });
+    map.addSource('selection', {
+      type: 'geojson',
+      data: selectionLine({}, null),
+    });
+    map.addSource('seekPoint', {
+      type: 'geojson',
+      data: {
+        type: 'Point',
+        coordinates: [],
+      },
+    });
+
+    map.addLayer({
+      id: 'selectionLine',
+      type: 'line',
+      source: 'selection',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': '#ffffff',
+        'line-width': 16,
+        'line-opacity': 0.5,
+      },
+    });
+    map.addLayer({
+      id: 'routeLine',
+      type: 'line',
+      source: 'route',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': routeLineColor(this.currentSegment ?? -1),
+        'line-width': 8,
+      },
+    });
+    map.addLayer({
+      id: 'segmentLabels',
+      type: 'symbol',
+      source: 'segmentLabels',
+      layout: {
+        'text-field': ['to-string', ['get', 'segment']],
+        'text-size': 13,
+        'text-rotation-alignment': 'viewport',
+        'text-offset': [0, -1.2],
+      },
+      paint: {
+        'text-color': '#ffffff',
+        'text-halo-color': 'rgba(0, 0, 0, 0.8)',
+        'text-halo-width': 2,
+      },
+    });
+    map.addLayer({
+      id: 'marker',
+      type: 'circle',
+      paint: {
+        'circle-radius': 10,
+        'circle-color': '#007cbf',
+        'circle-stroke-width': 3,
+        'circle-stroke-color': '#ffffff',
+      },
+      source: 'seekPoint',
+    });
+
+    this.mapReady = true;
+    this.setState({ mapLoaded: true });
+    this.updateCursor();
+
+    const { currentRoute } = this.props;
+    if (currentRoute?.driveCoords) {
+      this.shouldFlyTo = false;
+      const keys = Object.keys(currentRoute.driveCoords);
+      this.setState({
+        driveCoordsMin: Math.min(...keys),
+        driveCoordsMax: Math.max(...keys),
+      });
+      this.populateMap();
+    }
   }
 
   render() {
-    const { viewport, markerDragging, markerHovered } = this.state;
-    // a hand that grabs the marker, a pointing finger on a segment to select
-    const getCursor = ({ isDragging, isHovering }) => {
-      if (markerDragging || isDragging) {
-        return 'grabbing';
-      }
-      if (markerHovered) {
-        return 'grab';
-      }
-      return isHovering ? 'pointer' : 'default';
-    };
+    const { mapLoaded } = this.state;
+    const { currentRoute } = this.props;
+    const loading = !mapLoaded || !currentRoute?.driveCoords;
+    const missingCoordinates = !loading && !Number.isFinite(this.state.driveCoordsMin);
     return (
-      <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
-        <ReactMapGL
-          width="100%"
-          height="100%"
-          latitude={viewport.latitude}
-          longitude={viewport.longitude}
-          zoom={viewport.zoom}
-          mapStyle={MAPBOX_STYLE}
-          maxPitch={0}
-          mapboxApiAccessToken={MAPBOX_TOKEN}
-          ref={this.initMap}
-          onContextMenu={null}
-          dragRotate={false}
-          onViewportChange={this.onViewportChange}
-          attributionControl={false}
-          onInteractionStateChange={this.onInteraction}
-          dragPan={!markerDragging}
-          getCursor={getCursor}
-          interactiveLayerIds={['routeLine', 'segmentLabels']}
-          clickRadius={10}
-          onMouseDown={this.onPointerDown}
-          onTouchStart={this.onPointerDown}
-          onMouseMove={this.onPointerMove}
-          onTouchMove={this.onPointerMove}
-          onMouseUp={this.onPointerUp}
-          onTouchEnd={this.onPointerUp}
-          onClick={this.onClick}
-        />
+      <div ref={this.onRef} className="relative h-full min-h-[300px] w-full">
+        {/* important: mapbox makes its container position: relative */}
+        <div ref={this.container} className="!absolute inset-0" />
+        {loading && (
+          <div role="status" aria-label="Loading map" className="absolute inset-0 flex items-center justify-center pointer-events-none bg-[#1D2225]/80">
+            <CircularProgress size={40} style={{ color: 'white' }} />
+          </div>
+        )}
+        {missingCoordinates && (
+          <div role="status" className="absolute inset-0 flex items-center justify-center pointer-events-none bg-[#1D2225]/80 text-white text-center p-4">
+            GPS data is not available for this drive.
+          </div>
+        )}
       </div>
     );
   }
