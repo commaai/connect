@@ -1,8 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { athena as Athena } from '../api';
+import { api } from '../api/backend';
+import {
+  createDemoBackend,
+  DEMO_DONGLE_ID,
+  PUBLIC_ROUTE_DONGLE_ID,
+  PUBLIC_ROUTE_LOG_ID,
+} from '../api/demo';
 import * as Types from './types';
-import { cancelFetchUploadQueue, fetchUploadQueue } from './files';
+import { cancelFetchUploadQueue, fetchFiles, fetchUploadQueue } from './files';
 
 vi.mock('../api', () => ({ athena: { postJsonRpcPayload: vi.fn() } }));
 vi.mock('../api/backend', () => ({ api: { routes: { getRouteFiles: vi.fn() } } }));
@@ -10,6 +17,56 @@ vi.mock('../timeline/playback', () => ({ reducer: (state) => state, resetPlaybac
 
 const DEVICE_A = 'aaaaaaaaaaaaaaaa';
 const DEVICE_B = 'bbbbbbbbbbbbbbbb';
+
+describe('route file indexing', () => {
+  it('indexes demo files under the selected route and keeps their original URLs', async () => {
+    const demoRouteName = `${DEMO_DONGLE_ID}|00000000--0000000001`;
+    const publicRouteName = `${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`;
+    const publicFiles = {
+      cameras: [`https://files.example/${PUBLIC_ROUTE_DONGLE_ID}/${PUBLIC_ROUTE_LOG_ID}/0/fcamera.hevc?sig=camera`],
+      logs: [`https://files.example/${PUBLIC_ROUTE_DONGLE_ID}/${PUBLIC_ROUTE_LOG_ID}/4/rlog.zst?sig=log`],
+    };
+    const realBackend = { routes: { getRouteFiles: vi.fn().mockResolvedValue(publicFiles) } };
+    const demoBackend = createDemoBackend(realBackend);
+    api.routes.getRouteFiles.mockImplementationOnce((...args) => demoBackend.routes.getRouteFiles(...args));
+    const dispatch = vi.fn();
+
+    await fetchFiles(demoRouteName)(dispatch);
+
+    expect(realBackend.routes.getRouteFiles).toHaveBeenCalledWith(publicRouteName);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: Types.ACTION_FILES_URLS,
+      dongleId: DEMO_DONGLE_ID,
+      urls: {
+        [`${demoRouteName}--0/cameras`]: { url: publicFiles.cameras[0] },
+        [`${demoRouteName}--4/logs`]: { url: publicFiles.logs[0] },
+      },
+    });
+  });
+
+  it('indexes signed files from their pathname and preserves the full URL', async () => {
+    const routeName = `${DEVICE_A}|2026-08-06--12-00-00`;
+    const files = {
+      cameras: [
+        `https://files.example/${DEVICE_A}/2026-08-06--12-00-00/0/fcamera.hevc?se=2030-01-01&sig=first`,
+        `https://files.example/${DEVICE_A}/2026-08-06--12-00-00/7/fcamera.hevc?se=2030-01-01&sig=second`,
+      ],
+    };
+    api.routes.getRouteFiles.mockResolvedValueOnce(files);
+    const dispatch = vi.fn();
+
+    await fetchFiles(routeName)(dispatch);
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: Types.ACTION_FILES_URLS,
+      dongleId: DEVICE_A,
+      urls: {
+        [`${routeName}--0/cameras`]: { url: files.cameras[0] },
+        [`${routeName}--7/cameras`]: { url: files.cameras[1] },
+      },
+    });
+  });
+});
 
 afterEach(() => {
   cancelFetchUploadQueue();
