@@ -18,10 +18,31 @@ import { isIos, isFirefox } from '../../utils/browser.js';
 
 // native media events after which the video may have started or stopped waiting for data.
 // timeupdate fires several times a second while playing, so a wrong state never lasts.
+const MISSING_MESSAGE = 'This video segment has not uploaded yet or has been deleted.';
+const NETWORK_MESSAGE = 'Unable to load video. Check network connection.';
+const LOAD_MESSAGE = 'Unable to load video';
+
+// after a fatal network error, ask hls.js to try loading again with growing delays
+const RETRY_BASE_MS = 2000;
+const RETRY_MAX_MS = 30000;
+const MAX_RETRIES = 10;
+
 const BUFFERING_EVENTS = [
   'loadstart', 'emptied', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough',
   'waiting', 'playing', 'seeking', 'seeked', 'timeupdate', 'play', 'pause',
 ];
+
+// how far the browser has data for, in seconds
+const bufferedEnd = (video) => {
+  let end = 0;
+  if (!video) {
+    return end;
+  }
+  for (let i = 0; i < video.buffered.length; i++) {
+    end = Math.max(end, video.buffered.end(i));
+  }
+  return end;
+};
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -65,6 +86,10 @@ class DriveVideo extends Component {
 
     this.container = React.createRef();
     this.video = null;
+    this.hls = null;
+    this.retries = 0;
+    this.retryTimer = null;
+    this.failedBufferedEnd = 0; // data the video had when it failed, to tell when new data arrives
     this.videoFailed = false; // the video can't play, the playback clock keeps time instead
     this.frame = null;
     this.leftZoom = null; // range we already left, until props catch up
@@ -92,6 +117,7 @@ class DriveVideo extends Component {
 
   componentWillUnmount() {
     cancelAnimationFrame(this.frame);
+    clearTimeout(this.retryTimer);
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);
     document.removeEventListener('webkitfullscreenchange', this.onFullscreenChange);
     // hand the position over to the playback clock, which keeps time without a video
@@ -122,6 +148,7 @@ class DriveVideo extends Component {
   }
 
   onPlayerReady(player) {
+    this.hls = player.getInternalPlayer('hls') || null;
     this.setVideoElement(player.getInternalPlayer());
 
     const { onAudioStatusChange } = this.props;
@@ -163,9 +190,48 @@ class DriveVideo extends Component {
     }
     const offset = currentOffset();
     this.videoFailed = true;
+    this.failedBufferedEnd = bufferedEnd(this.video);
     detachVideo(this.video);
     this.props.dispatch(seek(offset));
     this.updateBuffering();
+  }
+
+  // The failed video may still play out what it had buffered, so it has only
+  // recovered once new data arrives, e.g. after a retry when the network is back.
+  checkRecovery() {
+    if (this.videoFailed && this.video && this.props.currentRoute && bufferedEnd(this.video) > this.failedBufferedEnd + 0.5) {
+      this.recoverVideo();
+    }
+  }
+
+  // The video can play again after failing: take time back from the clock, from where it got to.
+  recoverVideo() {
+    const { currentRoute } = this.props;
+    const offset = currentOffset();
+    this.videoFailed = false;
+    this.retries = 0;
+    clearTimeout(this.retryTimer);
+    attachVideo(this.video, currentRoute.fullname);
+    seekVideo(currentRoute, offset);
+    if (this.state.videoError) {
+      this.setState({ videoError: null });
+    }
+  }
+
+  scheduleRetry() {
+    if (!this.hls || this.retries >= MAX_RETRIES) {
+      return;
+    }
+    const delay = Math.min(RETRY_BASE_MS * (2 ** this.retries), RETRY_MAX_MS);
+    this.retries += 1;
+    clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(() => {
+      const { currentRoute } = this.props;
+      if (this.hls && this.videoFailed && currentRoute) {
+        // load from where the clock has got to meanwhile
+        this.hls.startLoad(Math.max(0, (currentOffset() - (currentRoute.videoStartOffset || 0)) / 1000));
+      }
+    }, delay);
   }
 
   // play and pause can also come from outside the page controls,
@@ -195,6 +261,7 @@ class DriveVideo extends Component {
 
   // checked every frame rather than on timeupdate, which only fires a few times a second
   checkRangeEnd() {
+    this.checkRecovery();
     const { currentRoute, desiredPlaySpeed, isBufferingVideo, loop, zoom } = this.props;
     const el = this.video;
     const playing = isActiveVideo(el, currentRoute)
@@ -257,14 +324,26 @@ class DriveVideo extends Component {
       return;
     }
 
-    if (e.type === 'networkError' && (e.response?.code === 404)) {
-      this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
-    } else {
-      this.setState({ videoError: 'Unable to load video' });
+    const missing = e.type === 'networkError' && e.response?.code === 404;
+    let videoError = LOAD_MESSAGE;
+    if (missing) {
+      videoError = MISSING_MESSAGE;
+    } else if (e.type === 'networkError') {
+      videoError = NETWORK_MESSAGE;
     }
-    // hls.js recovers from non fatal errors by itself
-    if (e.fatal) {
-      this.handOverToClock();
+    this.setState({ videoError });
+
+    // hls.js retries non fatal errors by itself. After a fatal one it stops, so the
+    // clock takes over and we ask it to try again, unless the video simply isn't there.
+    if (!e.fatal) {
+      return;
+    }
+    this.handOverToClock();
+    if (e.type === 'mediaError' && this.hls && this.retries === 0) {
+      this.retries += 1;
+      this.hls.recoverMediaError();
+    } else if (e.type === 'networkError' && !missing) {
+      this.scheduleRetry();
     }
   }
 
@@ -288,22 +367,11 @@ class DriveVideo extends Component {
       return;
     }
 
-    if (e.target?.src?.startsWith(window.location.origin) && e.target.src.endsWith('undefined')) {
-      // TODO: figure out why the src isn't set properly
-      // Sometimes an error will be thrown because we try to play
-      // src: "https://connect.comma.ai/.../undefined"
-      console.warn('Video error with undefined src, ignoring', { e, data });
-      return;
-    }
-
     if (e.type === 'networkError') {
       console.error('Network error', { e, data });
-      this.setState({ videoError: 'Unable to load video. Check network connection.' });
+      this.setState({ videoError: NETWORK_MESSAGE });
     } else {
-      const videoError = e.response?.code === 404
-        ? 'This video segment has not uploaded yet or has been deleted.'
-        : (e.response?.text || 'Unable to load video');
-      this.setState({ videoError });
+      this.setState({ videoError: e.response?.code === 404 ? MISSING_MESSAGE : (e.response?.text || LOAD_MESSAGE) });
     }
     this.handOverToClock();
   }
@@ -373,6 +441,8 @@ class DriveVideo extends Component {
         detachVideo(this.video);
       }
       this.videoFailed = false;
+      this.retries = 0;
+      clearTimeout(this.retryTimer);
       this.setState({
         src: api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig),
         videoError: null,

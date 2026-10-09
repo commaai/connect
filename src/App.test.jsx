@@ -84,7 +84,7 @@ function json(body, status = 200) {
 }
 
 async function mockFetch(input, init = {}) {
-  const url = new URL(typeof input === 'string' ? input : input.url);
+  const url = new URL(input instanceof URL ? input.href : (typeof input === 'string' ? input : input.url));
   mocks.requests.push({ method: init.method || 'GET', url: url.href });
   const options = mocks.options;
   const deviceList = options.devices ?? devices;
