@@ -34,7 +34,7 @@ export default function Thumbnails(props) {
     } else {
       // 12 per file, 5s each
       const seconds = Math.floor(offset / 1000);
-      const imageIndex = Math.max(0, Math.min(Math.floor(seconds / 5), 11));
+      const imageIndex = Math.max(0, Math.min(Math.floor((seconds % 60) / 5), 11));
       const segmentNum = getSegmentNumber(route, offset);
       const url = api.routeAssets.thumbnail(route, segmentNum);
 

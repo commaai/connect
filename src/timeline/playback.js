@@ -10,6 +10,8 @@ export function reducer(state, action) {
       return { ...state, seekRequest: { id: (state.seekRequest?.id || 0) + 1,
         fullname: state.currentRoute?.fullname, offset: Math.max(start, Math.min(end, action.offset)) } };
     }
+    case Types.ACTION_SEEK_DONE:
+      return state.seekRequest === action.request ? { ...state, seekRequest: null } : state;
     case Types.ACTION_VIDEO_TIME:
       if (action.fullname !== state.currentRoute?.fullname || !Number.isFinite(action.offset)) return state;
       return state.offset === action.offset ? state : { ...state, offset: action.offset };
@@ -37,3 +39,12 @@ export const play = (speed = 1) => ({ type: Types.ACTION_PLAY, speed });
 export const selectLoop = (start, end) => ({ type: Types.ACTION_LOOP, start, end });
 export const bufferVideo = buffering => ({ type: Types.ACTION_BUFFER_VIDEO, buffering });
 export const resetPlayback = () => ({ type: Types.ACTION_RESET });
+
+export const seekDone = request => ({ type: Types.ACTION_SEEK_DONE, request });
+export const seekBy = amount => (dispatch, getState) => {
+  const state = getState();
+  const request = state.seekRequest;
+  const offset = request && request.fullname === state.currentRoute?.fullname
+    ? request.offset : state.offset ?? state.loop?.startTime ?? 0;
+  dispatch(seek(offset + amount));
+};

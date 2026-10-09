@@ -5,7 +5,7 @@ import { Button, CircularProgress, Typography } from '@material-ui/core';
 import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { bufferVideo, pause, play, videoTime } from '../../timeline/playback';
+import { bufferVideo, pause, play, seekDone, videoTime } from '../../timeline/playback';
 import { mediaBounds, seekTarget } from './position';
 
 export function DriveVideo(props) {
@@ -27,6 +27,7 @@ export function DriveVideo(props) {
     let frame;
     let timeout;
     let failed = false;
+    let failedRange = null;
     let initialSeek = true;
     let handledSeek;
     let playRequest = 0;
@@ -41,10 +42,12 @@ export function DriveVideo(props) {
       timeout = undefined;
       if (current() && latest.current.isBufferingVideo) latest.current.dispatch(bufferVideo(false));
     };
-    const fail = (text) => {
+    const fail = (text, unavailableRange = false) => {
       if (!current()) return;
       failed = true;
+      failedRange = unavailableRange ? bounds() : null;
       playRequest += 1;
+      pendingPlay = false;
       video.pause();
       hls?.stopLoad();
       clearLoading();
@@ -80,7 +83,10 @@ export function DriveVideo(props) {
       if (latest.current.desiredPlaySpeed && (!video.paused || video.ended)
         && time >= range.end && range.end > range.start) {
         const ended = video.ended;
-        video.currentTime = range.start;
+        const target = seekTarget(video.seekable, range.start, range, hls?.latestLevelDetails?.fragments);
+        if (target === null) { fail('No video is available in this selected range.', true); return; }
+        video.currentTime = target;
+        lastMediaTime = target;
         if (ended) attemptPlay();
         return;
       }
@@ -90,7 +96,7 @@ export function DriveVideo(props) {
       if (current()) latest.current.onAudioStatusChange?.(Boolean(hlsAudio || video.audioTracks?.length || video.mozHasAudio || video.webkitAudioDecodedByteCount));
     };
     const apply = () => {
-      if (!current() || failed) return;
+      if (!current() || (failed && !failedRange)) return;
       const state = latest.current;
       video.muted = state.isMuted;
       try { video.playbackRate = Math.max(0.1, Math.min(16, state.desiredPlaySpeed || 1)); }
@@ -98,14 +104,23 @@ export function DriveVideo(props) {
       if (video.readyState < 1) return;
       if (video.readyState >= 1) {
         const range = bounds();
-        if (!(range.end > range.start)) { fail('No video is available in this selected range.'); return; }
+        if (failedRange && range.start === failedRange.start && range.end === failedRange.end) return;
+        if (!(range.end > range.start)) { fail('No video is available in this selected range.', true); return; }
         const request = state.seekRequest;
         const requested = request && request.fullname === fullname && handledSeek !== request;
-        if (initialSeek || requested || video.currentTime < range.start || (video.currentTime >= range.end && state.desiredPlaySpeed)) {
+        if (initialSeek || requested || failedRange || video.currentTime < range.start || (video.currentTime >= range.end && state.desiredPlaySpeed)) {
           const offset = requested ? request.offset : initialSeek ? state.offset ?? state.loop?.startTime ?? 0 : state.loop?.startTime ?? 0;
-          const target = seekTarget(video.seekable, (offset - origin()) / 1000, range);
+          const target = seekTarget(video.seekable, (offset - origin()) / 1000, range, hls?.latestLevelDetails?.fragments);
+          if (target === null) { fail('No video is available in this selected range.', true); return; }
+          if (failedRange) {
+            failed = false;
+            failedRange = null;
+            setMessage(null);
+            hls?.startLoad();
+          }
           try {
             video.currentTime = target;
+            lastMediaTime = target;
             initialSeek = false;
             if (requested) handledSeek = request;
           } catch { return; } // Metadata can precede a seekable native HLS timeline.
@@ -140,7 +155,12 @@ export function DriveVideo(props) {
       fail(video.error?.code === 2 ? 'Unable to load video. Check your network connection.' : 'Unable to load this video. It may be unavailable or unsupported.');
     };
     const listeners = { loadedmetadata: ready, durationchange: ready, loadeddata: ready, canplay: ready,
-      seeked: ready, timeupdate: report, playing: onPlaying, pause: onPause, ended: report,
+      seeked: () => {
+        ready();
+        if (current() && !video.seeking && handledSeek && latest.current.seekRequest === handledSeek) {
+          latest.current.dispatch(seekDone(handledSeek));
+        }
+      }, timeupdate: report, playing: onPlaying, pause: onPause, ended: report,
       waiting: loading, stalled: loading, seeking: loading, error: onError };
     Object.entries(listeners).forEach(([event, handler]) => video.addEventListener(event, handler));
     video.audioTracks?.addEventListener?.('addtrack', audio);
@@ -166,7 +186,20 @@ export function DriveVideo(props) {
         if (!Hls.isSupported()) { fail('This browser does not support HLS video.'); return; }
         hls = new Hls({ maxBufferLength: 40 });
         hls.on(Hls.Events.ERROR, (_event, error) => {
-          if (!current() || !error.fatal) return;
+          if (!current()) return;
+          // HLS can skip a hole beyond a selected loop before reporting it.
+          // Rewinding into that hole repeatedly turns recovery into a fatal error.
+          if (!error.fatal && error.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE
+            && latest.current.loop && video.currentTime >= bounds().end) {
+            const range = bounds();
+            const target = seekTarget(video.seekable, range.start, range, hls.latestLevelDetails?.fragments);
+            if (target !== null && lastMediaTime > range.start && lastMediaTime < range.end) {
+              video.currentTime = target;
+              lastMediaTime = target;
+            } else fail('Video cannot play within this selected range.', true);
+            return;
+          }
+          if (!error.fatal) return;
           fail(error.response?.code === 404
             ? 'This video segment has not uploaded yet or has been deleted.'
             : 'Unable to load this video. Please retry.');

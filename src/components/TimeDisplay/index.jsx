@@ -9,7 +9,7 @@ import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
+import { seekBy, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -151,11 +151,11 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
+    this.props.dispatch(seekBy(-amount));
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
+    this.props.dispatch(seekBy(amount));
   }
 
   updateTime() {

@@ -55,7 +55,7 @@ class DriveMap extends Component {
       }
     }
 
-    if (prevProps.seekRequest !== seekRequest) {
+    if (seekRequest && prevProps.seekRequest !== seekRequest) {
       this.shouldFlyTo = true;
     }
 
@@ -306,7 +306,6 @@ class DriveMap extends Component {
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
   seekRequest: state.seekRequest,
 });

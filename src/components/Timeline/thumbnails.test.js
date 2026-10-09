@@ -116,4 +116,15 @@ describe('timeline thumbnails', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(percentToOffsetMock.mock.calls.length).toBe(0);
   });
+
+  it.each([[65000, 1, 1], [125000, 2, 1], [60000, 1, 0]])('selects the sprite sample within its minute at %i ms', (offset, segment, image) => {
+    const [entry] = Thumbnails({
+      thumbnail: { width: 32, height: 20 },
+      percentToOffset: () => offset,
+      currentRoute: mockRoute,
+    });
+    expect(entry.props.style.backgroundPositionX).toBe(`-${image * 32}px`);
+    // Segment selection still uses the full route offset.
+    expect(entry.props.style.backgroundImage).toContain(`/${segment}/`);
+  });
 });

@@ -10,6 +10,18 @@ from observed progress and is applied when metadata permits it. Seeks and loop
 endpoints use route milliseconds, converted into video seconds and intersected
 with media duration and seekable ranges. A paused endpoint stays visible;
 playing at an endpoint resumes from the loop start, including zero.
+Relative jumps accumulate from the pending command until the native seek is
+complete. Its acknowledgement clears only that command, so a late completion
+cannot discard a newer seek; subsequent jumps use the observed media position.
+
+On the hls.js path, known playlist fragments exclude declared gaps even when
+MSE advertises a continuous seekable range. Seeks and loop restarts choose the
+next available fragment within the selection, or the preceding playable point.
+A selection containing only gaps exposes an error. Valid unloaded fragments
+remain seekable; native HLS uses the browser's own seekable information.
+If HLS skips beyond a loop's end, observed progress permits a bounded restart;
+repeated attempts without progress expose a range error instead of a fatal
+recovery cycle. Choosing another valid range resumes the same loader.
 
 `DriveVideo` uses native HLS when the video advertises support, otherwise the
 bundled, lazy-loaded hls.js. Native track discovery or HLS codec discovery

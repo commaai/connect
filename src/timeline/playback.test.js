@@ -1,5 +1,5 @@
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, resetPlayback, seek, selectLoop, videoTime } from './playback';
+import { bufferVideo, pause, play, reducer, resetPlayback, seek, seekBy, seekDone, selectLoop, videoTime } from './playback';
 
 const fullname = 'aaaaaaaaaaaaaaaa|2026-08-06--12-00-00';
 const makeState = () => ({ currentRoute: { fullname, duration: 60000 }, desiredPlaySpeed: 1, offset: 1200,
@@ -55,4 +55,21 @@ it('resets commands and observed position for new playback without a second cloc
   expect(currentOffset(state)).toBe(0);
   expect(currentOffset(reducer(state, selectLoop(10000, 20000)))).toBe(10000);
   expect(reducer(state, selectLoop(null, null)).loop).toBeNull();
+});
+
+
+it('accumulates relative commands until the current seek completes, then uses observed time', () => {
+  let state = makeState();
+  const dispatch = action => { state = reducer(state, action); };
+  seekBy(10000)(dispatch, () => state);
+  const old = state.seekRequest;
+  seekBy(10000)(dispatch, () => state);
+  expect(state.seekRequest.offset).toBe(21200);
+  expect(state.offset).toBe(1200);
+  dispatch(seekDone(old));
+  expect(state.seekRequest.offset).toBe(21200);
+  const current = state.seekRequest;
+  dispatch(videoTime(fullname, 21200)); dispatch(seekDone(current));
+  dispatch(videoTime(fullname, 22000)); seekBy(-10000)(dispatch, () => state);
+  expect(state.seekRequest.offset).toBe(12000);
 });

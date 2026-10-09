@@ -7,7 +7,8 @@ const hlsMock = vi.hoisted(() => ({ instances: [], supported: true }));
 vi.mock('hls.js', () => ({ default: class {
   static isSupported() { return hlsMock.supported; }
   static Events = { ERROR: 'error', BUFFER_CODECS: 'codecs' };
-  constructor() { this.handlers = {}; this.destroy = vi.fn(); this.stopLoad = vi.fn(); this.loadSource = vi.fn(); this.attachMedia = vi.fn(); hlsMock.instances.push(this); }
+  static ErrorDetails = { BUFFER_SEEK_OVER_HOLE: 'bufferSeekOverHole' };
+  constructor() { this.handlers = {}; this.destroy = vi.fn(); this.stopLoad = vi.fn(); this.startLoad = vi.fn(); this.loadSource = vi.fn(); this.attachMedia = vi.fn(); hlsMock.instances.push(this); }
   on(name, handler) { this.handlers[name] = handler; }
 } }));
 vi.mock('../../api/backend', () => ({ api: { video: { getQcameraStreamUrl: vi.fn((route, exp, sig) => `https://video.example/${route}.m3u8?exp=${exp}&sig=${sig}`) } } }));
@@ -92,6 +93,36 @@ it('wraps a zero-based loop when the playing video reaches the end', async () =>
   expect(video.currentTime).toBe(0);
 });
 
+it('starts and repeats a selected loop at the first playable HLS fragment', async () => {
+  native = false;
+  const { video } = await mounted({ loop: { startTime: 2000, duration: 4000 } });
+  hlsMock.instances[0].latestLevelDetails = { fragments: [
+    { start: 0, end: 2 }, { start: 2, end: 4, gap: true }, { start: 4, end: 6 },
+  ] };
+  ready(video);
+  expect(video.currentTime).toBe(4);
+  status(video).time = 6; status(video).paused = false;
+  fireEvent.timeUpdate(video);
+  expect(video.currentTime).toBe(4);
+});
+
+it('shows an actionable error for a range containing only declared HLS gaps', async () => {
+  native = false;
+  const { video, view, p } = await mounted({ loop: { startTime: 2000, duration: 2000 } });
+  hlsMock.instances[0].latestLevelDetails = { fragments: [
+    { start: 0, end: 2 }, { start: 2, end: 4, gap: true }, { start: 4, end: 6 },
+  ] };
+  ready(video);
+  expect(screen.getByRole('alert')).toHaveTextContent('No video is available in this selected range');
+  expect(screen.getByRole('button', { name: 'Retry video' })).toBeVisible();
+  expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+  view.rerender(<DriveVideo {...p} loop={{ startTime: 4000, duration: 2000 }} />);
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(video.currentTime).toBe(4);
+  expect(hlsMock.instances).toHaveLength(1);
+  expect(hlsMock.instances[0].startLoad).toHaveBeenCalledOnce();
+});
+
 it('retains an end seek while paused and loops a selected range while playing', async () => {
   const { video, view, p } = await mounted({ desiredPlaySpeed: 0, loop: { startTime: 10000, duration: 5000 } });
   ready(video); status(video).time = 15; fireEvent.seeked(video);
@@ -141,6 +172,42 @@ it('uses bundled HLS only when native HLS is unavailable and surfaces fatal 404s
   await act(async () => { await Promise.resolve(); });
   expect(hls.destroy).toHaveBeenCalledOnce();
   expect(hlsMock.instances).toHaveLength(2);
+});
+
+it('stops HLS gap recovery outside a selected loop and recovers on a valid selection', async () => {
+  native = false;
+  const { video, view, p } = await mounted({ loop: { startTime: 2000, duration: 2000 } });
+  ready(video);
+  const hls = hlsMock.instances[0];
+  status(video).time = 3;
+  act(() => hls.handlers.error('error', { fatal: false, details: 'bufferSeekOverHole' }));
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  status(video).time = 4.132;
+  act(() => hls.handlers.error('error', { fatal: false, details: 'bufferSeekOverHole' }));
+  expect(screen.getByRole('alert')).toHaveTextContent('Video cannot play within this selected range');
+  fireEvent.canPlay(video);
+  expect(screen.getByRole('alert')).toBeVisible();
+  expect(hls.startLoad).not.toHaveBeenCalled();
+  view.rerender(<DriveVideo {...p} loop={{ startTime: 4500, duration: 1000 }} />);
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(video.currentTime).toBe(4.5);
+  expect(hlsMock.instances).toHaveLength(1);
+});
+
+it('repeats playable progress before a trailing HLS gap rather than rejecting the whole loop', async () => {
+  native = false;
+  const { video } = await mounted({ loop: { startTime: 1500, duration: 2500 } });
+  ready(video);
+  const hls = hlsMock.instances[0];
+  for (let i = 0; i < 4; i++) {
+    status(video).paused = false;
+    status(video).time = 1.75;
+    fireEvent.timeUpdate(video);
+    status(video).time = 4.132;
+    act(() => hls.handlers.error('error', { fatal: false, details: 'bufferSeekOverHole' }));
+    expect(video.currentTime).toBe(1.5);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  }
 });
 
 it('reports native audio tracks and HLS audio codec discovery', async () => {
@@ -248,4 +315,15 @@ it('does not show loading for a paused ready video after its seek has completed'
   const { video } = await mounted({ desiredPlaySpeed: 0 });
   ready(video); dispatch.mockClear(); fireEvent.stalled(video); fireEvent.waiting(video);
   expect(dispatch).not.toHaveBeenCalledWith({ type: Types.ACTION_BUFFER_VIDEO, buffering: true });
+});
+
+
+it('acknowledges the applied seek only after the native seek completes', async () => {
+  const request = { id: 1, fullname, offset: 4500 };
+  const { video } = await mounted({ desiredPlaySpeed: 0, seekRequest: request });
+  ready(video); status(video).seeking = true; dispatch.mockClear();
+  fireEvent.seeked(video);
+  expect(dispatch).not.toHaveBeenCalledWith({ type: Types.ACTION_SEEK_DONE, request });
+  status(video).seeking = false; fireEvent.seeked(video);
+  expect(dispatch).toHaveBeenCalledWith({ type: Types.ACTION_SEEK_DONE, request });
 });
