@@ -554,20 +554,22 @@ class Media extends Component {
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            <div hidden={isMapReplacingVideo}>
-              <DriveVideo
-                ref={this.playerRef}
-                src={getRouteVideoUrl(currentRoute)}
-                route={currentRoute}
-                loop={loop}
-                onHasAudioChange={this.handleHasAudioChange}
-              />
-            </div>
-            {isMapReplacingVideo && (
-              <div className="w-full">
-                <DriveMap />
+            <div className="relative isolate">
+              <div className={isMapReplacingVideo ? 'absolute inset-0 -z-10 overflow-hidden' : ''}>
+                <DriveVideo
+                  ref={this.playerRef}
+                  src={getRouteVideoUrl(currentRoute)}
+                  route={currentRoute}
+                  loop={loop}
+                  onHasAudioChange={this.handleHasAudioChange}
+                />
               </div>
-            )}
+              {isMapReplacingVideo && (
+                <div className="w-full">
+                  <DriveMap />
+                </div>
+              )}
+            </div>
           </div>
           {(inView === MediaType.VIDEO && showMapAlways) &&
             <div className="w-[40%]">
