@@ -195,10 +195,28 @@ describe('whole-app behavior', () => {
     expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
   });
 
-  test('root with no devices shows pairing', async () => {
+  test('root with no devices opens pairing through browser history and can close it', async () => {
     const { history } = await renderApp('/', { devices: [] });
     expect(await screen.findByRole('heading', { name: 'Pair your device' })).toBeVisible();
     expect(history.location.pathname).toBe('/');
+
+    const pairingSection = screen.getByRole('heading', { name: 'Pair your device' }).parentElement;
+    fireEvent.click(within(pairingSection).getByRole('button', { name: 'add new device' }));
+    await waitFor(() => expect(history.location.search).toBe('?modal=pair'));
+    expect(await screen.findByText('Pair device')).toBeVisible();
+
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.search).toBe(''));
+    await waitFor(() => expect(screen.queryByText('Pair device')).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: 'Pair your device' })).toBeVisible();
+
+    act(() => history.goForward());
+    await waitFor(() => expect(history.location.search).toBe('?modal=pair'));
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    fireEvent.keyDown(screen.getByText('Pair device'), { key: 'Escape', keyCode: 27 });
+    await waitFor(() => expect(history.location.search).toBe(''));
+    await waitFor(() => expect(screen.queryByText('Pair device')).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: 'Pair your device' })).toBeVisible();
   });
 
   test('referrals URL opens the referrals page', async () => {

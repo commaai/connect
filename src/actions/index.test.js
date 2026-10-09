@@ -74,45 +74,54 @@ describe('URL navigation actions', () => {
 describe('route metadata requests', () => {
   beforeEach(() => api.routes.getRoutesSegments.mockReset());
 
-  it('drops a delayed response after navigating to another device', async () => {
+  it.each([
+    ['device', (state) => {
+      state.dongleId = 'bbbbbbbbbbbbbbbb';
+      state.router.location.pathname = '/bbbbbbbbbbbbbbbb';
+    }],
+    ['filter range', (state) => { state.filter = { start: 100, end: 200 }; }],
+    ['route', (state) => { state.selectedRouteId = '2026-08-06--13-00-00'; }],
+    ['limit', (state) => { state.limit = 10; }],
+  ])('drops a delayed response when the %s changes', async (_name, changeState) => {
     let resolveA;
     const state = {
       dongleId: 'aaaaaaaaaaaaaaaa',
-      selectedRouteId: '2026-08-06--12-00-00',
+      selectedRouteId: null,
       currentRouteFetched: false,
       routes: null,
       filter: { start: null, end: null },
       limit: 5,
-      router: { location: { pathname: '/aaaaaaaaaaaaaaaa/2026-08-06--12-00-00', search: '', hash: '' } },
+      router: { location: { pathname: '/aaaaaaaaaaaaaaaa', search: '', hash: '' } },
     };
-    api.routes.getRoutesSegments.mockImplementation((dongleId) => {
-      if (dongleId === 'aaaaaaaaaaaaaaaa') return new Promise((resolve) => { resolveA = resolve; });
-      return Promise.resolve([]);
-    });
+    api.routes.getRoutesSegments
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveA = resolve; }))
+      .mockResolvedValue([]);
     const actions = [];
-    const promises = [];
     const getState = () => state;
     const dispatch = (action) => {
       if (typeof action === 'function') {
-        const promise = action(dispatch, getState);
-        if (promise?.then) promises.push(promise);
-        return promise;
+        return action(dispatch, getState);
       }
       actions.push(action);
       return action;
     };
 
     dispatch(checkRoutesData());
-    state.dongleId = 'bbbbbbbbbbbbbbbb';
-    state.selectedRouteId = null;
-    state.routes = null;
-    state.router.location.pathname = '/bbbbbbbbbbbbbbbb';
+    changeState(state);
     resolveA([{ segment_start_times: [1], segment_end_times: [1001], segment_numbers: [0],
       start_time_utc_millis: 1, end_time_utc_millis: 1001,
       fullname: 'aaaaaaaaaaaaaaaa|2026-08-06--12-00-00', url: 'https://files.example/route', create_time: 1 }]);
 
-    await Promise.all(promises);
-    expect(actions.filter((action) => action.type === Types.ACTION_ROUTES_METADATA))
-      .toEqual([expect.objectContaining({ dongleId: 'bbbbbbbbbbbbbbbb', routes: [] })]);
+    await vi.waitFor(() => {
+      const metadataActions = actions.filter((action) => action.type === Types.ACTION_ROUTES_METADATA);
+      expect(metadataActions).toHaveLength(1);
+      expect(metadataActions[0]).toMatchObject({
+        dongleId: state.dongleId,
+        start: state.filter.start,
+        end: state.filter.end,
+        selectedOnly: Boolean(state.selectedRouteId),
+        routes: [],
+      });
+    });
   });
 });

@@ -15,6 +15,9 @@ let routesRequest = null;
 const LIMIT_INCREMENT = 5
 const currentLocation = (state) => state.router?.location || window.location;
 const locationUrl = (location) => `${location.pathname}${location.search || ''}${location.hash || ''}`;
+const getRoutesRequestKey = ({ dongleId, filter, limit, selectedRouteId }) => (
+  [dongleId, filter.start, filter.end, limit, selectedRouteId].join('|')
+);
 
 export function navigate(destination) {
   return (dispatch, getState) => {
@@ -40,36 +43,23 @@ export function checkRoutesData() {
       return;
     }
     const { dongleId, limit: fetchLimit, filter: fetchRange } = state;
-    const requestKey = [dongleId, fetchRange.start, fetchRange.end, fetchLimit, requestedRouteId].join('|');
+    const requestKey = getRoutesRequestKey(state);
     if (routesRequest?.key === requestKey) {
       // there is already an pending request
       return routesRequest.promise;
     }
     console.debug('We need to update the segment metadata...');
-    const request = {
-      key: requestKey,
-      dongleId,
-      routeId: requestedRouteId,
-      start: fetchRange.start,
-      end: fetchRange.end,
-      limit: fetchLimit,
-      req: requestedRouteId
-        ? api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${requestedRouteId}`)
-        : api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit),
-    };
+    const request = { key: requestKey };
     routesRequest = request;
 
-    request.promise = request.req.then((routesData) => {
+    request.promise = (requestedRouteId
+      ? api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${requestedRouteId}`)
+      : api.routes.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, fetchLimit)).then((routesData) => {
       if (routesRequest !== request) {
         return;
       }
       state = getState();
-      const currentRange = state.filter;
-      if (currentRange.start !== request.start
-        || currentRange.end !== request.end
-        || state.limit !== request.limit
-        || state.dongleId !== request.dongleId
-        || state.selectedRouteId !== request.routeId) {
+      if (getRoutesRequestKey(state) !== request.key) {
         routesRequest = null;
         dispatch(checkRoutesData());
         return;
