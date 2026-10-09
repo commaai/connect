@@ -255,10 +255,9 @@ class ClipMenu extends Component {
     const selectionChanged = this.props.modal !== prevProps.modal
       || this.props.clipFilename !== prevProps.clipFilename;
     const clipsChanged = prevState.clips !== this.state.clips;
-    const previewContextChanged = this.props.modal !== prevProps.modal
-      || this.props.clipFilename !== prevProps.clipFilename || routeChanged || deviceChanged;
+    const previewContextChanged = selectionChanged || routeChanged || deviceChanged;
     const clipsContextChanged = opened || routeChanged || deviceChanged || reconnected;
-    if ((opened || routeChanged || deviceChanged || reconnected) && this.props.open) this.loadClips();
+    if (clipsContextChanged && this.props.open) this.loadClips();
     if (!this.props.deviceOnline && prevProps.deviceOnline) {
       this.stopPolling();
       this.setState({ loading: false });
