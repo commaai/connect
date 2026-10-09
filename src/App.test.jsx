@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
+import localforage from 'localforage';
 
 import App from './App';
 import { createInitialState } from './initialState';
@@ -193,10 +194,13 @@ describe('whole-app behavior', () => {
   });
 
   test('a pair query is consumed and stripped from the address bar', async () => {
-    const { history } = await renderApp('/?pair=tok', { selected: FIRST });
+    const pairSet = vi.spyOn(localforage, 'setItem');
+    const { history } = await renderApp('/?pair=tok&ci=1', { selected: FIRST });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(pairSet).toHaveBeenCalledWith('pairToken', 'tok');
     expect(history.location.pathname).toBe(`/${FIRST}`);
-    await waitFor(() => expect(history.location.search).toBe(''));
+    await waitFor(() => expect(history.location.search).toBe('?ci=1'));
+    pairSet.mockRestore();
   });
 
   test('a /demo boot selects the demo device without storing it', async () => {

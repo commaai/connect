@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { build, parse } from './location';
+import { parse } from './location';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -29,19 +29,21 @@ class App extends Component {
     };
 
     const { history: bootHistory = defaultHistory } = this.props;
-    const bootLocation = parse(bootHistory.location);
-    if (bootLocation.passthrough.pair) {
+    const { pair } = parse(bootHistory.location).passthrough;
+    if (pair) {
       try {
-        localforage.setItem('pairToken', bootLocation.passthrough.pair);
+        localforage.setItem('pairToken', pair);
       } catch (err) {
         console.error(err);
       }
       // the token is consumed: strip it so a reload never re-pairs and a
-      // shared link never carries it
-      bootHistory.replace(build({
-        ...bootLocation,
-        passthrough: { ...bootLocation.passthrough, pair: null },
-      }));
+      // shared link never carries it. Only the pair key is touched.
+      const query = new URLSearchParams(bootHistory.location.search);
+      query.delete('pair');
+      bootHistory.replace({
+        ...bootHistory.location,
+        search: query.toString() ? `?${query.toString()}` : '',
+      });
     }
   }
 

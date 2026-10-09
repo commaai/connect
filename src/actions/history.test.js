@@ -127,7 +127,7 @@ describe('history middleware', () => {
     expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
   });
 
-  it.each([null, []])('keeps a legacy range unchanged for an empty lookup (%j)', async (routes) => {
+  it.each([['null', null], ['empty', []]])('keeps a legacy range unchanged for a %s lookup', async (_label, routes) => {
     Drives.getRoutesSegments.mockResolvedValue(routes);
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { store, invoke } = create({ ...baseState, router: routerAt(LEGACY_PATH) });
