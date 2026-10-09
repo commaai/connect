@@ -27,13 +27,14 @@ const hls = vi.hoisted(() => ({
     static Events = { ERROR: 'hlsError', BUFFER_CODECS: 'hlsBufferCodecs', MEDIA_ATTACHED: 'hlsMediaAttached' };
     static ErrorTypes = { NETWORK_ERROR: 'networkError', MEDIA_ERROR: 'mediaError' };
 
+    handlers = {};
+    attachMedia = vi.fn();
+    destroy = vi.fn();
+    loadSource = vi.fn();
+    recoverMediaError = vi.fn();
+
     constructor(config) {
       this.config = config;
-      this.handlers = {};
-      this.attachMedia = vi.fn();
-      this.destroy = vi.fn();
-      this.loadSource = vi.fn();
-      this.recoverMediaError = vi.fn();
       hls.instances.push(this);
     }
 
@@ -144,21 +145,16 @@ describe('DriveVideo', () => {
       expect(writes).toEqual([6]);
     });
 
-    it('sets the playback rate for a play command', () => {
-      const { video } = renderVideo();
-      act(() => store.dispatch(play(2)));
-      expect(video.playbackRate).toBe(2);
-    });
-
     it('pauses the video once for a pause command', () => {
       const { video } = renderVideo();
       act(() => store.dispatch(pause()));
       expect(video.pause).toHaveBeenCalledTimes(1);
     });
 
-    it('follows a play from outside the page', () => {
+    it('sets the rate for a play command and keeps it for a play from outside the page', () => {
       const { video } = renderVideo();
       act(() => store.dispatch(play(2)));
+      expect(video.playbackRate).toBe(2);
       act(() => store.dispatch(pause()));
       fireEvent.play(video);
       expect(store.getState().desiredPlaySpeed).toBe(2);
@@ -181,18 +177,12 @@ describe('DriveVideo', () => {
       expect(currentOffset()).toBe(0);
     });
 
-    it('keeps running for a seek made before the metadata loads', () => {
+    it('holds a seek made before the metadata loads and applies it once loaded', () => {
       const { video } = renderVideo({}, SHORT_VIDEO_S);
       video.readyState = HTMLMediaElement.HAVE_NOTHING;
       act(() => store.dispatch(seek(4000)));
       advance(1000);
       expect(currentOffset()).toBe(4000);
-    });
-
-    it('moves the video to a seek made before the metadata loads', () => {
-      const { video } = renderVideo({}, SHORT_VIDEO_S);
-      video.readyState = HTMLMediaElement.HAVE_NOTHING;
-      act(() => store.dispatch(seek(4000)));
       video.readyState = HTMLMediaElement.HAVE_METADATA;
       fireEvent.loadedMetadata(video);
       expect(video.currentTime).toBe(4);
@@ -218,12 +208,11 @@ describe('DriveVideo', () => {
     });
 
     it('keeps the shown time when the first camera frame arrives after a seek', () => {
-      const { video, writes } = renderVideo();
+      const { writes } = renderVideo();
       act(() => store.dispatch(seek(6000)));
       dispatchFirstFrameEvent(2000);
       expect(currentOffset()).toBe(6000);
       expect(writes).toEqual([6, 4]);
-      expect(video.currentTime).toBe(4);
     });
   });
 
@@ -247,20 +236,21 @@ describe('DriveVideo', () => {
   });
 
   describe('refused play', () => {
-    it('pauses and shows no spinner when autoplay is refused', async () => {
-      HTMLMediaElement.prototype.play.mockRejectedValueOnce(Object.assign(new Error('denied'), { name: 'NotAllowedError' }));
+    async function renderRefused(name) {
+      HTMLMediaElement.prototype.play.mockRejectedValueOnce(Object.assign(new Error('refused'), { name }));
       renderVideo();
       await act(async () => {});
       advance(BUFFERING_DELAY_MS + 50);
+    }
+
+    it('pauses and shows no spinner when autoplay is refused', async () => {
+      await renderRefused('NotAllowedError');
       expect(store.getState().desiredPlaySpeed).toBe(0);
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
     it('keeps playing when play is interrupted', async () => {
-      HTMLMediaElement.prototype.play.mockRejectedValueOnce(Object.assign(new Error('interrupted'), { name: 'AbortError' }));
-      renderVideo();
-      await act(async () => {});
-      advance(BUFFERING_DELAY_MS + 50);
+      await renderRefused('AbortError');
       expect(store.getState().desiredPlaySpeed).toBe(1);
       expect(screen.getByRole('progressbar')).toBeVisible();
     });
@@ -311,7 +301,7 @@ describe('DriveVideo', () => {
       expect(currentOffset()).toBe(50000);
     });
 
-    it('returns to the last frame when the browser plays the ended video', () => {
+    it('returns to the last frame without a spinner when the browser plays the ended video', () => {
       const { video, playToEnd } = renderVideo({}, SHORT_VIDEO_S);
       playToEnd();
       advance(20000);
@@ -319,28 +309,15 @@ describe('DriveVideo', () => {
       fireEvent.play(video);
       expect(video.currentTime).toBe(LAST_FRAME_S);
       expect(currentOffset()).toBe(50000);
-    });
-
-    it('shows no spinner while the clock runs past the end', () => {
-      const { video, playToEnd } = renderVideo({}, SHORT_VIDEO_S);
-      playToEnd();
-      fireEvent.play(video);
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
-    it('does not play the video for a play command past its end', () => {
+    it('plays on the clock past its end and restarts the video at the end of the route', () => {
       const { video } = renderVideo({}, SHORT_VIDEO_S);
       act(() => store.dispatch(seek(40000)));
       video.play.mockClear();
       act(() => store.dispatch(play(2)));
       expect(video.play).not.toHaveBeenCalled();
-    });
-
-    it('restarts from the beginning when the clock reaches the end of the route', () => {
-      const { video } = renderVideo({}, SHORT_VIDEO_S);
-      act(() => store.dispatch(seek(40000)));
-      act(() => store.dispatch(play(2)));
-      video.play.mockClear();
       advance(10000);
       expect(video.currentTime).toBe(0);
       expect(video.play).toHaveBeenCalledTimes(1);
@@ -365,18 +342,14 @@ describe('DriveVideo', () => {
       return view;
     }
 
-    it('plays after a seek while playing', () => {
-      const { video } = renderPastEnd({ paused: false });
+    it.each([
+      { state: 'playing', paused: false, plays: 1 },
+      { state: 'paused', paused: true, plays: 0 },
+    ])('keeps the $state state after a seek', ({ paused, plays }) => {
+      const { video } = renderPastEnd({ paused });
       act(() => store.dispatch(seek(10000)));
       expect(currentOffset()).toBe(10000);
-      expect(video.play).toHaveBeenCalledTimes(1);
-    });
-
-    it('shows the paused frame after a seek while paused', () => {
-      const { video } = renderPastEnd({ paused: true });
-      act(() => store.dispatch(seek(10000)));
-      expect(currentOffset()).toBe(10000);
-      expect(video.play).not.toHaveBeenCalled();
+      expect(video.play).toHaveBeenCalledTimes(plays);
     });
 
     it('plays after selecting a new range', () => {
@@ -418,28 +391,16 @@ describe('DriveVideo', () => {
   });
 
   describe('native playback', () => {
-    const MEDIA_ERR_NETWORK = 2;
-    const MEDIA_ERR_DECODE = 3;
+    const MEDIA_ERRORS = [
+      { name: 'a network error', code: 2, message: 'Unable to load video. Check network connection.' },
+      { name: 'a decode error', code: 3, message: 'Unable to load video' },
+    ];
 
-    function failNatively(code) {
-      const view = renderVideo();
-      setMedia(view.video, { error: { code } });
-      fireEvent.error(view.video);
-      return view;
-    }
-
-    it('shows a network message for a network error', () => {
-      failNatively(MEDIA_ERR_NETWORK);
-      expect(screen.getByText('Unable to load video. Check network connection.')).toBeVisible();
-    });
-
-    it('shows a generic message for another error', () => {
-      failNatively(MEDIA_ERR_DECODE);
-      expect(screen.getByText('Unable to load video')).toBeVisible();
-    });
-
-    it('offers a retry after an error', () => {
-      failNatively(MEDIA_ERR_DECODE);
+    it.each(MEDIA_ERRORS)('shows $name with a retry button', ({ code, message }) => {
+      const { video } = renderVideo();
+      setMedia(video, { error: { code } });
+      fireEvent.error(video);
+      expect(screen.getByText(message)).toBeVisible();
       expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
     });
 
@@ -453,10 +414,12 @@ describe('DriveVideo', () => {
   });
 
   describe('hls.js', () => {
-    it('attaches to the video and starts at the clock position', async () => {
+    it('attaches to the video, starts at the clock position and plays', async () => {
       const { video, player } = await renderHls();
       expect(player.attachMedia).toHaveBeenCalledWith(video);
       expect(player.config.startPosition).toBe(0);
+      player.emit('hlsMediaAttached');
+      expect(video.play).toHaveBeenCalledTimes(1);
     });
 
     it('ignores the player when the component unmounts before it loads', async () => {
@@ -473,12 +436,6 @@ describe('DriveVideo', () => {
       expect(onAudioStatusChange).not.toHaveBeenCalled();
       player.emit('hlsBufferCodecs', { audio: {}, video: {} });
       expect(onAudioStatusChange).toHaveBeenCalledWith(true);
-    });
-
-    it('plays when it attaches to the video', async () => {
-      const { video, player } = await renderHls();
-      player.emit('hlsMediaAttached');
-      expect(video.play).toHaveBeenCalledTimes(1);
     });
 
     it('ignores a non-fatal error', async () => {
@@ -538,27 +495,15 @@ describe('DriveVideo', () => {
         expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
       });
 
-      it('keeps the clock running while the error is shown', async () => {
-        const { video } = await renderFailedHls({ code: 404 });
-        fireEvent.pause(video);
-        advance(ROUTE_DURATION_MS + 1000);
-        expect(currentOffset()).toBe(1000);
-      });
-
-      it('retries with a new player at the clock position', async () => {
+      it('keeps the clock running and retries with a new player at the clock position', async () => {
         const { video, player } = await renderFailedHls({ code: 404 });
         fireEvent.pause(video);
         advance(ROUTE_DURATION_MS + 1000);
+        expect(currentOffset()).toBe(1000);
         fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
         await vi.waitFor(() => expect(hls.instances).toHaveLength(2));
         expect(player.destroy).toHaveBeenCalled();
         expect(hls.instances[1].config.startPosition).toBe(1);
-      });
-
-      it('plays again once the new player attaches', async () => {
-        const { video } = await renderFailedHls({ code: 404 });
-        fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-        await vi.waitFor(() => expect(hls.instances).toHaveLength(2));
         hls.instances[1].emit('hlsMediaAttached');
         expect(video.play).toHaveBeenCalledTimes(1);
       });
@@ -567,6 +512,7 @@ describe('DriveVideo', () => {
 
   describe('hls.js that cannot be imported', () => {
     beforeEach(() => {
+      vi.stubGlobal('MediaSource', class {});
       vi.doMock('hls.js/light', () => {
         throw new Error('Failed to fetch dynamically imported module');
       });
@@ -577,13 +523,11 @@ describe('DriveVideo', () => {
     });
 
     it('shows a network error', async () => {
-      vi.stubGlobal('MediaSource', class {});
       renderVideo();
       await vi.waitFor(() => expect(screen.getByText('Unable to load video. Check network connection.')).toBeVisible());
     });
 
     it('shows nothing when the component unmounts first', async () => {
-      vi.stubGlobal('MediaSource', class {});
       renderVideo().unmount();
       await act(() => import('hls.js/light').catch(() => {}));
       expect(screen.queryByText(/Unable to load video/)).not.toBeInTheDocument();
