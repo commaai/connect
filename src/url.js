@@ -6,6 +6,11 @@ const partsFor = (pathname) => pathname.split('/').filter(Boolean);
 const isDongleId = (value) => dongleIdRegex.test(value || '');
 const isLogId = (value) => logIdRegex.test(value || '');
 const isInteger = (value) => integerRegex.test(value || '');
+const parseNonNegativeInteger = (value) => {
+  if (!isInteger(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
 
 /**
  * Parse every location connect owns into a small, serializable route descriptor.
@@ -35,20 +40,25 @@ export function parseLocation(pathname) {
   const start = parts[routeOffset + 1];
   const end = parts[routeOffset + 2];
   const expectedParts = routeOffset + (start === undefined ? 1 : 3);
-  if (isLogId(logId) && parts.length === expectedParts && (start === undefined || (isInteger(start) && isInteger(end)))) {
+  const startValue = start === undefined ? null : parseNonNegativeInteger(start);
+  const endValue = end === undefined ? null : parseNonNegativeInteger(end);
+  if (isLogId(logId) && parts.length === expectedParts
+    && (start === undefined || (startValue !== null && endValue !== null && endValue >= startValue))) {
     return {
       view: 'drive',
       dongleId,
       logId,
-      startMs: start === undefined ? null : Number(start) * 1000,
-      endMs: end === undefined ? null : Number(end) * 1000,
+      startMs: start === undefined ? null : startValue * 1000,
+      endMs: end === undefined ? null : endValue * 1000,
     };
   }
 
   // Timestamp-only links predate route IDs. History middleware resolves a
   // matching route before touching playback, so existing links keep working.
-  if (parts.length === 3 && isInteger(second) && isInteger(third)) {
-    return { view: 'legacy-range', dongleId, start: Number(second), end: Number(third) };
+  const legacyStart = parseNonNegativeInteger(second);
+  const legacyEnd = parseNonNegativeInteger(third);
+  if (parts.length === 3 && legacyStart !== null && legacyEnd !== null && legacyEnd >= legacyStart) {
+    return { view: 'legacy-range', dongleId, start: legacyStart, end: legacyEnd };
   }
   return { view: 'unknown' };
 }
@@ -67,10 +77,12 @@ export function urlForLocation(location) {
   if (location.view === 'stream') return `${root}/stream`;
   if (location.view === 'settings') return location.panel === 'uploads' ? `${root}/settings/uploads` : `${root}/settings`;
   if (location.view === 'drive' && location.logId) {
-    if (Number.isFinite(location.startMs) && Number.isFinite(location.endMs)) {
+    const hasRange = location.startMs !== null || location.endMs !== null;
+    if (Number.isSafeInteger(location.startMs) && Number.isSafeInteger(location.endMs)
+      && location.startMs >= 0 && location.endMs >= location.startMs) {
       return `${root}/${location.logId}/${Math.floor(location.startMs / 1000)}/${Math.floor(location.endMs / 1000)}`;
     }
-    return `${root}/${location.logId}`;
+    return hasRange ? root : `${root}/${location.logId}`;
   }
   return root;
 }

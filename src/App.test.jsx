@@ -119,7 +119,7 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: [] });
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -239,6 +239,27 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp(pathname, { authenticated: false });
     expect(await screen.findByText('Sign in with Google')).toBeVisible();
     expect(history.location.pathname).toBe(pathname);
+  });
+
+  test('settings and upload queue are directly addressable and closable', async () => {
+    const app = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(app.store.getState().router.location.pathname).toBe(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Uploads' }));
+    await waitFor(() => expect(app.history.location.pathname).toBe(`/${FIRST}/settings/uploads`));
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(app.history.location.pathname).toBe(`/${FIRST}/settings`));
+  });
+
+  test('direct upload URL restores its settings context', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings/uploads`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
   });
 
   test('a missing public route redirects to login with the requested route', async () => {

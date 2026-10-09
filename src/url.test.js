@@ -28,6 +28,8 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/0/20/ignored`, null],
     [`/${DONGLE}/${LOG}/10/20`, null],
     [`/${DONGLE}/10`, null],
+    [`/${DONGLE}/20/10`, null],
+    [`/${DONGLE}/999999999999999999999/20`, null],
     ['/auth/code/provider', null],
   ])('getZoom(%s)', (pathname, expected) => {
     expect(getZoom(pathname)).toEqual(expected);
@@ -36,6 +38,7 @@ describe('URL pathname helpers', () => {
   it.each([
     [`/${DONGLE}/${LOG}`, LOG],
     [`/${DONGLE}/${LOG}/10/20`, LOG],
+    [`/${DONGLE}/${LOG}/20/10`, null],
     [`/${DONGLE}/prime`, null],
     [`/${DONGLE}`, null],
   ])('getRouteId(%s)', (pathname, expected) => {
@@ -46,6 +49,7 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/${LOG}`, null],
     [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
     [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
+    [`/${DONGLE}/${LOG}/20/10`, null],
     [`/${DONGLE}/10/20`, null],
   ])('getRouteZoom(%s)', (pathname, expected) => {
     expect(getRouteZoom(pathname)).toEqual(expected);
@@ -76,6 +80,8 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/settings/uploads`, { view: 'settings', dongleId: DONGLE, panel: 'uploads' }],
     [`/${DONGLE}/${LOG}/0/20`, { view: 'drive', dongleId: DONGLE, logId: LOG, startMs: 0, endMs: 20000 }],
     [`/${DONGLE}/drive/${LOG}`, { view: 'drive', dongleId: DONGLE, logId: LOG, startMs: null, endMs: null }],
+    [`/${DONGLE}/${LOG}/20/10`, { view: 'unknown' }],
+    [`/${DONGLE}/settings/unknown`, { view: 'unknown' }],
   ])('parses %s into one canonical descriptor', (pathname, expected) => {
     expect(parseLocation(pathname)).toEqual(expected);
   });
@@ -83,5 +89,7 @@ describe('URL pathname helpers', () => {
   it('serializes every internal destination without losing a zero start', () => {
     expect(urlForLocation({ view: 'settings', dongleId: DONGLE, panel: 'uploads' })).toBe(`/${DONGLE}/settings/uploads`);
     expect(urlForLocation({ view: 'drive', dongleId: DONGLE, logId: LOG, startMs: 0, endMs: 20000 })).toBe(`/${DONGLE}/${LOG}/0/20`);
+    expect(urlForLocation({ view: 'drive', dongleId: DONGLE, logId: LOG, startMs: -1, endMs: 20000 })).toBe(`/${DONGLE}`);
+    expect(urlForLocation({ view: 'drive', dongleId: DONGLE, logId: LOG, startMs: 20000, endMs: 10000 })).toBe(`/${DONGLE}`);
   });
 });

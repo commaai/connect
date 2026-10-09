@@ -162,7 +162,8 @@ class DeviceList extends Component {
   render() {
     const { classes, device, selectedDevice: dongleId, pathname } = this.props;
     const location = parseLocation(pathname);
-    const settingsModalDongleId = location.view === 'settings' ? location.dongleId : null;
+    const settingsDongleId = location.view === 'settings' ? location.dongleId : null;
+    const settingsModalDongleId = settingsDongleId && location.panel !== 'uploads' ? settingsDongleId : null;
 
     let { devices } = this.props;
     if (devices === null) {
@@ -207,7 +208,7 @@ class DeviceList extends Component {
         </div>
         <DeviceSettingsModal
           isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
+          dongleId={settingsDongleId}
           onClose={this.handleClosedSettingsModal}
         />
       </>
