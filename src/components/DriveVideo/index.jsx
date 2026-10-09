@@ -352,7 +352,7 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted } = this.props;
+    const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted, children } = this.props;
     const { src, videoError } = this.state;
 
     return (
@@ -375,6 +375,7 @@ class DriveVideo extends Component {
           }}
           onError={this.onVideoError}
         />
+        {children}
       </div>
     );
   }

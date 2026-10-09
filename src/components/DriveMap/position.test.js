@@ -1,4 +1,4 @@
-import { buildCoordIndex, positionAtOffset } from './position';
+import { buildCoordIndex, headingAtOffset, positionAtOffset, shortestTurn } from './position';
 
 describe('buildCoordIndex', () => {
   it('returns null for missing or empty coords', () => {
@@ -55,5 +55,37 @@ describe('positionAtOffset', () => {
     const single = buildCoordIndex({ 3: [7, 8] });
     expect(positionAtOffset(single, 0)).toEqual([7, 8]);
     expect(positionAtOffset(single, 9000)).toEqual([7, 8]);
+  });
+});
+
+describe('headingAtOffset', () => {
+  // one degree of latitude is ~111km, so these are big moves
+  const north = buildCoordIndex({ 0: [0, 0], 2: [0, 1] });
+  const east = buildCoordIndex({ 0: [0, 0], 2: [1, 0] });
+  const southWest = buildCoordIndex({ 0: [0, 0], 2: [-1, -1] });
+
+  it('points along the direction of travel', () => {
+    expect(headingAtOffset(north, 1000)).toBeCloseTo(0);
+    expect(headingAtOffset(east, 1000)).toBeCloseTo(90);
+    expect(headingAtOffset(southWest, 1000)).toBeCloseTo(225);
+  });
+
+  it('is null without data', () => {
+    expect(headingAtOffset(null, 1000)).toBeNull();
+  });
+
+  it('is null while stopped, so jitter does not spin the map', () => {
+    const parked = buildCoordIndex({ 0: [0, 0], 1: [0.000005, 0], 2: [0, 0.000005] });
+    expect(headingAtOffset(parked, 1000)).toBeNull();
+  });
+});
+
+describe('shortestTurn', () => {
+  it('turns the short way round', () => {
+    expect(shortestTurn(10, 20)).toBe(10);
+    expect(shortestTurn(350, 10)).toBe(20);
+    expect(shortestTurn(10, 350)).toBe(-20);
+    expect(shortestTurn(0, 180)).toBe(180);
+    expect(shortestTurn(90, 90)).toBe(0);
   });
 });

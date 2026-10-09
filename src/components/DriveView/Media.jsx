@@ -2,13 +2,14 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
+import { withStyles, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip, Modal, IconButton } from '@material-ui/core';
 
 import { USERADMIN_URL_ROOT } from '../../api';
 import { api } from '../../api/backend';
 import { deviceSupportsClips } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
+import MiniMap from '../DriveMap/MiniMap';
 import DriveVideo from '../DriveVideo';
 import TimeDisplay from '../TimeDisplay';
 import { subscribeWindowSize } from '../../hooks/window';
@@ -16,7 +17,7 @@ import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
 import Colors from '../../colors';
-import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
+import { CloseBold, ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
 import { analyticsEvent, updateRoute } from '../../actions';
@@ -192,17 +193,12 @@ const styles = () => ({
   },
 });
 
-const MediaType = {
-  VIDEO: 'video',
-  MAP: 'map',
-};
-
 class Media extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      inView: MediaType.VIDEO,
+      mapOpen: false,
       windowWidth: window.innerWidth,
       downloadMenu: null,
       clipMenu: null,
@@ -252,24 +248,15 @@ class Media extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
-    const showMapAlways = windowWidth >= 1536;
+    const { downloadMenu, moreInfoMenu, routePreserved } = this.state;
     if (prevProps.dongleId !== this.props.dongleId) {
       this.setState({ clipsSupported: false, clipMenu: null });
       this.checkClipsSupport();
     } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
       this.checkClipsSupport();
     }
-    if (showMapAlways && inView === MediaType.MAP) {
-      this.setState({ inView: MediaType.VIDEO });
-    }
-
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
       this.props.dispatch(fetchEvents(this.props.currentRoute));
-    }
-
-    if (prevState.inView && prevState.inView !== this.state.inView) {
-      this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
     }
 
     if (this.props.currentRoute && ((!prevState.downloadMenu && downloadMenu)
@@ -531,38 +518,45 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted, hasAudio } = this.state;
+    const { windowWidth, isMuted, hasAudio, mapOpen } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
-    const showMapAlways = windowWidth >= 1536;
+    // the map sits beside the video when there is room, otherwise as a minimap over the video
+    const showMapAlways = windowWidth >= 1200;
 
     return (
       <div className="flex flex-col gap-4">
-        {this.renderMediaOptions(showMapAlways)}
+        {this.renderMediaOptions()}
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {/* stays mounted while the map is shown instead, so the video keeps driving playback */}
-            <div className={inView === MediaType.VIDEO ? '' : 'hidden'}>
-              <DriveVideo
-                isMuted={isMuted}
-                onAudioStatusChange={this.handleAudioStatusChange}
-              />
-            </div>
-            {(inView === MediaType.MAP && !showMapAlways) && (
-              <div className="w-full">
-                <DriveMap />
-              </div>
-            )}
+            <DriveVideo
+              isMuted={isMuted}
+              onAudioStatusChange={this.handleAudioStatusChange}
+            >
+              {!showMapAlways && <MiniMap onExpand={() => this.setState({ mapOpen: true })} />}
+            </DriveVideo>
           </div>
-          {(inView === MediaType.VIDEO && showMapAlways) &&
+          {showMapAlways && (
             <div className="w-[40%]">
               <DriveMap />
             </div>
-          }
+          )}
         </div>
+        <Modal open={mapOpen} onClose={() => this.setState({ mapOpen: false })}>
+          <div className="absolute inset-4 overflow-hidden rounded-xl bg-[#1D2225] outline-none md:inset-10" tabIndex={-1}>
+            <DriveMap />
+            <IconButton
+              aria-label="Close map"
+              onClick={() => this.setState({ mapOpen: false })}
+              className="absolute! top-2 right-2 z-10 bg-[#1D2225CC]!"
+            >
+              <CloseBold />
+            </IconButton>
+          </div>
+        </Modal>
         <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
           <TimeDisplay
             isThin
@@ -575,30 +569,12 @@ class Media extends Component {
     );
   }
 
-  renderMediaOptions(showMapAlways) {
+  renderMediaOptions() {
     const { classes, device } = this.props;
-    const { inView, clipsSupported } = this.state;
+    const { clipsSupported } = this.state;
     return (
       <>
         <div className="flex flex-wrap">
-          { !showMapAlways && (
-            <div className={classes.mediaOptions}>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-                onClick={() => this.setState({ inView: MediaType.VIDEO })}
-              >
-                <Typography className={classes.mediaOptionText}>Video</Typography>
-              </div>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                onClick={() => this.setState({ inView: MediaType.MAP })}
-              >
-                <Typography className={classes.mediaOptionText}>Map</Typography>
-              </div>
-            </div>
-          )}
           <div className={`${classes.mediaOptions} ml-auto`}>
             {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
               <div
