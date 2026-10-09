@@ -32,6 +32,8 @@ async function mountVideo() {
   await waitFor(() => expect(view.container.querySelector('video')).not.toBeNull());
   const video = view.container.querySelector('video');
   Object.defineProperty(video, 'duration', { value: 60 });
+  // jsdom has no AudioTrackList, so stand one in for the native HLS audio path.
+  Object.defineProperty(video, 'audioTracks', { value: Object.assign(new EventTarget(), { length: 0 }) });
   fireEvent.canPlay(video);
   return { ...view, store, video };
 }
@@ -120,8 +122,11 @@ test('changing routes resets playback and ignores events from the old video', as
   video.currentTime = 42;
   fireEvent.timeUpdate(video);
   fireEvent.error(video);
+  video.audioTracks.length = 1;
+  video.audioTracks.dispatchEvent(new Event('addtrack'));
   expect(store.getState().offset).toBe(0);
   expect(store.getState().videoStatus).toBe(VideoStatus.LOADING);
+  expect(store.getState().hasAudio).toBe(false);
 });
 
 test('a paused seek lands the clock where the video landed', async () => {
@@ -133,4 +138,13 @@ test('a paused seek lands the clock where the video landed', async () => {
   fireEvent.timeUpdate(video);
   fireEvent.seeked(video);
   expect(store.getState().offset).toBe(2000);
+});
+
+test('offers the audio control when a native track shows up after canplay', async () => {
+  const { store, video } = await mountVideo();
+  expect(store.getState().hasAudio).toBe(false);
+
+  video.audioTracks.length = 1;
+  act(() => video.audioTracks.dispatchEvent(new Event('addtrack')));
+  expect(store.getState().hasAudio).toBe(true);
 });

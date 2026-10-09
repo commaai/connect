@@ -57,6 +57,7 @@ class RouteVideo extends Component {
 
   componentWillUnmount() {
     cancelAnimationFrame(this.frameId);
+    this.audioTracks?.removeEventListener('addtrack', this.onAddTrack);
   }
 
   seekTo = (offset) => {
@@ -77,11 +78,16 @@ class RouteVideo extends Component {
     const hls = player.getInternalPlayer('hls');
     if (hls) {
       hls.on('hlsBufferCodecs', (_event, data) => this.props.dispatch(setHasAudio(!!data.audio)));
-    } else {
-      this.props.dispatch(setHasAudio(!!video.audioTracks?.length));
+    } else if (video.audioTracks) {
+      // iOS populates audioTracks either side of canplay, so sample it and keep watching.
+      this.audioTracks = video.audioTracks;
+      this.audioTracks.addEventListener('addtrack', this.onAddTrack);
+      this.onAddTrack();
     }
     this.frameId = requestAnimationFrame(this.onAnimationFrame);
   };
+
+  onAddTrack = () => this.props.dispatch(setHasAudio(this.audioTracks.length > 0));
 
   onAnimationFrame = () => {
     const video = this.player.current.getInternalPlayer();
