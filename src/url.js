@@ -36,11 +36,11 @@ export function getRouteId(pathname) {
 
 export function getRouteZoom(pathname) {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const start = Number(parts[2]) * 1000;
+  const end = Number(parts[3]) * 1000;
+  // e.g. /30/40x or /5/5: open the whole drive
+  if (getRouteId(pathname) && end > start) {
+    return { start, end };
   }
   return null;
 }
