@@ -100,12 +100,6 @@ const styles = (theme) => ({
 });
 
 class TimeDisplay extends Component {
-  getDisplayTime() {
-    const { currentRoute, offset } = this.props;
-    if (offset == null || currentRoute?.duration == null) return '...';
-    return `${formatVideoTime(offset)} / ${formatVideoTime(currentRoute.duration)}`;
-  }
-
   changeSpeed(direction) {
     const { dispatch, desiredPlaySpeed } = this.props;
     dispatch(setPlaybackSpeed(timerSteps[timerSteps.indexOf(desiredPlaySpeed) + direction]));
@@ -149,7 +143,8 @@ class TimeDisplay extends Component {
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          {this.getDisplayTime()}
+          {offset == null || currentRoute?.duration == null ? '...'
+            : `${formatVideoTime(offset)} / ${formatVideoTime(currentRoute.duration)}`}
           {seg !== null && <span className={classes.segment}>{` \u2013 ${seg}`}</span>}
         </Typography>
         {!isIos() && (
