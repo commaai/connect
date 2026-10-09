@@ -22,9 +22,9 @@ vi.mock('./index', () => ({
 //vi.mock('../timeline', () => ({
 //  currentOffset: vi.fn(() => 0),
 //}));
-//vi.mock('../utils/webrtc', () => ({
-//  webrtcConnectionManager: { disconnect: vi.fn() },
-//}));
+vi.mock('../utils/webrtc', () => ({
+  webrtcConnectionManager: { disconnect: vi.fn() },
+}));
 
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
