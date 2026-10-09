@@ -7,7 +7,6 @@ import { withStyles } from '@material-ui/core/styles';
 import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
-import Overview, { clampView } from './Overview';
 import theme from '../../theme';
 import { pushTimelineRange, seek } from '../../actions';
 import Colors from '../../colors';
@@ -123,6 +122,9 @@ const styles = () => ({
       transform: 'translateX(-50%)',
       transition: 'transform 0.15s ease-out',
     },
+    '&.scrubbing': {
+      cursor: 'grabbing',
+    },
     '&.scrubbing::after': {
       transform: 'translateX(-50%) scale(1.4)',
     },
@@ -219,10 +221,12 @@ const PLAYHEAD_GRAB_RADIUS = 6;
 const SEGMENT_DURATION = 60 * 1000;
 // minimum room for a segment number label, in pixels
 const SEGMENT_LABEL_SPACING = 28;
-// after the lens is moved by hand, playback leaves it alone for this long
+// after the view is changed by hand, playback leaves it alone for this long
 const MANUAL_VIEW_GRACE = 2000;
 // selection edges snap to event and segment edges this close, in pixels
 const SNAP_DISTANCE = 10;
+// the view never gets narrower than this, in milliseconds
+const MIN_VIEW = 10 * 1000;
 
 const AlertStatusCodes = [
   'normal',
@@ -233,6 +237,12 @@ const AlertStatusCodes = [
 // events that span a stretch of the drive, drawn as colored bands
 function rangedEvents(route) {
   return (route?.events || []).filter((event) => event.data && event.data.end_route_offset_millis);
+}
+
+function clampView(start, end, duration) {
+  const width = Math.min(duration, Math.max(MIN_VIEW, end - start));
+  const clampedStart = Math.min(Math.max(0, start), duration - width);
+  return { start: clampedStart, end: clampedStart + width };
 }
 
 function percentFromPointerEvent(ev) {
@@ -264,7 +274,6 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
     this.thumbnailsRef = React.createRef();
-    this.overviewPlayhead = React.createRef();
     this.manualViewAt = 0;
 
     const { zoomOverride, zoom } = this.props;
@@ -346,6 +355,7 @@ class Timeline extends Component {
     const playhead = this.playhead.current?.getBoundingClientRect();
     const onHandle = this.playhead.current?.contains(ev.target);
     if (onHandle || (playhead && Math.abs(ev.clientX - playhead.left) <= PLAYHEAD_GRAB_RADIUS)) {
+      this.selectionReleased = false;
       this.setState({ scrubbing: true, hoverX: ev.pageX });
     } else {
       const x = this.snapX(ev.pageX);
@@ -409,9 +419,20 @@ class Timeline extends Component {
       this.setState({ dragging: [dragging[0], this.snapX(endDrag)] });
     }
     if (this.state.scrubbing) {
-      seekVideo(this.offsetAtX(endDrag));
+      this.scrubTo(this.offsetAtX(endDrag));
     }
     this.setState({ hoverX: endDrag });
+  }
+
+  // the playhead can be dragged out of the selection, which then gives way to the whole drive
+  scrubTo(offset) {
+    const { dispatch, route } = this.props;
+    const selection = this.partialSelection();
+    if (!this.selectionReleased && selection && (offset < selection.start || offset > selection.end)) {
+      this.selectionReleased = true;
+      dispatch(pushTimelineRange(route.log_id, 0, route.duration, true));
+    }
+    seekVideo(offset);
   }
 
   handlePointerUp(ev) {
@@ -426,7 +447,9 @@ class Timeline extends Component {
     document.removeEventListener('pointermove', this.handlePointerMove);
     if (this.state.scrubbing) {
       this.setState({ scrubbing: false, hoverX: ev.pointerType === 'mouse' ? ev.pageX : null });
-      this.props.dispatch(seek(this.offsetAtX(ev.pageX)));
+      const offset = this.offsetAtX(ev.pageX);
+      this.scrubTo(offset);
+      this.props.dispatch(seek(offset));
       return;
     }
     const { dragging } = this.state;
@@ -499,9 +522,8 @@ class Timeline extends Component {
     if (!view) {
       return;
     }
-    if (this.overviewPlayhead.current && route?.duration) {
-      this.overviewPlayhead.current.style.left = `${(100 * offset) / route.duration}%`;
-      // keep the playhead in sight, unless the lens was just moved by hand
+    if (route?.duration) {
+      // keep the playhead in sight, unless the view was just changed by hand
       const width = view.end - view.start;
       if ((offset < view.start || offset > view.end) && Date.now() - this.manualViewAt > MANUAL_VIEW_GRACE) {
         this.setView(clampView(offset - (width / 4), offset + (width * 3 / 4), route.duration), false);
@@ -637,33 +659,21 @@ class Timeline extends Component {
     return zoom;
   }
 
-  renderOverview() {
+  // a way back out of a zoomed view
+  renderWholeDriveButton() {
     const { route } = this.props;
     const { view } = this.state;
-    const whole = { start: 0, end: route.duration };
-    const zoomed = view.start > 0 || view.end < route.duration;
+    if (view.start <= 0 && view.end >= route.duration) {
+      return null;
+    }
     return (
-      <div className="relative">
-        <Overview
-          duration={route.duration}
-          view={view}
-          selection={this.partialSelection()}
-          playheadRef={this.overviewPlayhead}
-          onViewChange={this.setView}
-          onSeek={(offset) => this.props.dispatch(seek(offset))}
-        >
-          { this.renderRoute(whole) }
-        </Overview>
-        { zoomed && (
-          <button
-            type="button"
-            className="absolute right-1 top-6 z-10 whitespace-nowrap rounded-full bg-[#1D2225]/90 px-2 text-xs leading-5 text-white/80 hover:text-white"
-            onClick={() => this.setView(whole)}
-          >
-            whole drive
-          </button>
-        ) }
-      </div>
+      <button
+        type="button"
+        className="absolute right-1 top-1 z-10 whitespace-nowrap rounded-full bg-[#1D2225]/90 px-2 text-xs leading-5 text-white/80 hover:text-white"
+        onClick={() => this.setView({ start: 0, end: route.duration })}
+      >
+        whole drive
+      </button>
     );
   }
 
@@ -722,7 +732,7 @@ class Timeline extends Component {
     return (
       <div className={className}>
         <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
-          { hasRuler && route ? this.renderOverview() : (
+          { hasRuler && route ? this.renderWholeDriveButton() : (
             <div className={ `${classes.segments} ${hasRulerCls}` }>
               { route && this.renderRoute() }
               <div className={ `${classes.statusGradient} ${hasRulerCls}` } />

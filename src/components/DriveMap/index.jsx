@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
-import { seek } from '../../actions';
+import { pushTimelineRange, seek } from '../../actions';
 import { fetchDriveCoords } from '../../actions/cached';
 import { currentOffset, seek as seekVideo } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
@@ -46,6 +46,18 @@ export function segmentLines(driveCoords) {
   return { type: 'FeatureCollection', features };
 }
 
+// one point per segment, halfway along it, to put its number on
+export function segmentLabelPoints(lines) {
+  return {
+    type: 'FeatureCollection',
+    features: lines.features.map(({ properties, geometry }) => ({
+      type: 'Feature',
+      properties,
+      geometry: { type: 'Point', coordinates: geometry.coordinates[Math.floor(geometry.coordinates.length / 2)] },
+    })),
+  };
+}
+
 // the selected stretch of the drive, drawn as a halo under the route
 function selectionLine(driveCoords, selection) {
   const coordinates = selection
@@ -81,6 +93,7 @@ class DriveMap extends Component {
 
     this.state = {
       markerDragging: false,
+      markerHovered: false,
       viewport: {
         ...DEFAULT_LOCATION,
         zoom: 14,
@@ -149,14 +162,18 @@ class DriveMap extends Component {
     this.mounted = false;
   }
 
-  // press on the marker to drag it along the route
-  onPointerDown(ev) {
+  isOverMarker(ev) {
     const map = this.map && this.map.getMap();
     if (!map || !this.props.currentRoute?.driveCoords) {
-      return;
+      return false;
     }
     const marker = map.project(this.lastMapPos);
-    if (Math.hypot(marker.x - ev.point[0], marker.y - ev.point[1]) <= MARKER_GRAB_RADIUS) {
+    return Math.hypot(marker.x - ev.point[0], marker.y - ev.point[1]) <= MARKER_GRAB_RADIUS;
+  }
+
+  // press on the marker to drag it along the route
+  onPointerDown(ev) {
+    if (this.isOverMarker(ev)) {
       this.dragOffset = currentOffset();
       this.setState({ markerDragging: true });
     }
@@ -164,6 +181,10 @@ class DriveMap extends Component {
 
   onPointerMove(ev) {
     if (!this.state.markerDragging) {
+      const markerHovered = this.isOverMarker(ev);
+      if (markerHovered !== this.state.markerHovered) {
+        this.setState({ markerHovered });
+      }
       return;
     }
     this.dragOffset = offsetNearest(this.props.currentRoute.driveCoords, ev.lngLat, this.dragOffset);
@@ -178,12 +199,16 @@ class DriveMap extends Component {
     this.props.dispatch(seek(this.dragOffset));
   }
 
-  // tap the route to jump there
+  // tap a segment of the route, or its number, to select the whole segment
   onClick(ev) {
     const { currentRoute, dispatch } = this.props;
-    if (ev.features?.length && currentRoute?.driveCoords) {
-      dispatch(seek(offsetNearest(currentRoute.driveCoords, ev.lngLat, currentOffset())));
+    const segment = ev.features?.[0]?.properties.segment;
+    if (segment === undefined || !currentRoute || this.isOverMarker(ev)) {
+      return;
     }
+    const start = segment * SEGMENT_DURATION;
+    const end = Math.min(start + SEGMENT_DURATION, currentRoute.duration);
+    dispatch(pushTimelineRange(currentRoute.log_id, start, end, true));
   }
 
   onInteraction(ev) {
@@ -296,6 +321,7 @@ class DriveMap extends Component {
 
     if (map) {
       map.getSource('route').setData(lines);
+      map.getSource('segmentLabels').setData(segmentLabelPoints(lines));
     }
   }
 
@@ -349,6 +375,10 @@ class DriveMap extends Component {
         type: 'geojson',
         data: segmentLines({}),
       });
+      map.addSource('segmentLabels', {
+        type: 'geojson',
+        data: segmentLabelPoints(segmentLines({})),
+      });
       map.addSource('selection', {
         type: 'geojson',
         data: selectionLine({}, null),
@@ -389,6 +419,22 @@ class DriveMap extends Component {
         },
       });
       map.addLayer(lineGeoJson);
+      map.addLayer({
+        id: 'segmentLabels',
+        type: 'symbol',
+        source: 'segmentLabels',
+        layout: {
+          'text-field': ['to-string', ['get', 'segment']],
+          'text-size': 13,
+          'text-rotation-alignment': 'viewport',
+          'text-offset': [0, -1.2],
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': 'rgba(0, 0, 0, 0.8)',
+          'text-halo-width': 2,
+        },
+      });
 
       const markerGeoJson = {
         id: 'marker',
@@ -420,7 +466,17 @@ class DriveMap extends Component {
   }
 
   render() {
-    const { viewport, markerDragging } = this.state;
+    const { viewport, markerDragging, markerHovered } = this.state;
+    // a hand that grabs the marker, a pointing finger on a segment to select
+    const getCursor = ({ isDragging, isHovering }) => {
+      if (markerDragging || isDragging) {
+        return 'grabbing';
+      }
+      if (markerHovered) {
+        return 'grab';
+      }
+      return isHovering ? 'pointer' : 'default';
+    };
     return (
       <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
         <ReactMapGL
@@ -439,7 +495,8 @@ class DriveMap extends Component {
           attributionControl={false}
           onInteractionStateChange={this.onInteraction}
           dragPan={!markerDragging}
-          interactiveLayerIds={['routeLine']}
+          getCursor={getCursor}
+          interactiveLayerIds={['routeLine', 'segmentLabels']}
           clickRadius={10}
           onMouseDown={this.onPointerDown}
           onTouchStart={this.onPointerDown}
