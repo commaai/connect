@@ -19,9 +19,9 @@ vi.mock('./index', () => ({
   checkRoutesData: vi.fn(), checkLastRoutesData: vi.fn(),
   primeFetchSubscription: vi.fn(), fetchDeviceOnline: vi.fn(), fetchSharedDevice: vi.fn(),
 }));
-//vi.mock('../timeline', () => ({
-//  currentOffset: vi.fn(() => 0),
-//}));
+vi.mock('../timeline', () => ({
+  currentOffset: vi.fn(() => 0),
+}));
 vi.mock('../utils/webrtc', () => ({
   webrtcConnectionManager: { disconnect: vi.fn() },
 }));
