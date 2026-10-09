@@ -112,6 +112,8 @@ const styles = (theme) => ({
   },
 });
 
+const polling = new Set();
+
 class UploadQueue extends Component {
   constructor(props) {
     super(props);
@@ -148,11 +150,18 @@ class UploadQueue extends Component {
     this.uploadQueue(false);
   }
 
+  // stop once no queue wants it, after this render's queues have mounted
   uploadQueue(enable) {
     if (enable) {
+      polling.add(this);
       this.props.dispatch(fetchUploadQueue(this.props.device.dongle_id));
     } else {
-      cancelFetchUploadQueue();
+      polling.delete(this);
+      Promise.resolve().then(() => {
+        if (!polling.size) {
+          cancelFetchUploadQueue();
+        }
+      });
     }
   }
 

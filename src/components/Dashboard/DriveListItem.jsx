@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
+import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
-import { pushTimelineRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
+import { urlForDestination } from '../../url';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
 import { RightArrow } from '../../icons';
-import { formatDriveDuration, filterRegularClick } from '../../utils';
+import { formatDriveDuration } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Timeline from '../Timeline';
 
@@ -25,22 +26,15 @@ const styles = () => ({
     padding: 0,
     transition: 'background .2s',
     textDecoration: 'none',
-    '&:hover': {},
   },
   driveHeader: {
     alignItems: 'center',
-  },
-  driveHeaderIntro: {
-    display: 'flex',
   },
   driveGridItem: {
     flexGrow: 1,
   },
   driveGridItemRightAlign: {
     textAlign: 'right',
-  },
-  driveHeaderIntroSmall: {
-    justifyContent: 'center',
   },
   driveArrow: {
     color: Colors.grey500,
@@ -83,10 +77,6 @@ const DriveListItem = (props) => {
     };
   }, [drive, dispatch, isVisible, el]);
 
-  const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
-  );
-
   const small = windowWidth < 580;
   const dateFormat = small ? 'ddd, MMM D' : 'dddd, MMM D';
   const startDateObj = dayjs(drive.start_time_utc_millis);
@@ -115,12 +105,11 @@ const DriveListItem = (props) => {
   /* eslint-enable key-spacing, no-multi-spaces */
 
   return (
-    <a
+    <Link
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
-      onClick={onClick}
+      to={urlForDestination({ page: 'drive', dongleId: drive.dongle_id, logId: drive.log_id })}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
         {drive.demo_title ? (
@@ -157,7 +146,7 @@ const DriveListItem = (props) => {
         thumbnailsVisible={isVisible}
         zoomOverride={{ start: 0, end: drive.duration }}
       />
-    </a>
+    </Link>
   );
 };
 

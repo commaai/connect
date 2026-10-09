@@ -4,26 +4,29 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { destinationFromUrl } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+  const parts = pathname.split('/').filter(Boolean);
+  if (/^[a-f0-9]{16}$/.test(parts[0])) {
+    parts[0] = '<dongleId>';
   }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  if (destinationFromUrl({ pathname }).range) {
+    parts.splice(-2, 2, '<zoomStart>', '<zoomEnd>');
   }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
+  return parts.length ? `/${parts.join('/')}` : '';
 }
+
+const deviceProps = (device) => ({
+  device_prime_type: device?.prime_type,
+  device_type: device?.device_type,
+  device_version: device?.openpilot_version,
+  device_owner: device?.is_owner,
+  device_online: device ? deviceIsOnline(device) : undefined,
+  device_sim_type: device?.sim_type,
+  device_trial_claimed: device?.trial_claimed,
+});
 
 const clusterMap = {
   s: 1000,
@@ -98,24 +101,25 @@ function logAction(action, prevState, state) {
     }
   }
 
+  if (!prevState.zoom && state.zoom) {
+    const zoom = { ...params, start: state.zoom.start, end: state.zoom.end };
+    attachRelTime(zoom, 'start', true, 'h');
+    attachRelTime(zoom, 'end', true, 'h');
+    gtag('event', 'select_zoom', zoom);
+  }
+
   // eslint-disable-next-line default-case
   switch (action.type) {
     case LOCATION_CHANGE:
-      gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(action.payload.location.pathname),
-      });
-      return;
+      if (!prevState.nav || action.payload.location.pathname !== prevState.router.location.pathname) { // not a dialog
+        gtag('event', 'page_view', {
+          page_location: getPageViewEventLocation(action.payload.location.pathname),
+        });
+      }
 
-    case Types.TIMELINE_PUSH_SELECTION:
-      if (!prevState.zoom && state.zoom) {
-        params = {
-          ...params,
-          start: state.zoom.start,
-          end: state.zoom.end,
-        };
-        attachRelTime(params, 'start', true, 'h');
-        attachRelTime(params, 'end', true, 'h');
-        gtag('event', 'select_zoom', params);
+      if (prevState.dongleId !== state.dongleId) {
+        gtag('event', 'select_device', { ...params, ...deviceProps(state.device) });
+        gtag('set', { user_properties: deviceProps(state.device) });
       }
       return;
 
@@ -126,44 +130,13 @@ function logAction(action, prevState, state) {
           superuser: state.profile?.superuser,
           has_prime: state.profile?.prime,
           devices_count: state.devices?.length,
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
+          ...deviceProps(state.device),
         },
       });
 
       gtag('event', 'page_view', {
         ...params,
         page_location: getPageViewEventLocation(window.location.pathname),
-      });
-      return;
-
-    case Types.ACTION_SELECT_DEVICE:
-      gtag('event', 'select_device', {
-        ...params,
-        device_prime_type: state.device?.prime_type,
-        device_type: state.device?.device_type,
-        device_version: state.device?.openpilot_version,
-        device_owner: state.device?.is_owner,
-        device_online: state.device ? deviceIsOnline(state.device) : undefined,
-        device_sim_type: state.device?.sim_type,
-        device_trial_claimed: state.device?.trial_claimed,
-      });
-
-      gtag('set', {
-        user_properties: {
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
-        },
       });
       return;
 

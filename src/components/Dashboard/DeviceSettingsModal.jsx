@@ -14,10 +14,11 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { updateDevice } from '../../actions';
+import { navigateTo, showDialog } from '../../actions/history';
 import Colors from '../../colors';
+import { getDeviceFromState } from '../../utils';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
-import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 
 const styles = (theme) => ({
@@ -109,26 +110,21 @@ const styles = (theme) => ({
   },
 });
 
-const initialState = {
-  deviceAlias: '',
-  loadingDeviceAlias: false,
-  loadingDeviceShare: false,
-  hasSavedAlias: false,
-  shareEmail: '',
-  unpairConfirm: false,
-  unpaired: false,
-  loadingUnpair: false,
-  error: null,
-  unpairError: null,
-  uploadModal: false,
-};
-
 class DeviceSettingsModal extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      ...initialState,
+      deviceAlias: null, // null shows the device's own
+      loadingDeviceAlias: false,
+      loadingDeviceShare: false,
+      hasSavedAlias: false,
+      shareEmail: '',
+      unpairConfirm: false,
+      unpaired: false,
+      loadingUnpair: false,
+      error: null,
+      unpairError: null,
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -141,14 +137,8 @@ class DeviceSettingsModal extends Component {
     this.closeUnpair = this.closeUnpair.bind(this);
   }
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
-      this.setState({
-        ...initialState,
-        deviceAlias: alias,
-      });
-    }
+  alias() {
+    return this.state.deviceAlias ?? this.props.device.alias ?? '';
   }
 
   handleAliasChange(e) {
@@ -184,7 +174,7 @@ class DeviceSettingsModal extends Component {
       hasSavedAlias: false,
     });
     try {
-      const device = await api.devices.setDeviceAlias(dongleId, this.state.deviceAlias.trim());
+      const device = await api.devices.setDeviceAlias(dongleId, this.alias().trim());
       this.props.dispatch(updateDevice(device));
       this.setState({
         loadingDeviceAlias: false,
@@ -225,11 +215,12 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
+    const { dispatch, dongleId, onClose, overPrime } = this.props;
+    if (overPrime) {
+      onClose();
+    } else {
+      dispatch(navigateTo({ page: 'prime', dongleId }, { replace: true }));
     }
-    this.props.dispatch(primeNav(true));
-    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -259,10 +250,16 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, canEdit, onClose } = this.props;
     const commacare = device?.commacare;
-    if (!device) {
-      return null;
+    if (!canEdit) {
+      return (
+        <Modal open onClose={onClose}>
+          <Paper className={classes.modal}>
+            <Typography>{ device === undefined ? 'Loading...' : 'These device settings are not available.' }</Typography>
+          </Paper>
+        </Modal>
+      );
     }
 
     return (
@@ -270,8 +267,8 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
-          onClose={this.props.onClose}
+          open
+          onClose={onClose}
         >
           <Paper className={classes.modal}>
             <div className={ classes.titleContainer }>
@@ -299,7 +296,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
+                onClick={ () => this.props.dispatch(showDialog('uploads', device.dongle_id)) }
               >
                 Uploads
               </Button>
@@ -316,11 +313,11 @@ class DeviceSettingsModal extends Component {
                   id="device_alias"
                   label="Device name"
                   className={ classes.textField }
-                  value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
+                  value={ this.alias() }
                   onChange={this.handleAliasChange}
                   onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) }
                 />
-                { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias)
+                { ((device.alias ?? '') !== this.alias() || this.state.hasSavedAlias)
                 && (
                 <div className={classes.wrapper}>
                   <IconButton variant="fab" onClick={this.setDeviceAlias}>
@@ -353,7 +350,7 @@ class DeviceSettingsModal extends Component {
               </div>
             </div>
             <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+              <Button variant="contained" className={ classes.cancelButton } onClick={onClose}>
                 Close
               </Button>
             </div>
@@ -424,24 +421,18 @@ class DeviceSettingsModal extends Component {
             </div>
           </Paper>
         </Modal>
-        <UploadQueue
-          open={ this.state.uploadModal }
-          update={ this.state.uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
-          device={ device }
-        />
       </>
     );
   }
 }
 
-const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
-    || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
+// device: undefined while devices load, null if unknown
+const stateToProps = (state, { dongleId }) => {
+  const device = state.devices ? getDeviceFromState(state, dongleId) : undefined;
   return {
-    subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
+    canEdit: Boolean(device && (device.is_owner || state.profile?.superuser)),
+    overPrime: state.nav.page === 'prime' && state.dongleId === dongleId,
   };
 };
 
