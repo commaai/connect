@@ -131,6 +131,34 @@ describe('drive video', () => {
     expect(video.currentTime).toEqual(78);
   });
 
+  it('follows a seek from the browser at once', () => {
+    const { store, video } = renderVideo({ loop: { startTime: 5000, duration: 2000 } });
+    Object.defineProperty(video, 'seeking', { value: true, configurable: true });
+    video.currentTime = 30;
+    fireEvent.seeking(video);
+    expect(store.getState().offset).toEqual(7000);
+    act(() => store.dispatch(selectLoop(null, null)));
+    fireEvent.seeking(video);
+    expect(store.getState().offset).toEqual(32000);
+    // the selection still wins once the seek lands
+    act(() => store.dispatch(selectLoop(5000, 7000)));
+    Object.defineProperty(video, 'seeking', { value: false });
+    fireEvent.timeUpdate(video);
+    expect(video.currentTime).toEqual(3);
+  });
+
+  it('keeps its own seek while seeking', () => {
+    const { store, video } = renderVideo();
+    video.currentTime = 5;
+    fireEvent.timeUpdate(video);
+    act(() => store.dispatch(seek(80000)));
+    Object.defineProperty(video, 'seeking', { value: true });
+    fireEvent.seeking(video);
+    fireEvent.timeUpdate(video);
+    expect(store.getState().offset).toEqual(80000);
+    expect(video.currentTime).toEqual(78);
+  });
+
   it('retries at a seek after an error', () => {
     const { store, video } = renderVideo();
     Object.defineProperty(video, 'error', { value: { code: 2 } });

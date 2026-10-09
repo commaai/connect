@@ -72,6 +72,7 @@ class DriveVideo extends Component {
     this.onLoadedMetadata = this.onLoadedMetadata.bind(this);
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
     this.onWaiting = this.onWaiting.bind(this);
+    this.onSeeking = this.onSeeking.bind(this);
     this.onPlay = this.onPlay.bind(this);
     this.onPause = this.onPause.bind(this);
     this.onRateChange = this.onRateChange.bind(this);
@@ -159,6 +160,13 @@ class DriveVideo extends Component {
   onWaiting() {
     this.updateBuffering();
     this.skipMissingFrag();
+  }
+
+  // the browser's controls, picture-in-picture and media keys can seek too
+  onSeeking() {
+    this.updateBuffering();
+    // currentTime is already the new position
+    this.reportProgress(true);
   }
 
   // media keys, headphones and iOS can play/pause the video directly
@@ -307,10 +315,10 @@ class DriveVideo extends Component {
     this.setState({ noVideo: null });
   }
 
-  reportProgress() {
+  reportProgress(force = false) {
     const { currentRoute, dispatch } = this.props;
     const video = this.videoPlayer.current;
-    if (video.readyState === 0 || video.seeking) {
+    if (video.readyState === 0 || (video.seeking && !force)) {
       return;
     }
     const offset = this.currentOffset();
@@ -455,7 +463,7 @@ class DriveVideo extends Component {
           onLoadedMetadata={this.onLoadedMetadata}
           onTimeUpdate={this.onTimeUpdate}
           onWaiting={this.onWaiting}
-          onSeeking={this.updateBuffering}
+          onSeeking={this.onSeeking}
           onSeeked={this.updateBuffering}
           onCanPlay={this.updateBuffering}
           onPlaying={this.updateBuffering}
