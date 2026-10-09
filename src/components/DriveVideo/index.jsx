@@ -161,7 +161,8 @@ export class RouteVideo extends Component {
     const speed = this.props.desiredPlaySpeed;
     if (!speed) {
       this.playRequest += 1;
-      video.pause();
+      // Don't cancel the browser's automatic resume after a background pause.
+      if (!video.paused) video.pause();
     } else if (!this.state.error) {
       video.playbackRate = speed;
       if (video.paused) this.startPlayback();

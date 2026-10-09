@@ -166,7 +166,9 @@ it('keeps only the latest seek while loading and seeks immediately after metadat
 it('reflects native pause, playback rate, and seeks in the shared state', async () => {
   const { video, metadata, store } = await mount();
   metadata();
+  video.pause.mockClear();
   act(() => video.pause());
+  expect(video.pause).toHaveBeenCalledOnce();
   expect(store.getState().desiredPlaySpeed).toBe(0);
   video.currentTime = 9;
   fireEvent.seeked(video);
