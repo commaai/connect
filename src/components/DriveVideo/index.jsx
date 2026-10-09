@@ -7,7 +7,7 @@ import { api } from '../../api/backend';
 import { seek } from '../../actions';
 
 import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
+import { ChevronRight, ErrorOutline } from '../../icons';
 import { attachVideo, currentOffset, detachVideo } from '../../timeline';
 import { pause } from '../../timeline/playback';
 import { isIos } from '../../utils/browser.js';
@@ -17,6 +17,8 @@ const NETWORK_ERROR = 'Unable to load video. Check network connection.';
 const LOAD_ERROR = 'Unable to load video';
 // two taps closer than this are a double tap, in milliseconds
 const DOUBLE_TAP = 300;
+// how long the arrow of a 10s jump stays on screen, in milliseconds
+const JUMP_ARROW = 500;
 
 const VideoOverlay = ({ loading, error, onRetry }) => {
   let content;
@@ -78,6 +80,8 @@ function loadVideo(video, src, onAudio, onError) {
 const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudioStatusChange }) => {
   const videoRef = useRef(null);
   const lastTap = useRef(0);
+  const jumpArrowTimer = useRef(null);
+  const [jumpArrow, setJumpArrow] = useState(null); // 'back' or 'forward' while shown
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -166,7 +170,12 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
     } else {
       dispatch(seek(currentOffset() - 10000));
     }
+    // show which way it jumped
+    clearTimeout(jumpArrowTimer.current);
+    setJumpArrow(onRightHalf ? 'forward' : 'back');
+    jumpArrowTimer.current = setTimeout(() => setJumpArrow(null), JUMP_ARROW);
   };
+  useEffect(() => () => clearTimeout(jumpArrowTimer.current), []);
 
   return (
     <div
@@ -174,6 +183,16 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
       onPointerUp={onPointerUp}
     >
       {src && <VideoOverlay loading={loading} error={error} onRetry={() => setAttempt(attempt + 1)} />}
+      {jumpArrow && (
+        <div
+          key={jumpArrow}
+          className={`pointer-events-none absolute inset-y-0 z-[60] flex items-center animate-fadein ${jumpArrow === 'forward' ? 'right-[15%]' : 'left-[15%]'}`}
+        >
+          <div className="rounded-full bg-black/40 p-2">
+            <ChevronRight className={`text-white ${jumpArrow === 'back' ? 'rotate-180' : ''}`} style={{ fontSize: 48 }} />
+          </div>
+        </div>
+      )}
       <video
         ref={videoRef}
         className="h-full w-full"
