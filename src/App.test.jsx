@@ -381,6 +381,7 @@ describe('whole-app behavior', () => {
 
   test.each([
     [`/${FIRST}/${LOG}?settings=${SECOND}`, () => screen.findByDisplayValue('Alpha')],
+    [`/${FIRST}?filter`, () => screen.findByText('Start date:')],
   ])('%s opens with the drawer closed', async (path, find) => {
     const { history } = await renderApp(path);
     expect(await find()).toBeVisible();

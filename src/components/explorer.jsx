@@ -14,6 +14,7 @@ import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import TimeSelect from './TimeSelect';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
@@ -201,7 +202,7 @@ class ExplorerApp extends Component {
   render() {
     const {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
-      settingsDongleId,
+      settingsDongleId, filterOpen,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -256,6 +257,7 @@ class ExplorerApp extends Component {
             { settingsDongleId && devices && (
               <DeviceSettingsModal key={ settingsDongleId } dongleId={ settingsDongleId } onClose={ () => dispatch(push(pathname)) } />
             ) }
+            { filterOpen && <TimeSelect onClose={ () => dispatch(push(pathname)) } /> }
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -292,6 +294,7 @@ const stateToProps = (state) => ({
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
   settingsDongleId: queryParam(state.router.location, 'settings'),
+  filterOpen: queryParam(state.router.location, 'filter') !== null,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

@@ -8,6 +8,7 @@
 //
 // Modals open over any page with a query param, read with queryParam:
 //   ?settings=:dongleId
+//   ?filter
 
 const DONGLE_ID = /^[a-f0-9]{16}$/;
 const ROUTE_ID = /^[a-f0-9-]{20}$/;
