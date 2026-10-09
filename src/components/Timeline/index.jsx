@@ -143,7 +143,7 @@ function percentFromPointerEvent(ev) {
   return x / boundingBox.width;
 }
 
-class Timeline extends Component {
+export class Timeline extends Component {
   constructor(props) {
     super(props);
 

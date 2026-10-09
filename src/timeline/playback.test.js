@@ -1,133 +1,93 @@
-import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import store from '../store';
+import { attachMediaClock, currentOffset } from '.';
+import { bufferVideo, observePosition, pause, play, reducer, resetPlayback, seek, selectLoop } from './playback';
 
-const makeDefaultStruct = function makeDefaultStruct() {
-  return {
-    desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
-    offset: 0, // in miliseconds from the start
-    startTime: Date.now(), // millisecond timestamp in which play began
+const initial = () => ({ desiredPlaySpeed: 1, offset: 123, seekRevision: 0,
+  isBufferingVideo: false, currentRoute: { fullname: 'route-a', duration: 60000 }, zoom: { start: 0, end: 60000 } });
 
-    isBuffering: true,
-  };
-};
-
-// make Date.now super stable for tests
-let mostRecentNow = Date.now();
-const oldNow = Date.now;
-Date.now = function now() {
-  return mostRecentNow;
-};
-function newNow() {
-  mostRecentNow = oldNow();
-  return mostRecentNow;
-}
-
-describe('playback', () => {
-  it('has playback controls', async () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // should do nothing
-    state = reducer(state, pause());
-    expect(state.desiredPlaySpeed).toEqual(0);
-
-    // start playing, should set start time and such
-    let playTime = newNow();
-    state = reducer(state, play());
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset
-    let ellapsed = newNow() - playTime;
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // start playing, should set start time and such
-    playTime = newNow();
-    state = reducer(state, play(0.5));
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset, playback speed 1/2
-    ellapsed += (newNow() - playTime) / 2;
-    expect(currentOffset(state)).toEqual(ellapsed);
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // seek!
-    newNow();
-    state = reducer(state, seek(123));
-    expect(state.offset).toEqual(123);
-    expect(state.startTime).toEqual(Date.now());
-    expect(currentOffset(state)).toEqual(123);
+describe('media-driven playback', () => {
+  it('keeps the selected end fixed when camera metadata arrives after selection', () => {
+    const state = { ...initial(), loop: { startTime: 0, duration: 10000 }, currentRoute: { fullname: 'route-a', duration: 60000, videoStartOffset: 500 } };
+    expect(reducer(state, seek(12000)).offset).toBe(10000);
+    expect(reducer(state, seek(0)).offset).toBe(500);
   });
-
-  it('should clamp loop when seeked after loop end time', () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
-
-    // seek past loop end boundary a
-    state = reducer(state, seek(3000));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(2000);
+  it('never advances from elapsed wall time', () => {
+    vi.useFakeTimers();
+    try {
+      let state = initial();
+      vi.advanceTimersByTime(10000);
+      expect(currentOffset(state)).toBe(123);
+      state = reducer(state, play(2));
+      state = reducer(state, pause());
+      expect(state.offset).toBe(123);
+    } finally { vi.useRealTimers(); }
   });
-
-  it('should clamp loop when seeked before loop start time', () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
-
-    // seek past loop end boundary a
-    state = reducer(state, seek(0));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(1000);
+  it('distinguishes seek requests from observations', () => {
+    let state = reducer(initial(), seek(10000));
+    expect(state.seekRevision).toBe(1);
+    state = reducer(state, observePosition('route-a', 1, 10033));
+    expect(state.offset).toBe(10033);
+    expect(state.seekRevision).toBe(1);
   });
+  it('rejects old-route and old-seek observations', () => {
+    const state = reducer(initial(), seek(20000));
+    expect(reducer(state, observePosition('route-b', 1, 0))).toBe(state);
+    expect(reducer(state, observePosition('route-a', 0, 1000))).toBe(state);
+  });
+  it('makes successive requests distinct, including same-position seeks', () => {
+    const first = reducer(initial(), seek(10));
+    expect(reducer(first, seek(10)).seekRevision).toBe(2);
+  });
+  it('clamps seeks at both loop boundaries, including a zero start', () => {
+    const state = reducer(initial(), selectLoop(0, 2000));
+    expect(reducer(state, seek(-1000)).offset).toBe(0);
+    expect(reducer(state, seek(3000)).offset).toBe(2000);
+  });
+  it('clamps seeks at route boundaries without a selected loop', () => {
+    expect(reducer(initial(), seek(-1)).offset).toBe(0);
+    expect(reducer(initial(), seek(70000)).offset).toBe(60000);
+    expect(reducer(initial(), seek(NaN)).offset).toBe(123);
+  });
+  it('preserves user intent and position during buffering', () => {
+    const state = reducer(reducer(initial(), play(.5)), bufferVideo(true));
+    expect(state.desiredPlaySpeed).toBe(.5);
+    expect(state.offset).toBe(123);
+    expect(state.isBufferingVideo).toBe(true);
+  });
+  it('resets to the selected range or camera origin', () => {
+    const state = { ...initial(), zoom: { start: 20000, end: 30000 }, currentRoute: { fullname: 'route-a', videoStartOffset: 25000 } };
+    expect(reducer(state, resetPlayback()).offset).toBe(25000);
+    expect(reducer(state, resetPlayback()).seekRevision).toBe(1);
+  });
+  it('avoids loops before camera footage and rejects empty loops', () => {
+    const state = { ...initial(), currentRoute: { videoStartOffset: 1000 } };
+    expect(reducer(state, selectLoop(0, 3000)).loop).toEqual({ startTime: 1000, duration: 2000 });
+    expect(reducer(state, selectLoop(0, 500)).loop).toBeNull();
+    expect(reducer(state, selectLoop(null, null)).loop).toBeNull();
+  });
+});
 
-  it('should buffer video and data', async () => {
-    newNow();
-    let state = makeDefaultStruct();
 
-    state = reducer(state, play());
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    // claim the video is buffering
-    state = reducer(state, bufferVideo(true));
-    expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    state = reducer(state, play(0.5));
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
-    state = reducer(state, play(2));
-    state = reducer(state, bufferVideo(false));
-    expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBufferingVideo).toEqual(false);
-
-    expect(state.desiredPlaySpeed).toEqual(2);
+describe('clock ownership', () => {
+  afterEach(() => vi.restoreAllMocks());
+  it('works before a route or player exists', () => {
+    vi.spyOn(store, 'getState').mockReturnValue({ offset: null, currentRoute: null });
+    expect(currentOffset()).toBe(0);
+  });
+  it('ignores old owners and preserves a newer owner during cleanup', () => {
+    vi.spyOn(store, 'getState').mockReturnValue(initial());
+    const detachOld = attachMediaClock('route-a', () => 1000);
+    const detachNew = attachMediaClock('route-a', () => 2000);
+    detachOld();
+    expect(currentOffset()).toBe(2000);
+    expect(currentOffset(initial())).toBe(123);
+    detachNew();
+    expect(currentOffset()).toBe(123);
+  });
+  it('does not read a previous route clock', () => {
+    vi.spyOn(store, 'getState').mockReturnValue(initial());
+    const detach = attachMediaClock('route-b', () => 9000);
+    expect(currentOffset()).toBe(123);
+    detach();
   });
 });

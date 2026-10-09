@@ -1,0 +1,6 @@
+{
+  "name": "connect-playback-bench",
+  "private": true,
+  "description": "Isolated benchmark tooling; not shipped in the Connect bundle",
+  "dependencies": { "playwright": "1.62.1" }
+}
