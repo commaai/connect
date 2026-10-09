@@ -17,7 +17,9 @@ const NETWORK_ERROR = 'Unable to load video. Check network connection.';
 const LOAD_ERROR = 'Unable to load video';
 // two taps closer than this are a double tap, in milliseconds
 const DOUBLE_TAP = 300;
-// how long the arrow of a 10s jump stays on screen, in milliseconds
+// a double tap jumps this far, in milliseconds
+const JUMP = 10 * 1000;
+// how long the arrow of a jump stays on screen, in milliseconds
 const JUMP_ARROW = 500;
 
 const VideoOverlay = ({ loading, error, onRetry }) => {
@@ -153,7 +155,7 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
     setError(code === MediaError.MEDIA_ERR_NETWORK ? NETWORK_ERROR : LOAD_ERROR);
   };
 
-  // double tap or double click on the left or right half to jump 10s, like youtube
+  // double tap or double click on the left or right half to jump, like youtube
   const onPointerUp = (ev) => {
     if (ev.button !== 0 || ev.target.closest('button')) {
       return;
@@ -166,11 +168,11 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
     const box = ev.currentTarget.getBoundingClientRect();
     const onRightHalf = ev.clientX > box.left + (box.width / 2);
     if (onRightHalf) {
-      dispatch(seek(currentOffset() + 10000));
+      dispatch(seek(currentOffset() + JUMP));
     } else {
-      dispatch(seek(currentOffset() - 10000));
+      dispatch(seek(currentOffset() - JUMP));
     }
-    // show which way it jumped
+    // show which way and how far it jumped
     clearTimeout(jumpArrowTimer.current);
     setJumpArrow(onRightHalf ? 'forward' : 'back');
     jumpArrowTimer.current = setTimeout(() => setJumpArrow(null), JUMP_ARROW);
@@ -186,10 +188,11 @@ const DriveVideo = ({ dispatch, currentRoute, desiredPlaySpeed, isMuted, onAudio
       {jumpArrow && (
         <div
           key={jumpArrow}
-          className={`pointer-events-none absolute inset-y-0 z-[60] flex items-center animate-fadein ${jumpArrow === 'forward' ? 'right-[15%]' : 'left-[15%]'}`}
+          className={`pointer-events-none absolute inset-y-0 z-[60] flex items-center animate-fadein ${jumpArrow === 'forward' ? 'right-4' : 'left-4'}`}
         >
-          <div className="rounded-full bg-black/40 p-2">
-            <ChevronRight className={`text-white ${jumpArrow === 'back' ? 'rotate-180' : ''}`} style={{ fontSize: 48 }} />
+          <div className={`flex items-center rounded-full bg-black/40 p-2 text-white ${jumpArrow === 'back' ? 'flex-row-reverse pr-4' : 'pl-4'}`}>
+            <span className="text-lg font-semibold">{`${JUMP / 1000}s`}</span>
+            <ChevronRight className={jumpArrow === 'back' ? 'rotate-180' : ''} style={{ fontSize: 48 }} />
           </div>
         </div>
       )}
