@@ -7,7 +7,7 @@ import DriveVideo from '.';
 import { createAppStore } from '../../store';
 import * as Types from '../../actions/types';
 import { currentOffset } from '../../timeline';
-import { play, resetPlayback, seek, selectLoop } from '../../timeline/playback';
+import { pause, play, resetPlayback, seek, selectLoop } from '../../timeline/playback';
 
 const hls = vi.hoisted(() => ({ instances: [], load: null }));
 
@@ -54,6 +54,8 @@ describe('DriveVideo', () => {
     HTMLMediaElement.prototype.play = vi.fn(async () => undefined);
     HTMLMediaElement.prototype.pause = vi.fn();
     HTMLMediaElement.prototype.load = vi.fn();
+    delete HTMLMediaElement.prototype.requestVideoFrameCallback;
+    vi.useRealTimers();
   });
 
   it('says the drive has no video when the playlist is missing, and retries on request', async () => {
@@ -198,21 +200,55 @@ describe('DriveVideo', () => {
     expect(hls.instances[0].config.startPosition).toEqual(60);
   });
 
-  it('keeps the spinner until the video shows its first frame', async () => {
+  it('keeps the spinner until the video shows its first frame, but not forever', async () => {
+    vi.useFakeTimers();
     const frames = [];
     HTMLMediaElement.prototype.requestVideoFrameCallback = vi.fn((cb) => frames.push(cb));
     renderPlayer();
     await act(async () => {});
     const video = document.querySelector('video');
+    Object.defineProperty(video, 'paused', { get: () => false });
     // the browser has data and is playing, but has not painted a frame yet
     fireEvent.loadedData(video);
     fireEvent.canPlay(video);
     fireEvent.playing(video);
     expect(screen.getByRole('status')).toHaveTextContent('Loading video');
-
     act(() => frames.forEach((cb) => cb()));
     expect(screen.getByRole('status')).toHaveTextContent('');
-    delete HTMLMediaElement.prototype.requestVideoFrameCallback;
+
+    // a browser that never reports the frame still drops the spinner after a second
+    fireEvent.emptied(video);
+    fireEvent.loadedData(video);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading video');
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByRole('status')).toHaveTextContent('');
+    vi.useRealTimers();
+  });
+
+  it('shows no spinner over the frame of a paused video when Play starts it', async () => {
+    HTMLMediaElement.prototype.requestVideoFrameCallback = vi.fn();
+    const store = renderPlayer();
+    await act(async () => {});
+    store.dispatch(pause());
+    // a paused video paints its first frame at once
+    fireEvent.loadedData(document.querySelector('video'));
+    fireEvent.canPlay(document.querySelector('video'));
+    await act(async () => store.dispatch(play(1)));
+    expect(screen.getByRole('status')).toHaveTextContent('');
+  });
+
+  it('ignores the answer about a drive the user already left', async () => {
+    window.MediaSource = undefined;
+    let answer;
+    global.fetch = vi.fn(() => new Promise((done) => { answer = done; }));
+    const store = renderPlayer();
+    const video = document.querySelector('video');
+    Object.defineProperty(video, 'error', { get: () => ({ code: 4 }) });
+    fireEvent.error(video);
+    store.dispatch({ type: Types.ACTION_ROUTES_METADATA, routes: [{ log_id: 's', fullname: 'x|s', duration: 180000 }] });
+    await act(async () => store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 's', start: 0, end: 180000 }));
+    await act(async () => answer({ status: 404 }));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('never resets a video that is leaving the page', async () => {

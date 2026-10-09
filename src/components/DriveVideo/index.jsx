@@ -74,10 +74,10 @@ class DriveVideo extends Component {
     this.props.dispatch(setMaxPlaySpeed(native ? 2 : null));
     // attaching holds the clock at the requested time while hls.js downloads
     setVideo(video);
+    const loading = this.loading = {};
     if (native) {
       video.src = this.src;
     } else {
-      const loading = this.loading = {};
       let Hls;
       try {
         ({ default: Hls } = await import('hls.js/light'));
@@ -118,12 +118,14 @@ class DriveVideo extends Component {
     this.setState({ buffering: false, error });
   }
 
-  // Data is decoded, but the frame can paint 0.3 s later: wait for it where the browser says when.
+  // A paused video shows its frame at once; a playing one can paint it 0.3 s after loadeddata, so
+  // wait for the paint where the browser reports it, and at most a second.
   onLoadedData() {
     const video = this.video.current;
     const shown = () => this.setState({ picture: true });
-    if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(shown);
-    else shown();
+    if (video.paused || !video.requestVideoFrameCallback) return shown();
+    video.requestVideoFrameCallback(shown);
+    return setTimeout(shown, 1000);
   }
 
   onLoadedMetadata() {
@@ -145,10 +147,9 @@ class DriveVideo extends Component {
       return;
     }
     // native HLS reports a missing playlist as "unsupported": ask the server which it was
-    fetch(this.src).then(
-      (resp) => this.fail(resp.status === 404 ? ROUTE_NOT_UPLOADED : UNPLAYABLE),
-      () => this.fail(NETWORK),
-    );
+    const { loading } = this;
+    const fail = (message) => this.loading === loading && this.fail(message);
+    fetch(this.src).then((resp) => fail(resp.status === 404 ? ROUTE_NOT_UPLOADED : UNPLAYABLE), () => fail(NETWORK));
   }
 
   onHlsError(_, data) {
@@ -223,6 +224,8 @@ class DriveVideo extends Component {
     const { desiredPlaySpeed, isMuted } = this.props;
     const { buffering, error, picture } = this.state;
     const showSpinner = (buffering || !picture) && !error && desiredPlaySpeed > 0;
+    // the delay is chosen when the spinner appears, so a picture arriving under it cannot blink it
+    this.spinnerDelay = showSpinner ? this.spinnerDelay ?? picture : null;
 
     return (
       // as wide as fits; on screens tall enough for video and controls together (desktop), short
@@ -254,7 +257,7 @@ class DriveVideo extends Component {
         />
         {showSpinner && (
           // waits 300 ms over a picture, so quick seeks do not flash it; an empty player shows it now
-          <div className={`pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 ${picture ? 'animate-[fadein_200ms_300ms_both]' : ''}`}>
+          <div className={`pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 ${this.spinnerDelay ? 'animate-[fadein_200ms_300ms_both]' : ''}`}>
             <div aria-hidden="true" className="size-12 rounded-full border-4 border-white/20 border-t-white animate-spin" />
           </div>
         )}
