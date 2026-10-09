@@ -199,6 +199,12 @@ const MediaType = {
 };
 
 class Media extends Component {
+  // A new drive gets a new <video>, and iOS lets a video play with sound only after a tap on it.
+  static getDerivedStateFromProps(props, state) {
+    const route = props.currentRoute?.fullname;
+    return route === state.route ? null : { route, isMuted: true };
+  }
+
   constructor(props) {
     super(props);
 

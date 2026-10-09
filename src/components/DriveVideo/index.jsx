@@ -30,7 +30,6 @@ class DriveVideo extends Component {
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
     this.togglePlay = this.togglePlay.bind(this);
 
-    // no buffering yet: the spinner shows while there is no picture
     this.state = { error: null };
   }
 
@@ -100,13 +99,10 @@ class DriveVideo extends Component {
       this.hls.loadSource(this.src);
       this.hls.attachMedia(video);
     }
-    if (this.props.desiredPlaySpeed) {
-      this.props.dispatch(play(this.props.desiredPlaySpeed));
-    }
+    if (this.props.desiredPlaySpeed) this.props.dispatch(play(this.props.desiredPlaySpeed));
   }
 
-  // Stop the video and hand the clock back to Redux first, since the teardown resets currentTime.
-  // Returns the offset handed back, if a video was attached.
+  // Stop the video and hand the clock back to Redux first (the teardown resets currentTime).
   unload() {
     const offset = setVideo(null);
     this.loading = null;
@@ -127,21 +123,22 @@ class DriveVideo extends Component {
 
   // A paused video shows its frame at once, and hls.js browsers report the paint. iOS native HLS
   // went black on drive close with that report, so there 0.3 s of playing stands in for it.
+  // (Events can still reach a closed player until React detaches it: it ignores them.)
   onLoadedData() {
+    if (!this.video.current) return;
     if (this.video.current.paused) this.setState({ picture: true });
     else if (this.hls) this.video.current.requestVideoFrameCallback?.(() => this.setState({ picture: true }));
   }
 
   onLoadedMetadata() {
+    if (!this.video.current) return;
     videoReady();
     const { audioTracks } = this.video.current;
-    if (!this.hls && audioTracks) {
-      this.props.onAudioStatusChange?.(audioTracks.length > 0);
-    }
+    if (!this.hls && audioTracks) this.props.onAudioStatusChange?.(audioTracks.length > 0);
   }
 
   onError() {
-    const { error } = this.video.current;
+    const { error } = this.video.current || {};
     // hls.js reports its own errors; code 1 is an abort we asked for
     if (this.hls || !error || error.code === 1) return;
     // native HLS reports a missing playlist as "unsupported" (code 4): ask the server which it was
@@ -172,6 +169,7 @@ class DriveVideo extends Component {
 
   // Mirror pauses and plays the browser made on its own (ended, autoplay rules, OS controls).
   onPause() {
+    if (!this.video.current) return;
     if (this.video.current.readyState >= 2) this.setState({ picture: true });
     if (this.props.desiredPlaySpeed && !this.video.current.ended) {
       this.props.dispatch(pause());
@@ -222,10 +220,8 @@ class DriveVideo extends Component {
     this.spinnerDelay = showSpinner ? this.spinnerDelay ?? picture : null;
 
     return (
-      // as wide as fits; on screens tall enough for video and controls together (desktop), short
-      // enough that the controls below stay on screen (about 390 px of header, timeline and
-      // controls). From 700 px up that still leaves the video about 490 px wide; shorter screens
-      // (landscape phones) scroll anyway, so they get the full width.
+      // as wide as fits; on screens at least 700 px tall, short enough that the controls (about
+      // 390 px of header, timeline and controls) stay on screen. Shorter screens scroll anyway.
       <div className="relative w-full max-w-[964px] [@media(min-height:700px)]:w-[min(100%,calc((100dvh-390px)*1.593))] m-[0_auto] aspect-[1.593] overflow-hidden rounded-lg bg-black">
         <video
           ref={this.video}

@@ -195,13 +195,17 @@ describe('DriveVideo', () => {
       store.dispatch(resetPlayback());
       store.dispatch(selectLoop(0, 180000));
     });
+    vi.useFakeTimers();
     await act(async () => rerender(<Provider store={store}><DriveVideo key="x|s" /></Provider>));
     // a reset on the page shows a white or black box on Android before the new picture
     expect(old.destroyedOnPage).toBeUndefined();
-    expect(resets.filter(([el, onPage]) => el === video && onPage)).toEqual([]);
     expect(document.querySelector('video')).not.toBe(video);
     // the wall clock may tick a millisecond between the selection and the new player
     expect(hls.instances.at(-1).config.startPosition).toBeCloseTo(0, 1);
+    // the old player is destroyed and reset a second later, off the page
+    vi.advanceTimersByTime(1000);
+    expect(old.destroyedOnPage).toBe(false);
+    expect(resets.filter(([el]) => el === video)).toEqual([[video, false]]);
   });
 
   it('starts where the user seeked while the player code loaded', async () => {
