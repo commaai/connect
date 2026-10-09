@@ -1,3 +1,5 @@
+import * as Types from '../actions/types';
+
 // The video element is the source of truth for playback position.
 // DriveVideo publishes the current offset here on every animation frame and
 // everything that follows playback (timeline scrubber, map marker, time
@@ -20,8 +22,9 @@ export function currentOffset() {
  *
  * @param {number} ms milliseconds from route start
  */
-export function seek(ms) {
+export function seek(ms, dispatch = null) {
   offsetMs = Math.max(0, ms);
+  dispatch?.({ type: Types.ACTION_SEEK, offset: offsetMs });
 }
 
 export function resetOffset(ms = 0) {

@@ -212,7 +212,7 @@ class Timeline extends Component {
     const { dragging } = this.state;
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(ev);
-      seek(this.percentToOffset(percent));
+      seek(this.percentToOffset(percent), this.props.dispatch);
     }
   }
 
@@ -268,7 +268,7 @@ class Timeline extends Component {
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
-        seek(startOffset);
+        seek(startOffset, this.props.dispatch);
       }
       const { dispatch } = this.props;
       const startTime = startOffset;

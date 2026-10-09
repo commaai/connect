@@ -92,4 +92,13 @@ describe('playback', () => {
     seek(9000);
     expect(currentOffset()).toEqual(9000);
   });
+
+  it('can report user seeks without making Redux the playback clock', () => {
+    const dispatch = vi.fn();
+
+    seek(123, dispatch);
+
+    expect(currentOffset()).toEqual(123);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'ACTION_SEEK', offset: 123 });
+  });
 });

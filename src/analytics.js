@@ -186,6 +186,18 @@ function logAction(action, prevState, state) {
       }
       return;
 
+    case Types.ACTION_SEEK:
+      if (state.zoom) {
+        percent = getVideoPercent(state);
+        gtag('event', 'video_seek', {
+          ...params,
+          play_speed: state.desiredPlaySpeed,
+          play_percentage: percent,
+          play_percentage_round: Math.round(percent * 10) / 10,
+        });
+      }
+      return;
+
     case Types.ACTION_PAUSE:
       if (state.zoom) {
         percent = getVideoPercent(state);

@@ -159,6 +159,14 @@ class DriveVideo extends Component {
     return [loop.startTime, loop.startTime + loop.duration];
   }
 
+  clampToLoop(offset) {
+    const bounds = this.loopBounds();
+    if (!bounds) {
+      return Math.max(0, offset);
+    }
+    return Math.min(Math.max(offset, bounds[0]), bounds[1]);
+  }
+
   toVideoTime(routeOffsetMs) {
     const { currentRoute } = this.props;
     const video = this.videoRef.current;
@@ -247,15 +255,15 @@ class DriveVideo extends Component {
 
     if (!this.hasMetadata) {
       // until the stream has loaded, hold the clock where playback will start
-      const bounds = this.loopBounds();
-      if (bounds) {
-        setOffset(Math.min(Math.max(currentOffset(), bounds[0]), bounds[1]));
-      }
+      setOffset(this.clampToLoop(currentOffset()));
       return;
     }
 
     // move the video to wherever the clock was seeked to
-    const targetMs = currentOffset();
+    const targetMs = this.clampToLoop(currentOffset());
+    if (targetMs !== currentOffset()) {
+      setOffset(targetMs);
+    }
     if (Math.abs(targetMs - this.toRouteMs(video.currentTime)) > SEEK_TOLERANCE_MS) {
       video.currentTime = this.toVideoTime(targetMs);
     }
@@ -308,7 +316,7 @@ class DriveVideo extends Component {
 
     // start where the timeline expects, not at zero; the frame loop has
     // already moved the clock into the selection
-    video.currentTime = this.toVideoTime(currentOffset());
+    video.currentTime = this.toVideoTime(this.clampToLoop(currentOffset()));
 
     if (desiredPlaySpeed > 0) {
       safePlay(video);
@@ -321,10 +329,14 @@ class DriveVideo extends Component {
   }
 
   onCanPlay() {
+    this.fragmentRetries = 0;
+    this.mediaErrorRetries = 0;
     this.props.dispatch(bufferVideo(false));
   }
 
   onPlaying() {
+    this.fragmentRetries = 0;
+    this.mediaErrorRetries = 0;
     this.props.dispatch(bufferVideo(false));
     this.props.dispatch(setPlaying(true));
   }
@@ -451,20 +463,20 @@ class DriveVideo extends Component {
       case 'j':
       case 'J':
         ev.preventDefault();
-        setOffset(offset - 10000);
+        setOffset(offset - 10000, this.props.dispatch);
         break;
       case 'l':
       case 'L':
         ev.preventDefault();
-        setOffset(offset + 10000);
+        setOffset(offset + 10000, this.props.dispatch);
         break;
       case 'ArrowLeft':
         ev.preventDefault();
-        setOffset(offset - 5000);
+        setOffset(offset - 5000, this.props.dispatch);
         break;
       case 'ArrowRight':
         ev.preventDefault();
-        setOffset(offset + 5000);
+        setOffset(offset + 5000, this.props.dispatch);
         break;
       default:
         break;

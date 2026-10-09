@@ -151,11 +151,11 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    seek(currentOffset() - amount);
+    seek(currentOffset() - amount, this.props.dispatch);
   }
 
   jumpForward(amount) {
-    seek(currentOffset() + amount);
+    seek(currentOffset() + amount, this.props.dispatch);
   }
 
   updateTime() {
