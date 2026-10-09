@@ -98,7 +98,6 @@ export default function reducer(_state, action) {
           end: null,
         },
         routes: null,
-        currentRoute: null,
       };
       break;
     case Types.ACTION_UPDATE_ROUTE_LIMIT:

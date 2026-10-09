@@ -1,4 +1,4 @@
-import { parseLocation, pathFor, dialogLocation } from './url';
+import { parseLocation, pathFor, dialogLocation, authContinuation } from './url';
 
 const D = '0000aaaa0000aaaa';
 const L = '2026-08-06--12-00-00';
@@ -62,4 +62,14 @@ describe('URL grammar', () => {
     expect(read('/referrals', '?dialog=clips').dialog).toBeNull();
   });
 
+});
+
+
+it('scopes sign-in continuations to root and rejects external or backslash hosts', () => {
+  const value = '/aaaaaaaaaaaaaaaa?dialog=settings&ci=1#point';
+  expect(authContinuation({ pathname: '/', search: `?r=${encodeURIComponent(value)}` })).toBe(value);
+  expect(authContinuation({ pathname: '/aaaaaaaaaaaaaaaa', search: `?r=${encodeURIComponent(value)}` })).toBeNull();
+  for (const target of ['https://evil.example', '//evil.example', '/\\evil.example', 'javascript:alert(1)', '/a/..//evil.example', '/.%2e//evil.example', '/a/..///evil.example']) {
+    expect(authContinuation({ pathname: '/', search: `?r=${encodeURIComponent(target)}` })).toBeNull();
+  }
 });

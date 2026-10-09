@@ -1,4 +1,4 @@
-import { parseLocation } from '../url';
+import { authContinuation, parseLocation } from '../url';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
@@ -101,10 +101,8 @@ class ExplorerApp extends Component {
 
     window.scrollTo({ top: 0 }); // for ios header
 
-    const q = new URLSearchParams(window.location.search);
-    if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
-    }
+    const continuation = authContinuation(window.location);
+    if (continuation) this.props.dispatch(replace(continuation));
 
     this.props.dispatch(init());
 

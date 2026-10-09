@@ -74,3 +74,13 @@ export function dialogLocation(location, dialog, device, clipFilename) {
   const search = query.toString();
   return { pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash || '' };
 }
+
+// The legacy sign-in continuation belongs only to the root callback URL.
+export function authContinuation(location) {
+  const target = location.pathname === '/' && new URLSearchParams(location.search).get('r');
+  if (!target || !target.startsWith('/')) return null;
+  try {
+    const url = new URL(target, 'https://connect.local');
+    return url.origin === 'https://connect.local' && !url.pathname.startsWith('//') ? locationPath(url) : null;
+  } catch { return null; }
+}

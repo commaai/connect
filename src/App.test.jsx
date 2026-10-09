@@ -111,6 +111,7 @@ async function mockFetch(input, init = {}) {
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
   }
+  if (url.pathname.endsWith('/athena_offline_queue')) return json([]);
   if (url.pathname.endsWith('/location')) return json({ error: 'no_segments_uploaded' });
   if (url.pathname.endsWith('/stats')) return json(null);
   if (/^\/v1\.1\/devices\/[a-f0-9]{16}\/$/.test(url.pathname)) {
@@ -460,6 +461,26 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText('Start date:')).toBeVisible();
     expect(history.location).toMatchObject({ pathname: `/${FIRST}`, search: '?dialog=filter&ci=1', hash: '#point' });
     expect(history.length).toBe(1);
+  });
+
+  test('regression: saving a filter opened above a drive retains that drive', async () => {
+    const {history,store}=await renderApp(`/${FIRST}/${LOG}?dialog=filter`);
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    fireEvent.click(screen.getByRole('button',{name:'Save'}));
+    await waitFor(()=>expect(history.location.search).toBe(''));
+    expect(store.getState().currentRoute?.log_id).toBe(LOG);
+    expect(await screen.findByRole('slider',{name:'Drive timeline'})).toBeVisible();
+  });
+  test('regression: unrelated redirect argument on a drive cannot replace the major page', async () => {
+    const target=`/${FIRST}/${LOG}?dialog=info&r=%2F${SECOND}`;
+    const {history,store}=await renderApp(target);
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(history.location.search).toBe(`?dialog=info&r=%2F${SECOND}`);
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    expect(await screen.findByRole('menu')).toBeVisible();
+    fireEvent.keyDown(document.activeElement, { key: 'Escape', code: 'Escape', keyCode: 27 });
+    await waitFor(() => expect(history.location.search).toBe(`?r=%2F${SECOND}`));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
   });
 
 });
