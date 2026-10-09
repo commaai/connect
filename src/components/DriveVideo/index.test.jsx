@@ -198,6 +198,23 @@ describe('DriveVideo', () => {
     expect(hls.instances[0].config.startPosition).toEqual(60);
   });
 
+  it('keeps the spinner until the video shows its first frame', async () => {
+    const frames = [];
+    HTMLMediaElement.prototype.requestVideoFrameCallback = vi.fn((cb) => frames.push(cb));
+    renderPlayer();
+    await act(async () => {});
+    const video = document.querySelector('video');
+    // the browser has data and is playing, but has not painted a frame yet
+    fireEvent.loadedData(video);
+    fireEvent.canPlay(video);
+    fireEvent.playing(video);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading video');
+
+    act(() => frames.forEach((cb) => cb()));
+    expect(screen.getByRole('status')).toHaveTextContent('');
+    delete HTMLMediaElement.prototype.requestVideoFrameCallback;
+  });
+
   it('never resets a video that is leaving the page', async () => {
     window.MediaSource = undefined;
     renderPlayer();

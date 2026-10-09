@@ -26,13 +26,12 @@ class DriveVideo extends Component {
     this.onPlay = this.onPlay.bind(this);
     this.onEnded = this.onEnded.bind(this);
     this.onLoadedMetadata = this.onLoadedMetadata.bind(this);
+    this.onLoadedData = this.onLoadedData.bind(this);
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
     this.togglePlay = this.togglePlay.bind(this);
 
-    this.state = {
-      buffering: true,
-      error: null,
-    };
+    // no buffering yet: the spinner shows while there is no picture
+    this.state = { error: null };
   }
 
   componentDidMount() {
@@ -117,6 +116,14 @@ class DriveVideo extends Component {
     this.failedAt = this.unload();
     this.props.dispatch(pause());
     this.setState({ buffering: false, error });
+  }
+
+  // Data is decoded, but the frame can paint 0.3 s later: wait for it where the browser says when.
+  onLoadedData() {
+    const video = this.video.current;
+    const shown = () => this.setState({ picture: true });
+    if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(shown);
+    else shown();
   }
 
   onLoadedMetadata() {
@@ -215,7 +222,7 @@ class DriveVideo extends Component {
   render() {
     const { desiredPlaySpeed, isMuted } = this.props;
     const { buffering, error, picture } = this.state;
-    const showSpinner = buffering && !error && desiredPlaySpeed > 0;
+    const showSpinner = (buffering || !picture) && !error && desiredPlaySpeed > 0;
 
     return (
       // as wide as fits; on screens tall enough for video and controls together (desktop), short
@@ -231,7 +238,7 @@ class DriveVideo extends Component {
           muted={isMuted}
           onClick={this.togglePlay}
           onLoadedMetadata={this.onLoadedMetadata}
-          onLoadedData={() => this.setState({ picture: true })}
+          onLoadedData={this.onLoadedData}
           onEmptied={() => this.setState({ picture: false })}
           onLoadStart={() => this.setState({ buffering: true })}
           onWaiting={() => this.setState({ buffering: true })}
