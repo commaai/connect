@@ -8,6 +8,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
+import { navigateTo } from '../../actions/history';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
@@ -88,10 +89,6 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
     this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
@@ -101,11 +98,11 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
+    this.props.dispatch(navigateTo({ kind: 'settings', dongleId }));
   }
 
   handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    this.props.dispatch(navigateTo({ kind: 'dashboard', dongleId: this.props.selectedDevice }));
   }
 
   async onVisible() {
@@ -158,7 +155,7 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
+    const settingsModalDongleId = this.props.settingsNav ? this.props.selectedDevice : null;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -213,6 +210,7 @@ class DeviceList extends Component {
 }
 
 const stateToProps = (state) => ({
+  settingsNav: state.settingsNav,
   devices: state.devices,
   device: state.device,
   profile: state.profile,
