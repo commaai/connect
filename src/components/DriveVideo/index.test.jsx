@@ -216,23 +216,29 @@ describe('DriveVideo', () => {
     expect(screen.getByRole('status')).toHaveTextContent('');
     cleanup();
 
-    // native HLS (iOS) gets no frame report: 0.3 s of played time stands in for the paint
+    // native HLS (iOS) gets no frame report: 0.3 s of playing stands in for the paint, at any speed
     window.MediaSource = undefined;
     frames.length = 0;
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
     renderPlayer();
     const native = document.querySelector('video');
-    let time = 10;
     Object.defineProperty(native, 'paused', { get: () => false });
-    Object.defineProperty(native, 'currentTime', { get: () => time, set: () => {} });
     fireEvent.loadedData(native);
     fireEvent.playing(native);
-    time = 10.1;
+    now += 100;
     fireEvent.timeUpdate(native);
     expect(screen.getByRole('status')).toHaveTextContent('Loading video');
-    time = 10.3;
+    now += 200;
     fireEvent.timeUpdate(native);
     expect(screen.getByRole('status')).toHaveTextContent('');
     expect(frames).toEqual([]);
+    // a new source starts over: the old play time does not count
+    fireEvent.emptied(native);
+    now += 1000;
+    fireEvent.timeUpdate(native);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading video');
+    vi.restoreAllMocks();
   });
 
   it('shows no spinner over the frame of a paused video when Play starts it', async () => {
@@ -261,16 +267,20 @@ describe('DriveVideo', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('never resets a video that is leaving the page', async () => {
+  it('resets a leaving video only once it is off the page', async () => {
+    vi.useFakeTimers();
     window.MediaSource = undefined;
     renderPlayer();
     const video = document.querySelector('video');
     expect(video.getAttribute('src')).toBeTruthy();
-    HTMLMediaElement.prototype.load.mockClear();
+    const resets = [];
+    HTMLMediaElement.prototype.load = vi.fn(function load() { resets.push(this.isConnected); });
     cleanup();
-    await new Promise((done) => { setTimeout(done, 50); });
-    // a reset paints the box black on iOS before the next page shows
-    expect(HTMLMediaElement.prototype.load).not.toHaveBeenCalled();
-    expect(video.getAttribute('src')).toBeTruthy();
+    // a reset on the page paints the box black on iOS before the next page shows
+    vi.advanceTimersByTime(100);
+    expect(resets).toEqual([]);
+    vi.advanceTimersByTime(1000);
+    expect(resets).toEqual([false]);
+    expect(video.getAttribute('src')).toBeNull();
   });
 });

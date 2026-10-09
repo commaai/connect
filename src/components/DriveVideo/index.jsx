@@ -50,11 +50,13 @@ class DriveVideo extends Component {
     }
   }
 
-  // The browser pauses a video that leaves the page; resetting it too painted black on iOS.
+  // A reset on the page painted the player black on iOS, so stop the download only once it is off.
   componentWillUnmount() {
+    const video = this.video.current;
     setVideo(null);
     this.loading = null;
     this.hls?.destroy();
+    setTimeout(() => { video.removeAttribute('src'); video.load(); }, 1000);
   }
 
   // Play the current route from the current playback offset.
@@ -119,13 +121,10 @@ class DriveVideo extends Component {
   }
 
   // A paused video shows its frame at once, and hls.js browsers report the paint. iOS native HLS
-  // went black on drive close with that report, so there 0.3 s of played time stands in for it.
+  // went black on drive close with that report, so there 0.3 s of playing stands in for it.
   onLoadedData() {
-    const video = this.video.current;
-    const shown = () => this.setState({ picture: true });
-    this.dataAt = video.currentTime;
-    if (video.paused) shown();
-    else if (this.hls) video.requestVideoFrameCallback?.(shown);
+    if (this.video.current.paused) this.setState({ picture: true });
+    else if (this.hls) this.video.current.requestVideoFrameCallback?.(() => this.setState({ picture: true }));
   }
 
   onLoadedMetadata() {
@@ -171,6 +170,7 @@ class DriveVideo extends Component {
 
   // Mirror pauses and plays the browser made on its own (ended, autoplay rules, OS controls).
   onPause() {
+    if (this.video.current.readyState >= 2) this.setState({ picture: true });
     if (this.props.desiredPlaySpeed && !this.video.current.ended) {
       this.props.dispatch(pause());
     }
@@ -202,7 +202,7 @@ class DriveVideo extends Component {
   onTimeUpdate() {
     const { dispatch, loop } = this.props;
     const video = this.video.current;
-    if (!this.state.picture && !video.paused && Math.abs(video.currentTime - this.dataAt) >= 0.3) {
+    if (!this.state.picture && !video.paused && !video.seeking && performance.now() - this.playingAt >= 300) {
       this.setState({ picture: true });
     }
     if (!loop?.duration || video.seeking) return;
@@ -239,12 +239,12 @@ class DriveVideo extends Component {
           onClick={this.togglePlay}
           onLoadedMetadata={this.onLoadedMetadata}
           onLoadedData={this.onLoadedData}
-          onEmptied={() => this.setState({ picture: false })}
+          onEmptied={() => { this.playingAt = NaN; this.setState({ picture: false }); }}
           onLoadStart={() => this.setState({ buffering: true })}
           onWaiting={() => this.setState({ buffering: true })}
           onSeeking={() => this.setState({ buffering: true })}
           onCanPlay={() => this.setState({ buffering: false })}
-          onPlaying={() => this.setState({ buffering: false })}
+          onPlaying={() => { this.playingAt = performance.now(); this.setState({ buffering: false }); }}
           onSeeked={() => this.setState({ buffering: false })}
           onPlay={this.onPlay}
           onPause={this.onPause}
