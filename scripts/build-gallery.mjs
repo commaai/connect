@@ -200,6 +200,11 @@ async function fetchFixtures() {
       },
     }))),
     sprite: Buffer.from(await sprite.arrayBuffer()),
+    video: Object.fromEntries(await Promise.all(
+      ['audio.m3u8', 'audio-0.ts', 'audio-1.ts', 'audio-2.ts'].map(async (file) => (
+        [file, await readFile(resolve('public/demo-video', file))]
+      )),
+    )),
   };
 }
 
@@ -372,13 +377,17 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
     if (path === `/v1/devices/${DONGLE_ID}/routes_segments`) return jsonResponse(request, [data.route]);
     if (path === `/v1/devices/${DONGLE_ID}/routes/preserved`) return jsonResponse(request, [data.route]);
     if (path === `/v1/route/${ROUTE_NAME}/files`) return jsonResponse(request, {});
-    if (path === `/v1/route/${ROUTE_NAME}/qcamera.m3u8`) {
-      return request.respond({
-        status: 200,
-        contentType: 'application/vnd.apple.mpegurl',
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        body: '#EXTM3U\n#EXT-X-ENDLIST\n',
-      });
+    const videoPath = `/v1/route/${ROUTE_NAME}/`;
+    if (path.startsWith(videoPath)) {
+      const file = path.slice(videoPath.length).replace('qcamera.m3u8', 'audio.m3u8');
+      if (fixtures.video[file]) {
+        return request.respond({
+          status: 200,
+          contentType: file.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp2t',
+          headers: { 'Access-Control-Allow-Origin': '*' },
+          body: fixtures.video[file],
+        });
+      }
     }
     // Keep the pairing request pending long enough to capture its loading modal.
     if (path === '/v2/pilotpair') return undefined;
@@ -686,6 +695,10 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
         throw new Error('Gallery root is missing or blank');
       }
     });
+    if (pageState.name === 'drive' && await page.$('video[aria-label="Drive video"]')) {
+      await page.waitForFunction(() => document.querySelector('video').readyState >= 2, { timeout: 15000 });
+      await page.$eval('video', (video) => { video.pause(); video.currentTime = 0; });
+    }
     await page.addStyleTag({ content: `
       *, *::before, *::after {
         animation: none !important;

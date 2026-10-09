@@ -5,8 +5,8 @@
 //   - route listing: synthetic routes cloned from one cached public route
 //   - route files: synthetic file listings cloned from one cached public files
 //     response
-//   - video URLs: demo routes stream the underlying public route, except the
-//     clone mutated to be missing qcamera (it has no share credentials)
+//   - video URLs: public route streams and a local audio fixture; the missing
+//     qcamera clone has no share credentials
 // Everything else (billing, athena, ...) passes through.
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
 
@@ -112,6 +112,25 @@ const TEST_CASES = MISSING_DATA_CASES.flatMap((testCase) => [
     affectedSegment: AFFECTED_SEGMENT,
   },
 ]);
+
+// Identical H.264/AAC fixtures exercise both delivery paths without a device.
+const audioCase = {
+  route(route) {
+    const start = route.segment_start_times[0];
+    route.segment_numbers = [0];
+    route.segment_start_times = [start];
+    route.segment_end_times = [start + 12000];
+    route.end_time_utc_millis = start + 12000;
+    route.maxqlog = -1;
+    route.events = [];
+    route.driveCoords = {};
+    route.distance = 0;
+  },
+};
+TEST_CASES.push(
+  { ...audioCase, title: 'Playback with audio (HLS test pattern)', videoUrl: '/demo-video/audio.m3u8' },
+  { ...audioCase, title: 'Playback with audio (MP4 test pattern)', videoUrl: '/demo-video/audio.mp4' },
+);
 
 function fileSegmentNumber(file) {
   const pathParts = new URL(file).pathname.split('/');
@@ -261,6 +280,8 @@ export function createDemoBackend(realBackend) {
     video: {
       ...realBackend.video,
       getQcameraStreamUrl(routeStr, exp, sig) {
+        const testCase = TEST_CASES[demoRouteIndex(routeStr)];
+        if (testCase?.videoUrl) return testCase.videoUrl;
         // demo routes keep the public route's share credentials, so stream the
         // underlying public route; the clone missing qcamera has no credentials
         // and passes through to a URL that cannot resolve

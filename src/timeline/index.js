@@ -1,5 +1,15 @@
 import store from '../store';
 
+let videoClock = null;
+
+// Read the media clock directly for smooth map/timeline animation between timeupdate events.
+export function setVideoClock(clock) {
+  videoClock = clock;
+  return () => {
+    if (videoClock === clock) videoClock = null;
+  };
+}
+
 /**
  * Get current playback offset
  *
@@ -7,27 +17,10 @@ import store from '../store';
  * @returns {number}
  */
 export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
+  if (!state && videoClock) {
+    const offset = videoClock();
+    if (offset !== null) return offset;
   }
-
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
-
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
-  }
-  return offset;
+  state = state || store.getState();
+  return state.offset ?? state.loop?.startTime ?? 0;
 }
