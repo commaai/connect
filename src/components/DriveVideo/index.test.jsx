@@ -259,6 +259,13 @@ describe('DriveVideo', () => {
     expect(hls.instances).toHaveLength(0);
   });
 
+  it('shows a network error when hls.js fails to load', async () => {
+    vi.stubGlobal('MediaSource', class {});
+    vi.doMock('hls.js/light', () => { throw new Error('Failed to fetch dynamically imported module'); });
+    renderVideo();
+    await vi.waitFor(() => expect(screen.getByText('Unable to load video. Check network connection.')).toBeVisible());
+  });
+
   it('plays through hls.js, reports audio and recovers once from a fatal media error', async () => {
     const onAudioStatusChange = vi.fn();
     const { video, player } = await renderHls({ onAudioStatusChange });
