@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 // the narrowest a small window gets, as a share of the frame's width
 const MIN_WIDTH = 0.2;
@@ -42,60 +42,40 @@ const SmallWindow = ({
   const ref = useRef(null);
   const gesture = useRef(null);
   const latest = useRef(null);
+  const settings = useRef(null);
+  settings.current = { aspect, storageKey };
   const [box, setBox] = useState(() => loadBox(storageKey));
   const [corner, setCorner] = useState('bottom-right');
 
   // resize from the corner facing the middle of the frame, wherever the window has been put
-  useLayoutEffect(() => {
-    if (!small || gesture.current) {
-      return;
-    }
+  const placeResizeCorner = () => {
     const frame = ref.current.parentElement.getBoundingClientRect();
     const win = ref.current.getBoundingClientRect();
     const right = win.left + (win.width / 2) > frame.left + (frame.width / 2);
     const bottom = win.top + (win.height / 2) > frame.top + (frame.height / 2);
     setCorner(`${bottom ? 'top' : 'bottom'}-${right ? 'left' : 'right'}`);
+  };
+  useLayoutEffect(() => {
+    if (small && !gesture.current) {
+      placeResizeCorner();
+    }
   });
 
-  // the bottom bar and the resize corner grab the pointer at once; the window itself only once
-  // the press has moved, so taps still reach what is inside, like the video's double tap
-  const onPointerDown = (mode) => (ev) => {
-    if (ev.button !== 0 || gesture.current || (mode === 'body' && ev.target.closest('button'))) {
-      return;
-    }
-    const grabbed = mode !== 'body';
-    if (grabbed) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      ev.currentTarget.setPointerCapture(ev.pointerId);
-    }
-    gesture.current = {
-      mode: mode === 'resize' ? 'resize' : 'move',
-      corner,
-      grabbed,
-      element: ev.currentTarget,
-      pointerId: ev.pointerId,
-      x: ev.clientX,
-      y: ev.clientY,
-      frame: ref.current.parentElement.getBoundingClientRect(),
-      win: ref.current.getBoundingClientRect(),
-    };
-  };
-
-  const onPointerMove = (ev) => {
+  // the window follows the pointer anywhere on the page until it is released
+  const onWindowPointerMove = (ev) => {
     const g = gesture.current;
     if (!g || ev.pointerId !== g.pointerId) {
       return;
     }
+    const { aspect: ratio } = settings.current;
     const { frame, win } = g;
     const dx = ev.clientX - g.x;
     const dy = ev.clientY - g.y;
-    if (!g.grabbed) {
+    if (!g.dragging) {
       if (Math.hypot(dx, dy) < DRAG_THRESHOLD) {
         return;
       }
-      g.element.setPointerCapture(ev.pointerId);
-      g.grabbed = true;
+      g.dragging = true;
     }
     // relative to the frame, in pixels
     const winLeft = win.left - frame.left;
@@ -112,25 +92,62 @@ const SmallWindow = ({
       const fromTop = g.corner.startsWith('top');
       const anchorX = fromLeft ? winLeft + win.width : winLeft;
       const anchorY = fromTop ? winTop + win.height : winTop;
-      const grow = Math.max(fromLeft ? -dx : dx, (fromTop ? -dy : dy) * aspect);
-      const maxWidth = Math.min(fromLeft ? anchorX : frame.width - anchorX, (fromTop ? anchorY : frame.height - anchorY) * aspect);
+      const grow = Math.max(fromLeft ? -dx : dx, (fromTop ? -dy : dy) * ratio);
+      const maxWidth = Math.min(fromLeft ? anchorX : frame.width - anchorX, (fromTop ? anchorY : frame.height - anchorY) * ratio);
       width = clamp(win.width + grow, MIN_WIDTH * frame.width, maxWidth);
       left = fromLeft ? anchorX - width : anchorX;
-      top = fromTop ? anchorY - (width / aspect) : anchorY;
+      top = fromTop ? anchorY - (width / ratio) : anchorY;
     }
     latest.current = { left: left / frame.width, top: top / frame.height, width: width / frame.width };
     setBox(latest.current);
   };
 
-  const onPointerUp = (ev) => {
+  const onWindowPointerUp = (ev) => {
     const g = gesture.current;
     if (!g || ev.pointerId !== g.pointerId) {
       return;
     }
-    if (g.grabbed && latest.current) {
-      saveBox(storageKey, latest.current);
+    g.stop();
+    if (g.dragging && latest.current) {
+      saveBox(settings.current.storageKey, latest.current);
+      placeResizeCorner();
     }
+  };
+
+  const stopTracking = () => {
+    window.removeEventListener('pointermove', onWindowPointerMove);
+    window.removeEventListener('pointerup', onWindowPointerUp);
+    window.removeEventListener('pointercancel', onWindowPointerUp);
     gesture.current = null;
+  };
+
+  // let go of the page if the window goes away mid-gesture
+  useEffect(() => () => gesture.current?.stop(), []);
+
+  // The bottom bar and the resize corner take the press for themselves. A press on the window
+  // itself is left to what is inside, like the video's double tap, until it moves.
+  const onPointerDown = (mode) => (ev) => {
+    if (ev.button !== 0 || gesture.current || (mode === 'body' && ev.target.closest('button'))) {
+      return;
+    }
+    if (mode !== 'body') {
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+    gesture.current = {
+      mode: mode === 'resize' ? 'resize' : 'move',
+      corner,
+      dragging: false,
+      pointerId: ev.pointerId,
+      x: ev.clientX,
+      y: ev.clientY,
+      frame: ref.current.parentElement.getBoundingClientRect(),
+      win: ref.current.getBoundingClientRect(),
+      stop: stopTracking,
+    };
+    window.addEventListener('pointermove', onWindowPointerMove);
+    window.addEventListener('pointerup', onWindowPointerUp);
+    window.addEventListener('pointercancel', onWindowPointerUp);
   };
 
   let className = fullClassName;
@@ -139,13 +156,9 @@ const SmallWindow = ({
   if (small) {
     className = `${smallClassName} ${box ? '' : defaultClassName} ${dragAnywhere ? 'cursor-move touch-none select-none' : ''}`;
     style = box ? { left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%` } : undefined;
-    // moves and releases bubble up here from the bottom bar and the resize corner too
-    windowHandlers = {
-      onPointerDown: dragAnywhere ? onPointerDown('body') : undefined,
-      onPointerMove,
-      onPointerUp,
-      onPointerCancel: onPointerUp,
-    };
+    if (dragAnywhere) {
+      windowHandlers = { onPointerDown: onPointerDown('body') };
+    }
   }
 
   return (
