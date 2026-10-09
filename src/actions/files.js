@@ -97,7 +97,7 @@ export function updateFiles(files) {
 }
 
 export function fetchFiles(routeName, nocache = false) {
-  return async (dispatch) => {
+  return async (dispatch, getState) => {
     let files;
     try {
       files = await api.routes.getRouteFiles(routeName, nocache);
@@ -107,7 +107,9 @@ export function fetchFiles(routeName, nocache = false) {
       return;
     }
 
-    const dongleId = routeName.split('|')[0];
+    const [dongleId, logId] = routeName.split('|');
+    const current = getState();
+    if (current.dongleId !== dongleId || current.selectedRouteId !== logId) return;
     const urlName = routeName.replace('|', '/');
     const urls = Object
       .keys(FILE_NAMES)

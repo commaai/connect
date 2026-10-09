@@ -59,7 +59,6 @@ const TimeSelect = ({ classes, onClose, filter, dispatch }) => {
       parseDate(start).setHours(0, 0, 0, 0),
       parseDate(end).setHours(23, 59, 59, 999),
     ));
-    onClose();
   };
 
   const max = new Date();

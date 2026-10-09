@@ -47,14 +47,16 @@ const styles = () => ({
   },
 });
 
-const AnonymousLanding = ({ classes, pathname }) => {
+const AnonymousLanding = ({ classes, pathname, search }) => {
   useEffect(() => {
     if (typeof window.sessionStorage !== 'undefined') {
-      const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
+      const q = new URLSearchParams(search);
+      const redirectURL = q.get('r') ?? `${pathname}${search}`;
       sessionStorage.setItem('redirectURL', redirectURL);
     }
+  }, [pathname, search]);
 
+  useEffect(() => {
     const handleSuccess = (data) => {
       const { code, state } = data.detail.authorization;
       window.location = `${AuthConfig.APPLE_REDIRECT_PATH}?${stringifyQuery({ code, state })}`;
@@ -129,6 +131,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
 
 const stateToProps = (state) => ({
   pathname: state.router.location.pathname,
+  search: state.router.location.search,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));

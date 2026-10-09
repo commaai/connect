@@ -20,7 +20,8 @@ import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
-import { analyticsEvent, updateRoute } from '../../actions';
+import { analyticsEvent, updateRoute, navigateDialog } from '../../actions';
+import { getDialog } from '../../url';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
@@ -208,7 +209,6 @@ class Media extends Component {
       downloadMenu: null,
       clipMenu: null,
       moreInfoMenu: null,
-      uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
@@ -636,8 +636,8 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { currentRoute, device, classes, files, profile, uploadModal } = this.props;
+    const { downloadMenu, clipMenu, moreInfoMenu, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -747,7 +747,10 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+              onClick={ files ? () => {
+                this.setState({ downloadMenu: null });
+                this.props.dispatch(navigateDialog('uploads'));
+              } : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -824,7 +827,7 @@ class Media extends Component {
         </Menu>
         <UploadQueue
           open={ uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
+          onClose={ () => this.props.dispatch(navigateDialog(null)) }
           update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
           store={ this.props.store }
           device={ device }
@@ -920,6 +923,7 @@ class Media extends Component {
 }
 
 const stateToProps = (state) => ({
+  uploadModal: getDialog(state.router.location) === 'uploads',
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,

@@ -9,11 +9,11 @@ import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
+  const zoom = getZoom(pathname);
   const dongleId = getDongleID(pageLocation);
   if (dongleId) {
     pageLocation = pageLocation.replace(dongleId, '<dongleId>');
   }
-  const zoom = getZoom(pageLocation);
   if (zoom) {
     pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
     pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');

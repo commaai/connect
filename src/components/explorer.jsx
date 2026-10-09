@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -10,16 +10,21 @@ import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import TimeSelect from './TimeSelect';
+import UploadQueue from './Files/UploadQueue';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav, navigate } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { parseUrl, deviceUrl } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -198,12 +203,15 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, device, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, filter,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const url = parseUrl(pathname);
+    const referralsOpen = url.page === 'referrals';
+    const canManageDevice = device && (device.is_owner || profile?.superuser);
+    const settingsMounted = ['settings', 'uploads'].includes(url.page) && canManageDevice;
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -243,13 +251,40 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+              { url.page === 'notFound'
+                ? (
+                  <div className="flex flex-col items-center gap-4 p-8 text-center">
+                    <Typography variant="headline" component="h1">Page not found</Typography>
+                    <Typography>This link does not match a page in comma connect.</Typography>
+                    <Button variant="outlined" onClick={() => dispatch(navigate(dongleId ? deviceUrl(dongleId) : '/'))}>
+                      Go to drives
+                    </Button>
+                  </div>
+                )
+                : referralsOpen
+                ? <Referrals profile={profile} onBack={() => dispatch(navigate(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            {url.page === 'pair' && (
+              <AddDevice isOpen onClose={() => dispatch(navigate(dongleId ? deviceUrl(dongleId) : '/'))} />
+            )}
+            {url.page === 'filter' && (
+              <TimeSelect key={`${dongleId}:${filter.start}:${filter.end}`} onClose={() => dispatch(navigate(deviceUrl(dongleId)))} />
+            )}
+            {url.page === 'uploads' && canManageDevice && (
+              <UploadQueue open update device={device} onClose={() => dispatch(navigate(deviceUrl(dongleId, 'settings')))} />
+            )}
+            {settingsMounted && (
+              <DeviceSettingsModal
+                key={dongleId}
+                isOpen={url.page === 'settings'}
+                dongleId={dongleId}
+                onClose={() => dispatch(navigate(deviceUrl(dongleId)))}
+              />
+            )}
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -280,11 +315,13 @@ const stateToProps = (state) => ({
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
   devices: state.devices,
+  device: state.device,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
   limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
+  bodyTeleopOpen: parseUrl(state.router.location.pathname).page === 'stream',
   profile: state.profile,
+  filter: state.filter,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

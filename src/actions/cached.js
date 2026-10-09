@@ -262,19 +262,8 @@ function parseEvents(route, driveEvents) {
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.routes) {
-      return;
-    }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.events) {
-          return;
-        }
-        break;
-      }
-    }
+    const cached = state.routes?.find((r) => r.fullname === route.fullname) || state.routeCache?.[route.log_id];
+    if (cached?.fullname === route.fullname && cached.events) return;
 
     // already requesting
     if (eventsRequests[route.fullname] !== undefined) {
@@ -345,19 +334,12 @@ export function fetchEvents(route) {
 export function fetchCoord(route, coord, locationKey) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.routes || (!coord[0] && !coord[1])) {
+    if (!coord[0] && !coord[1]) {
       return;
     }
 
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r[locationKey]) {
-          return;
-        }
-        break;
-      }
-    }
+    const cached = state.routes?.find((r) => r.fullname === route.fullname) || state.routeCache?.[route.log_id];
+    if (cached?.fullname === route.fullname && cached[locationKey]) return;
 
     // round for better caching
     coord[0] = Math.round(coord[0] * 1000) / 1000;
@@ -418,19 +400,8 @@ export function fetchLocations(route) {
 export function fetchDriveCoords(route) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.routes) {
-      return;
-    }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.driveCoords) {
-          return;
-        }
-        break;
-      }
-    }
+    const cached = state.routes?.find((r) => r.fullname === route.fullname) || state.routeCache?.[route.log_id];
+    if (cached?.fullname === route.fullname && cached.driveCoords) return;
 
     // already requesting
     if (driveCoordsRequests[route.fullname] !== undefined) {

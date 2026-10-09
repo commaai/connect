@@ -58,11 +58,10 @@ export default function reducer(_state, action) {
         ...state,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
+        routeCache: {},
         limit: 0,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
@@ -97,7 +96,6 @@ export default function reducer(_state, action) {
           end: null,
         },
         routes: null,
-        currentRoute: null,
       };
       break;
     case Types.ACTION_UPDATE_ROUTE_LIMIT:
@@ -300,21 +298,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -335,33 +318,24 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
+      if (state.selectedRouteId !== action.log_id) {
         state.files = null;
       }
 
       state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
+      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id)
+        || state.routeCache?.[action.log_id] || null;
       if (action.log_id) {
         if (action.start != null && action.end != null) {
           state.zoom = {
             start: action.start,
             end: action.end,
-            previous: state.zoom,
           };
         } else {
           state.zoom = state.currentRoute ? {
             start: 0,
             end: state.currentRoute.duration,
-            previous: state.zoom,
           } : null;
           state.loop = null;
         }
@@ -409,23 +383,29 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_ROUTES_METADATA:
+    case Types.ACTION_ROUTES_METADATA: {
       // merge existing routes' event and location info with new routes
-      state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+      const routes = action.routes.map((route) => {
+        const existingRoute = state.routeCache?.[route.log_id]
+          || state.lastRoutes?.find((r) => r.fullname === route.fullname);
         return {
           ...existingRoute,
           ...route,
         }
       });
-      state.routesMeta = {
-        dongleId: action.dongleId,
-        start: action.start,
-        end: action.end,
-      };
+      state.routeCache = { ...state.routeCache, ...Object.fromEntries(routes.map((route) => [route.log_id, route])) };
+      if (action.logId && !routes.length) state.routeCache[action.logId] = null;
+      // Detail lookups must not replace the dashboard's membership or coverage.
+      if (!action.logId) {
+        state.routes = routes;
+        state.routesMeta = {
+          dongleId: action.dongleId,
+          start: action.start,
+          end: action.end,
+        };
+      }
       if (!state.currentRoute && state.selectedRouteId) {
-        const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
+        const curr = state.routeCache[state.selectedRouteId];
         if (curr) {
           state.currentRoute = {
             ...curr,
@@ -446,9 +426,13 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    }
     default:
       return state;
   }
 
+  if (state.currentRoute && state.currentRoute !== _state.currentRoute) {
+    state.routeCache = { ...state.routeCache, [state.currentRoute.log_id]: state.currentRoute };
+  }
   return state;
 }

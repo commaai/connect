@@ -130,11 +130,12 @@ class App extends Component {
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
     let content = (
       <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+        <Route render={({ location: { pathname } }) => {
+          const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
+          return showLogin ? this.anonymousRoutes() : this.authRoutes();
+        }} />
       </Suspense>
     );
 
