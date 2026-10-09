@@ -106,6 +106,26 @@ test('shows media errors without overwriting timeline navigation and recovers wh
   expect(queryByText('Unable to load video')).toBeNull();
 });
 
+test('retrying a failed video loads it again at the current offset', async () => {
+  const { store, video, container, getByRole, queryByText } = await mountVideo();
+  act(() => store.dispatch(seek(32000)));
+  fireEvent.seeked(video);
+  fireEvent.error(video);
+  expect(store.getState().videoStatus).toBe(VideoStatus.FAILED);
+
+  fireEvent.click(getByRole('button', { name: 'Retry' }));
+  await waitFor(() => expect(container.querySelector('video')).not.toBe(video));
+  expect(queryByText('Unable to load video')).toBeNull();
+  expect(store.getState().videoStatus).toBe(VideoStatus.LOADING);
+
+  const retried = container.querySelector('video');
+  Object.defineProperty(retried, 'duration', { value: 60 });
+  Object.defineProperty(retried, 'audioTracks', { value: Object.assign(new EventTarget(), { length: 0 }) });
+  fireEvent.canPlay(retried);
+  expect(retried.currentTime).toBe(30);
+  expect(store.getState().videoStatus).toBe(VideoStatus.READY);
+});
+
 test('changing routes resets playback and ignores events from the old video', async () => {
   const { store, video, container } = await mountVideo();
   act(() => {

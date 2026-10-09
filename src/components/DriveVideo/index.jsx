@@ -1,26 +1,34 @@
 /* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { CircularProgress, Typography } from '@material-ui/core';
+import { Button, CircularProgress, Typography } from '@material-ui/core';
 import ReactPlayer from 'react-player/file';
 
 import { api } from '../../api/backend';
 
 import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
+import { ErrorOutline, RefreshIcon } from '../../icons';
 import {
   setPlaybackSpeed, resetPlayback, play, pause, videoProgress, setHasAudio, setVideoStatus, VideoStatus,
 } from '../../timeline/playback';
 
 const getVideoStartOffset = (route) => route.videoStartOffset || 0;
 
-const VideoOverlay = ({ loading, error }) => {
+const VideoOverlay = ({ loading, error, onRetry }) => {
   let content;
   if (error) {
     content = (
       <>
         <ErrorOutline className="mb-2" />
         <Typography>{error}</Typography>
+        <Button
+          className="mt-3 rounded-3xl bg-white/10 px-6 py-1.5 text-sm font-medium normal-case text-white hover:bg-white/20"
+          onClick={onRetry}
+          disableRipple
+        >
+          <RefreshIcon className="mr-2" style={{ fontSize: 20 }} />
+          Retry
+        </Button>
       </>
     );
   } else if (loading) {
@@ -40,7 +48,7 @@ const VideoOverlay = ({ loading, error }) => {
 class RouteVideo extends Component {
   player = React.createRef();
   ready = false;
-  state = { videoError: null };
+  state = { videoError: null, attempt: 0 };
 
   componentDidMount() {
     this.props.dispatch(resetPlayback());
@@ -80,6 +88,7 @@ class RouteVideo extends Component {
       hls.on('hlsBufferCodecs', (_event, data) => this.props.dispatch(setHasAudio(!!data.audio)));
     } else if (video.audioTracks) {
       // iOS populates audioTracks either side of canplay, so sample it and keep watching.
+      this.audioTracks?.removeEventListener('addtrack', this.onAddTrack);
       this.audioTracks = video.audioTracks;
       this.audioTracks.addEventListener('addtrack', this.onAddTrack);
       this.onAddTrack();
@@ -166,6 +175,13 @@ class RouteVideo extends Component {
     if (this.props.isPlaying && !this.player.current.getInternalPlayer().ended) this.props.dispatch(pause());
   };
 
+  onRetry = () => {
+    cancelAnimationFrame(this.frameId);
+    this.ready = false;
+    this.setState(({ attempt }) => ({ videoError: null, attempt: attempt + 1 }));
+    this.props.dispatch(setVideoStatus(VideoStatus.LOADING));
+  };
+
   onPlaybackRateChange = (rate) => {
     if (rate !== this.props.desiredPlaySpeed) this.props.dispatch(setPlaybackSpeed(rate));
   };
@@ -183,11 +199,12 @@ class RouteVideo extends Component {
 
   render() {
     const { currentRoute, isPlaying, desiredPlaySpeed, videoStatus, isMuted } = this.props;
-    const { videoError } = this.state;
+    const { videoError, attempt } = this.state;
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-        <VideoOverlay loading={videoStatus === VideoStatus.LOADING} error={videoError} />
+        <VideoOverlay loading={videoStatus === VideoStatus.LOADING} error={videoError} onRetry={this.onRetry} />
         <ReactPlayer
+          key={attempt}
           ref={this.player}
           url={api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig)}
           playsinline
