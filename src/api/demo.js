@@ -203,7 +203,10 @@ export function createDemoBackend(realBackend) {
         .then((res) => (res.ok ? res.text() : null))
         .catch(() => null);
     }
-    return publicPlaylistPromise;
+    return publicPlaylistPromise.then((playlist) => {
+      if (!playlist) publicPlaylistPromise = null;
+      return playlist;
+    });
   }
 
   // Clone the cached public route into fresh demo routes on every call, each
