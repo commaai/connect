@@ -220,6 +220,10 @@ class DriveVideo extends Component {
         // hls.js stops loading after giving up on a fragment
         this.hls.startLoad(this.videoPlayer.current.currentTime);
       }
+    } else if (data.fatal && data.type === 'mediaError' && !this.mediaRecovered) {
+      // hls.js stops on a fatal media error, reattaching usually recovers
+      this.mediaRecovered = true;
+      this.hls.recoverMediaError();
     } else if (data.fatal) {
       this.setState({ videoError: errorMessage(data.response?.code) });
     }
@@ -406,6 +410,7 @@ class DriveVideo extends Component {
     this.hls = null;
     this.pendingHls = null;
     this.missingFrag = null;
+    this.mediaRecovered = false;
     this.setState({ buffering: true, stuck: false, videoError: null, noVideo: null });
     onAudioStatusChange?.(false);
     const src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);

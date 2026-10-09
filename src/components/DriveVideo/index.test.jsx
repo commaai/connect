@@ -13,6 +13,27 @@ vi.mock('../../api/backend', () => ({
   api: { video: { getQcameraStreamUrl: () => 'https://video.example.com/qcamera.m3u8' } },
 }));
 
+const hlsPlayers = vi.hoisted(() => []);
+vi.mock('hls.js/light', () => ({
+  default: class {
+    static Events = { ERROR: 'hlsError', BUFFER_CODECS: 'hlsBufferCodecs' };
+
+    handlers = {};
+
+    recoverMediaError = vi.fn();
+
+    constructor() { hlsPlayers.push(this); }
+
+    on(event, handler) { this.handlers[event] = handler; }
+
+    loadSource() {}
+
+    attachMedia() {}
+
+    destroy() {}
+  },
+}));
+
 const currentRoute = { fullname: 'aaaaaaaaaaaaaaaa|2026-08-06--12-00-00', videoStartOffset: 2000 };
 
 function renderVideo(state = {}, props = {}) {
@@ -27,12 +48,20 @@ function renderVideo(state = {}, props = {}) {
   return { store, video };
 }
 
+async function renderHls() {
+  window.MediaSource = class {};
+  renderVideo();
+  await act(async () => {});
+  return (data) => act(() => hlsPlayers.at(-1).handlers.hlsError('hlsError', { fatal: true, ...data }));
+}
+
 describe('drive video', () => {
   beforeAll(() => {
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
     vi.spyOn(HTMLMediaElement.prototype, 'pause').mockReturnValue();
   });
   afterAll(() => vi.restoreAllMocks());
+  afterEach(() => { delete window.MediaSource; });
 
   it('follows a pause and play from the browser', () => {
     const { store, video } = renderVideo();
@@ -182,5 +211,21 @@ describe('drive video', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('recovers from one media error per source', async () => {
+    const hlsError = await renderHls();
+    hlsError({ type: 'mediaError', details: 'bufferAppendError' });
+    expect(hlsPlayers.at(-1).recoverMediaError).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Retry')).toBeNull();
+    hlsError({ type: 'mediaError', details: 'bufferAppendError' });
+    expect(hlsPlayers.at(-1).recoverMediaError).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Unable to load video')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Retry'));
+    await act(async () => {});
+    hlsError({ type: 'mediaError', details: 'bufferAppendError' });
+    expect(hlsPlayers.at(-1).recoverMediaError).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Retry')).toBeNull();
   });
 });
