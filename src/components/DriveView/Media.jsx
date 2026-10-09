@@ -25,6 +25,20 @@ import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
 
+const MAP_VIEW_KEY = 'mapView';
+const MapView = {
+  SIDE: 'side',
+  MINI: 'mini',
+};
+
+function getMapView() {
+  try {
+    return window.localStorage.getItem(MAP_VIEW_KEY) === MapView.MINI ? MapView.MINI : MapView.SIDE;
+  } catch {
+    return MapView.SIDE;
+  }
+}
+
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
 
@@ -199,6 +213,7 @@ class Media extends Component {
 
     this.state = {
       mapOpen: false,
+      mapView: getMapView(),
       windowWidth: window.innerWidth,
       downloadMenu: null,
       clipMenu: null,
@@ -214,6 +229,7 @@ class Media extends Component {
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
+    this.setMapView = this.setMapView.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
@@ -518,28 +534,29 @@ class Media extends Component {
   }
 
   render() {
-    const { windowWidth, isMuted, hasAudio, mapOpen } = this.state;
+    const { windowWidth, isMuted, hasAudio, mapOpen, mapView } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
-    // the map sits beside the video when there is room, otherwise as a minimap over the video
-    const showMapAlways = windowWidth >= 1200;
+    // the map can sit beside the video when there is room, otherwise it is a minimap over the video
+    const canSideMap = windowWidth >= 1200;
+    const sideMap = canSideMap && mapView === MapView.SIDE;
 
     return (
       <div className="flex flex-col gap-4">
-        {this.renderMediaOptions()}
+        {this.renderMediaOptions(canSideMap)}
         <div className="flex flex-row gap-5">
-          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
+          <div className={sideMap ? 'w-[60%]' : 'w-full'}>
             <DriveVideo
               isMuted={isMuted}
               onAudioStatusChange={this.handleAudioStatusChange}
             >
-              {!showMapAlways && <MiniMap onExpand={() => this.setState({ mapOpen: true })} />}
+              {!sideMap && <MiniMap onExpand={() => this.setState({ mapOpen: true })} />}
             </DriveVideo>
           </div>
-          {showMapAlways && (
+          {sideMap && (
             <div className="w-[40%]">
               <DriveMap />
             </div>
@@ -557,7 +574,7 @@ class Media extends Component {
             </IconButton>
           </div>
         </Modal>
-        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
+        <div className={`${sideMap ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
           <TimeDisplay
             isThin
             isMuted={isMuted}
@@ -569,12 +586,37 @@ class Media extends Component {
     );
   }
 
-  renderMediaOptions() {
+  setMapView(mapView) {
+    try {
+      window.localStorage.setItem(MAP_VIEW_KEY, mapView);
+    } catch {
+      // the choice just won't be remembered
+    }
+    this.setState({ mapView });
+  }
+
+  renderMediaOptions(canSideMap) {
     const { classes, device } = this.props;
-    const { clipsSupported } = this.state;
+    const { clipsSupported, mapView } = this.state;
     return (
       <>
         <div className="flex flex-wrap">
+          { canSideMap && (
+            <div className={classes.mediaOptions} role="group" aria-label="Map view">
+              {[[MapView.SIDE, 'Side map'], [MapView.MINI, 'Minimap']].map(([view, label]) => (
+                <div
+                  key={view}
+                  className={classes.mediaOption}
+                  style={mapView !== view ? { opacity: 0.6 } : {}}
+                  role="button"
+                  aria-pressed={mapView === view}
+                  onClick={() => this.setMapView(view)}
+                >
+                  <Typography className={classes.mediaOptionText}>{label}</Typography>
+                </div>
+              ))}
+            </div>
+          )}
           <div className={`${classes.mediaOptions} ml-auto`}>
             {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
               <div
