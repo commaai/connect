@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { CircularProgress, Typography } from '@material-ui/core';
+import { CircularProgress, IconButton, Typography } from '@material-ui/core';
 import ReactPlayer from 'react-player/file';
 
 import { api } from '../../api/backend';
 
 import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
+import { ErrorOutline, Fullscreen, FullscreenExit } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { popTimelineRange } from '../../actions';
 import { seek, bufferVideo, pause, play } from '../../timeline/playback';
@@ -60,7 +60,10 @@ class DriveVideo extends Component {
     this.checkRangeEnd = this.checkRangeEnd.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
+    this.toggleFullscreen = this.toggleFullscreen.bind(this);
+    this.onFullscreenChange = this.onFullscreenChange.bind(this);
 
+    this.container = React.createRef();
     this.video = null;
     this.videoFailed = false; // the video can't play, the playback clock keeps time instead
     this.frame = null;
@@ -72,12 +75,15 @@ class DriveVideo extends Component {
     this.state = {
       src: null,
       videoError: null,
+      fullscreen: false,
     };
   }
 
   componentDidMount() {
     this.updateVideoSource({});
     this.frame = requestAnimationFrame(this.checkRangeEnd);
+    document.addEventListener('fullscreenchange', this.onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', this.onFullscreenChange);
   }
 
   componentDidUpdate(prevProps) {
@@ -86,10 +92,33 @@ class DriveVideo extends Component {
 
   componentWillUnmount() {
     cancelAnimationFrame(this.frame);
+    document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+    document.removeEventListener('webkitfullscreenchange', this.onFullscreenChange);
     // hand the position over to the playback clock, which keeps time without a video
     const offset = currentOffset();
     this.setVideoElement(null);
     this.props.dispatch(seek(offset));
+  }
+
+  onFullscreenChange() {
+    const el = this.container.current;
+    const fullscreenEl = document.fullscreenElement || document.webkitFullscreenElement;
+    this.setState({ fullscreen: Boolean(el) && fullscreenEl === el });
+  }
+
+  // Fullscreen is requested on the container, not the video, so the minimap and
+  // controls come along. iPhones without the fullscreen API fall back to the video's own.
+  toggleFullscreen() {
+    const el = this.container.current;
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else if (el?.requestFullscreen) {
+      el.requestFullscreen().catch((err) => console.warn('Fullscreen failed', err));
+    } else if (el?.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    } else if (this.video?.webkitEnterFullscreen) {
+      this.video.webkitEnterFullscreen();
+    }
   }
 
   onPlayerReady(player) {
@@ -352,11 +381,20 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted, children } = this.props;
-    const { src, videoError } = this.state;
+    const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted, children, controls } = this.props;
+    const { src, videoError, fullscreen } = this.state;
+
+    // fullscreen: the frame is centred on a black screen with the controls below it
+    const containerClass = fullscreen
+      ? 'flex h-full w-full flex-col items-center justify-center gap-4 bg-black'
+      : 'contents';
+    const frameClass = fullscreen
+      ? 'relative aspect-[1.593] w-full max-w-[calc((100svh_-_90px)_*_1.593)]'
+      : 'relative mx-auto aspect-[1.593] min-h-[200px] max-w-[min(964px,calc((100svh_-_90px)_*_1.593))]';
 
     return (
-      <div className="relative mx-auto aspect-[1.593] min-h-[200px] max-w-[min(964px,calc((100svh_-_90px)_*_1.593))]">
+      <div ref={this.container} className={containerClass}>
+      <div className={frameClass}>
         <VideoOverlay loading={isBufferingVideo} error={videoError} />
         <ReactPlayer
           url={src}
@@ -376,6 +414,15 @@ class DriveVideo extends Component {
           onError={this.onVideoError}
         />
         {children}
+        <IconButton
+          className="absolute! bottom-2 right-2 z-[70] bg-[#16181AAA]! text-white"
+          onClick={this.toggleFullscreen}
+          aria-label={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {fullscreen ? <FullscreenExit /> : <Fullscreen />}
+        </IconButton>
+      </div>
+      {fullscreen && controls}
       </div>
     );
   }

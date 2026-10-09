@@ -534,7 +534,7 @@ class Media extends Component {
   }
 
   render() {
-    const { windowWidth, isMuted, hasAudio, mapOpen, mapView } = this.state;
+    const { windowWidth, isMuted, mapOpen, mapView } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
@@ -552,6 +552,7 @@ class Media extends Component {
             <DriveVideo
               isMuted={isMuted}
               onAudioStatusChange={this.handleAudioStatusChange}
+              controls={this.renderControls()}
             >
               {!sideMap && <MiniMap onExpand={() => this.setState({ mapOpen: true })} />}
             </DriveVideo>
@@ -575,14 +576,22 @@ class Media extends Component {
           </div>
         </Modal>
         <div className={`${sideMap ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
-          <TimeDisplay
-            isThin
-            isMuted={isMuted}
-            hasAudio={hasAudio}
-            onMuteToggle={this.handleMuteToggle}
-          />
+          {this.renderControls()}
         </div>
       </div>
+    );
+  }
+
+  // the playback controls, also shown under the video in fullscreen
+  renderControls() {
+    const { isMuted, hasAudio } = this.state;
+    return (
+      <TimeDisplay
+        isThin
+        isMuted={isMuted}
+        hasAudio={hasAudio}
+        onMuteToggle={this.handleMuteToggle}
+      />
     );
   }
 
