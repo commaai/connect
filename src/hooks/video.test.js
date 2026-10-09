@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 
 import { setVideo } from '../timeline/video';
-import { useVideoBuffering, useVideoControls, useVideoFrame } from './video';
+import { useVideoBuffering, useVideoFrame, useVideoMuted, useVideoPaused, useVideoPlaybackRate } from './video';
 
 function createVideo(values) {
   const video = document.createElement('video');
@@ -25,22 +25,27 @@ afterEach(() => {
 
 describe('video hooks', () => {
   it('falls back to paused, 1x and muted before a video registers', () => {
-    const { result } = renderHook(() => useVideoControls());
-    expect(result.current).toEqual({ paused: true, playbackRate: 1, muted: true });
+    const { result } = renderHook(() => [useVideoPaused(), useVideoPlaybackRate(), useVideoMuted()]);
+    expect(result.current).toEqual([true, 1, true]);
   });
 
-  it('reads controls from the video and follows its events', () => {
+  it('follows only the events of the value it reads', () => {
     const video = createVideo({ paused: true, playbackRate: 1, muted: true });
     act(() => setVideo(video));
-    const { result } = renderHook(() => useVideoControls());
+    let renders = 0;
+    const { result } = renderHook(() => {
+      renders += 1;
+      return useVideoPaused();
+    });
 
     video.paused = false;
     dispatch(video, 'play');
-    expect(result.current.paused).toBe(false);
+    expect(result.current).toBe(false);
 
-    const unchanged = result.current;
+    const rendersBefore = renders;
+    video.playbackRate = 2;
     dispatch(video, 'ratechange');
-    expect(result.current).toBe(unchanged);
+    expect(renders).toBe(rendersBefore);
   });
 
   it('only buffers while playing once metadata has loaded', () => {

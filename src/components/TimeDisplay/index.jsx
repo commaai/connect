@@ -8,7 +8,7 @@ import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
-import { useVideo, useVideoControls, useVideoTime } from '../../hooks/video';
+import { useVideo, useVideoMuted, useVideoPaused, useVideoPlaybackRate, useVideoTime } from '../../hooks/video';
 import { getCurrentRouteMs, seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
 import { videoPaused, videoPlayed, videoSeeked } from '../../timeline/playback';
 import { getPlaybackSpeed, playIgnoringInterruptions, setPlaybackRate } from '../../timeline/video';
@@ -116,15 +116,83 @@ function usePlaybackTimeText(routeStartMs, videoStartOffset) {
   return useVideoTime(format, format(0));
 }
 
-function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasAudio }) {
-  const video = useVideo();
-  const { paused, playbackRate, muted } = useVideoControls();
-  const videoStartOffset = currentRoute?.videoStartOffset;
-  const playbackTimeText = usePlaybackTimeText(currentRoute?.start_time_utc_millis, videoStartOffset);
+const PlaybackTime = ({ className, routeStartMs, videoStartOffset }) => {
+  const text = usePlaybackTimeText(routeStartMs, videoStartOffset);
+  return (
+    <Typography variant="body1" align="center" className={className}>
+      {text}
+    </Typography>
+  );
+};
 
+const SpeedControl = ({ classes, makeHandleSpeedChange }) => {
+  const playbackRate = useVideoPlaybackRate();
   const speedIndex = speedStepIndex(playbackRate);
   const canIncreaseSpeed = speedIndex < timerSteps.length - 1;
   const canDecreaseSpeed = speedIndex > 0;
+  return (
+    <div className={ classes.desiredPlaySpeedContainer }>
+      <IconButton
+        className={classes.tinyArrowIcon}
+        onClick={makeHandleSpeedChange(1)}
+        disabled={!canIncreaseSpeed}
+        aria-label="Increase play speed by 1 step"
+      >
+        <UpArrow className={classes.tinyArrowIcon} />
+      </IconButton>
+      <Typography variant="body2" align="center">
+        {playbackRate}
+        ×
+      </Typography>
+      <IconButton
+        className={classes.tinyArrowIcon}
+        onClick={makeHandleSpeedChange(-1)}
+        disabled={!canDecreaseSpeed}
+        aria-label="Decrease play speed by 1 step"
+      >
+        <DownArrow className={classes.tinyArrowIcon} />
+      </IconButton>
+    </div>
+  );
+};
+
+const MuteButton = ({ classes, hasAudio, onToggle }) => {
+  const muted = useVideoMuted();
+  return (
+    <Tooltip title={ !hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
+      <div>
+        <IconButton
+          className={ classes.iconButton }
+          onClick={onToggle}
+          disabled={!hasAudio}
+          aria-label={muted ? 'Unmute' : 'Mute'}
+        >
+          {muted
+            ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
+            : (<VolumeUp className={`${classes.icon} small`} />)}
+        </IconButton>
+      </div>
+    </Tooltip>
+  );
+};
+
+const PlayPauseButton = ({ classes, onToggle }) => {
+  const paused = useVideoPaused();
+  return (
+    <IconButton
+      onClick={onToggle}
+      aria-label={paused ? 'Unpause' : 'Pause'}
+    >
+      {paused
+        ? (<PlayArrow className={classes.icon} />)
+        : (<Pause className={classes.icon} />)}
+    </IconButton>
+  );
+};
+
+function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasAudio }) {
+  const video = useVideo();
+  const videoStartOffset = currentRoute?.videoStartOffset;
 
   const handleJump = (amount) => {
     if (!video) return;
@@ -184,58 +252,17 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
           CURRENT PLAYBACK TIME
         </Typography>
       )}
-      <Typography variant="body1" align="center" className={classes.currentTime}>
-        {playbackTimeText}
-      </Typography>
-      {!playsHlsNatively() && (
-        <div className={ classes.desiredPlaySpeedContainer }>
-          <IconButton
-            className={classes.tinyArrowIcon}
-            onClick={makeHandleSpeedChange(1)}
-            disabled={!canIncreaseSpeed}
-            aria-label="Increase play speed by 1 step"
-          >
-            <UpArrow className={classes.tinyArrowIcon} />
-          </IconButton>
-          <Typography variant="body2" align="center">
-            {playbackRate}
-            ×
-          </Typography>
-          <IconButton
-            className={classes.tinyArrowIcon}
-            onClick={makeHandleSpeedChange(-1)}
-            disabled={!canDecreaseSpeed}
-            aria-label="Decrease play speed by 1 step"
-          >
-            <DownArrow className={classes.tinyArrowIcon} />
-          </IconButton>
-        </div>
-      )}
+      <PlaybackTime
+        className={classes.currentTime}
+        routeStartMs={currentRoute?.start_time_utc_millis}
+        videoStartOffset={videoStartOffset}
+      />
+      {!playsHlsNatively() && <SpeedControl classes={classes} makeHandleSpeedChange={makeHandleSpeedChange} />}
       <div className={ classes.leftBorderBox }>
-        <Tooltip title={ !hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
-          <div>
-            <IconButton
-              className={ classes.iconButton }
-              onClick={handleMuteToggle}
-              disabled={!hasAudio}
-              aria-label={muted ? 'Unmute' : 'Mute'}
-            >
-              {muted
-                ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
-                : (<VolumeUp className={`${classes.icon} small`} />)}
-            </IconButton>
-          </div>
-        </Tooltip>
+        <MuteButton classes={classes} hasAudio={hasAudio} onToggle={handleMuteToggle} />
       </div>
       <div className={ classes.leftBorderBox }>
-        <IconButton
-          onClick={handlePauseToggle}
-          aria-label={paused ? 'Unpause' : 'Pause'}
-        >
-          {paused
-            ? (<PlayArrow className={classes.icon} />)
-            : (<Pause className={classes.icon} />)}
-        </IconButton>
+        <PlayPauseButton classes={classes} onToggle={handlePauseToggle} />
       </div>
     </div>
   );

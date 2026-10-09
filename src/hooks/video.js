@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
 import { getVideo, subscribeVideo } from '../timeline/video';
 
-const CONTROL_EVENTS = ['play', 'pause', 'ratechange', 'volumechange', 'emptied'];
+const PAUSE_EVENTS = ['play', 'pause', 'emptied'];
+const RATE_EVENTS = ['ratechange', 'emptied'];
+const VOLUME_EVENTS = ['volumechange', 'emptied'];
 
 const TIME_EVENTS = ['loadstart', 'loadedmetadata', 'timeupdate', 'seeking', 'emptied'];
 
@@ -47,11 +49,16 @@ export function useVideoTime(format, fallback) {
   return useVideoValue(TIME_EVENTS, (video) => format(video.currentTime), fallback);
 }
 
-export function useVideoControls() {
-  const paused = useVideoValue(CONTROL_EVENTS, (video) => video.paused, true);
-  const playbackRate = useVideoValue(CONTROL_EVENTS, (video) => video.playbackRate, 1);
-  const muted = useVideoValue(CONTROL_EVENTS, (video) => video.muted, true);
-  return useMemo(() => ({ paused, playbackRate, muted }), [paused, playbackRate, muted]);
+export function useVideoPaused() {
+  return useVideoValue(PAUSE_EVENTS, (video) => video.paused, true);
+}
+
+export function useVideoPlaybackRate() {
+  return useVideoValue(RATE_EVENTS, (video) => video.playbackRate, 1);
+}
+
+export function useVideoMuted() {
+  return useVideoValue(VOLUME_EVENTS, (video) => video.muted, true);
 }
 
 export function useVideoBuffering() {
