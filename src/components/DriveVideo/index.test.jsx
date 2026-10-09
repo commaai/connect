@@ -173,26 +173,35 @@ describe('DriveVideo', () => {
     expect(HTMLMediaElement.prototype.load).not.toHaveBeenCalled();
   });
 
-  it('starts the next drive at its own start, not where the last drive stopped', async () => {
+  it('gives the next drive a new player that starts at its own start, and never resets the old one on the page', async () => {
     const store = createAppStore(createMemoryHistory());
     store.dispatch({
       type: Types.ACTION_ROUTES_METADATA,
       routes: [{ log_id: 'r', fullname: 'x|r', duration: 180000 }, { log_id: 's', fullname: 'x|s', duration: 180000 }],
     });
     store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 'r', start: 0, end: 180000 });
-    render(<Provider store={store}><DriveVideo /></Provider>);
+    // Media keys the player by drive, as here
+    const { rerender } = render(<Provider store={store}><DriveVideo key="x|r" /></Provider>);
     await act(async () => {});
+    const [old] = hls.instances;
     const video = document.querySelector('video');
     Object.defineProperty(video, 'currentTime', { get: () => 42, set: () => {} });
     fireEvent.loadedMetadata(video);
+    const resets = [];
+    HTMLMediaElement.prototype.load = vi.fn(function load() { resets.push([this, this.isConnected]); });
     // what pushTimelineRange dispatches when history goes straight to another drive
     await act(async () => {
       store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 's', start: 0, end: 180000 });
       store.dispatch(resetPlayback());
       store.dispatch(selectLoop(0, 180000));
     });
+    await act(async () => rerender(<Provider store={store}><DriveVideo key="x|s" /></Provider>));
+    // a reset on the page shows a white or black box on Android before the new picture
+    expect(old.destroyedOnPage).toBeUndefined();
+    expect(resets.filter(([el, onPage]) => el === video && onPage)).toEqual([]);
+    expect(document.querySelector('video')).not.toBe(video);
     // the wall clock may tick a millisecond between the selection and the new player
-    expect(hls.instances[1].config.startPosition).toBeCloseTo(0, 1);
+    expect(hls.instances.at(-1).config.startPosition).toBeCloseTo(0, 1);
   });
 
   it('starts where the user seeked while the player code loaded', async () => {
@@ -260,13 +269,17 @@ describe('DriveVideo', () => {
     window.MediaSource = undefined;
     let answer;
     global.fetch = vi.fn(() => new Promise((done) => { answer = done; }));
-    const store = renderPlayer();
+    renderPlayer();
     const video = document.querySelector('video');
     Object.defineProperty(video, 'error', { get: () => ({ code: 4 }) });
     fireEvent.error(video);
-    store.dispatch({ type: Types.ACTION_ROUTES_METADATA, routes: [{ log_id: 's', fullname: 'x|s', duration: 180000 }] });
-    await act(async () => store.dispatch({ type: Types.TIMELINE_PUSH_SELECTION, log_id: 's', start: 0, end: 180000 }));
+    // the user goes to another drive: Media unmounts this player
+    cleanup();
+    const failed = vi.fn();
+    window.addEventListener('unhandledrejection', failed);
     await act(async () => answer({ status: 404 }));
+    window.removeEventListener('unhandledrejection', failed);
+    expect(failed).not.toHaveBeenCalled();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 

@@ -45,7 +45,7 @@ class DriveVideo extends Component {
     const movedAfterError = error === NOT_UPLOADED
       && getSegmentNumber(currentRoute, offset) !== getSegmentNumber(currentRoute, this.failedAt);
     const playedAfterError = error && desiredPlaySpeed && !prevProps.desiredPlaySpeed;
-    if ((currentRoute && prevProps.currentRoute?.fullname !== currentRoute.fullname) || movedAfterError || playedAfterError) {
+    if (movedAfterError || playedAfterError) {
       this.load();
     }
   }
@@ -190,10 +190,7 @@ class DriveVideo extends Component {
   onEnded() {
     const { desiredPlaySpeed, dispatch, loop } = this.props;
     const start = loop?.startTime || 0;
-    if (this.videoTime(start) >= this.video.current.duration - 0.1) {
-      dispatch(pause());
-      return;
-    }
+    if (this.videoTime(start) >= this.video.current.duration - 0.1) return dispatch(pause());
     dispatch(seek(start));
     dispatch(play(desiredPlaySpeed || 1));
   }

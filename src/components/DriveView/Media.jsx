@@ -547,7 +547,9 @@ class Media extends Component {
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
             {inView === MediaType.VIDEO && (
+              // a new drive gets a new <video>: resetting the old one on the page flashed it on Android
               <DriveVideo
+                key={this.props.currentRoute?.fullname}
                 isMuted={isMuted}
                 onAudioStatusChange={this.handleAudioStatusChange}
               />
