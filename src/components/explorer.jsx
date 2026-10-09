@@ -83,11 +83,6 @@ class ExplorerApp extends Component {
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
-    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
-  }
-
-  closeBodyTeleop() {
-    this.props.dispatch(streamNav(false));
   }
 
   async componentDidMount() {
@@ -224,7 +219,7 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.app}>
         { bodyTeleopOpen ? (
-          <BodyTeleop onClose={ this.closeBodyTeleop } />
+          <BodyTeleop onClose={() => dispatch(streamNav(false)) } />
         ) : (
           <>
             <AppHeader

@@ -12,10 +12,10 @@ const parseDriveRange = (start, end, legacy = false) => {
   return { start: startMillis, end: endMillis };
 }
 
-const rootRoutes = ['auth', 'demo', 'referrals'];
-const deviceRoutes = ['prime', 'stream'];
-
 export const parseURL = (pathname) => {
+  const rootRoutes = ['auth', 'demo', 'referrals'];
+  const deviceRoutes = ['prime', 'stream'];
+
   const parts = pathname.split('/').filter(Boolean);
 
   if (!parts.length) return { page: 'root' };

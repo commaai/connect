@@ -436,11 +436,7 @@ class DeviceSettingsModal extends Component {
 const stateToProps = (state, ownProps) => {
   const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
-  return {
-    subscription: state.subscription,
-    device,
-    globalDongleId: state.dongleId,
-  };
+  return { device };
 };
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));
