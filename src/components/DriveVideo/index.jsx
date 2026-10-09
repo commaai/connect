@@ -123,6 +123,7 @@ class RouteVideo extends Component {
   };
 
   onSeeking = (event) => {
+    this.failure = null;
     this.setState({ videoError: null });
     this.props.dispatch(setVideoStatus(VideoStatus.LOADING));
     this.player.current.getInternalPlayer('hls')?.startLoad(event.target.currentTime);
@@ -155,16 +156,22 @@ class RouteVideo extends Component {
       dispatch(pause()); // Leave the play button available after blocked autoplay.
       return;
     }
-    dispatch(setVideoStatus(VideoStatus.FAILED));
-    this.setState({
-      videoError: error.response?.code === 404
-        ? 'This video segment has not uploaded yet or has been deleted.'
-        : 'Unable to load video',
-    });
+    this.failure = error.response?.code === 404
+      ? 'This video segment has not uploaded yet or has been deleted.'
+      : 'Unable to load video';
+    // hls.js can give up on a segment ahead of the playhead, so play what is buffered first.
+    const video = this.player.current.getInternalPlayer();
+    if (!(error.frag?.start > this.player.current.getCurrentTime() && video.readyState >= 3)) this.onBuffer();
   };
 
   onBuffer = () => {
-    if (this.props.videoStatus !== VideoStatus.FAILED) this.props.dispatch(setVideoStatus(VideoStatus.LOADING));
+    const { dispatch, videoStatus } = this.props;
+    if (this.failure) {
+      dispatch(setVideoStatus(VideoStatus.FAILED));
+      this.setState({ videoError: this.failure });
+    } else if (videoStatus !== VideoStatus.FAILED) {
+      dispatch(setVideoStatus(VideoStatus.LOADING));
+    }
   };
 
   onPlay = () => {
@@ -178,6 +185,7 @@ class RouteVideo extends Component {
   onRetry = () => {
     cancelAnimationFrame(this.frameId);
     this.ready = false;
+    this.failure = null;
     this.setState(({ attempt }) => ({ videoError: null, attempt: attempt + 1 }));
     this.props.dispatch(setVideoStatus(VideoStatus.LOADING));
   };

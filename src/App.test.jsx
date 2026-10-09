@@ -324,4 +324,22 @@ describe('whole-app behavior', () => {
     fireEvent.pointerUp(timeline, { button: 0, clientX: 500, pageX: 500 });
     expect(store.getState().offset).toBe(30000);
   });
+
+  test('plays up to a segment that failed to load, then shows the error', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    act(() => {
+      mocks.playerProps.onError('hlsError', {
+        fatal: true,
+        type: 'networkError',
+        response: { code: 404 },
+        frag: { start: 10 },
+      });
+    });
+    expect(store.getState().videoStatus).not.toBe(VideoStatus.FAILED);
+    expect(screen.queryByText(/not uploaded yet/)).toBeNull();
+
+    act(() => mocks.playerProps.onBuffer());
+    expect(store.getState().videoStatus).toBe(VideoStatus.FAILED);
+    expect(screen.getByText(/not uploaded yet/)).toBeVisible();
+  });
 });
