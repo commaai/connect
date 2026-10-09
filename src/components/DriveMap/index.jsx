@@ -15,6 +15,22 @@ const INTERACTION_TIMEOUT = 5000;
 const ZOOM = 14;
 // room around the whole drive in the small map in a corner, in pixels
 const FIT_PADDING = 12;
+// where the car is kept on screen, as shares of the map's size from its middle, per map size
+const FOLLOW_OFFSET_KEY = 'driveMap.followOffset';
+// left with the car further than this from the middle, the user is looking somewhere else
+const FOLLOW_OFFSET_MAX = 0.45;
+
+function loadFollowOffsets() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(FOLLOW_OFFSET_KEY));
+    if (saved && ['big', 'small'].every((size) => saved[size]?.length === 2 && saved[size].every(Number.isFinite))) {
+      return saved;
+    }
+  } catch {
+    // nothing saved, or no storage
+  }
+  return { big: [0, 0], small: [0, 0] };
+}
 
 const SEGMENT_DURATION = 60 * 1000;
 // how close to the marker a press grabs it, in pixels
@@ -195,6 +211,7 @@ class DriveMap extends Component {
     this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onMove = this.onMove.bind(this);
+    this.onMoveEnd = this.onMoveEnd.bind(this);
     this.onPointerDown = this.onPointerDown.bind(this);
     this.onPointerMove = this.onPointerMove.bind(this);
     this.onTouchEnd = this.onTouchEnd.bind(this);
@@ -216,6 +233,7 @@ class DriveMap extends Component {
     this.currentSegment = null;
     this.dragOffset = null;
     this.followZoom = ZOOM; // kept while the map is small and shows the whole drive
+    this.followOffsets = loadFollowOffsets();
   }
 
   componentDidMount() {
@@ -235,6 +253,7 @@ class DriveMap extends Component {
     });
     map.on('load', this.onLoad);
     map.on('move', this.onMove);
+    map.on('moveend', this.onMoveEnd);
     map.on('dragstart', () => {
       this.panning = true;
       this.updateCursor();
@@ -280,7 +299,8 @@ class DriveMap extends Component {
         this.fitDrive();
       } else {
         this.shouldFlyTo = false;
-        this.map.jumpTo({ center: this.lastMapPos, zoom: this.followZoom });
+        this.map.jumpTo({ zoom: this.followZoom });
+        this.map.jumpTo({ center: this.cameraCenterFor(this.lastMapPos) });
       }
     }
 
@@ -435,6 +455,37 @@ class DriveMap extends Component {
     }, INTERACTION_TIMEOUT);
   }
 
+  // Where the user leaves the car on screen is where the map keeps it from then on. Moved
+  // out of sight, the user is looking somewhere else, and the map picks the car up again later.
+  onMoveEnd(ev) {
+    if (!ev.originalEvent || !this.markerShown || this.markerDragging) {
+      return;
+    }
+    const { clientWidth, clientHeight } = this.container.current;
+    const car = this.map.project(this.lastMapPos);
+    const offset = [(car.x / clientWidth) - 0.5, (car.y / clientHeight) - 0.5];
+    if (offset.some((share) => Math.abs(share) > FOLLOW_OFFSET_MAX)) {
+      return;
+    }
+    this.followOffsets[this.props.small ? 'small' : 'big'] = offset;
+    try {
+      window.localStorage.setItem(FOLLOW_OFFSET_KEY, JSON.stringify(this.followOffsets));
+    } catch {
+      // not remembered, e.g. in a private window
+    }
+    this.shouldFlyTo = false;
+    this.isInteracting = false;
+    clearTimeout(this.isInteractingTimeout);
+  }
+
+  // the map centre that puts the car where the user keeps it on screen, at the current zoom
+  cameraCenterFor(pos) {
+    const [x, y] = this.followOffsets[this.props.small ? 'small' : 'big'];
+    const { clientWidth, clientHeight } = this.container.current;
+    const car = this.map.project(pos);
+    return this.map.unproject([car.x - (x * clientWidth), car.y - (y * clientHeight)]);
+  }
+
   updateMarkerPos() {
     if (!this.mounted) {
       return;
@@ -498,11 +549,12 @@ class DriveMap extends Component {
     if (this.isInteracting || this.pointerDown || this.markerDragging || this.map.isMoving()) {
       return;
     }
+    const center = this.cameraCenterFor(pos);
     if (this.shouldFlyTo) {
       this.shouldFlyTo = false;
-      this.map.easeTo({ center: pos, duration: 200, easing: (t) => t });
+      this.map.easeTo({ center, duration: 200, easing: (t) => t });
     } else {
-      this.map.jumpTo({ center: pos });
+      this.map.jumpTo({ center });
     }
   }
 
@@ -520,7 +572,7 @@ class DriveMap extends Component {
     }
   }
 
-  // for the small map in a corner: centred on the car, zoomed out so the whole drive stays in view
+  // for the small map in a corner: on the car, zoomed out so the whole drive stays in view around it
   fitDrive() {
     const points = Object.values(this.props.currentRoute?.driveCoords || {});
     if (!this.mapReady || points.length === 0) {
@@ -531,8 +583,11 @@ class DriveMap extends Component {
     if (!camera) {
       return;
     }
-    // centred on the car, the drive can reach twice as far on one side: one zoom level further out
-    this.map.jumpTo({ center: this.markerShown ? this.lastMapPos : camera.center, zoom: camera.zoom - 1 });
+    // around the car, the drive can reach twice as far on one side: one zoom level further out
+    this.map.jumpTo({ center: camera.center, zoom: camera.zoom - 1 });
+    if (this.markerShown) {
+      this.map.jumpTo({ center: this.cameraCenterFor(this.lastMapPos) });
+    }
   }
 
   updateSelection() {
