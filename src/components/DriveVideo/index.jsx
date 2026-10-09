@@ -58,9 +58,10 @@ const VideoOverlay = ({ loading, error }) => {
   } else {
     return null;
   }
+  // the message sits in the upper part of the frame, clear of the minimap in the corner
   return (
     <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
-      <div className="relative text-center top-[calc(50%_-_25px)]">
+      <div className={`relative px-6 text-center ${error ? "top-3" : "top-[calc(50%_-_25px)]"}`}>
         {content}
       </div>
     </div>
