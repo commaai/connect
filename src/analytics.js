@@ -4,23 +4,21 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseLocation } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  const { dongleId, page, routeId, range, legacyRange } = parseLocation(pathname);
+  if (!dongleId) {
+    return pathname.replace(/\/$/, '');
   }
 
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
+  let pageLocation = '/<dongleId>';
+  if (page || routeId) {
+    pageLocation += `/${page || routeId}`;
+  }
+  if (range || legacyRange) {
+    pageLocation += '/<zoomStart>/<zoomEnd>';
   }
   return pageLocation;
 }
@@ -100,11 +98,18 @@ function logAction(action, prevState, state) {
 
   // eslint-disable-next-line default-case
   switch (action.type) {
-    case LOCATION_CHANGE:
+    case LOCATION_CHANGE: {
+      // a dialog opening or closing over a page isn't a page view
+      const { pathname, search } = action.payload.location;
+      const prev = prevState.router.location;
+      if (prev.pathname === pathname && prev.search !== search) {
+        return;
+      }
       gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(action.payload.location.pathname),
+        page_location: getPageViewEventLocation(pathname),
       });
       return;
+    }
 
     case Types.TIMELINE_PUSH_SELECTION:
       if (!prevState.zoom && state.zoom) {

@@ -1,66 +1,92 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+// Every URL in connect and the location it parses to:
+//
+//   /referrals                         { page: 'referrals' }
+//   /:dongleId                         { dongleId }
+//   /:dongleId/(prime|stream)          { dongleId, page }
+//   /:dongleId/:routeId                { dongleId, routeId }
+//   /:dongleId/:routeId/:start/:end    { dongleId, routeId, range }
+//   /:dongleId/:start/:end             { dongleId, legacyRange }
+//
+// and on any of them, a dialog over the page:
+//
+//   ?modal=(filter|pair|settings)      { modal }
+//
+// A range is in milliseconds into the route, written as whole seconds in the URL.
+// A legacy range is in unix milliseconds and is resolved to a route on load.
+// Anything else, including /, parses to an empty location.
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const DONGLE_ID = /^[a-f0-9]{16}$/;
+const ROUTE_ID = /^[a-f0-9-]{20}$/;
+const NUMBER = /^\d+$/;
+const DEVICE_PAGES = ['prime', 'stream'];
+const MODALS = ['filter', 'pair', 'settings'];
 
-  if (!dongleIdRegex.test(parts[0])) {
+function parseRange(start, end, scale) {
+  if (!NUMBER.test(start) || !NUMBER.test(end) || Number(start) >= Number(end)) {
     return null;
   }
-
-  return parts[0] || null;
+  return { start: Number(start) * scale, end: Number(end) * scale };
 }
 
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+export function parseLocation(pathname, search = '') {
+  const location = { dongleId: null, page: null, routeId: null, range: null, legacyRange: null, modal: null };
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const [first, second, ...rest] = parts;
+
+  if (parts.length === 1 && first === 'referrals') {
+    location.page = 'referrals';
+  } else if (DONGLE_ID.test(first)) {
+    location.dongleId = first;
+    if (parts.length === 2 && DEVICE_PAGES.includes(second)) {
+      location.page = second;
+    } else if (ROUTE_ID.test(second)) {
+      location.routeId = second;
+      if (parts.length === 4) {
+        location.range = parseRange(rest[0], rest[1], 1000);
+      }
+    } else if (parts.length === 3) {
+      location.legacyRange = parseRange(second, rest[0], 1);
+    }
   }
-  return null;
+
+  const modal = new URLSearchParams(search).get('modal');
+  if (MODALS.includes(modal)) {
+    location.modal = modal;
+  }
+
+  return location;
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+function pathOf({ dongleId, page, routeId, range, legacyRange }) {
+  if (page === 'referrals') {
+    return '/referrals';
   }
-  return false;
+  if (!dongleId) {
+    return '/';
+  }
+  if (legacyRange) {
+    return `/${dongleId}/${legacyRange.start}/${legacyRange.end}`;
+  }
+  if (page) {
+    return `/${dongleId}/${page}`;
+  }
+  if (!routeId) {
+    return `/${dongleId}`;
+  }
+  if (!range) {
+    return `/${dongleId}/${routeId}`;
+  }
+  // a range is never written shorter than the one second the URL can show
+  const start = Math.floor(range.start / 1000);
+  const end = Math.max(Math.floor(range.end / 1000), start + 1);
+  return `/${dongleId}/${routeId}/${start}/${end}`;
 }
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
+export function toPath(location) {
+  const query = new URLSearchParams();
+  if (location.modal) {
+    query.set('modal', location.modal);
   }
-  return false;
+  const search = query.toString();
+  return search ? `${pathOf(location)}?${search}` : pathOf(location);
 }

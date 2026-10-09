@@ -14,7 +14,8 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { updateDevice } from '../../actions';
+import { navigate } from '../../actions/history';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -142,6 +143,10 @@ class DeviceSettingsModal extends Component {
   }
 
   componentDidUpdate(prevProps) {
+    if (prevProps.dongleId && !this.props.dongleId && this.state.unpaired) {
+      // closed some other way than the unpair dialog, e.g. back; finish the same way
+      this.closeUnpair();
+    }
     if (prevProps.dongleId !== this.props.dongleId) {
       const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
       this.setState({
@@ -225,11 +230,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
-    this.props.onClose();
+    this.props.dispatch(navigate({ page: 'prime' }));
   }
 
   async unpairDevice() {
@@ -436,12 +437,11 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+  const device = state.devices?.find((d) => d.dongle_id === ownProps.dongleId)
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
     device,
-    globalDongleId: state.dongleId,
   };
 };
 

@@ -58,8 +58,6 @@ export default function reducer(_state, action) {
         ...state,
         filter: getDefaultFilter(),
         dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
@@ -300,19 +298,11 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
+    case Types.ACTION_SELECT_VIEW:
       state = {
         ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
+        page: action.page,
+        modal: action.modal,
       };
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
@@ -335,14 +325,6 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
     case Types.TIMELINE_PUSH_SELECTION: {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
@@ -352,7 +334,10 @@ export default function reducer(_state, action) {
       state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
       if (action.log_id) {
         if (action.start != null && action.end != null) {
-          state.zoom = {
+          // going back to the previous range pops it rather than stacking it on top, so the
+          // drive's back button keeps stepping out after browser back/forward too
+          const previous = state.zoom?.previous;
+          state.zoom = (previous?.start === action.start && previous?.end === action.end) ? previous : {
             start: action.start,
             end: action.end,
             previous: state.zoom,
@@ -423,6 +408,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         start: action.start,
         end: action.end,
+        routeId: action.routeId,
       };
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);

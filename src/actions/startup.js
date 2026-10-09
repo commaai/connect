@@ -1,6 +1,8 @@
+import { replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
-import { api } from '../api/backend';
+import { api, DEMO_PATH } from '../api/backend';
+import { parseLocation, toPath } from '../url';
 
 import { ACTION_STARTUP_DATA } from './types';
 import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
@@ -56,12 +58,15 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
         if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
+          dispatch(selectDevice(selectedDongleId));
         } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+          dispatch(selectDevice(devices[0].dongle_id));
+        }
+        const { pathname, search } = state.router.location;
+        if (['/', DEMO_PATH].includes(pathname)) {
+          dispatch(replace(toPath({ ...parseLocation(pathname, search), dongleId: getState().dongleId })));
         }
       }
       const dongleId = getState().dongleId;
