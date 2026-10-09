@@ -250,7 +250,9 @@ describe('whole-app behavior', () => {
   test('legacy timestamp URL converts after a successful lookup', async () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    // the whole-drive range is serialized explicitly: ranges starting at second 0
+    // are no longer dropped from the URL (old bookmarks still parse)
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/60`));
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {

@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, checkLastRoutesData, selectDevice, selectDeviceState, fetchSharedDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -57,10 +57,15 @@ export default function init() {
     if (devices.length > 0) {
       if (!state.dongleId) {
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId));
+        const nextDongleId = selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)
+          ? selectedDongleId
+          : devices[0].dongle_id;
+        if (state.router.location.pathname === '/') {
+          // from the root, take over the URL with the selected device
+          dispatch(selectDevice(nextDongleId));
         } else {
-          dispatch(selectDevice(devices[0].dongle_id));
+          // on a deep link (referrals, drive, overlay, …), select silently and keep the address
+          dispatch(selectDeviceState(nextDongleId));
         }
       }
       const dongleId = getState().dongleId;

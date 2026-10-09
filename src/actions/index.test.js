@@ -1,6 +1,9 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import {
+  popTimelineRange, primeNav, pushTimelineRange, resolveLegacyZoom, selectDevice, streamNav,
+} from './index';
+import { api } from '../api/backend';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -17,37 +20,170 @@ vi.mock('connected-react-router', async () => {
   };
 });
 
-describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+vi.mock('../api/backend', () => ({
+  api: { routes: { getRoutesSegments: vi.fn() } },
+  initBackend: vi.fn(),
+}));
+
+const DONGLE = '0000aaaa0000aaaa';
+const LOG = '2026-08-06--12-00-00';
+
+const baseState = {
+  dongleId: DONGLE,
+  loop: null,
+  zoom: null,
+  currentRoute: null,
+  selectedRouteId: null,
+  primeNav: false,
+  streamNav: false,
+  profile: null,
+  devices: null,
+  device: null,
+  routes: [],
+  routesMeta: { dongleId: DONGLE, start: 0, end: 0 },
+  filter: { start: 0, end: 0 },
+  limit: 0,
+  router: { location: { pathname: '/', search: '' } },
+};
+
+function mockStore(overrides = {}) {
+  const state = { ...baseState, ...overrides };
+  return { dispatch: vi.fn(), getState: vi.fn(() => state) };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('navigation actions', () => {
+  it('pushes the canonical URL when entering a drive range', () => {
+    const { dispatch, getState } = mockStore();
+    pushTimelineRange(LOG, 123000, 456000)(dispatch, getState);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}/${LOG}/123/456`);
   });
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
+  it('serializes a zero-start range explicitly', () => {
+    const { dispatch, getState } = mockStore();
+    pushTimelineRange(LOG, 0, 30000)(dispatch, getState);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}/${LOG}/0/30`);
+  });
 
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+  it('omits the range for a whole-drive zoom', () => {
+    const { dispatch, getState } = mockStore({ currentRoute: { log_id: LOG, duration: 60000 } });
+    pushTimelineRange(LOG, 0, 60000)(dispatch, getState);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}/${LOG}`);
+  });
+
+  it('does not push when the URL already matches', () => {
+    const { dispatch, getState } = mockStore({
+      selectedRouteId: LOG,
+      zoom: { start: 123000, end: 456000 },
+      router: { location: { pathname: `/${DONGLE}/${LOG}/123/456`, search: '' } },
+    });
+    pushTimelineRange(LOG, 123000, 456000)(dispatch, getState);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('preserves overlay query params when syncing the URL', () => {
+    const { dispatch, getState } = mockStore({
+      router: { location: { pathname: `/${DONGLE}`, search: `?settings=${DONGLE}` } },
+    });
+    pushTimelineRange(LOG, 1000, 2000)(dispatch, getState);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}/${LOG}/1/2?settings=${DONGLE}`);
   });
 
   it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    ['prime', primeNav, 'primeNav', `/${DONGLE}/prime`],
+    ['stream', streamNav, 'streamNav', `/${DONGLE}/stream`],
+  ])('pushes the %s URL when opening', (_name, action, _key, expected) => {
+    const { dispatch, getState } = mockStore();
+    action(true)(dispatch, getState);
     expect(push).toHaveBeenCalledWith(expected);
+  });
+
+  it('pushes the device URL when leaving prime', () => {
+    const { dispatch, getState } = mockStore({ primeNav: true });
+    primeNav(false)(dispatch, getState);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}`);
+  });
+
+  it('pushes the device URL on selectDevice and drops the settings overlay', () => {
+    const { dispatch, getState } = mockStore({
+      router: { location: { pathname: '/', search: `?settings=${DONGLE}` } },
+    });
+    selectDevice(DONGLE)(dispatch, getState);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}`);
+  });
+
+  it('syncs the URL to the popped zoom', () => {
+    const { dispatch, getState } = mockStore({
+      selectedRouteId: LOG,
+      zoom: { start: 10000, end: 20000, previous: { start: 0, end: 60000 } },
+      currentRoute: { log_id: LOG, duration: 60000 },
+      router: { location: { pathname: `/${DONGLE}/${LOG}/10/20`, search: '' } },
+    });
+    popTimelineRange(LOG)(dispatch, getState);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}/${LOG}`);
+  });
+
+  it('does nothing when popping without a previous zoom', () => {
+    const { dispatch, getState } = mockStore({
+      selectedRouteId: LOG,
+      zoom: { start: 0, end: 60000 },
+    });
+    popTimelineRange(LOG)(dispatch, getState);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+});
+
+describe('resolveLegacyZoom', () => {
+  const legacyLocation = { pathname: `/${DONGLE}/1000/2000`, search: '' };
+
+  function legacyStore(location = legacyLocation) {
+    const state = {
+      ...baseState,
+      router: { location },
+    };
+    const getState = vi.fn(() => state);
+    // execute thunks like a real store so nested navigation runs
+    const dispatch = vi.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+    return { dispatch, getState };
+  }
+
+  it('converts a legacy range to the canonical route URL', async () => {
+    api.routes.getRoutesSegments.mockResolvedValue([{
+      fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000,
+    }]);
+    const { dispatch, getState } = legacyStore();
+    resolveLegacyZoom(DONGLE, 1000, 2000)(dispatch, getState);
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith(`/${DONGLE}/${LOG}/0/60`));
+    expect(api.routes.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
+  });
+
+  it('does nothing when the lookup is empty', async () => {
+    api.routes.getRoutesSegments.mockResolvedValue([]);
+    const { dispatch, getState } = legacyStore();
+    resolveLegacyZoom(DONGLE, 1000, 2000)(dispatch, getState);
+    await vi.waitFor(() => expect(api.routes.getRoutesSegments).toHaveBeenCalled());
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('ignores a stale lookup after navigation', async () => {
+    let resolveLookup;
+    api.routes.getRoutesSegments.mockReturnValue(new Promise((resolve) => { resolveLookup = resolve; }));
+    const { dispatch, getState } = legacyStore();
+    resolveLegacyZoom(DONGLE, 1000, 2000)(dispatch, getState);
+    // user navigates away before the lookup resolves
+    getState.mockReturnValue({
+      ...baseState,
+      router: { location: { pathname: `/${DONGLE}`, search: '' } },
+    });
+    resolveLookup([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
+    await vi.waitFor(() => expect(api.routes.getRoutesSegments).toHaveBeenCalled());
+    await new Promise((resolve) => { setTimeout(resolve, 10); });
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
   });
 });
