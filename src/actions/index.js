@@ -33,9 +33,10 @@ export function checkRoutesData() {
     console.debug('We need to update the segment metadata...');
     const { dongleId, limit: fetchLimit } = state;
     const fetchRange = state.filter;
+    const routeLookup = Boolean(state.selectedRouteId);
 
     // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.selectedRouteId) {
+    if (routeLookup) {
       routesRequest = {
         req: api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.selectedRouteId}`),
         dongleId,
@@ -99,8 +100,9 @@ export function checkRoutesData() {
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
-        start: fetchRange.start,
-        end: fetchRange.end,
+        // one looked-up drive isn't the drive list; leave the range unset so the dashboard fetches it
+        start: routeLookup ? null : fetchRange.start,
+        end: routeLookup ? null : fetchRange.end,
         routes,
       });
 
