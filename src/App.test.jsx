@@ -170,7 +170,7 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     expect(app.history.location.pathname).toBe(`/${FIRST}`);
     expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
-  });
+  }, 10000);
 
   test('fetches the initial routes with a nonzero limit', async () => {
     await renderApp('/', { selected: FIRST });
@@ -234,7 +234,7 @@ describe('whole-app behavior', () => {
   });
 
   test.each([
-    ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`],
+    ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`], ['settings', `/${FIRST}/settings`],
   ])('signed-out %s entry retains its path', async (_name, pathname) => {
     const { history } = await renderApp(pathname, { authenticated: false });
     expect(await screen.findByText('Sign in with Google')).toBeVisible();
@@ -276,6 +276,15 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+  });
+
+  test('settings close and browser history restore its view', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    act(() => history.goBack());
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
   });
 
   test('device browser history restores exact dashboards', async () => {

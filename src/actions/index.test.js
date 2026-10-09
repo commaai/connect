@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { primeNav, pushTimelineRange, settingsNav, streamNav, urlForState } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -24,6 +24,8 @@ describe('timeline actions', () => {
     ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
     ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
     ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
+    ['stream', ['dongle', null, null, null, false, true], '/dongle/stream'],
+    ['settings', ['dongle', null, null, null, false, false, true], '/dongle/settings'],
   ])('generates a %s URL', (_name, args, expected) => {
     expect(urlForState(...args)).toBe(expected);
   });
@@ -45,6 +47,7 @@ describe('timeline actions', () => {
   it.each([
     ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
     ['stream', streamNav, 'streamNav', '/statedongle/stream'],
+    ['settings', settingsNav, 'settingsNav', '/statedongle/settings'],
   ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
     const dispatch = vi.fn();
     action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));

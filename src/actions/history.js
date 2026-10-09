@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { parsePath } from '../url';
+import { checkRoutesData, primeNav, streamNav, settingsNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
@@ -13,14 +13,15 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
 
     next(action); // must be first, otherwise breaks history
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
+    const parsed = parsePath(action.payload.location.pathname, action.payload.location.search);
+    const pathDongleId = parsed.dongleId;
     if (pathDongleId && pathDongleId !== state.dongleId) {
       dispatch(selectDevice(pathDongleId, false, false));
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
+    const pathZoom = parsed.legacyZoom;
+    const pathRouteId = parsed.routeId;
+    const pathRouteZoom = parsed.zoom;
 
     if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
       const [start, end] = [pathZoom.start, pathZoom.end];
@@ -37,7 +38,6 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       });
     }
 
-    
     if (pathRouteId || state.selectedRouteId) {
       dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
     }
@@ -46,14 +46,16 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       dispatch(checkRoutesData());
     }
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
+    if (parsed.primeNav !== state.primeNav) {
+      dispatch(primeNav(parsed.primeNav, false));
     }
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
+    if (parsed.streamNav !== state.streamNav) {
+      dispatch(streamNav(parsed.streamNav, false));
+    }
+
+    if (parsed.settingsNav !== state.settingsNav) {
+      dispatch(settingsNav(parsed.settingsNav, false));
     }
   } else {
     next(action);

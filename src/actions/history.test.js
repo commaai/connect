@@ -17,14 +17,14 @@ vi.mock('../api', () => ({
 }));
 vi.mock('./index', () => ({
   selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
-  checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
+  checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(), settingsNav: vi.fn(),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
 const baseState = {
-  dongleId: DONGLE, zoom: null, selectedRouteId: null, primeNav: false, streamNav: false,
+  dongleId: DONGLE, zoom: null, selectedRouteId: null, primeNav: false, streamNav: false, settingsNav: false,
 };
 
 function create(state = baseState) {
@@ -40,7 +40,7 @@ function location(pathname, action = 'POP') {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
+  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav', 'settingsNav']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
@@ -118,14 +118,15 @@ describe('history middleware', () => {
   it.each([
     ['Prime', 'prime', 'primeNav'],
     ['stream', 'stream', 'streamNav'],
+    ['settings', 'settings', 'settingsNav'],
   ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
     const entering = create();
     entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(true, false);
 
     vi.clearAllMocks();
     const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
     leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
+    expect(actions[actionName]).toHaveBeenCalledWith(false, false);
   });
 });

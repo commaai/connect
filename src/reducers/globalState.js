@@ -53,17 +53,19 @@ export default function reducer(_state, action) {
       state.profile = action.profile;
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_SELECT_DEVICE: {
+      const isSameDevice = state.dongleId === action.dongleId;
       state = {
         ...state,
-        filter: getDefaultFilter(),
+        filter: isSameDevice ? state.filter : getDefaultFilter(),
         dongleId: action.dongleId,
         primeNav: false,
         streamNav: false,
-        subscription: null,
-        subscribeInfo: null,
-        files: null,
-        limit: 0,
+        settingsNav: false,
+        subscription: isSameDevice ? state.subscription : null,
+        subscribeInfo: isSameDevice ? state.subscribeInfo : null,
+        files: isSameDevice ? state.files : null,
+        limit: isSameDevice ? state.limit : 0,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
@@ -83,6 +85,7 @@ export default function reducer(_state, action) {
         state.currentRoute = null;
       }
       break;
+    }
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
@@ -231,7 +234,7 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_DEVICE_ONLINE:
       state = {
         ...state,
-        devices: [...state.devices],
+        devices: state.devices ? [...state.devices] : [],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
 
@@ -243,7 +246,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           last_athena_ping: action.last_athena_ping,
@@ -254,7 +257,7 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_DEVICE_NETWORK:
       state = {
         ...state,
-        devices: [...state.devices],
+        devices: state.devices ? [...state.devices] : [],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
 
@@ -265,7 +268,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           network_metered: action.networkMetered,
@@ -276,7 +279,7 @@ export default function reducer(_state, action) {
       // merge RPC-fetched values (e.g. not_car) into a specific device's `rpc` field
       state = {
         ...state,
-        devices: [...state.devices],
+        devices: state.devices ? [...state.devices] : [],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
 
@@ -290,7 +293,7 @@ export default function reducer(_state, action) {
         };
       }
 
-      if (state.device.dongle_id === action.dongleId) {
+      if (state.device?.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
           rpc: {
@@ -313,6 +316,12 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         streamNav: action.streamNav,
+      };
+      break;
+    case Types.ACTION_SETTINGS_NAV:
+      state = {
+        ...state,
+        settingsNav: action.settingsNav,
       };
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
