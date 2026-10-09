@@ -41,10 +41,11 @@ async function check(name, options, logId, audio = false) {
       const timeline = page.getByRole('slider', { name: 'Drive timeline' });
       const bounds = await timeline.boundingBox();
       for (const fraction of [0.75, 0.2, 0.55]) await timeline.click({ position: { x: bounds.width * fraction, y: 20 } });
-      await page.waitForFunction(() => {
+      // Pointer coordinates have pixel precision, especially on narrow screens.
+      await page.waitForFunction((width) => {
         const element = document.querySelector('video');
-        return !element.seeking && element.readyState >= 2 && Math.abs(element.currentTime - element.duration * 0.55) < 2;
-      });
+        return !element.seeking && element.readyState >= 2 && Math.abs(element.currentTime - element.duration * 0.55) < element.duration / width + 0.1;
+      }, bounds.width);
       assert(await video.evaluate((element) => element.paused), 'Timeline seeking must preserve pause');
       // These positions are outside the initial buffer; skip-button seeks alone
       // cannot catch expensive segment loading or a stale seek winning a race.
@@ -69,16 +70,30 @@ async function check(name, options, logId, audio = false) {
     assert(await video.evaluate((element) => element.paused), 'Changing speed must preserve pause');
     await video.evaluate((element) => element.play());
     assert.equal(await video.evaluate((element) => element.playbackRate), 2);
-    if (options.isMobile) {
+    if (options.viewport.width < 1536) {
       const handle = await video.elementHandle();
       await page.getByText('Map', { exact: true }).click();
       assert(await handle.evaluate((element) => element === document.querySelector('video')));
+      const waitForMap = () => page.waitForFunction(() => {
+        const map = document.querySelector('.mapboxgl-map')?.getBoundingClientRect();
+        const canvas = document.querySelector('.mapboxgl-canvas')?.getBoundingClientRect();
+        return map?.height >= 298 && canvas?.height >= 298 && Math.abs(map.width - canvas.width) < 1;
+      });
+      await waitForMap();
+      if (options.viewport.width < 600) {
+        await page.setViewportSize({ width: options.viewport.height, height: options.viewport.width });
+        await waitForMap();
+        await page.setViewportSize(options.viewport);
+        await waitForMap();
+      }
       await page.waitForFunction((time) => {
         const element = document.querySelector('video');
         return element.currentTime > time + 0.5 || element.currentTime < time;
       }, await video.evaluate((element) => element.currentTime));
       await page.getByRole('button', { name: 'Pause', exact: true }).click();
       assert(await video.evaluate((element) => element.paused));
+      await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+      await page.screenshot({ path: `${output}/${name}-map.png`, fullPage: true });
       await page.getByRole('button', { name: 'Play video', exact: true }).click();
       await page.getByText('Video', { exact: true }).click();
     }
@@ -153,6 +168,8 @@ try {
     await check('mobile-route', devices['Pixel 7'], '00000000--0000000004');
     await check('mobile-audio', devices['Pixel 7'], '00000000--0000000011', true);
     await check('mobile-mp4', devices['Pixel 7'], '00000000--0000000012', true);
+  } else {
+    await check('narrow-route', { viewport: { width: 390, height: 844 } }, '00000000--0000000004');
   }
   await checkRecovery();
   const page = await browser.newPage();

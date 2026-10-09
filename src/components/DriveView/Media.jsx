@@ -532,7 +532,7 @@ class Media extends Component {
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
             {(inView === MediaType.MAP && !showMapAlways) && (
-              <div className="w-full">
+              <div className="h-[300px] w-full">
                 <DriveMap />
               </div>
             )}

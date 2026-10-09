@@ -284,7 +284,7 @@ class DriveMap extends Component {
   render() {
     const { viewport } = this.state;
     return (
-      <div ref={this.onRef} className="h-full overflow-hidden rounded-xl border border-white/10 cursor-default [&>div]:h-full [&>div]:w-full [&>div]:min-h-[300px]">
+      <div ref={this.onRef} className="h-full min-h-[300px] overflow-hidden rounded-xl border border-white/10 cursor-default">
         <ReactMapGL
           width="100%"
           height="100%"
