@@ -3,6 +3,7 @@ import React from 'react';
 import * as Redux from 'redux';
 import thunk from 'redux-thunk';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import DriveListItem from './DriveListItem';
 
 const defaultState = {
@@ -32,7 +33,7 @@ describe('drive list items', () => {
         distance: 12.5212,
         duration: 1234,
       },
-    }));
+    }), { wrapper: MemoryRouter });
     expect(screen.getByRole('link')).toHaveClass('DriveEntry');
   });
 });

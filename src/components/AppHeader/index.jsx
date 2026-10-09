@@ -1,16 +1,18 @@
 import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
+import { Link } from 'react-router-dom';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, AppBar } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import { selectDevice } from '../../actions';
+import { navigateTo } from '../../actions/history';
+import { pathOf, signInUrl, urlForDestination } from '../../url';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
+import { hardNavigate } from '../../utils/navigation';
 
 import AccountMenu from './AccountMenu';
 
@@ -31,12 +33,6 @@ const styles = () => ({
     display: 'flex',
     alignItems: 'center',
     flexWrap: 'nowrap',
-  },
-  logo: {
-    alignItems: 'center',
-    display: 'flex',
-    maxWidth: 200,
-    textDecoration: 'none',
   },
   logoImgLink: {
     lineHeight: 0,
@@ -78,8 +74,8 @@ const styles = () => ({
 });
 
 const AppHeader = ({
-  profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
+  profile, classes, dispatch, drawerIsOpen, showDrawerButton,
+  forwardRef, handleDrawerStateChanged, dongleId, page,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
@@ -89,8 +85,8 @@ const AppHeader = ({
   const handleClickedAccount = useCallback(() => {
     if (MyCommaAuth.isAuthenticated()) {
       setMenuOpen((prev) => !prev);
-    } else if (window.location) {
-      window.location = window.location.origin;
+    } else {
+      hardNavigate(signInUrl(pathOf(window.location)));
     }
   }, []);
 
@@ -99,22 +95,21 @@ const AppHeader = ({
   }, []);
 
   const openReferrals = useCallback(() => {
-    if (pathname === '/referrals') return;
-    dispatch(push('/referrals'));
-  }, [dispatch, pathname]);
+    dispatch(navigateTo({ page: 'referrals' }));
+  }, [dispatch]);
 
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
-  }, [dispatch, dongleId, pathname]);
+    dispatch(navigateTo({ page: page === 'referrals' ? 'dashboard' : 'referrals' }));
+  }, [dispatch, page]);
 
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
   }, [drawerIsOpen, handleDrawerStateChanged]);
 
   const open = menuOpen;
-  const referralsOpen = pathname === '/referrals';
+  const referralsOpen = page === 'referrals';
   const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
 
   return (
@@ -132,25 +127,18 @@ const AppHeader = ({
               </IconButton>
             )
               : (
-                <a
-                  href={`/${dongleId}`}
-                  className={classes.logoImgLink}
-                  onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
-                >
+                <Link to={urlForDestination({ page: 'dashboard', dongleId })} className={classes.logoImgLink}>
                   <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-                </a>
+                </Link>
               )}
-            <a
-              href={`/${dongleId}`}
-              onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
-            >
+            <Link to={urlForDestination({ page: 'dashboard', dongleId })}>
               <Typography className={classes.logoText}>connect</Typography>
-            </a>
+            </Link>
           </div>
           <div className="flex flex-row gap-2">
             <IconButton
               component="a"
-              href={referralsOpen ? `/${dongleId}` : '/referrals'}
+              href={urlForDestination({ page: referralsOpen ? 'dashboard' : 'referrals', dongleId })}
               aria-label="referrals"
               className={classes.giftButton}
               onClick={filterRegularClick(toggleReferrals)}
@@ -185,10 +173,8 @@ const AppHeader = ({
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  filter: state.filter,
   profile: state.profile,
-  primeNav: state.primeNav,
-  pathname: state.router.location.pathname,
+  page: state.nav.page,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

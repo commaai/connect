@@ -8,7 +8,7 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { zoomIn } from '../../actions/history';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
@@ -90,22 +90,6 @@ const styles = () => ({
     opacity: 0.45,
     pointerEvents: 'none',
     width: '100%',
-  },
-  loopStart: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRight: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    left: 0,
-    height: 44,
-    pointerEvents: 'none',
-  },
-  loopEnd: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderLeft: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    right: 0,
-    height: 44,
-    pointerEvents: 'none',
   },
   dragHighlight: {
     pointerEvents: 'none',
@@ -245,8 +229,6 @@ class Timeline extends Component {
   }
 
   handlePointerUp(ev) {
-    const { route } = this.props;
-
     // prevent preventDefault for back(3) and forward(4) mouse buttons
     if (ev.button !== 3 && ev.button !== 4) {
       ev.preventDefault();
@@ -272,10 +254,7 @@ class Timeline extends Component {
         this.props.dispatch(seek(startOffset));
       }
       const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      dispatch(zoomIn({ start: startOffset, end: endOffset }));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

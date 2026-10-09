@@ -16,8 +16,8 @@ export function createAppStore(appHistory, preloadedState) {
     preloadedState,
     composeEnhancers(Redux.applyMiddleware(
       thunk,
+      routerMiddleware(appHistory), // before the observers below
       onHistoryMiddleware,
-      routerMiddleware(appHistory),
       analyticsMiddleware,
     )),
   );

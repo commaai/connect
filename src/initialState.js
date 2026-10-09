@@ -1,10 +1,9 @@
-import { destinationFromUrl } from './url';
-import { getDefaultFilter } from './utils/filter';
+import { getDefaultFilter, LIMIT_INCREMENT } from './utils/filter';
 
-export function createInitialState(pathname = window.location.pathname) {
-  const destination = destinationFromUrl({ pathname });
+export function createInitialState() {
   return {
-    dongleId: destination.dongleId,
+    nav: null,
+    dongleId: null,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
@@ -12,19 +11,13 @@ export function createInitialState(pathname = window.location.pathname) {
     startTime: Date.now(),  // millisecond timestamp in which play began
 
     routes: null,
-    routesMeta: {
-      dongleId: null,
-      start: null,
-      end: null,
-    },
     currentRoute: null,
+    drives: {},
     lastRoutes: null,
 
     profile: null,
     devices: null,
 
-    primeNav: destination.page === 'prime',
-    streamNav: destination.page === 'stream',
     subscription: null,
     subscribeInfo: null,
 
@@ -36,10 +29,9 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: destination.page === 'drive' ? destination.range : null,
+    zoom: null,
     loop: null,
-    selectedRouteId: destination.logId,
-    limit: 0,
+    limit: LIMIT_INCREMENT,
   };
 }
 

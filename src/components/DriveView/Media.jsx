@@ -22,6 +22,7 @@ import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils'
 import { stringifyQuery } from '../../utils/query';
 import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
+import { showDialog } from '../../actions/history';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
 
@@ -54,23 +55,10 @@ const styles = () => ({
       borderRight: 'none',
     },
   },
-  mediaOptionDisabled: {
-    cursor: 'auto',
-  },
-  mediaOptionIcon: {
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    height: 20,
-    margin: '2px 0',
-    width: 30,
-  },
   mediaOptionText: {
     fontSize: 12,
     fontWeight: 500,
     textAlign: 'center',
-  },
-  mediaSource: {
-    width: '100%',
   },
   menuLoading: {
     position: 'absolute',
@@ -152,45 +140,6 @@ const styles = () => ({
     color: Colors.white,
     '& p': { fontSize: '0.8rem' },
   },
-  noPrimePopover: {
-    borderRadius: 16,
-    padding: 16,
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    marginTop: 12,
-    zIndex: 5,
-    '& p': {
-      fontSize: '0.9rem',
-      color: Colors.white,
-      margin: 0,
-    },
-  },
-  noPrimeHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    '& p': {
-      fontSize: '1rem',
-      fontWeight: 500,
-    },
-  },
-  noPrimeButton: {
-    padding: '6px 24px',
-    borderRadius: 15,
-    textTransform: 'none',
-    minHeight: 'unset',
-    color: Colors.white,
-    backgroundColor: Colors.primeBlue50,
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:hover': {
-      color: Colors.white,
-      backgroundColor: Colors.primeBlue200,
-    },
-  },
 });
 
 const MediaType = {
@@ -208,7 +157,6 @@ class Media extends Component {
       downloadMenu: null,
       clipMenu: null,
       moreInfoMenu: null,
-      uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
@@ -538,10 +486,6 @@ class Media extends Component {
   render() {
     const { inView, windowWidth, isMuted, hasAudio } = this.state;
 
-    if (this.props.menusOnly) { // for test
-      return this.renderMenus(true);
-    }
-
     const showMapAlways = windowWidth >= 1536;
 
     return (
@@ -635,9 +579,14 @@ class Media extends Component {
     );
   }
 
-  renderMenus(alwaysOpen = false) {
+  openUploadQueue() {
+    this.setState({ downloadMenu: null });
+    this.props.dispatch(showDialog('uploads', this.props.device.dongle_id));
+  }
+
+  renderMenus() {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, clipMenu, moreInfoMenu, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -669,7 +618,7 @@ class Media extends Component {
     return (
       <>
         <ClipMenu
-          open={Boolean(alwaysOpen || clipMenu)}
+          open={Boolean(clipMenu)}
           dongleId={this.props.dongleId}
           anchorEl={clipMenu}
           onClose={() => this.setState({ clipMenu: null })}
@@ -680,7 +629,7 @@ class Media extends Component {
         />
         <Menu
           id="menu-download"
-          open={ Boolean(alwaysOpen || downloadMenu) }
+          open={ Boolean(downloadMenu) }
           anchorEl={ downloadMenu }
           onClose={ () => this.setState({ downloadMenu: null }) }
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -747,7 +696,7 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+              onClick={ files ? () => this.openUploadQueue() : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -777,7 +726,7 @@ class Media extends Component {
         </Menu>
         <Menu
           id="menu-info"
-          open={ Boolean(alwaysOpen || moreInfoMenu) }
+          open={ Boolean(moreInfoMenu) }
           anchorEl={ moreInfoMenu }
           onClose={ () => this.setState({ moreInfoMenu: null }) }
           transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}
@@ -822,11 +771,10 @@ class Media extends Component {
             </ListItem>,
           ] }
         </Menu>
+        {/* hidden, keeps the upload states in these menus fresh */}
         <UploadQueue
-          open={ uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
-          update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
-          store={ this.props.store }
+          open={ false }
+          update={ Boolean(moreInfoMenu || downloadMenu) && !this.props.uploadsOpen }
           device={ device }
         />
         <Popper
@@ -922,6 +870,7 @@ class Media extends Component {
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
+  uploadsOpen: Boolean(state.nav.uploads),
   routes: state.routes,
   currentRoute: state.currentRoute,
   zoom: state.zoom,

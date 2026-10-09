@@ -1,5 +1,5 @@
 import React, { Component, lazy, Suspense } from 'react';
-import { Provider } from 'react-redux';
+import { Provider, connect } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router-dom';
 import { ConnectedRouter } from 'connected-react-router';
 import localforage from 'localforage';
@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { destinationFromUrl } from './url';
+import { isPublic, localPath, destinationFromUrl } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -20,12 +20,31 @@ import FullPageLoading from './components/FullPageLoading';
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
 
+const Page = connect((state) => ({ nav: state.nav }))(({ nav }) => {
+  if (nav.page === 'not-found') {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 p-8">
+        <h1 className="text-xl font-medium">Page not found</h1>
+        <a href="/" className="underline">Go to connect</a>
+      </div>
+    );
+  }
+  // keyed per side: react-redux 5 breaks if suspense hides a connected tree
+  const showApp = api.auth.isAuthenticated() || isPublic(nav);
+  return (
+    <Suspense key={showApp ? 'app' : 'sign-in'} fallback={<FullPageLoading />}>
+      {showApp ? <Explorer /> : <AnonymousLanding />}
+    </Suspense>
+  );
+});
+
 class App extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
       initialized: false,
+      returnTo: '/',
     };
 
     let pairToken;
@@ -71,6 +90,10 @@ class App extends Component {
     }
 
     const token = await MyCommaAuth.init();
+    if (token && window.location?.pathname === AuthConfig.AUTH_PATH) { // a failed sign in keeps it
+      this.setState({ returnTo: localPath(sessionStorage.getItem('redirectURL')) || '/' });
+      sessionStorage.removeItem('redirectURL');
+    }
     if (token) {
       Request.configure(token, this.apiErrorResponseCallback);
       Billing.configure(token, this.apiErrorResponseCallback);
@@ -78,9 +101,9 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const destination = destinationFromUrl(window.location);
-      if (destination.page === 'stream') {
-        webrtcConnectionManager.reconnect(destination.dongleId);
+      const nav = destinationFromUrl(window.location);
+      if (nav.page === 'stream') {
+        webrtcConnectionManager.reconnect(nav.dongleId);
       }
 
       fetchTurnCredentials().catch((err) => {
@@ -92,49 +115,19 @@ class App extends Component {
     this.setState({ initialized: true });
   }
 
-  redirectLink() {
-    let url = '/';
-    if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
-      url = sessionStorage.getItem('redirectURL');
-      sessionStorage.removeItem('redirectURL');
-    }
-    return url;
-  }
-
-  authRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to={this.redirectLink()} />
-        </Route>
-        <Route path="/" component={Explorer} />
-      </Switch>
-    );
-  }
-
-  anonymousRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to="/" />
-        </Route>
-        <Route path="/" component={AnonymousLanding} />
-      </Switch>
-    );
-  }
-
   render() {
     if (!this.state.initialized) {
       return <FullPageLoading />;
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const { page } = destinationFromUrl(history.location);
-    const showLogin = !api.auth.isAuthenticated() && page !== 'drive' && page !== 'legacy';
     let content = (
-      <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
-      </Suspense>
+      <Switch>
+        <Route path="/auth/">
+          <Redirect to={api.auth.isAuthenticated() ? this.state.returnTo : '/'} />
+        </Route>
+        <Route path="/" component={Page} />
+      </Switch>
     );
 
     // Use ErrorBoundary in production only
