@@ -6,6 +6,7 @@ import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 import { fetchDriveCoords } from '../../actions/cached';
 import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
+import { buildCoordIndex, positionAtOffset } from './position';
 
 const INTERACTION_TIMEOUT = 5000;
 
@@ -18,8 +19,6 @@ class DriveMap extends Component {
         ...DEFAULT_LOCATION,
         zoom: 14,
       },
-      driveCoordsMin: null,
-      driveCoordsMax: null,
     };
 
     this.onRef = this.onRef.bind(this);
@@ -35,6 +34,7 @@ class DriveMap extends Component {
     this.isInteracting = false;
     this.isInteractingTimeout = null;
     this.lastMapPos = [0, 0];
+    this.coordIndex = null;
   }
 
   componentDidMount() {
@@ -62,11 +62,6 @@ class DriveMap extends Component {
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
       && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
       this.shouldFlyTo = false;
-      const keys = Object.keys(currentRoute.driveCoords);
-      this.setState({
-        driveCoordsMin: Math.min(...keys),
-        driveCoordsMax: Math.max(...keys),
-      });
       this.populateMap();
     }
   }
@@ -173,37 +168,14 @@ class DriveMap extends Component {
     }
   }
 
+  // Position at an offset, interpolated between the nearest gps fixes,
+  // so seeking into a gap in the gps data still moves the marker.
   posAtOffset(offset) {
-    const { currentRoute } = this.props;
-    if (!currentRoute.driveCoords) {
-      return null;
+    const { driveCoords } = this.props.currentRoute;
+    if (!this.coordIndex || this.coordIndex.source !== driveCoords) {
+      this.coordIndex = { source: driveCoords, index: buildCoordIndex(driveCoords) };
     }
-
-    const offsetSeconds = Math.floor(offset / 1e3);
-    const offsetFractionalPart = (offset % 1e3) / 1000.0;
-    const coordIdx = Math.max(this.state.driveCoordsMin, Math.min(
-      offsetSeconds,
-      this.state.driveCoordsMax,
-    ));
-    const nextCoordIdx = Math.max(this.state.driveCoordsMin, Math.min(
-      offsetSeconds + 1,
-      this.state.driveCoordsMax,
-    ));
-
-    if (!currentRoute.driveCoords[coordIdx]) {
-      return null;
-    }
-
-    const [floorLng, floorLat] = currentRoute.driveCoords[coordIdx];
-    if (!currentRoute.driveCoords[nextCoordIdx]) {
-      return [floorLng, floorLat];
-    }
-
-    const [ceilLng, ceilLat] = currentRoute.driveCoords[nextCoordIdx];
-    return [
-      floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
-      floorLat + ((ceilLat - floorLat) * offsetFractionalPart),
-    ];
+    return positionAtOffset(this.coordIndex.index, offset);
   }
 
   initMap(mapComponent) {
@@ -270,11 +242,6 @@ class DriveMap extends Component {
       const { currentRoute } = this.props;
       if (currentRoute?.driveCoords) {
         this.shouldFlyTo = false;
-        const keys = Object.keys(currentRoute.driveCoords);
-        this.setState({
-          driveCoordsMin: Math.min(...keys),
-          driveCoordsMax: Math.max(...keys),
-        });
         this.populateMap();
       }
     });
