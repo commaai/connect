@@ -6,7 +6,7 @@ import { currentOffset } from '.';
 export function reducer(_state, action) {
   let state = { ..._state };
   let loopOffset = null;
-  if (state.loop && state.loop.startTime !== null) {
+  if (state.loop && state.loop.startTime != null) {
     loopOffset = state.loop.startTime;
   }
   switch (action.type) {
@@ -15,6 +15,7 @@ export function reducer(_state, action) {
         ...state,
         offset: action.offset,
         startTime: Date.now(),
+        seekRevision: (Number.isInteger(state.seekRevision) ? state.seekRevision : 0) + 1,
       };
 
       if (loopOffset !== null) {
@@ -61,11 +62,33 @@ export function reducer(_state, action) {
         startTime: Date.now(),
       };
       break;
+    case Types.ACTION_VIDEO_TIME:
+      if (!Number.isFinite(action.offset) || action.offset < 0) {
+        return _state;
+      }
+      state = {
+        ...state,
+        isMediaClock: true,
+        offset: action.offset,
+        startTime: Date.now(),
+      };
+      break;
+    case Types.ACTION_RELEASE_VIDEO:
+      state = {
+        ...state,
+        offset: currentOffset(state),
+        isMediaClock: false,
+        isBufferingVideo: false,
+        startTime: Date.now(),
+      };
+      break;
     case Types.ACTION_RESET:
       state = {
         ...state,
         desiredPlaySpeed: 1,
         isBufferingVideo: true,
+        isMediaClock: false,
+        seekRevision: (Number.isInteger(state.seekRevision) ? state.seekRevision : 0) + 1,
         offset: 0,
         startTime: Date.now(),
       };
@@ -86,7 +109,7 @@ export function reducer(_state, action) {
   }
 
   // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
+  if (!state.isMediaClock && state.offset !== null && state.loop?.startTime != null) {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
     const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
     loopOffset = state.loop.startTime;
@@ -141,6 +164,19 @@ export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
+  };
+}
+
+export function videoTime(offset) {
+  return {
+    type: Types.ACTION_VIDEO_TIME,
+    offset,
+  };
+}
+
+export function releaseVideo() {
+  return {
+    type: Types.ACTION_RELEASE_VIDEO,
   };
 }
 

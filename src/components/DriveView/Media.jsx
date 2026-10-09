@@ -552,6 +552,7 @@ class Media extends Component {
             {inView === MediaType.VIDEO && (
               <DriveVideo
                 isMuted={isMuted}
+                onMuteChange={muted => this.setState({ isMuted: muted })}
                 onAudioStatusChange={this.handleAudioStatusChange}
               />
             )}

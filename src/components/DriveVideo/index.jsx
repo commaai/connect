@@ -1,365 +1,322 @@
-/* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { CircularProgress, Typography } from '@material-ui/core';
-import ReactPlayer from 'react-player/file';
+import { CircularProgress } from '@material-ui/core';
+import Hls from 'hls.js';
 
 import { api } from '../../api/backend';
+import { bufferVideo, pause, play, releaseVideo, videoTime } from '../../timeline/playback';
+import { isFirefox, isIos } from '../../utils/browser';
 
-import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, bufferVideo } from '../../timeline/playback';
-import { isIos, isFirefox } from '../../utils/browser.js';
-
-// Leading-edge debounce: run immediately, then ignore calls until `wait` ms after the last one.
-function debounceLeading(func, wait) {
-  let timeout = null;
-  let args;
-  let context;
-  let timestamp;
-
-  function later() {
-    const last = Date.now() - timestamp;
-    if (last < wait && last >= 0) {
-      timeout = setTimeout(later, wait - last);
-    } else {
-      timeout = null;
-    }
-  }
-
-  return function debounced(...nextArgs) {
-    context = this;
-    args = nextArgs;
-    timestamp = Date.now();
-    const callNow = !timeout;
-    if (!timeout) {
-      timeout = setTimeout(later, wait);
-    }
-    if (callNow) {
-      return func.apply(context, args);
-    }
-    return undefined;
-  };
+function sourceUrl({ currentRoute }) {
+  if (!currentRoute?.fullname) return null;
+  return api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
 }
 
-const VideoOverlay = ({ loading, error }) => {
-  let content;
-  if (error) {
-    content = (
-      <>
-        <ErrorOutline className="mb-2" />
-        <Typography>{error}</Typography>
-      </>
-    );
-  } else if (loading) {
-    content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />;
-  } else {
-    return null;
-  }
-  return (
-    <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
-      <div className="relative text-center top-[calc(50%_-_25px)]">
-        {content}
-      </div>
-    </div>
-  );
-};
-
-const getVideoState = (videoPlayer) => {
-  const currentTime = videoPlayer.getCurrentTime();
-  const { buffered } = videoPlayer.getInternalPlayer();
-
-  let bufferRemaining = -1;
-  for (let i = 0; i < buffered.length; i++) {
-    const end = buffered.end(i);
-    if (currentTime >= buffered.start(i) && currentTime <= end) {
-      bufferRemaining = end - currentTime;
-      break;
-    }
-  }
-
-  return {
-    bufferRemaining,
-    hasLoaded: bufferRemaining > 0,
-  };
-};
-
-class DriveVideo extends Component {
-  constructor(props) {
-    super(props);
-
-    this.onVideoBuffering = this.onVideoBuffering.bind(this);
-    this.onHlsError = this.onHlsError.bind(this);
-    this.onVideoError = this.onVideoError.bind(this);
-    this.onVideoResume = this.onVideoResume.bind(this);
-    this.syncVideo = debounceLeading(this.syncVideo.bind(this), 200);
-    this.firstSeek = true;
-
-    this.videoPlayer = React.createRef();
-
-    this.state = {
-      src: null,
-      videoError: null,
-    };
-  }
+export class DriveVideo extends Component {
+  video = React.createRef();
+  state = { loading: true, error: null, blocked: false };
+  generation = 0;
+  mounted = false;
+  frame = null;
+  pendingPlay = null;
+  lastFrame = 0;
 
   componentDidMount() {
-    const { playSpeed } = this.props;
-    if (this.videoPlayer.current) {
-      this.videoPlayer.current.playbackRate = playSpeed || 1;
-    }
-    this.updateVideoSource({});
-    this.syncVideo();
-    this.videoSyncIntv = setInterval(this.syncVideo, 500);
+    this.mounted = true;
+    this.loadSource();
   }
 
-  componentDidUpdate(prevProps) {
-    this.updateVideoSource(prevProps);
-    this.syncVideo();
+  componentDidUpdate(previous) {
+    if (sourceUrl(previous) !== sourceUrl(this.props)) {
+      this.loadSource();
+      return;
+    }
+    if (previous.seekRevision !== this.props.seekRevision
+      || previous.currentRoute?.videoStartOffset !== this.props.currentRoute?.videoStartOffset) this.seekVideo();
+    if (previous.loop !== this.props.loop) this.seekVideo(this.routeTime());
+    if (previous.desiredPlaySpeed !== this.props.desiredPlaySpeed || previous.isMuted !== this.props.isMuted) {
+      this.applyPlayback();
+    }
   }
 
   componentWillUnmount() {
-    if (this.videoSyncIntv) {
-      clearTimeout(this.videoSyncIntv);
-      this.videoSyncIntv = null;
-    }
+    this.mounted = false;
+    this.clearSource();
+    this.props.dispatch(releaseVideo());
   }
 
-  onVideoBuffering() {
-    const { dispatch, currentRoute } = this.props;
-    const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !currentRoute || !videoPlayer.getDuration()) {
-      dispatch(bufferVideo(true));
-    }
-
-    if (this.firstSeek) {
-      this.firstSeek = false;
-      videoPlayer.seekTo(this.currentVideoTime(), 'seconds');
-    }
-
-    const { hasLoaded } = getVideoState(videoPlayer);
-    const { readyState } = videoPlayer.getInternalPlayer();
-    if (!hasLoaded || readyState < 2) {
-      dispatch(bufferVideo(true));
-    }
+  clearSource() {
+    this.generation += 1;
+    this.stopFrames();
+    this.pendingPlay = null;
+    this.hls?.destroy();
+    this.hls = null;
   }
 
-  /**
-   * @param {Error} e
-   */
-  onHlsError(e) {
-    const { dispatch } = this.props;
-    dispatch(bufferVideo(true));
-
-    if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
-      // buffer but no error
+  loadSource = () => {
+    this.failed = false;
+    this.sourceLoading = true;
+    this.clearSource();
+    const src = sourceUrl(this.props);
+    const video = this.video.current;
+    this.pendingOffset = this.props.offset ?? this.props.currentRoute?.videoStartOffset ?? 0;
+    this.setState({ loading: !!src, error: src ? null : 'No video is available for this drive.', blocked: false });
+    this.props.onAudioStatusChange?.(false);
+    if (!src || !video) {
+      this.props.dispatch(releaseVideo());
       return;
     }
-
-    if (e.type === 'networkError' && (e.response?.code === 404)) {
-      this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
-    } else {
-      this.setState({ videoError: 'Unable to load video' });
-    }
-  }
-
-  /**
-   * @param {Error} e
-   * @param {any} [data]
-   */
-  onVideoError(e, data) {
-    if (!e) {
-      console.warn('Unknown video error', { e, data });
-      return;
-    }
-
-    if (e === 'hlsError') {
-      this.onHlsError(data);
-      return;
-    }
-
-    if (e.name === 'AbortError') {
-      // ignore
-      return;
-    }
-
-    if (e.target?.src?.startsWith(window.location.origin) && e.target.src.endsWith('undefined')) {
-      // TODO: figure out why the src isn't set properly
-      // Sometimes an error will be thrown because we try to play
-      // src: "https://connect.comma.ai/.../undefined"
-      console.warn('Video error with undefined src, ignoring', { e, data });
-      return;
-    }
-
-    const { dispatch } = this.props;
-    dispatch(bufferVideo(true));
-
-    if (e.type === 'networkError') {
-      console.error('Network error', { e, data });
-      this.setState({ videoError: 'Unable to load video. Check network connection.' });
-      return;
-    }
-
-    const videoError = e.response?.code === 404
-      ? 'This video segment has not uploaded yet or has been deleted.'
-      : (e.response?.text || 'Unable to load video');
-    this.setState({ videoError });
-  }
-
-  onVideoResume() {
-    const { videoError } = this.state;
-    if (videoError) this.setState({ videoError: null });
-  }
-
-  updateVideoSource(prevProps) {
-    let { src } = this.state;
-    const { currentRoute } = this.props;
-    if (!currentRoute) {
-      if (src !== '') {
-        this.setState({ src: '', videoError: null });
-      }
-      return;
-    }
-
-    if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
-      src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
-      this.setState({ src, videoError: null });
-      this.syncVideo();
-    }
-  }
-
-  syncVideo() {
-    const { dispatch, isBufferingVideo, isMuted } = this.props;
-    const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
-      return;
-    }
-
-    let { desiredPlaySpeed: newPlaybackRate } = this.props;
-    const desiredVideoTime = this.currentVideoTime();
-    const curVideoTime = videoPlayer.getCurrentTime();
-    const timeDiff = desiredVideoTime - curVideoTime;
-    
-    if (Math.abs(timeDiff) <= Math.max(0.1, 0.5 * newPlaybackRate)) { // newPlaybackRate = 0 when paused, set minimum 0.1 to prevent seeking when paused
-      if (!isIos()) {
-        newPlaybackRate = Math.max(0, newPlaybackRate + Math.round(timeDiff * 10) / 10);
-      }
-    } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
-      // logs start earlier than video, so skip to video ts 0
-      dispatch(seek(currentOffset() - (timeDiff * 1000)));
-    } else {
-      videoPlayer.seekTo(desiredVideoTime, 'seconds');
-    }
-    // most browsers don't support more than 16x playback rate, firefox mutes audio above 8x causing audio to cut in and out with timeDiff rate shifts
-    newPlaybackRate = Math.max(0, Math.min((isFirefox() && !isMuted) ? 8 : 16, newPlaybackRate));
-
-    const internalPlayer = videoPlayer.getInternalPlayer();
-
-    const { hasLoaded } = getVideoState(videoPlayer);
-    if (isBufferingVideo && internalPlayer.readyState >= 4) {
-      dispatch(bufferVideo(false));
-    } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
-      if (!isBufferingVideo) {
-        dispatch(bufferVideo(true));
-      } 
-      newPlaybackRate = 0; // in some circumstances, iOS won't update readyState unless temporarily paused
-    }
-
-    if (videoPlayer.getInternalPlayer('hls')) {
-      if (!internalPlayer.paused && newPlaybackRate === 0) {
-        internalPlayer.pause();
-      } else if (internalPlayer.playbackRate !== newPlaybackRate && newPlaybackRate !== 0) {
-        internalPlayer.playbackRate = newPlaybackRate;
-      }
-      if (internalPlayer.paused && newPlaybackRate !== 0) {
-        const playRes = internalPlayer.play();
-        if (playRes) {
-          playRes.catch(() => console.debug('[DriveVideo] play interrupted by pause'));
+    this.props.dispatch(videoTime(Math.max(0, this.props.offset ?? this.props.currentRoute.videoStartOffset ?? 0)));
+    this.props.dispatch(bufferVideo(true));
+    this.recoveredMedia = false;
+    const nativeHls = video.canPlayType('application/vnd.apple.mpegurl');
+    const webkit = /AppleWebKit/i.test(navigator.userAgent) && !/Chrome|Chromium|Edg|Android/i.test(navigator.userAgent);
+    if (nativeHls && (isIos() || webkit || !Hls.isSupported())) {
+      video.src = src;
+      video.load();
+    } else if (Hls.isSupported()) {
+      const generation = this.generation;
+      this.hls = new Hls({ maxBufferLength: 40 });
+      this.hls.on(Hls.Events.MEDIA_DETACHING, () => {
+        if (generation !== this.generation) return;
+        this.sourceLoading = true;
+        this.pendingOffset ??= this.props.offset ?? this.routeTime();
+        this.pendingPlay = null;
+        this.stopFrames();
+      });
+      this.hls.on(Hls.Events.BUFFER_CODECS, (event, tracks) => {
+        if (generation === this.generation) this.props.onAudioStatusChange?.(!!tracks.audio);
+      });
+      this.hls.on(Hls.Events.ERROR, (event, error) => {
+        if (generation !== this.generation || this.failed || !error.fatal) return;
+        if (error.type === Hls.ErrorTypes.MEDIA_ERROR && !this.recoveredMedia) {
+          this.recoveredMedia = true;
+          this.sourceLoading = true;
+          this.pendingOffset = this.routeTime();
+          this.pendingPlay = null;
+          this.stopFrames();
+          this.setState({ loading: true });
+          this.props.dispatch(bufferVideo(true));
+          try {
+            this.hls.recoverMediaError();
+          } catch {
+            this.fail('Unable to recover video. Try again.');
+          }
+        } else {
+          this.fail(error.response?.code === 404
+            ? 'This video has not uploaded yet or has been deleted.'
+            : 'Unable to load video. Check your connection and try again.');
         }
-      }
+      });
+      this.hls.loadSource(src);
+      this.hls.attachMedia(video);
     } else {
-      // TODO: fix iOS bug where video doesn't stop buffering while paused
-      internalPlayer.playbackRate = newPlaybackRate;
+      this.fail('Video playback is not supported by this browser.');
     }
+  };
+
+  routeTime = () => (this.video.current?.currentTime || 0) * 1000 + (this.props.currentRoute?.videoStartOffset || 0);
+
+  bounds() {
+    const start = this.props.currentRoute?.videoStartOffset || 0;
+    const duration = this.video.current?.duration;
+    const end = Number.isFinite(duration) ? start + duration * 1000 : Infinity;
+    const loop = this.props.loop;
+    const loopStart = loop?.startTime;
+    if (Number.isFinite(loopStart) && loop.duration > 0) {
+      const lower = Math.max(start, loopStart);
+      const upper = Math.min(end, loopStart + loop.duration);
+      if (upper > lower) return [lower, upper, true];
+    }
+    return [start, end, false];
   }
 
-  currentVideoTime(offset = currentOffset()) {
-    const { currentRoute } = this.props;
-    if (!currentRoute) {
-      return 0;
-    }
-
-    if (currentRoute.videoStartOffset) {
-      offset -= currentRoute.videoStartOffset;
-    }
-
-    offset /= 1000;
-
-    return Math.max(0, offset);
+  seekVideo(offset = this.props.offset) {
+    const video = this.video.current;
+    if (!Number.isFinite(offset)) return;
+    this.pendingPlay = null;
+    this.pendingOffset = offset;
+    if (!video?.readyState) return;
+    const [start, end] = this.bounds();
+    const target = (Math.max(start, Math.min(end, offset)) - (this.props.currentRoute?.videoStartOffset || 0)) / 1000;
+    if (Math.abs(video.currentTime - target) > 0.001) video.currentTime = target;
+    this.pendingOffset = null;
+    this.publishTime();
   }
+
+  publishTime = () => {
+    const video = this.video.current;
+    if (!this.mounted || this.failed || !video?.readyState || this.pendingOffset != null) return;
+    const [start, end, looping] = this.bounds();
+    const offset = this.routeTime();
+    if (looping && (offset >= end || offset < start)) {
+      video.currentTime = (start - (this.props.currentRoute?.videoStartOffset || 0)) / 1000;
+    }
+    this.props.dispatch(videoTime(this.routeTime()));
+  };
+
+  stopFrames() {
+    if (this.frame !== null) cancelAnimationFrame(this.frame);
+    this.frame = null;
+  }
+
+  updateFrame = (timestamp) => {
+    if (!this.mounted || this.video.current?.paused || this.video.current?.seeking) {
+      this.frame = null;
+      return;
+    }
+    if (timestamp - this.lastFrame >= 100) {
+      this.lastFrame = timestamp;
+      this.publishTime();
+    }
+    this.frame = requestAnimationFrame(this.updateFrame);
+  };
+
+  applyPlayback() {
+    const video = this.video.current;
+    if (!video?.readyState) return;
+    const speed = this.props.desiredPlaySpeed;
+    if (!speed) {
+      this.pendingPlay = null;
+      video.pause();
+      return;
+    }
+    const rate = Math.min(isFirefox() && !this.props.isMuted ? 8 : 16, Math.max(0.0625, speed));
+    if (video.playbackRate !== rate) {
+      try {
+        video.playbackRate = rate;
+      } catch {
+        video.playbackRate = 1;
+        this.props.dispatch(play(1));
+      }
+    }
+    if (video.paused) this.tryPlay();
+  }
+
+  tryPlay = () => {
+    const video = this.video.current;
+    if (!video || this.pendingPlay || this.failed) return;
+    const generation = this.generation;
+    const pending = Promise.resolve(video.play());
+    this.pendingPlay = pending;
+    pending.catch(error => {
+      if (!this.mounted || generation !== this.generation || this.pendingPlay !== pending || error.name === 'AbortError') return;
+      if (error.name === 'NotAllowedError') {
+        this.setState({ blocked: true, loading: false });
+        this.props.dispatch(pause());
+      } else {
+        this.fail('Unable to play video. Try again.');
+      }
+    }).finally(() => {
+      if (this.pendingPlay === pending) this.pendingPlay = null;
+    });
+  };
+
+  playVideo = () => {
+    this.setState({ blocked: false });
+    this.props.dispatch(play(this.video.current?.playbackRate || 1));
+    this.tryPlay();
+  };
+
+  fail(message) {
+    if (!this.mounted || this.failed) return;
+    this.failed = true;
+    this.stopFrames();
+    this.sourceLoading = true;
+    this.pendingPlay = null;
+    this.setState({ error: message, loading: false });
+    this.video.current?.pause();
+    this.props.dispatch(bufferVideo(true));
+  }
+
+  onMetadata = () => {
+    this.sourceLoading = false;
+    this.seekVideo(this.pendingOffset ?? this.props.offset);
+    this.onReady();
+  };
+
+  onReady = () => {
+    if (!this.hls) this.props.onAudioStatusChange?.(!!this.video.current?.audioTracks?.length);
+    if (!this.video.current?.seeking && !this.state.blocked && !this.failed) {
+      this.setState({ loading: false });
+      this.props.dispatch(bufferVideo(false));
+      this.applyPlayback();
+      if (!this.video.current.paused && this.frame === null) this.frame = requestAnimationFrame(this.updateFrame);
+    }
+  };
+
+  onPlaying = () => {
+    if (!this.mounted || this.failed || this.video.current?.paused) return;
+    this.sourceLoading = false;
+    this.setState({ loading: false, blocked: false });
+    this.props.dispatch(bufferVideo(false));
+    this.publishTime();
+    if (!this.props.desiredPlaySpeed) this.props.dispatch(play(this.video.current.playbackRate));
+    if (this.frame === null) this.frame = requestAnimationFrame(this.updateFrame);
+  };
+
+  onWaiting = () => {
+    this.stopFrames();
+    this.publishTime();
+    this.setState({ loading: true });
+    this.props.dispatch(bufferVideo(true));
+  };
+
+  onPause = () => {
+    if (!this.mounted || !this.video.current?.paused) return;
+    this.stopFrames();
+    this.publishTime();
+    const video = this.video.current;
+    if (!this.sourceLoading && !this.failed && !video?.ended && this.props.desiredPlaySpeed) {
+      this.props.dispatch(pause());
+    }
+  };
+
+  onEnded = () => {
+    if (!this.mounted || this.failed || !this.video.current?.ended) return;
+    this.stopFrames();
+    this.publishTime();
+    if (this.bounds()[2] && this.props.desiredPlaySpeed) this.tryPlay();
+    else this.props.dispatch(pause());
+  };
+
+  onRateChange = () => {
+    const rate = this.video.current?.playbackRate;
+    if (this.props.desiredPlaySpeed && Number.isFinite(rate) && rate > 0 && rate !== this.props.desiredPlaySpeed) {
+      this.props.dispatch(play(rate));
+    }
+  };
+
+  onVolumeChange = () => {
+    const muted = this.video.current?.muted;
+    if (muted !== this.props.isMuted) this.props.onMuteChange?.(muted);
+  };
+
+  onError = () => {
+    if (!this.hls) this.fail('Unable to load video. Check your connection and try again.');
+  };
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
-    const { src, videoError } = this.state;
-
-    const onPlayerReady = (player) => {
-      if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
-        const videoElement = player.getInternalPlayer();
-        if (videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0) {
-          if (onAudioStatusChange) {
-            onAudioStatusChange(true);
-          }
-        }
-      } else { // on other platforms, inspect audio tracks before hls.js changes things
-        const hlsPlayer = player.getInternalPlayer('hls');
-        if (hlsPlayer) {
-          hlsPlayer.on('hlsBufferCodecs', (event, data) => {
-            if (onAudioStatusChange) {
-              onAudioStatusChange(!!data.audio);
-            }
-          });
-        }
-      }
-    };
-
+    const { loading, error, blocked } = this.state;
     return (
-      <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-        <VideoOverlay loading={isBufferingVideo} error={videoError} />
-        <ReactPlayer
-          ref={this.videoPlayer}
-          url={src}
-          playsinline
-          muted={isMuted}
-          width="100%"
-          height="100%"
-          playing={Boolean(currentRoute && desiredPlaySpeed)}
-          onReady={onPlayerReady}
-          config={{
-            hlsVersion: '1.4.8',
-            hlsOptions: {
-              maxBufferLength: 40,
-            },
-          }}
-          playbackRate={desiredPlaySpeed}
-          onBuffer={this.onVideoBuffering}
-          onBufferEnd={this.onVideoResume}
-          onPlay={this.onVideoResume}
-          onError={this.onVideoError}
-        />
+      <div className="relative m-[0_auto] aspect-[1.593] max-w-[964px] overflow-hidden rounded-lg bg-black">
+        <video key={sourceUrl(this.props)} ref={this.video} aria-label="Drive video" className="h-full w-full" controls playsInline muted={this.props.isMuted} preload="metadata"
+          onLoadedMetadata={this.onMetadata} onCanPlay={this.onReady} onPlaying={this.onPlaying} onWaiting={this.onWaiting}
+          onSeeking={() => { this.pendingPlay = null; this.onWaiting(); }} onSeeked={() => { this.publishTime(); this.onReady(); }} onTimeUpdate={this.publishTime}
+          onPause={this.onPause} onEnded={this.onEnded} onRateChange={this.onRateChange} onVolumeChange={this.onVolumeChange} onError={this.onError} />
+        {(error || blocked || loading) && <div className={`absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60 p-6 text-center text-white ${!error && !blocked ? 'pointer-events-none' : ''}`}>
+          {error || blocked ? <><p role={error ? 'alert' : 'status'}>{error || 'Tap to play this drive.'}</p><button type="button" className="rounded-full border border-white/30 bg-white/10 px-5 py-2 text-sm font-medium hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white" onClick={error ? this.loadSource : this.playVideo}>{error ? 'Retry video' : 'Play video'}</button></>
+            : <CircularProgress aria-label="Loading video" style={{ color: 'white' }} size={32} />}
+        </div>}
       </div>
     );
   }
 }
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
+export default connect(state => ({
+  currentRoute: state.currentRoute,
   desiredPlaySpeed: state.desiredPlaySpeed,
   offset: state.offset,
-  startTime: state.startTime,
-  isBufferingVideo: state.isBufferingVideo,
-  routes: state.routes,
-  currentRoute: state.currentRoute,
-});
-
-export default connect(stateToProps)(DriveVideo);
+  seekRevision: state.seekRevision,
+  loop: state.loop,
+}))(DriveVideo);
