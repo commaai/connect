@@ -1,12 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav } from './index';
-
-vi.mock('../timeline/playback', () => ({
-  reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
-}));
+import { primeNav, pushTimelineRange, selectDevice, streamNav } from './index';
 
 vi.mock('connected-react-router', async () => {
   const originalModule = await vi.importActual('connected-react-router');
@@ -17,18 +11,22 @@ vi.mock('connected-react-router', async () => {
   };
 });
 
+const runThunks = (getState) => {
+  const dispatch = vi.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+  return dispatch;
+};
+
 describe('timeline actions', () => {
   it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
     const getState = vi.fn();
     const actionThunk = pushTimelineRange("log_id", 123, 1234);
 
-    getState.mockImplementationOnce(() => ({
+    getState.mockImplementation(() => ({
       dongleId: 'statedongle',
       loop: {},
       zoom: {},
     }));
-    actionThunk(dispatch, getState);
+    actionThunk(runThunks(getState), getState);
     expect(push).toBeCalledWith('/statedongle/log_id/0/2');
   });
 
@@ -36,8 +34,15 @@ describe('timeline actions', () => {
     ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
     ['stream', streamNav, 'streamNav', '/statedongle/stream'],
   ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    const getState = () => ({ dongleId: 'statedongle', [stateKey]: false });
+    action(true)(runThunks(getState), getState);
     expect(push).toHaveBeenCalledWith(expected);
+  });
+
+  it('does not push the URL that is already open', () => {
+    const getState = () => ({ router: { location: { pathname: '/statedongle' } } });
+    const dispatch = runThunks(getState);
+    selectDevice('statedongle')(dispatch, getState);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 });

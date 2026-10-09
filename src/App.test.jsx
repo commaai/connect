@@ -309,4 +309,57 @@ describe('whole-app behavior', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
   });
+
+  test('forward to referrals from Prime keeps the referrals URL', async () => {
+    const { history } = await renderApp(`/${FIRST}/prime`);
+    fireEvent.click(await screen.findByRole('button', { name: 'referrals' }));
+    await waitFor(() => expect(history.location.pathname).toBe('/referrals'));
+    act(() => history.goBack());
+    act(() => history.goForward());
+    expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
+    expect(history.location.pathname).toBe('/referrals');
+  });
+
+  test('Prime settings from a drive opens Prime and back restores the drive', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click(document.querySelector(`a[href="/${FIRST}"] [aria-label="device settings"]`));
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    act(() => history.goBack());
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+  });
+
+  test('browser back through nested ranges leaves the drive back button one step out', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    const drag = async (from, to) => {
+      const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+      fireEvent.pointerDown(timeline, { button: 0, clientX: from, pageX: from });
+      fireEvent.pointerMove(document, { clientX: to, pageX: to });
+      fireEvent.pointerUp(document, { button: 0, clientX: to, pageX: to });
+    };
+    await drag(200, 700);
+    await waitFor(() => expect(history.location.pathname).not.toBe(`/${FIRST}/${LOG}`));
+    const outer = history.location.pathname;
+    await drag(300, 600);
+    await waitFor(() => expect(history.location.pathname).not.toBe(outer));
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(outer));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+  });
+
+  test('returning to the same device dashboard reuses its drives', async () => {
+    const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    const routeRequests = () => mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    const before = routeRequests();
+    fireEvent.click(screen.getByRole('link', { name: 'connect' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(routeRequests()).toBe(before);
+  });
 });

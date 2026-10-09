@@ -1,9 +1,11 @@
+import { replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { api } from '../api/backend';
+import { pathFor } from '../url';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, checkLastRoutesData, applyDevice, fetchSharedDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -56,13 +58,12 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
-        }
+        const { dongle_id: defaultDongleId } = devices.find((d) => d.dongle_id === selectedDongleId) || devices[0];
+        // `/` opens that device's dashboard; pages without a device, like /referrals, keep their URL
+        dispatch(state.router.location.pathname === '/'
+          ? replace(pathFor({ dongleId: defaultDongleId }))
+          : applyDevice(defaultDongleId));
       }
       const dongleId = getState().dongleId;
       const device = devices.find((dev) => dev.dongle_id === dongleId);
