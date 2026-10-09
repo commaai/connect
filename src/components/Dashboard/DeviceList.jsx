@@ -14,7 +14,7 @@ import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } fro
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
-import AddDevice from './AddDevice';
+import { AddDeviceButton } from './AddDevice';
 
 const styles = (theme) => ({
   deviceList: {
@@ -188,7 +188,7 @@ class DeviceList extends Component {
           {devices.map(this.renderDevice)}
           {MyCommaAuth.isAuthenticated() && (
             <div className={classes.addDeviceContainer}>
-              <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
+              <AddDeviceButton buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
             </div>
           )}
         </div>

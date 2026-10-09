@@ -10,6 +10,7 @@
 //   ?settings=:dongleId
 //   ?filter
 //   ?uploads=:dongleId
+//   ?add-device
 
 const DONGLE_ID = /^[a-f0-9]{16}$/;
 const ROUTE_ID = /^[a-f0-9-]{20}$/;

@@ -10,6 +10,7 @@ import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
+import AddDevice from './Dashboard/AddDevice';
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
@@ -203,7 +204,7 @@ class ExplorerApp extends Component {
   render() {
     const {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
-      settingsDongleId, filterOpen, uploadsDevice,
+      settingsDongleId, filterOpen, uploadsDevice, addDeviceOpen,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -259,6 +260,7 @@ class ExplorerApp extends Component {
               <DeviceSettingsModal key={ settingsDongleId } dongleId={ settingsDongleId } onClose={ () => dispatch(push(pathname)) } />
             ) }
             { filterOpen && <TimeSelect onClose={ () => dispatch(push(pathname)) } /> }
+            { addDeviceOpen && devices && <AddDevice onClose={ () => dispatch(push(pathname)) } /> }
             { uploadsDevice && (
               <UploadQueue
                 open
@@ -311,6 +313,7 @@ const stateToProps = (state) => ({
   settingsDongleId: queryParam(state.router.location, 'settings'),
   filterOpen: queryParam(state.router.location, 'filter') !== null,
   uploadsDevice: findUploadsDevice(state),
+  addDeviceOpen: queryParam(state.router.location, 'add-device') !== null,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

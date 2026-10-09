@@ -387,6 +387,14 @@ describe('whole-app behavior', () => {
     expect(history.location.search).toBe(`?uploads=${FIRST}`);
   });
 
+  test('add-device buttons open one pairing modal by URL', async () => {
+    const { history } = await renderApp('/', { devices: [] });
+    fireEvent.click((await screen.findAllByText('add new device'))[0]);
+    expect(await screen.findByRole('heading', { name: 'Pair device' })).toBeVisible();
+    expect(history.location.search).toBe('?add-device');
+    expect(screen.getAllByText('Pair device')).toHaveLength(1);
+  });
+
   test('a settings link opens nothing for a device you do not own', async () => {
     const shared = [devices[0], { ...devices[1], is_owner: false }];
     await renderApp(`/${FIRST}?settings=${SECOND}`, { devices: shared });
@@ -404,6 +412,7 @@ describe('whole-app behavior', () => {
     [`/${FIRST}/${LOG}?settings=${SECOND}`, () => screen.findByDisplayValue('Alpha')],
     [`/${FIRST}?filter`, () => screen.findByText('Start date:')],
     [`/${FIRST}/${LOG}?uploads=${FIRST}`, () => screen.findByText('Upload queue')],
+    [`/${FIRST}?add-device`, () => screen.findByRole('heading', { name: 'Pair device' })],
   ])('%s opens with the drawer closed', async (path, find) => {
     const { history } = await renderApp(path);
     expect(await find()).toBeVisible();
