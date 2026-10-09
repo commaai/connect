@@ -92,26 +92,38 @@ const styles = () => ({
   playhead: {
     position: 'absolute',
     left: 0,
-    height: 44,
+    height: 48,
     marginLeft: -1,
     borderLeft: `2px solid ${Colors.white}`,
     pointerEvents: 'none',
     zIndex: 3,
+  },
+  // below the bar so a finger dragging it does not cover the timeline
+  playheadHandle: {
+    position: 'absolute',
+    top: 44,
+    left: -1,
+    width: 32,
+    height: 24,
+    transform: 'translateX(-50%)',
+    pointerEvents: 'auto',
+    touchAction: 'none',
+    cursor: 'grab',
     '&::after': {
       content: '""',
       position: 'absolute',
-      top: '50%',
-      left: -1,
-      width: 14,
-      height: 14,
+      top: 2,
+      left: '50%',
+      width: 12,
+      height: 12,
       borderRadius: '50%',
       background: Colors.white,
       boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.35)',
-      transform: 'translate(-50%, -50%)',
+      transform: 'translateX(-50%)',
       transition: 'transform 0.15s ease-out',
     },
     '&.scrubbing::after': {
-      transform: 'translate(-50%, -50%) scale(1.5)',
+      transform: 'translateX(-50%) scale(1.4)',
     },
   },
   segmentTick: {
@@ -167,7 +179,7 @@ const styles = () => ({
     backgroundColor: Colors.grey800,
     color: Colors.white,
     position: 'absolute',
-    top: 83,
+    top: 6, // above the bar, clear of a finger on the playhead handle
     left: 0,
     minWidth: 80,
     whiteSpace: 'nowrap',
@@ -540,7 +552,9 @@ class Timeline extends Component {
               >
                 <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
                 { this.renderSegmentTicks() }
-                <div ref={this.playhead} className={`${classes.playhead} ${scrubbing ? 'scrubbing' : ''}`} />
+                <div ref={this.playhead} className={classes.playhead}>
+                  <div className={`${classes.playheadHandle} ${scrubbing ? 'scrubbing' : ''}`} />
+                </div>
                 { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
               </div>
               { hoverString && (
