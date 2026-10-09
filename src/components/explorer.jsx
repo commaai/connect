@@ -10,6 +10,7 @@ import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
@@ -17,6 +18,7 @@ import BodyTeleop from './BodyTeleop';
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
+import { queryParam } from '../url';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
@@ -199,6 +201,7 @@ class ExplorerApp extends Component {
   render() {
     const {
       classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      settingsDongleId,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -250,6 +253,9 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            { settingsDongleId && devices && (
+              <DeviceSettingsModal key={ settingsDongleId } dongleId={ settingsDongleId } onClose={ () => dispatch(push(pathname)) } />
+            ) }
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -285,6 +291,7 @@ const stateToProps = (state) => ({
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
+  settingsDongleId: queryParam(state.router.location, 'settings'),
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

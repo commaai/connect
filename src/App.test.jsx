@@ -328,8 +328,11 @@ describe('whole-app behavior', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
     act(() => history.goBack());
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+    expect(history.location.pathname + history.location.search).toBe(`/${FIRST}/${LOG}?settings=${FIRST}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
-    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(history.location.search).toBe('');
   });
 
   test('browser back through nested ranges leaves the drive back button one step out', async () => {
@@ -361,5 +364,27 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     expect(routeRequests()).toBe(before);
+  });
+
+  test('a settings link opens nothing for a device you do not own', async () => {
+    const shared = [devices[0], { ...devices[1], is_owner: false }];
+    await renderApp(`/${FIRST}?settings=${SECOND}`, { devices: shared });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument();
+  });
+
+  test('a settings link on / opens over the default device', async () => {
+    const { history } = await renderApp(`/?settings=${SECOND}`);
+    await waitFor(() => expect(history.location.pathname + history.location.search).toBe(`/${FIRST}?settings=${SECOND}`));
+    expect(await screen.findByDisplayValue('Alpha')).toBeVisible();
+  });
+
+  test.each([
+    [`/${FIRST}/${LOG}?settings=${SECOND}`, () => screen.findByDisplayValue('Alpha')],
+  ])('%s opens with the drawer closed', async (path, find) => {
+    const { history } = await renderApp(path);
+    expect(await find()).toBeVisible();
+    expect(history.location.pathname + history.location.search).toBe(path);
+    expect(screen.queryByLabelText('device settings')).not.toBeInTheDocument();
   });
 });

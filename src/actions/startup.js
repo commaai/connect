@@ -60,9 +60,10 @@ export default function init() {
       if (!state.dongleId) {
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
         const { dongle_id: defaultDongleId } = devices.find((d) => d.dongle_id === selectedDongleId) || devices[0];
-        // `/` opens that device's dashboard; pages without a device, like /referrals, keep their URL
+        // `/` opens that device's dashboard, keeping the query so a modal link still opens;
+        // pages without a device, like /referrals, keep their URL
         dispatch(state.router.location.pathname === '/'
-          ? replace(pathFor({ dongleId: defaultDongleId }))
+          ? replace(pathFor({ dongleId: defaultDongleId }) + state.router.location.search)
           : applyDevice(defaultDongleId));
       }
       const dongleId = getState().dongleId;

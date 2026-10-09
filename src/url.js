@@ -5,6 +5,9 @@
 //   /:dongleId/prime, /:dongleId/stream     { dongleId, page }
 //   /:dongleId/:routeId[/:start/:end]       { dongleId, routeId, zoom }
 //   /:dongleId/:startMillis/:endMillis      { dongleId, legacyZoom }, old links resolved to a route
+//
+// Modals open over any page with a query param, read with queryParam:
+//   ?settings=:dongleId
 
 const DONGLE_ID = /^[a-f0-9]{16}$/;
 const ROUTE_ID = /^[a-f0-9-]{20}$/;
@@ -50,4 +53,8 @@ export function pathFor({ dongleId, routeId, zoom, page }) {
     }
   }
   return `/${parts.join('/')}`;
+}
+
+export function queryParam(location, name) {
+  return new URLSearchParams(location.search).get(name);
 }

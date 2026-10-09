@@ -131,6 +131,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device ? props.device.alias : '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -141,16 +142,6 @@ class DeviceSettingsModal extends Component {
     this.shareDevice = this.shareDevice.bind(this);
     this.unpairDevice = this.unpairDevice.bind(this);
     this.closeUnpair = this.closeUnpair.bind(this);
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
-      this.setState({
-        ...initialState,
-        deviceAlias: alias,
-      });
-    }
   }
 
   handleAliasChange(e) {
@@ -228,7 +219,6 @@ class DeviceSettingsModal extends Component {
 
   onPrimeSettings() {
     this.props.dispatch(push(pathFor({ dongleId: this.props.dongleId, page: 'prime' })));
-    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -258,9 +248,9 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, profile } = this.props;
     const commacare = device?.commacare;
-    if (!device) {
+    if (!device || !(device.is_owner || profile?.superuser)) {
       return null;
     }
 
@@ -269,7 +259,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
+          open
           onClose={this.props.onClose}
         >
           <Paper className={classes.modal}>
@@ -440,6 +430,7 @@ const stateToProps = (state, ownProps) => {
   return {
     subscription: state.subscription,
     device,
+    profile: state.profile,
   };
 };
 

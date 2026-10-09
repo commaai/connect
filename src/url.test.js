@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parsePath, pathFor } from './url';
+import { parsePath, pathFor, queryParam } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -42,5 +42,10 @@ describe('URL grammar', () => {
 
   it('builds the root without a device', () => {
     expect(pathFor({ dongleId: null })).toBe('/');
+  });
+
+  it('reads a query param', () => {
+    expect(queryParam({ search: `?settings=${DONGLE}` }, 'settings')).toBe(DONGLE);
+    expect(queryParam({ search: '' }, 'settings')).toBeNull();
   });
 });

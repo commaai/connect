@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { parsePath } from './url';
+import { parsePath, queryParam } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -30,7 +30,7 @@ class App extends Component {
 
     let pairToken;
     if (window.location) {
-      pairToken = new URLSearchParams(window.location.search).get('pair');
+      pairToken = queryParam(window.location, 'pair');
     }
 
     if (pairToken) {
