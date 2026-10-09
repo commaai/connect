@@ -24,18 +24,17 @@ function AppRoutes({ authenticated, redirectLink }) {
   const location = useLocation();
   const page = parseUrl(location).page;
   const showLogin = !authenticated && page !== 'drive' && page !== 'legacy';
-  const routes = showLogin ? (
-    <Switch>
-      <Route path="/auth/"><Redirect to="/" /></Route>
-      <Route path="/" component={AnonymousLanding} />
-    </Switch>
-  ) : (
-    <Switch>
-      <Route path="/auth/" render={() => <Redirect to={redirectLink()} />} />
-      <Route path="/" component={Explorer} />
-    </Switch>
+  return (
+    <Suspense fallback={<FullPageLoading />}>
+      <Switch>
+        <Route
+          path="/auth/"
+          render={() => <Redirect to={showLogin ? '/' : redirectLink()} />}
+        />
+        <Route path="/" component={showLogin ? AnonymousLanding : Explorer} />
+      </Switch>
+    </Suspense>
   );
-  return <Suspense fallback={<FullPageLoading />}>{routes}</Suspense>;
 }
 
 class App extends Component {

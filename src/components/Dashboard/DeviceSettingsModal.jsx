@@ -114,7 +114,6 @@ const initialState = {
   loadingDeviceShare: false,
   hasSavedAlias: false,
   shareEmail: '',
-  unpairConfirm: false,
   unpaired: false,
   loadingUnpair: false,
   error: null,
@@ -248,7 +247,7 @@ class DeviceSettingsModal extends Component {
     if (this.state.unpaired) {
       window.location = window.location.origin;
     } else {
-      this.setState({ unpairConfirm: false });
+      this.props.onUnpairClose();
     }
   }
 
@@ -284,7 +283,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ unpairConfirm: true }) }
+                onClick={ this.props.onUnpairOpen }
               >
                 Unpair
               </Button>
@@ -356,7 +355,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.state.unpairConfirm}
+          open={this.props.unpairOpen}
           onClose={ this.closeUnpair }
         >
           <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>

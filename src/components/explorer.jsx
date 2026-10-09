@@ -274,11 +274,14 @@ class ExplorerApp extends Component {
           </>
         ) }
         {modal === 'pair' && <AddDevice open hideButton />}
-        {modal === 'settings' && (modalDevice?.is_owner || profile?.superuser) && (
+        {['settings', 'unpair'].includes(modal) && (modalDevice?.is_owner || profile?.superuser) && (
           <DeviceSettingsModal
             isOpen
+            unpairOpen={modal === 'unpair'}
             dongleId={targetDeviceId || dongleId}
             onClose={() => dispatch(navigateModal(null))}
+            onUnpairOpen={() => dispatch(navigateModal('unpair', targetDeviceId || dongleId))}
+            onUnpairClose={() => dispatch(navigateModal('settings', targetDeviceId || dongleId))}
           />
         )}
         {modal === 'uploads' && modalDevice && (!modalDevice.shared || profile?.superuser) && (

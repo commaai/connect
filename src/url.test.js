@@ -26,6 +26,35 @@ describe('URL parsing and building', () => {
     });
   });
 
+  it.each(['files', 'info', 'clips', 'prime-cancel', 'prime-switch', 'unpair'])('parses the %s modal', (modal) => {
+    expect(parseUrl(`/${DONGLE}?modal=${modal}`)).toMatchObject({ page: 'dashboard', modal });
+  });
+
+  it('preserves a selected clip in the URL and clears it when returning to the clips menu', () => {
+    const filename = 'saved drive clip.mp4';
+    const clipsUrl = `/${DONGLE}/${LOG}?ci=1&modal=clips#video`;
+    const viewerUrl = buildUrl({
+      ...parseUrl(clipsUrl),
+      modal: 'clip',
+      clipFilename: filename,
+    }, clipsUrl);
+    expect(viewerUrl).toBe(`/${DONGLE}/${LOG}?ci=1&modal=clip&clip=saved+drive+clip.mp4#video`);
+    expect(parseUrl(viewerUrl)).toMatchObject({ modal: 'clip', clipFilename: filename });
+    expect(buildUrl({ ...parseUrl(viewerUrl), modal: 'clips' }, viewerUrl))
+      .toBe(`/${DONGLE}/${LOG}?ci=1&modal=clips#video`);
+  });
+
+  it('keeps the target device on an unpair URL', () => {
+    const settingsUrl = `/${DONGLE}?modal=settings&device=${OTHER}`;
+    const unpairUrl = buildUrl({
+      ...parseUrl(settingsUrl),
+      modal: 'unpair',
+      targetDeviceId: OTHER,
+    }, settingsUrl);
+    expect(unpairUrl).toBe(`/${DONGLE}?modal=unpair&device=${OTHER}`);
+    expect(parseUrl(unpairUrl)).toMatchObject({ modal: 'unpair', targetDeviceId: OTHER });
+  });
+
   it.each([
     [`/${DONGLE}/${LOG}/2/2`, 'dashboard'],
     [`/${DONGLE}/${LOG}/-1/2`, 'dashboard'],

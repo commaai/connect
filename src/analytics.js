@@ -9,7 +9,7 @@ import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(location) {
   const url = parseUrl(location);
-  const parts = location.pathname.split('/');
+  const parts = location.pathname.split('/').filter(Boolean);
   const deviceIndex = parts.indexOf(url.dongleId);
   if (deviceIndex !== -1) parts[deviceIndex] = '<dongleId>';
   const routeIndex = url.routeId ? parts.indexOf(url.routeId) : -1;
@@ -17,9 +17,10 @@ function getPageViewEventLocation(location) {
     parts[routeIndex] = '<routeId>';
     if (url.zoom) parts.splice(routeIndex + 1, 2, '<zoomStart>', '<zoomEnd>');
   } else if (url.legacyRange) {
-    parts.splice(deviceIndex + 1, 2, '<legacyStart>', '<legacyEnd>');
+    const rangeIndex = deviceIndex === -1 ? parts.indexOf('demo') + 1 : deviceIndex + 1;
+    parts.splice(rangeIndex, 2, '<legacyStart>', '<legacyEnd>');
   }
-  const pageLocation = parts.join('/').replace(/\/$/, '') || '/';
+  const pageLocation = `/${parts.join('/')}`;
   return pageLocation;
 }
 

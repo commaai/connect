@@ -1,6 +1,9 @@
 const dongleIdPattern = /^[a-f0-9]{16}$/;
 const routeIdPattern = /^[a-f0-9-]{20}$/;
-const modalNames = new Set(['settings', 'uploads', 'pair', 'filter']);
+const modalNames = new Set([
+  'settings', 'uploads', 'pair', 'filter', 'files', 'info', 'clips',
+  'clip', 'delete-clip', 'prime-cancel', 'prime-switch', 'unpair',
+]);
 const demoDongleId = 'deadbeefdeadbeef';
 
 export function sameOriginPath(value) {
@@ -67,6 +70,7 @@ export function parseUrl(location) {
   const params = new URLSearchParams(search || '');
   const requestedModal = params.get('modal');
   const modal = modalNames.has(requestedModal) ? requestedModal : null;
+  const clipFilename = ['clip', 'delete-clip'].includes(modal) ? params.get('clip') : null;
   const targetDeviceId = modal && dongleIdPattern.test(params.get('device') || '')
     ? params.get('device')
     : null;
@@ -78,6 +82,7 @@ export function parseUrl(location) {
     zoom,
     legacyRange,
     modal,
+    clipFilename,
     targetDeviceId,
   };
 }
@@ -111,7 +116,12 @@ export function buildUrl(url, currentLocation) {
 
   if (modalNames.has(url.modal)) params.set('modal', url.modal);
   else params.delete('modal');
-  if (url.targetDeviceId && ['settings', 'uploads'].includes(url.modal)) {
+  if (['clip', 'delete-clip'].includes(url.modal) && url.clipFilename) {
+    params.set('clip', url.clipFilename);
+  } else {
+    params.delete('clip');
+  }
+  if (url.targetDeviceId && ['settings', 'uploads', 'unpair'].includes(url.modal)) {
     params.set('device', url.targetDeviceId);
   } else {
     params.delete('device');
