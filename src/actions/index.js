@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { parseLocation, buildUrl } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -142,58 +143,66 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
+/**
+ * Push the canonical URL for the current navigation state, if it differs from
+ * the current URL. This is the only place navigation URLs are built, so the
+ * URL always reflects state. `patch` overrides derived fields. Overlay query
+ * params (?settings=, ?pair=) are preserved unless explicitly overridden.
+ */
+function syncUrl(dispatch, getState, patch = {}) {
+  const state = getState();
+  const location = state.router?.location;
+  const pathname = location?.pathname ?? window.location.pathname;
+  const search = location?.search ?? window.location.search;
+  const query = parseLocation({ pathname, search });
+  const nav = {
+    page: state.primeNav ? 'prime' : state.streamNav ? 'stream' : state.selectedRouteId ? 'drive' : 'dashboard',
+    dongleId: state.dongleId,
+    routeId: state.selectedRouteId,
+    zoom: state.zoom ? { start: state.zoom.start, end: state.zoom.end } : null,
+    settings: query.settings,
+    pair: query.pair,
+    ...patch,
+  };
+  if (!nav.dongleId && nav.page !== 'dashboard' && nav.page !== 'referrals') {
+    return;
   }
-
-  return `/${path.join('/')}`;
+  const url = buildUrl(nav, { routeDuration: state.currentRoute?.duration });
+  if (url !== pathname + search) {
+    dispatch(push(url));
+  }
 }
 
-function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
+function managePlayback(dispatch, state, start, end) {
+  if (!state.loop || !state.loop.startTime || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
   }
-
-  if (allowPathChange) {
-    const route = state.routes?.find((candidate) => candidate.log_id === log_id);
-    const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-
-    const urlStart = wholeDrive ? null : Math.floor(start / 1000);
-    const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
-
-    if (currentPathname(state) !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
-  }
 }
 
-export function popTimelineRange(log_id, allowPathChange = true) {
+export function popTimelineRange(log_id) {
   return (dispatch, getState) => {
     const state = getState();
-    if (state.zoom.previous) {
+    if (state.zoom?.previous) {
       dispatch({
         type: Types.TIMELINE_POP_SELECTION,
       });
 
       const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+      managePlayback(dispatch, state, start, end);
+      syncUrl(dispatch, getState, {
+        page: 'drive',
+        routeId: log_id ?? getState().selectedRouteId,
+        zoom: { start, end },
+      });
     }
   };
 }
 
-export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
+// State-only timeline update, for the history middleware (the URL is already
+// correct there, so no URL sync happens).
+export function pushTimelineRangeState(log_id, start, end) {
   return (dispatch, getState) => {
     const state = getState();
 
@@ -206,9 +215,19 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
       });
     }
 
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    managePlayback(dispatch, state, start, end);
   };
+}
 
+export function pushTimelineRange(log_id, start, end) {
+  return (dispatch, getState) => {
+    dispatch(pushTimelineRangeState(log_id, start, end));
+    syncUrl(dispatch, getState, {
+      page: log_id ? 'drive' : 'dashboard',
+      routeId: log_id ?? null,
+      zoom: start != null && end != null ? { start, end } : null,
+    });
+  };
 }
 
 
@@ -268,7 +287,9 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
+// State-only device selection, for the history middleware (the URL is already
+// correct there, so no URL sync happens).
+export function selectDeviceState(dongleId, fetchRoutes = true) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
@@ -289,8 +310,8 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
       dongleId,
     });
 
-    dispatch(pushTimelineRange(null, null, null, false));
-    if ((device && !device.shared) || state.profile?.superuser) {
+    dispatch(pushTimelineRangeState(null, null, null));
+    if ((device && !device.shared) || getState().profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
     }
@@ -298,17 +319,18 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     if (fetchRoutes) {
       dispatch(checkLastRoutesData());
     }
-
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
   };
 }
 
-export function primeNav(nav, allowPathChange = true) {
+export function selectDevice(dongleId) {
+  return (dispatch, getState) => {
+    dispatch(selectDeviceState(dongleId, true));
+    // settings are device-scoped: switching devices closes the overlay
+    syncUrl(dispatch, getState, { page: 'dashboard', settings: null });
+  };
+}
+
+export function primeNav(nav) {
   return (dispatch, getState) => {
     const state = getState();
     if (!state.dongleId) {
@@ -322,17 +344,11 @@ export function primeNav(nav, allowPathChange = true) {
       });
     }
 
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
+    syncUrl(dispatch, getState, { page: nav ? 'prime' : 'dashboard' });
   };
 }
 
-export function streamNav(nav, allowPathChange = true) {
+export function streamNav(nav) {
   return (dispatch, getState) => {
     const state = getState();
     if (!state.dongleId) {
@@ -346,13 +362,31 @@ export function streamNav(nav, allowPathChange = true) {
       });
     }
 
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
+    syncUrl(dispatch, getState, { page: nav ? 'stream' : 'dashboard' });
+  };
+}
+
+/**
+ * Convert a legacy /<dongleId>/<start>/<end> (seconds) URL into a canonical
+ * route URL. Runs outside the history middleware; the stale-navigation guard
+ * ensures a slow lookup can't clobber a newer navigation.
+ */
+export function resolveLegacyZoom(dongleId, start, end) {
+  return (dispatch, getState) => {
+    api.routes.getRoutesSegments(dongleId, start, end).then((routesData) => {
+      const location = getState().router?.location ?? window.location;
+      const nav = parseLocation(location);
+      if (!nav.legacy || nav.dongleId !== dongleId || nav.legacy.start !== start || nav.legacy.end !== end) {
+        return; // user navigated away while the lookup was in flight
       }
-    }
+      if (routesData && routesData.length > 0) {
+        const log_id = routesData[0].fullname.split('|')[1];
+        const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
+        dispatch(pushTimelineRange(log_id, 0, duration));
+      }
+    }).catch((err) => {
+      console.error('Error fetching routes data for log ID conversion', err);
+    });
   };
 }
 

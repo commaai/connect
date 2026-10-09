@@ -226,7 +226,7 @@ class DeviceSettingsModal extends Component {
 
   onPrimeSettings() {
     if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
+      this.props.dispatch(selectDevice(this.props.dongleId));
     }
     this.props.dispatch(primeNav(true));
     this.props.onClose();

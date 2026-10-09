@@ -20,10 +20,12 @@ import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { parseLocation, withQuery } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
 const styles = (theme) => ({
   app: {
@@ -82,10 +84,16 @@ class ExplorerApp extends Component {
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+    this.closeSettings = this.closeSettings.bind(this);
   }
 
   closeBodyTeleop() {
     this.props.dispatch(streamNav(false));
+  }
+
+  closeSettings() {
+    // replace (not push): closing the overlay shouldn't reopen it on Back
+    this.props.dispatch(replace(withQuery(this.props.location, { settings: null })));
   }
 
   async componentDidMount() {
@@ -178,6 +186,8 @@ class ExplorerApp extends Component {
   async closePair() {
     const { pairDongleId } = this.state;
     await localforage.removeItem('pairToken');
+    // drop the spent ?pair= token first, so Back/refresh can't re-run the flow
+    this.props.dispatch(replace(withQuery(this.props.location, { pair: null })));
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -198,12 +208,13 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, location, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = parseLocation(location).page === 'referrals';
+    const settingsDongleId = parseLocation(location).settings;
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -250,6 +261,13 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            { settingsDongleId && (
+              <DeviceSettingsModal
+                isOpen
+                dongleId={ settingsDongleId }
+                onClose={ this.closeSettings }
+              />
+            )}
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -278,6 +296,7 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  location: state.router.location,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
