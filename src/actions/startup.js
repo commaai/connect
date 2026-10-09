@@ -1,9 +1,11 @@
+import { replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { api } from '../api/backend';
+import { buildUrl } from '../url';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { loadDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -42,41 +44,32 @@ async function initDevices() {
 
 export default function init() {
   return async (dispatch, getState) => {
-    let state = getState();
-    if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
-    }
-
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    state = getState();
-
     if (profile) {
       Sentry.setUser({ id: profile.id });
     }
 
-    if (devices.length > 0) {
-      if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
-        }
-      }
-      const dongleId = getState().dongleId;
-      const device = devices.find((dev) => dev.dongle_id === dongleId);
-      if (device) {
-        dispatch(primeFetchSubscription(dongleId, device, profile));
-      } else if (dongleId) {
-        dispatch(fetchSharedDevice(dongleId));
-      }
-    }
+    // a url without a device shows the last used one, or the first
+    const fromUrl = getState().dongleId;
+    const remembered = window.localStorage.getItem('selectedDongleId');
+    const fallback = devices.find((d) => d.dongle_id === remembered) || devices[0];
+    const dongleId = fromUrl || fallback?.dongle_id || null;
 
     dispatch({
       type: ACTION_STARTUP_DATA,
       profile,
       devices,
+      dongleId,
     });
+
+    if (profile && dongleId) {
+      dispatch(loadDevice(dongleId));
+    }
+    if (fallback && !fromUrl) {
+      window.localStorage.setItem('selectedDongleId', dongleId);
+      if (getState().page === 'dashboard') {
+        dispatch(replace(buildUrl({ page: 'dashboard', dongleId })));
+      }
+    }
   };
 }

@@ -1,9 +1,14 @@
-import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
-import { getDefaultFilter } from './utils/filter';
+import { applyUrl } from './reducers/location';
+import { getDefaultFilter, LIMIT_INCREMENT } from './utils/filter';
 
 export function createInitialState(pathname = window.location.pathname) {
-  return {
-    dongleId: getDongleID(pathname),
+  return applyUrl({
+    // set from the url by applyUrl, see src/url.js
+    page: null,
+    dongleId: null,
+    selectedRouteId: null,
+    settingsDongleId: null,
+    zoom: null,
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
@@ -22,8 +27,6 @@ export function createInitialState(pathname = window.location.pathname) {
     profile: null,
     devices: null,
 
-    primeNav: getPrimeNav(pathname),
-    streamNav: getStreamNav(pathname),
     subscription: null,
     subscribeInfo: null,
 
@@ -35,11 +38,9 @@ export function createInitialState(pathname = window.location.pathname) {
     },
 
     filter: getDefaultFilter(),
-    zoom: getRouteZoom(pathname),
     loop: null,
-    selectedRouteId: getRouteId(pathname),
-    limit: 0,
-  };
+    limit: LIMIT_INCREMENT,
+  }, { pathname });
 }
 
 export default createInitialState();

@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { navigate, zoomDrive } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -17,18 +17,14 @@ class DriveView extends Component {
     this.close = this.close.bind(this);
   }
 
+  // one zoom level out, or the whole drive when this range was opened from a url
   onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
+    const { start = 0, end = currentRoute.duration } = zoom.previous || {};
+    this.props.dispatch(zoomDrive(start, end));
   }
 
   close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(navigate({ page: 'dashboard' }));
   }
 
   render() {
@@ -42,8 +38,7 @@ class DriveView extends Component {
       );
     }
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const backButtonDisabled = zoom.start === 0 && zoom.end === currentRoute.duration;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;

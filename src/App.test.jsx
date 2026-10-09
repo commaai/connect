@@ -303,4 +303,90 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+  const routeRequests = () => mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+
+  test('a url pushed from anywhere changes the page', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${FIRST}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    act(() => history.push(`/${SECOND}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(mocks.requests.some(({ url }) => url.includes(`/devices/${SECOND}/routes_segments`))).toBe(true);
+  });
+
+  test.each(['/', '/nothing/here'])('%s is replaced by the url of the device it shows', async (pathname) => {
+    const { history } = await renderApp(pathname, { selected: SECOND });
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
+    expect(history.entries).toHaveLength(1);
+  });
+
+  test('legacy timestamp URL does not stay behind in history', async () => {
+    const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.entries).toHaveLength(1);
+  });
+
+  test.each([
+    ['closing it', () => fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }))],
+    ['clicking its device', () => {
+      fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+      fireEvent.click(screen.getByText('Zulu'));
+    }],
+  ])('a drive opened from a link shows the other drives after %s', async (_name, leave) => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    leave();
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('going to a drive and back, or to the same device again, reuses the loaded drives', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    fireEvent.click(screen.getByText('connect'));
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(routeRequests()).toBe(1);
+  });
+
+  test('device settings open from their url, over the page behind them', async () => {
+    const drive = `/${FIRST}/${LOG}/10/20`;
+    const { history, store } = await renderApp(drive);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    const { zoom, currentRoute } = store.getState();
+
+    act(() => history.push(`${drive}?settings=${SECOND}`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByLabelText('Device name')).toHaveValue('Alpha');
+    expect(screen.getByRole('slider', { name: 'Drive timeline', hidden: true })).toBeInTheDocument();
+    expect(store.getState()).toMatchObject({ zoom, currentRoute });
+    expect(routeRequests()).toBe(1);
+
+    fireEvent.keyDown(screen.getByText('Device settings'), { key: 'Escape', keyCode: 27 });
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    expect(history.location).toMatchObject({ pathname: drive, search: '' });
+
+    act(() => history.goBack());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('device settings open on a cold entry, and from the device list', async () => {
+    const { history } = await renderApp(`/${FIRST}?settings=${FIRST}`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByLabelText('Device name')).toHaveValue('Zulu');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Prime settings' }));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(history.location).toMatchObject({ pathname: `/${FIRST}/prime`, search: '' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(history.location.search).toMatch(/^\?settings=[a-f0-9]{16}$/);
+    expect(history.location.pathname).toBe(`/${FIRST}/prime`);
+  });
 });
