@@ -11,6 +11,7 @@ import { pause, play, videoProgress } from '../../timeline/playback';
 const unavailable = 'This video has not uploaded yet or has been deleted.';
 const unplayable = 'This video is unavailable or cannot be played by this browser.';
 const connectionError = 'Unable to load video. Check your connection and try again.';
+const emptySelection = 'There is no video in this selection. Choose another part of the drive.';
 const playbackSpeeds = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4, 8];
 
 export class RouteVideo extends Component {
@@ -170,6 +171,7 @@ export class RouteVideo extends Component {
   seekTo = (offset) => {
     const video = this.video.current;
     this.pendingSeek = offset;
+    if (this.state.error && this.state.error !== emptySelection) return false;
     if (!video.readyState) {
       if (this.hls?.loadingEnabled) this.hls.startLoad(Math.max(0, (offset - this.videoStart) / 1000));
       return false;
@@ -177,7 +179,7 @@ export class RouteVideo extends Component {
     const { start, end } = this.range;
     video.loop = Boolean(this.props.loop && start === 0 && end === video.duration);
     if (end <= start) {
-      this.fail('There is no video in this selection. Choose another part of the drive.');
+      this.fail(emptySelection);
       return false;
     }
     const time = Math.max(start, Math.min(end, (offset - this.videoStart) / 1000));

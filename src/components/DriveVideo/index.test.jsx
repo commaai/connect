@@ -308,15 +308,19 @@ it('reports an unavailable native stream when an HLS fallback is unsupported', a
   expect(screen.getByRole('alert')).not.toHaveTextContent('updated browser');
 });
 
-it('preserves speed, mute state, and a pending seek on retry', async () => {
+it('keeps a fatal error visible after seeking and restores position, speed, and audio on retry', async () => {
   const { video, metadata, store } = await mount({ offset: 15000, native: true });
-  video.playbackRate = 2;
-  video.muted = false;
+  metadata();
+  await act(async () => { video.playbackRate = 2; video.muted = false; });
   Object.defineProperty(video, 'error', { configurable: true, value: { code: 2 } });
   fireEvent.error(video);
+  act(() => store.dispatch(seek(25000)));
+  expect(screen.getByRole('alert')).toBeVisible();
+  expect(video.paused).toBe(true);
+  expect(video.currentTime).toBe(13);
   await act(async () => fireEvent.click(screen.getByText('Try again')));
   metadata();
-  expect(video.currentTime).toBe(13);
+  expect(video.currentTime).toBe(23);
   expect(video.muted).toBe(false);
   expect(store.getState().desiredPlaySpeed).toBe(2);
 });
