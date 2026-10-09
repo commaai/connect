@@ -25,6 +25,10 @@ vi.mock('../api/backend', () => ({
   initBackend: vi.fn(),
 }));
 
+vi.mock('../utils/webrtc', () => ({
+  webrtcConnectionManager: { disconnect: vi.fn() },
+}));
+
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
 
@@ -203,5 +207,29 @@ describe('resolveLegacyZoom', () => {
     await new Promise((resolve) => { setTimeout(resolve, 10); });
     expect(dispatch).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it('selects the URL device when converting a legacy URL from another device', async () => {
+    const DONGLE_B = '1111bbbb1111bbbb';
+    api.routes.getRoutesSegments.mockResolvedValue([{
+      fullname: `${DONGLE_B}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000,
+    }]);
+    // redux still holds device A while the URL belongs to device B
+    let selectedDongle = DONGLE;
+    const getState = vi.fn(() => ({
+      ...baseState,
+      dongleId: selectedDongle,
+      router: { location: { pathname: `/${DONGLE_B}/1000/2000`, search: '' } },
+    }));
+    const dispatch = vi.fn((action) => {
+      if (typeof action === 'function') return action(dispatch, getState);
+      if (action && action.type === 'ACTION_SELECT_DEVICE') selectedDongle = action.dongleId;
+      return action;
+    });
+    resolveLegacyZoom(DONGLE_B, 1000, 2000)(dispatch, getState);
+    // the canonical URL must use the URL's device, not stale redux state
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith(`/${DONGLE_B}/${LOG}/0/60`));
+    expect(api.routes.getRoutesSegments).toHaveBeenCalledWith(DONGLE_B, 1000, 2000);
+    expect(selectedDongle).toBe(DONGLE_B);
   });
 });

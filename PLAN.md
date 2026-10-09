@@ -65,9 +65,14 @@ ranges now survive refresh/share instead of silently widening to the whole drive
     now closes the overlay first (replace), then does a state-only device select and a
     single `primeNav` push (no intermediate history entry); `stateToProps` guards
     `state.devices` being null on cold `?settings=` deep links.
-11. `src/actions/index.js` — `syncUrl` no longer preserves the one-time `?pair=` token.
+11. `src/actions/index.js` — `syncUrl` no longer preserves the one-time `?pair=` token;
+    `resolveLegacyZoom` selects the URL's device (state-only `selectDeviceState` +
+    `checkRoutesData`, mirroring the middleware's device-change path) when it differs
+    from redux state, before serializing the canonical URL — the stale-navigation
+    guard is unchanged.
 12. Tests: rewrote `src/url.test.js` (48), `src/actions/history.test.js` (16),
-    `src/actions/index.test.js` (16, +2 pair-token tests); `src/App.test.jsx` (+3:
+    `src/actions/index.test.js` (17, +2 pair-token tests, +1 legacy cross-device
+    regression); `src/App.test.jsx` (+3:
     settings-overlay open/close/Back/Forward, overlay Close button, prime-settings
     single-history-entry regression); updated one `src/App.test.jsx` expectation
     (legacy conversion now lands on `/<d>/<log>/0/60`, see above).
@@ -75,25 +80,22 @@ ranges now survive refresh/share instead of silently widening to the whole drive
 
 ## Validation (2026-10-09, bun 1.4.2 / node v24.20.0)
 
-- `bun run test` — **13 files, 131/131 pass** (was 126/126 before the review
-  fixes; +5 new tests: pair-token drop x2, settings-overlay integration x2,
-  prime-settings single-entry regression x1).
+- `bun run test` — **13 files, 132/132 pass** (was 126/126 before the review
+  fixes; +6 new tests: pair-token drop x2, settings-overlay integration x2,
+  prime-settings single-entry regression x1, legacy cross-device conversion x1).
 - `bun run lint` (oxlint) — **0 warnings, 0 errors** (100 files).
 - `vite build` (production) — **succeeds** in ~23s (pre-existing >500kB chunk-size warning only).
-- Diff vs master: **17 files, +839 / −325** (PLAN.md included; code-only +731/−325).
+- Diff vs master: **17 files, +995 / −331** (PLAN.md included).
 
 ## Known limitations
 
-- Legacy conversion device ordering: when the middleware sees a legacy
-  `/<dongle>/<start>/<end>` URL it returns early and dispatches
-  `resolveLegacyZoom` without selecting the device first (the old code selected
-  the device before converting). For full-page loads this is fine because
-  `initialState` already parsed the dongle; only an in-app navigation to a
-  legacy URL with a *different* dongle than the current one could build the
-  canonical URL from stale state. Deliberately left as-is: fixing it would
-  require re-introducing device selection into the conversion path (the
-  architectural coupling this change removes), for a path that is rare and
-  self-heals via the middleware diff on the resulting navigation.
+- Legacy conversion device ordering (fixed): `resolveLegacyZoom` now selects the
+  URL's device via the state-only `selectDeviceState` — inside the explicit thunk,
+  after the stale-navigation guard passes — when it differs from redux state, so the
+  canonical URL is always built from the intended device. The stale-navigation guard
+  is unchanged: a slow lookup still cannot clobber a newer navigation, and the
+  history middleware itself still never selects devices (that coupling stays
+  removed). Covered by the new legacy cross-device regression test.
 - `/demo` intentionally does not round-trip through `buildUrl` (see `src/url.js`
   header): the demo backend is selected by pathname once at boot, not as
   navigation state.
@@ -109,7 +111,7 @@ login `?r=` redirect; legacy `/{dongle}/{start}/{end}` bookmark conversion.
 
 **Title:** Beautiful URL handling: single URL grammar, URL-as-truth navigation, overlay dialogs (#770)
 
-**Description:** Implements #770 with a minimal, reviewable diff (17 files, +839/−325 —
+**Description:** Implements #770 with a minimal, reviewable diff (17 files, +995/−331 —
 far smaller than the competing attempts).
 - `src/url.js`: one strict, invertible grammar — `parseLocation`/`buildUrl` cover every
   existing URL shape (drive, ranged drive, legacy second-timestamps, prime, stream, referrals,
@@ -123,10 +125,11 @@ far smaller than the competing attempts).
 - Device settings becomes a `?settings=<dongleId>` overlay: opening it preserves the drive and
   zoom stack underneath; Back closes it. Pair dialog strips `?pair=` on close.
 - Legacy `/{dongle}/{start}/{end}` conversion moves to an explicit thunk with a
-  stale-navigation guard.
+  stale-navigation guard; the thunk selects the URL's device (state-only) when it
+  differs from redux state, so the canonical URL is built from the intended device.
 - Preserved: `?r=` login redirect, `?pair=` flow, `/demo`, prime zoom-clearing, `zoom.previous`
   stack, `checkRoutesData` hard-navigate, startup's root-only URL takeover.
 - One intentional behavior fix: ranges starting at second 0 are now serialized explicitly
   (`/<d>/<log>/0/30`) instead of being silently dropped (old `0`-is-falsy quirk); all old
   bookmarks still parse. Pinned in `App.test.jsx`.
-- Validation: 126/126 vitest pass, oxlint clean, production build succeeds.
+- Validation: 132/132 vitest pass, oxlint clean, production build succeeds.

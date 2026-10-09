@@ -371,7 +371,9 @@ export function streamNav(nav) {
 /**
  * Convert a legacy /<dongleId>/<start>/<end> (seconds) URL into a canonical
  * route URL. Runs outside the history middleware; the stale-navigation guard
- * ensures a slow lookup can't clobber a newer navigation.
+ * ensures a slow lookup can't clobber a newer navigation. When the legacy URL
+ * belongs to a different device than the current redux state, the URL's device
+ * is selected first so the canonical URL is built from the intended device.
  */
 export function resolveLegacyZoom(dongleId, start, end) {
   return (dispatch, getState) => {
@@ -384,6 +386,12 @@ export function resolveLegacyZoom(dongleId, start, end) {
       if (routesData && routesData.length > 0) {
         const log_id = routesData[0].fullname.split('|')[1];
         const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
+        // the URL's device wins: select it before serializing, so the canonical
+        // URL reflects the intended device instead of stale redux state
+        if (getState().dongleId !== dongleId) {
+          dispatch(selectDeviceState(dongleId, false));
+          dispatch(checkRoutesData());
+        }
         dispatch(pushTimelineRange(log_id, 0, duration));
       }
     }).catch((err) => {
