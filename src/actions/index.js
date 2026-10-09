@@ -14,6 +14,11 @@ let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
+const navigate = (dispatch, state, destination) => {
+  const pathname = buildURL(destination);
+  if (currentPathname(state) !== pathname) dispatch(push(pathname));
+}
+
 export function checkRoutesData() {
   return (dispatch, getState) => {
     let state = getState();
@@ -150,14 +155,12 @@ export const pushTimelineRange = (log_id, start, end) => (dispatch, getState) =>
   const state = getState();
   const route = state.routes?.find((candidate) => candidate.log_id === log_id);
   const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-  const pathname = buildURL({
+  navigate(dispatch, state, {
     page: log_id ? 'drive' : 'dashboard',
     dongleId: state.dongleId,
     logId: log_id,
     range: wholeDrive ? null : { start, end },
   });
-
-  if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
 
 export function primeGetSubscription(dongleId, subscription) {
@@ -217,24 +220,19 @@ export function fetchDeviceOnline(dongleId) {
 }
 
 export const selectDevice = (dongleId) => (dispatch, getState) => {
-  const pathname = buildURL({ page: 'dashboard', dongleId });
-  if (currentPathname(getState()) !== pathname) dispatch(push(pathname));
+  navigate(dispatch, getState(), { page: 'dashboard', dongleId });
 }
 
 export const primeNav = (nav) => (dispatch, getState) => {
   const state = getState();
   if (!state.dongleId) return;
-
-  const pathname = buildURL({ page: nav ? 'prime' : 'dashboard', dongleId: state.dongleId });
-  if (currentPathname(state) !== pathname) dispatch(push(pathname));
+  navigate(dispatch, state, { page: nav ? 'prime' : 'dashboard', dongleId: state.dongleId });
 }
 
 export const streamNav = (nav) => (dispatch, getState) => {
   const state = getState();
   if (!state.dongleId) return;
-
-  const pathname = buildURL({ page: nav ? 'stream' : 'dashboard', dongleId: state.dongleId });
-  if (currentPathname(state) !== pathname) dispatch(push(pathname));
+  navigate(dispatch, state, { page: nav ? 'stream' : 'dashboard', dongleId: state.dongleId });
 }
 
 export function fetchSharedDevice(dongleId) {

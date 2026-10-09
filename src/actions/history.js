@@ -60,9 +60,6 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
     if (!device && state.devices && api.auth.isAuthenticated()) {
       dispatch(fetchSharedDevice(dongleId));
     }
-  }
-
-  if (deviceChanged) {
     dispatch(checkLastRoutesData());
   } else if (dongleId && page === 'drive') {
     dispatch(checkRoutesData());
