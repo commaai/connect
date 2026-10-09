@@ -381,7 +381,7 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted, children, controls } = this.props;
+    const { desiredPlaySpeed, isBufferingVideo, currentRoute, isMuted, minimap, showMinimap, controls } = this.props;
     const { src, videoError, fullscreen } = this.state;
 
     // fullscreen: the frame is centred on a black screen with the controls below it
@@ -413,7 +413,8 @@ class DriveVideo extends Component {
           }}
           onError={this.onVideoError}
         />
-        {children}
+        {/* fullscreen always has the minimap, there is no side map there */}
+        {(showMinimap || fullscreen) && minimap}
         <IconButton
           className="absolute! bottom-2 right-2 z-[70] bg-[#16181AAA]! text-white"
           onClick={this.toggleFullscreen}

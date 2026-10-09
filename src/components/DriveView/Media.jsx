@@ -553,9 +553,9 @@ class Media extends Component {
               isMuted={isMuted}
               onAudioStatusChange={this.handleAudioStatusChange}
               controls={this.renderControls()}
-            >
-              {!sideMap && <MiniMap onExpand={() => this.setState({ mapOpen: true })} />}
-            </DriveVideo>
+              minimap={<MiniMap onExpand={() => this.setState({ mapOpen: true })} />}
+              showMinimap={!sideMap}
+            />
           </div>
           {sideMap && (
             <div className="w-[40%]">
