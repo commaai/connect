@@ -489,8 +489,14 @@ class DriveVideo extends Component {
 
     this.destroyHls();
     this.clearSlowLoadTimer();
-    this.missingFirstSegmentRecovery = false;
     this.lastPublishedOffset = null;
+
+    // Reset the missing-first-segment guard for a genuinely new load, but not
+    // for the recovery reload that the guard itself triggers -- clearing it
+    // there makes the recovery retry forever, since the same error comes back.
+    if (startOffset === undefined) {
+      this.missingFirstSegmentRecovery = false;
+    }
 
     // remember where we are so the element can be sent there once it loads
     const target = typeof startOffset === 'number' ? startOffset : this.props.offset;
