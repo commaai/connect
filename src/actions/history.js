@@ -28,7 +28,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   }
 
   if (page === 'root' && dongleId) {
-    dispatch(replace(`/${dongleId}`));
+    dispatch(replace({ pathname: `/${dongleId}`, search: getState().router.location.search }));
     return;
   }
 
@@ -74,7 +74,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
       if (getState().router.location.pathname !== pathname) return;
 
       const logId = routesData?.[0]?.fullname?.split('|')[1];
-      if (logId) dispatch(replace(`/${dongleId}/${logId}`));
+      if (logId) dispatch(replace({ pathname: `/${dongleId}/${logId}`, search: getState().router.location.search }));
     } catch (err) {
       console.error('Error fetching routes data for log ID conversion', err);
     }

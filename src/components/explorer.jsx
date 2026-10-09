@@ -189,7 +189,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, search, settingsDongleId, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, search, settingsDongleId, referralsOpen, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -198,7 +198,6 @@ class ExplorerApp extends Component {
     }
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -296,6 +295,7 @@ const stateToProps = (state) => {
     selectedRouteId: state.selectedRouteId,
     settingsDongleId: parsedURL.settingsDongleId,
     bodyTeleopOpen: parsedURL.page === 'stream',
+    referralsOpen: parsedURL.page === 'referrals',
     profile: state.profile,
   };
 };

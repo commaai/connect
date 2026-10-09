@@ -86,13 +86,14 @@ describe('history middleware', () => {
     expect(actions.checkLastRoutesData).toHaveBeenCalledOnce();
   });
 
-  it('converts a legacy timestamp range to a route', async () => {
+  it('converts a legacy timestamp range to a route and preserves queries', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}` }]);
     const pathname = `/${DONGLE}/1000/2000`;
-    const { store } = create({ ...baseState, router: { location: { pathname } } });
+    const search = `?settings=${DONGLE}`;
+    const { store } = create({ ...baseState, router: { location: { pathname, search } } });
     await syncStateFromURL(pathname)(store.dispatch, store.getState);
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
-    expect(store.dispatch).toHaveBeenCalledWith(replace(`/${DONGLE}/${LOG}`));
+    expect(store.dispatch).toHaveBeenCalledWith(replace({ pathname: `/${DONGLE}/${LOG}`, search }));
   });
 
   it('skips synchronization for query-only changes', () => {
