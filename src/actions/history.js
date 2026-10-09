@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
-import { parseURL, buildURL } from '../url';
+import { parseURL } from '../url';
 import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice } from './index';
 import { ACTION_APPLY_DESTINATION } from './types';
 import { api } from '../api/backend';
@@ -22,7 +22,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   }
 
   if (parsed.page === 'root' && selectedDongleId) {
-    dispatch(replace(buildURL({ page: 'dashboard', dongleId: selectedDongleId })));
+    dispatch(replace(`/${selectedDongleId}`));
     return;
   }
   const destination = { ...parsed, dongleId: selectedDongleId };
@@ -71,7 +71,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
       if (getState().router.location.pathname !== pathname) return;
 
       const logId = routesData?.[0]?.fullname?.split('|')[1];
-      if (logId) dispatch(replace(buildURL({ page: 'drive', dongleId, logId })));
+      if (logId) dispatch(replace(`/${dongleId}/${logId}`));
     } catch (err) {
       console.error('Error fetching routes data for log ID conversion', err);
     }

@@ -36,22 +36,3 @@ export const parseURL = (pathname) => {
   }
   return { page: 'not-found' };
 }
-
-export const buildURL = (destination) => {
-  const { page, dongleId, logId, range } = destination;
-
-  if (rootRoutes.includes(page)) return `/${page}`;
-  if (page === 'root' || !dongleId) return '/';
-
-  const path = [dongleId];
-  if (deviceRoutes.includes(page)) path.push(page);
-
-  if (page === 'drive') {
-    path.push(logId);
-    if (range?.start != null && range?.end != null) {
-      path.push(range.start / 1000, range.end / 1000);
-    }
-  }
-
-  return `/${path.join('/')}`;
-}

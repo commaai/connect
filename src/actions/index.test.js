@@ -17,6 +17,8 @@ vi.mock('connected-react-router', async () => {
   };
 });
 
+beforeEach(() => vi.clearAllMocks());
+
 describe('timeline actions', () => {
   it.each([
     ['whole drive', null, null, '/statedongle/log_id'],
@@ -24,7 +26,6 @@ describe('timeline actions', () => {
     ['drive range', 10000, 20000, '/statedongle/log_id/10/20'],
     ['zero-start drive range', 0, 20000, '/statedongle/log_id/0/20'],
   ])('generates a %s URL when editing zoom', (_name, start, end, expected) => {
-    vi.clearAllMocks();
     const getState = () => ({
       dongleId: 'statedongle',
       routes: [{ log_id: 'log_id', duration: 40000 }],
@@ -35,7 +36,6 @@ describe('timeline actions', () => {
   });
 
   it('navigates to the previous zoom range', () => {
-    vi.clearAllMocks();
     const getState = () => ({
       dongleId: 'statedongle',
       routes: [{ log_id: 'log_id', duration: 40000 }],
@@ -57,7 +57,6 @@ describe('timeline actions', () => {
     ['Prime', primeNav, '/statedongle/prime'],
     ['stream', streamNav, '/statedongle/stream'],
   ])('generates the %s URL while opening', (_name, action, expected) => {
-    vi.clearAllMocks();
     const dispatch = vi.fn();
     action(true)(dispatch, () => ({ dongleId: 'statedongle' }));
     expect(push).toHaveBeenCalledWith(expected);

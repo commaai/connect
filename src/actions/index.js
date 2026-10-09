@@ -7,17 +7,11 @@ import * as Types from './types';
 import { hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { hardNavigate } from '../utils/navigation';
-import { buildURL } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
-
-const navigate = (dispatch, state, destination) => {
-  const pathname = buildURL(destination);
-  if (currentPathname(state) !== pathname) dispatch(push(pathname));
-}
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -155,12 +149,13 @@ export const pushTimelineRange = (log_id, start, end) => (dispatch, getState) =>
   const state = getState();
   const route = state.routes?.find((candidate) => candidate.log_id === log_id);
   const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
-  navigate(dispatch, state, {
-    page: log_id ? 'drive' : 'dashboard',
-    dongleId: state.dongleId,
-    logId: log_id,
-    range: wholeDrive ? null : { start, end },
-  });
+  const path = state.dongleId ? [state.dongleId] : [];
+  if (state.dongleId && log_id) {
+    path.push(log_id);
+    if (!wholeDrive) path.push(start / 1000, end / 1000);
+  }
+  const pathname = `/${path.join('/')}`;
+  if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
 
 export function primeGetSubscription(dongleId, subscription) {
@@ -220,19 +215,23 @@ export function fetchDeviceOnline(dongleId) {
 }
 
 export const selectDevice = (dongleId) => (dispatch, getState) => {
-  navigate(dispatch, getState(), { page: 'dashboard', dongleId });
+  const state = getState();
+  const pathname = dongleId ? `/${dongleId}` : '/';
+  if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
 
 export const primeNav = (nav) => (dispatch, getState) => {
   const state = getState();
   if (!state.dongleId) return;
-  navigate(dispatch, state, { page: nav ? 'prime' : 'dashboard', dongleId: state.dongleId });
+  const pathname = nav ? `/${state.dongleId}/prime` : `/${state.dongleId}`;
+  if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
 
 export const streamNav = (nav) => (dispatch, getState) => {
   const state = getState();
   if (!state.dongleId) return;
-  navigate(dispatch, state, { page: nav ? 'stream' : 'dashboard', dongleId: state.dongleId });
+  const pathname = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+  if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
 
 export function fetchSharedDevice(dongleId) {

@@ -15,7 +15,6 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { buildURL } from '../../url';
 import { updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
@@ -227,8 +226,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    const pathname = buildURL({ page: 'prime', dongleId: this.props.dongleId });
-    this.props.dispatch(push(pathname));
+    this.props.dispatch(push(`/${this.props.dongleId}/prime`));
     this.props.onClose();
   }
 

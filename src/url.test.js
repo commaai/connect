@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseURL, buildURL } from './url';
+import { parseURL } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -49,11 +49,5 @@ describe('parseURL', () => {
     `/${DONGLE}/9007199254740992/9007199254740993`,
   ])('rejects %s', (url) => {
     expect(parseURL(url)).toEqual({ page: 'not-found' });
-  });
-});
-
-describe('buildURL', () => {
-  it.each(destinations)('builds %s URL', (_name, url, destination) => {
-    expect(buildURL(destination)).toBe(url);
   });
 });
