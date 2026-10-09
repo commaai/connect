@@ -10,7 +10,7 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange, seek } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
+import { currentOffset, seek as seekVideo } from '../../timeline';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -82,13 +82,37 @@ const styles = () => ({
   },
   rulerRemaining: {
     backgroundColor: 'rgba(29, 34, 37, 0.9)',
-    borderLeft: '1px solid #D8DDDF',
     position: 'absolute',
     left: 0,
     height: 44,
-    opacity: 0.45,
+    opacity: 0.8,
     pointerEvents: 'none',
     width: '100%',
+  },
+  playhead: {
+    position: 'absolute',
+    left: 0,
+    height: 44,
+    marginLeft: -1,
+    borderLeft: `2px solid ${Colors.white}`,
+    pointerEvents: 'none',
+    zIndex: 3,
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      top: '50%',
+      left: -1,
+      width: 14,
+      height: 14,
+      borderRadius: '50%',
+      background: Colors.white,
+      boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.35)',
+      transform: 'translate(-50%, -50%)',
+      transition: 'transform 0.15s ease-out',
+    },
+    '&.scrubbing::after': {
+      transform: 'translate(-50%, -50%) scale(1.5)',
+    },
   },
   loopStart: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -130,6 +154,9 @@ const styles = () => ({
   },
 });
 
+// how close to the playhead a press grabs it, in pixels
+const PLAYHEAD_GRAB_RADIUS = 24;
+
 const AlertStatusCodes = [
   'normal',
   'userPrompt',
@@ -158,6 +185,7 @@ class Timeline extends Component {
     this.renderRoute = this.renderRoute.bind(this);
 
     this.rulerRemaining = React.createRef();
+    this.playhead = React.createRef();
     this.rulerRef = React.createRef();
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
@@ -166,6 +194,7 @@ class Timeline extends Component {
     const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
+      scrubbing: false,
       hoverX: null,
       zoom: zoomOverride || zoom,
       thumbnail: {
@@ -224,7 +253,20 @@ class Timeline extends Component {
     ev.preventDefault();
     document.addEventListener('pointerup', this.handlePointerUp);
     document.addEventListener('pointermove', this.handlePointerMove);
-    this.setState({ dragging: [ev.pageX, ev.pageX] });
+
+    // pressing on the playhead drags it, anywhere else selects a range
+    const playhead = this.playhead.current?.getBoundingClientRect();
+    if (playhead && Math.abs(ev.clientX - playhead.left) <= PLAYHEAD_GRAB_RADIUS) {
+      this.setState({ scrubbing: true, hoverX: ev.pageX });
+    } else {
+      this.setState({ dragging: [ev.pageX, ev.pageX] });
+    }
+  }
+
+  offsetAtX(x) {
+    const rulerBounds = this.rulerRef.current.getBoundingClientRect();
+    const clampedX = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, x));
+    return this.percentToOffset((clampedX - rulerBounds.x) / rulerBounds.width);
   }
 
   handlePointerMove(ev) {
@@ -240,6 +282,9 @@ class Timeline extends Component {
     if (dragging) {
       this.setState({ dragging: [dragging[0], endDrag] });
     }
+    if (this.state.scrubbing) {
+      seekVideo(this.offsetAtX(endDrag));
+    }
     this.setState({ hoverX: endDrag });
   }
 
@@ -253,6 +298,11 @@ class Timeline extends Component {
 
     document.removeEventListener('pointerup', this.handlePointerUp);
     document.removeEventListener('pointermove', this.handlePointerMove);
+    if (this.state.scrubbing) {
+      this.setState({ scrubbing: false, hoverX: ev.pointerType === 'mouse' ? ev.pageX : null });
+      this.props.dispatch(seek(this.offsetAtX(ev.pageX)));
+      return;
+    }
     const { dragging } = this.state;
     if (!dragging) {
       return;
@@ -296,15 +346,13 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
+    const percent = Math.floor(10000 * this.offsetToPercent(Math.floor(currentOffset()))) / 100;
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
-      this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
-      this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
+      this.rulerRemaining.current.style.left = `${percent}%`;
+      this.rulerRemaining.current.style.width = `${100 - percent}%`;
+    }
+    if (this.playhead.current) {
+      this.playhead.current.style.left = `${percent}%`;
     }
   }
 
@@ -376,7 +424,7 @@ class Timeline extends Component {
 
   render() {
     const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
-    const { thumbnail, hoverX, dragging } = this.state;
+    const { thumbnail, hoverX, dragging, scrubbing } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
 
@@ -441,6 +489,7 @@ class Timeline extends Component {
                 onPointerLeave={this.handlePointerLeave}
               >
                 <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                <div ref={this.playhead} className={`${classes.playhead} ${scrubbing ? 'scrubbing' : ''}`} />
                 { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
               </div>
               { hoverString && (
