@@ -82,8 +82,9 @@ function applyPendingSeek({ target }) {
 function keepTimeOnStartOffsetChange() {
   const previous = knownStartOffset;
   knownStartOffset = videoStartOffset();
+  if (knownStartOffset === previous) return;
   const el = loadedVideo();
-  if (el && !current.ended && knownStartOffset !== previous) seekTo((el.currentTime * 1000) + previous);
+  if (el && !current.ended) seekTo((el.currentTime * 1000) + previous);
 }
 
 // the clock keeps the current frame while the element reloads

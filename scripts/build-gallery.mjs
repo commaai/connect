@@ -650,7 +650,8 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
     });
     await page.waitForFunction(
       ({ selector, expectedText, videoEnded }) => {
-        if (selector && document.querySelector(selector)) return !videoEnded || document.querySelector(selector).ended;
+        const el = selector && document.querySelector(selector);
+        if (el) return !videoEnded || el.ended;
         return expectedText && document.body.innerText.includes(expectedText);
       },
       { timeout: 15000 },
