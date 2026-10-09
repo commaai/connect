@@ -26,9 +26,7 @@ const ROUTE = {
   events: [],
 };
 
-export async function bootstrapToDrive(page, { start = 0, end = 60 } = {}) {
-  const isPublicRoute = page.url().includes(ROUTE_ID);
-
+export async function bootstrapToDrive(page, { start = 0, end = 60, base } = {}) {
   await page.route('**/v1/me/', (route) => route.fulfill({
     json: {
       id: 1,
@@ -59,7 +57,11 @@ export async function bootstrapToDrive(page, { start = 0, end = 60 } = {}) {
   // prime subscription probe: nothing
   await page.route('**/v1/prime/**', (route) => route.fulfill({ json: {} }));
 
-  await page.goto(`/${DONGLE_ID}/${ROUTE_ID}/${start}/${end}`);
+  // resolve the app origin explicitly so this works under Playwright's
+  // baseURL and from standalone scripts against any dev-server port
+  const origin = base
+    || (page.url().startsWith('http') ? new URL(page.url()).origin : 'http://localhost:5173');
+  await page.goto(`${origin}/${DONGLE_ID}/${ROUTE_ID}/${start}/${end}`);
 
   // wait for the drive view to be interactive
   await page.getByRole('slider', { name: 'Drive timeline' }).waitFor({ timeout: 20_000 });
