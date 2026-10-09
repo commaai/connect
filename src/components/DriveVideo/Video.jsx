@@ -9,6 +9,7 @@ const HLS_CONFIG = { maxBufferLength: 40, workerPath: hlsWorkerUrl };
 const HLS_ERROR = 'hlsError';
 const HLS_BUFFER_CODECS = 'hlsBufferCodecs';
 const HLS_FRAG_LOADED = 'hlsFragLoaded';
+const HLS_MEDIA_SOURCE_RESET = 'mediaSourceRequiresReset';
 
 function hlsErrorKind(data) {
   if (data.response?.code === 404) return 'not-found';
@@ -84,11 +85,16 @@ function useHlsErrors(hls, onError) {
       if (!hasPlaylist) return hls.loadSource(hls.url);
       hls.startLoad(video.currentTime);
     };
+    const report = (error) => onError?.({ ...error, retry: () => recover(error.kind) });
     const recoverOrReport = (error) => {
       const canRecover = error.kind === 'media' && !hasTriedRecovery;
-      if (!canRecover) return onError?.({ ...error, retry: () => recover(error.kind) });
+      if (!canRecover) return report(error);
       hasTriedRecovery = true;
       recover(error.kind);
+    };
+    const reportRepeatedReset = (error) => {
+      if (hasTriedRecovery) return report(error);
+      hasTriedRecovery = true;
     };
 
     const isMissingAtPlayhead = () => {
@@ -108,6 +114,7 @@ function useHlsErrors(hls, onError) {
     const handleHlsError = (_, data) => {
       const kind = hlsErrorKind(data);
       if (data.fatal) return recoverOrReport({ kind, cause: data });
+      if (data.details === HLS_MEDIA_SOURCE_RESET) return reportRepeatedReset({ kind, cause: data });
       const isMissingFragment = kind === 'not-found' && data.frag;
       if (!isMissingFragment) return;
       missingFragments.set(data.frag.sn, data.frag);
