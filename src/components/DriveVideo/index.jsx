@@ -118,14 +118,14 @@ class DriveVideo extends Component {
     this.setState({ buffering: false, error });
   }
 
-  // A paused video shows its frame at once; a playing one can paint it 0.3 s after loadeddata, so
-  // wait for the paint where the browser reports it, and at most a second.
+  // A paused video shows its frame at once, and hls.js browsers report the paint. iOS native HLS
+  // went black on drive close with that report, so there 0.3 s of played time stands in for it.
   onLoadedData() {
     const video = this.video.current;
     const shown = () => this.setState({ picture: true });
-    if (video.paused || !video.requestVideoFrameCallback) return shown();
-    video.requestVideoFrameCallback(shown);
-    return setTimeout(shown, 1000);
+    this.dataAt = video.currentTime;
+    if (video.paused) shown();
+    else if (this.hls) video.requestVideoFrameCallback?.(shown);
   }
 
   onLoadedMetadata() {
@@ -139,9 +139,7 @@ class DriveVideo extends Component {
   onError() {
     const { error } = this.video.current;
     // hls.js reports its own errors; code 1 is an abort we asked for
-    if (this.hls || !error || error.code === 1) {
-      return;
-    }
+    if (this.hls || !error || error.code === 1) return;
     if (error.code !== 4) {
       this.fail(error.code === 2 ? NETWORK : UNPLAYABLE);
       return;
@@ -153,9 +151,7 @@ class DriveVideo extends Component {
   }
 
   onHlsError(_, data) {
-    if (!data.fatal) {
-      return;
-    }
+    if (!data.fatal) return;
     if (data.type === 'mediaError' && Date.now() - this.lastMediaRecovery > 5000) {
       this.lastMediaRecovery = Date.now();
       // recovery reattaches the media, which pauses it and resets currentTime without events
@@ -206,9 +202,10 @@ class DriveVideo extends Component {
   onTimeUpdate() {
     const { dispatch, loop } = this.props;
     const video = this.video.current;
-    if (!loop?.duration || video.seeking) {
-      return;
+    if (!this.state.picture && !video.paused && Math.abs(video.currentTime - this.dataAt) >= 0.3) {
+      this.setState({ picture: true });
     }
+    if (!loop?.duration || video.seeking) return;
     const end = this.videoTime(loop.startTime + loop.duration);
     if (video.currentTime > end || video.currentTime < this.videoTime(loop.startTime) - 1) {
       dispatch(end <= 0 ? pause() : seek(loop.startTime));

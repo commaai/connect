@@ -200,29 +200,39 @@ describe('DriveVideo', () => {
     expect(hls.instances[0].config.startPosition).toEqual(60);
   });
 
-  it('keeps the spinner until the video shows its first frame, but not forever', async () => {
-    vi.useFakeTimers();
+  it('keeps the spinner until the video shows its first frame', async () => {
     const frames = [];
     HTMLMediaElement.prototype.requestVideoFrameCallback = vi.fn((cb) => frames.push(cb));
     renderPlayer();
     await act(async () => {});
     const video = document.querySelector('video');
     Object.defineProperty(video, 'paused', { get: () => false });
-    // the browser has data and is playing, but has not painted a frame yet
+    // hls.js: the browser has data and is playing, but has not painted a frame yet
     fireEvent.loadedData(video);
     fireEvent.canPlay(video);
     fireEvent.playing(video);
     expect(screen.getByRole('status')).toHaveTextContent('Loading video');
     act(() => frames.forEach((cb) => cb()));
     expect(screen.getByRole('status')).toHaveTextContent('');
+    cleanup();
 
-    // a browser that never reports the frame still drops the spinner after a second
-    fireEvent.emptied(video);
-    fireEvent.loadedData(video);
+    // native HLS (iOS) gets no frame report: 0.3 s of played time stands in for the paint
+    window.MediaSource = undefined;
+    frames.length = 0;
+    renderPlayer();
+    const native = document.querySelector('video');
+    let time = 10;
+    Object.defineProperty(native, 'paused', { get: () => false });
+    Object.defineProperty(native, 'currentTime', { get: () => time, set: () => {} });
+    fireEvent.loadedData(native);
+    fireEvent.playing(native);
+    time = 10.1;
+    fireEvent.timeUpdate(native);
     expect(screen.getByRole('status')).toHaveTextContent('Loading video');
-    act(() => vi.advanceTimersByTime(1000));
+    time = 10.3;
+    fireEvent.timeUpdate(native);
     expect(screen.getByRole('status')).toHaveTextContent('');
-    vi.useRealTimers();
+    expect(frames).toEqual([]);
   });
 
   it('shows no spinner over the frame of a paused video when Play starts it', async () => {
