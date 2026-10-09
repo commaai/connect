@@ -92,6 +92,91 @@ export function offsetNearest(driveCoords, [lng, lat]) {
 // Mapbox GL is driven directly rather than through React: the camera follows the
 // marker every frame, which as React state would re-render 60 times a second, and
 // the map's own touch handling is what makes it smooth on phones and tablets.
+// the direction from one [lng, lat] to another, in degrees clockwise from north;
+// null when they are the same place
+export function headingBetween(from, to) {
+  if (from[0] === to[0] && from[1] === to[1]) {
+    return null;
+  }
+  const east = (to[0] - from[0]) * Math.cos((to[1] * Math.PI) / 180);
+  const north = to[1] - from[1];
+  return (Math.atan2(east, north) * 180) / Math.PI;
+}
+
+// the car marking where playback is, seen from above and facing north, in the style of
+// Google Maps; drawn twice as big as shown so it stays sharp on high density screens
+function carIcon() {
+  const scale = 2;
+  const width = 24;
+  const height = 42;
+  const canvas = document.createElement('canvas');
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+  const roundedRect = (x, y, w, h, r) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  };
+  const polygon = (points) => {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+  };
+
+  // body, shaded across so it looks rounded, on a soft shadow
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 3;
+  ctx.shadowOffsetY = 1;
+  roundedRect(4, 3, 16, 36, 7);
+  const paint = ctx.createLinearGradient(4, 0, 20, 0);
+  paint.addColorStop(0, '#b0bec5');
+  paint.addColorStop(0.5, '#ffffff');
+  paint.addColorStop(1, '#b0bec5');
+  ctx.fillStyle = paint;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.stroke();
+
+  // mirrors
+  ctx.fillStyle = '#b0bec5';
+  roundedRect(1.5, 13, 3, 2.5, 1);
+  ctx.fill();
+  roundedRect(19.5, 13, 3, 2.5, 1);
+  ctx.fill();
+
+  // windscreen, rear window and roof
+  ctx.fillStyle = '#1b2733';
+  polygon([[6.5, 12.5], [17.5, 12.5], [16, 18], [8, 18]]);
+  ctx.fill();
+  polygon([[8, 31], [16, 31], [17, 34.5], [7, 34.5]]);
+  ctx.fill();
+  roundedRect(8, 18.5, 8, 12, 2);
+  ctx.fillStyle = '#eceff1';
+  ctx.fill();
+
+  // headlights and tail lights
+  ctx.fillStyle = '#ffe082';
+  roundedRect(6, 3.8, 3.5, 1.6, 0.8);
+  ctx.fill();
+  roundedRect(14.5, 3.8, 3.5, 1.6, 0.8);
+  ctx.fill();
+  ctx.fillStyle = '#e53935';
+  roundedRect(6, 36.8, 3.5, 1.4, 0.7);
+  ctx.fill();
+  roundedRect(14.5, 36.8, 3.5, 1.4, 0.7);
+  ctx.fill();
+
+  return { image: ctx.getImageData(0, 0, canvas.width, canvas.height), pixelRatio: scale };
+}
+
 class DriveMap extends Component {
   constructor(props) {
     super(props);
@@ -125,6 +210,8 @@ class DriveMap extends Component {
     this.panning = false;
     this.markerDragging = false;
     this.lastMapPos = [0, 0];
+    this.heading = 0; // where the car faces, in degrees clockwise from north
+    this.markerShown = false;
     this.lastOffset = null;
     this.currentSegment = null;
     this.dragOffset = null;
@@ -185,7 +272,7 @@ class DriveMap extends Component {
   componentDidUpdate(prevProps) {
     const { dispatch, currentRoute, zoom, small } = this.props;
 
-    // small, the map shows the whole drive; big again, it follows the car at the zoom it had
+    // small, the map zooms out to the whole drive; big again, it follows the car at the zoom it had
     if (this.mapReady && prevProps.small !== undefined && Boolean(small) !== Boolean(prevProps.small)) {
       this.map.resize();
       if (small) {
@@ -374,20 +461,29 @@ class DriveMap extends Component {
       const pos = this.posAtOffset(offset);
       if (pos && this.movedOnScreen(pos)) {
         this.lastMapPos = pos;
+        this.markerShown = true;
         markerSource.setData({
-          type: 'Point',
-          coordinates: pos,
+          type: 'Feature',
+          properties: { heading: this.headingAt(offset) },
+          geometry: { type: 'Point', coordinates: pos },
         });
         this.followMarker(pos);
       }
-    } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
-      markerSource.setData({
-        type: 'Point',
-        coordinates: [],
-      });
+    } else if (this.markerShown) {
+      this.markerShown = false;
+      markerSource.setData({ type: 'FeatureCollection', features: [] });
     }
 
     requestAnimationFrame(this.updateMarkerPos);
+  }
+
+  // which way the car faces: along the road it drove over the second before and after,
+  // keeping the last heading while it stands still
+  headingAt(offset) {
+    const from = this.posAtOffset(offset - 1000);
+    const to = this.posAtOffset(offset + 1000);
+    this.heading = (from && to && headingBetween(from, to)) ?? this.heading;
+    return this.heading;
   }
 
   // the map redraws on every change: leave out moves smaller than a screen pixel
@@ -398,8 +494,8 @@ class DriveMap extends Component {
   }
 
   followMarker(pos) {
-    // a small map shows the whole drive; moving the camera cancels the gesture the user is starting
-    if (this.props.small || this.isInteracting || this.pointerDown || this.markerDragging || this.map.isMoving()) {
+    // moving the camera cancels the gesture the user is starting
+    if (this.isInteracting || this.pointerDown || this.markerDragging || this.map.isMoving()) {
       return;
     }
     if (this.shouldFlyTo) {
@@ -424,14 +520,19 @@ class DriveMap extends Component {
     }
   }
 
-  // the whole drive in view, for the small map in a corner
+  // for the small map in a corner: centred on the car, zoomed out so the whole drive stays in view
   fitDrive() {
     const points = Object.values(this.props.currentRoute?.driveCoords || {});
     if (!this.mapReady || points.length === 0) {
       return;
     }
     const bounds = points.reduce((b, point) => b.extend(point), new mapboxgl.LngLatBounds(points[0], points[0]));
-    this.map.fitBounds(bounds, { padding: FIT_PADDING, maxZoom: ZOOM, duration: 0 });
+    const camera = this.map.cameraForBounds(bounds, { padding: FIT_PADDING, maxZoom: ZOOM });
+    if (!camera) {
+      return;
+    }
+    // centred on the car, the drive can reach twice as far on one side: one zoom level further out
+    this.map.jumpTo({ center: this.markerShown ? this.lastMapPos : camera.center, zoom: camera.zoom - 1 });
   }
 
   updateSelection() {
@@ -509,11 +610,10 @@ class DriveMap extends Component {
     });
     map.addSource('seekPoint', {
       type: 'geojson',
-      data: {
-        type: 'Point',
-        coordinates: [],
-      },
+      data: { type: 'FeatureCollection', features: [] },
     });
+    const car = carIcon();
+    map.addImage('car', car.image, { pixelRatio: car.pixelRatio });
 
     map.addLayer({
       id: 'selectionLine',
@@ -560,14 +660,16 @@ class DriveMap extends Component {
     });
     map.addLayer({
       id: 'marker',
-      type: 'circle',
-      paint: {
-        'circle-radius': 10,
-        'circle-color': '#007cbf',
-        'circle-stroke-width': 3,
-        'circle-stroke-color': '#ffffff',
-      },
+      type: 'symbol',
       source: 'seekPoint',
+      layout: {
+        'icon-image': 'car',
+        'icon-rotate': ['get', 'heading'],
+        'icon-rotation-alignment': 'map',
+        // always drawn, without hiding the segment numbers around it
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+      },
     });
 
     this.mapReady = true;

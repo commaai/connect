@@ -1,4 +1,4 @@
-import { offsetNearest, segmentLabelPoints, segmentLines } from '.';
+import { headingBetween, offsetNearest, segmentLabelPoints, segmentLines } from '.';
 
 describe('segmentLines', () => {
   it('splits the drive into one line per segment, joined end to start', () => {
@@ -44,5 +44,18 @@ describe('offsetNearest', () => {
 
   it('handles a drive without coordinates', () => {
     expect(offsetNearest({}, [0, 0])).toBeNull();
+  });
+});
+
+describe('headingBetween', () => {
+  it('turns the car the way it drives, clockwise from north', () => {
+    expect(headingBetween([0, 0], [0, 1])).toBe(0);
+    expect(headingBetween([0, 0], [1, 0])).toBe(90);
+    expect(headingBetween([0, 0], [0, -1])).toBe(180);
+    expect(headingBetween([0, 0], [-1, 0])).toBe(-90);
+  });
+
+  it('has no heading for a car standing still', () => {
+    expect(headingBetween([7, 45], [7, 45])).toBeNull();
   });
 });
