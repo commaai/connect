@@ -133,13 +133,21 @@ const styles = () => ({
     borderLeft: `1px solid ${Colors.white20}`,
     pointerEvents: 'none',
     zIndex: 2,
-    '& > span': {
+    '& > button': {
       position: 'absolute',
-      top: 2,
-      left: 3,
+      top: 0,
+      left: 0,
+      minWidth: 24,
+      padding: '2px 3px 6px',
+      textAlign: 'left',
       fontSize: 10,
       color: Colors.white60,
       userSelect: 'none',
+      pointerEvents: 'auto',
+      cursor: 'pointer',
+      '&:hover': {
+        color: Colors.white,
+      },
     },
     '&.minor': {
       height: 8,
@@ -515,7 +523,17 @@ class Timeline extends Component {
       });
   }
 
-  // a tick at every segment start, numbered as often as there is room for
+  // zoom on a segment and select it, ready to loop, upload or open in cabana
+  selectSegment(segment) {
+    const { dispatch, route } = this.props;
+    const start = segment * SEGMENT_DURATION;
+    const end = Math.min(start + SEGMENT_DURATION, route.duration);
+    const margin = (end - start) / 6;
+    this.setView(clampView(start - margin, end + margin, route.duration));
+    dispatch(pushTimelineRange(route.log_id, start, end, true));
+  }
+
+  // a tick at every segment start, numbered (and selectable) as often as there is room for
   renderSegmentTicks() {
     const { classes, route } = this.props;
     const { view, thumbnail } = this.state;
@@ -535,7 +553,16 @@ class Timeline extends Component {
           className={`${classes.segmentTick} ${labeled ? '' : 'minor'}`}
           style={{ left: `${this.offsetToPercent(segment * SEGMENT_DURATION) * 100}%` }}
         >
-          {labeled && <span>{segment}</span>}
+          {labeled && (
+            <button
+              type="button"
+              aria-label={`Select segment ${segment}`}
+              onPointerDown={(ev) => ev.stopPropagation()}
+              onClick={() => this.selectSegment(segment)}
+            >
+              {segment}
+            </button>
+          )}
         </div>,
       );
     }
