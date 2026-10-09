@@ -591,7 +591,6 @@ class Media extends Component {
                 dragAnywhere
                 storageKey="driveView.smallVideoBox"
                 aspect={1.593}
-                resizeCorner="bottom-right"
                 fullClassName="absolute inset-0 isolate"
                 smallClassName={`${smallWindowCls} aspect-[1.593]`}
                 defaultClassName="left-2 top-2 w-[38%] max-w-[280px]"
@@ -608,9 +607,8 @@ class Media extends Component {
                   small={!mapBig}
                   storageKey="driveView.smallMapBox"
                   aspect={4 / 3}
-                  resizeCorner="top-left"
                   fullClassName="absolute inset-0 z-10"
-                  smallClassName={`${smallWindowCls} aspect-[4/3]`}
+                  smallClassName={`${smallWindowCls} aspect-[4/3] opacity-85 hover:opacity-100`}
                   defaultClassName="bottom-1 right-1 w-[38%] max-w-[280px]"
                   closeLabel="Hide mini map"
                   onClose={this.toggleSmallWindow}

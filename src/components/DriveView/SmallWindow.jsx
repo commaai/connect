@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 
 // the narrowest a small window gets, as a share of the frame's width
 const MIN_WIDTH = 0.2;
@@ -6,6 +6,13 @@ const MIN_WIDTH = 0.2;
 const DRAG_THRESHOLD = 4;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const CORNER_CLASSES = {
+  'top-left': 'left-0 top-0 cursor-nwse-resize rounded-tl-lg border-l-4 border-t-4',
+  'top-right': 'right-0 top-0 cursor-nesw-resize rounded-tr-lg border-r-4 border-t-4',
+  'bottom-left': 'bottom-0 left-0 cursor-nesw-resize rounded-bl-lg border-b-4 border-l-4',
+  'bottom-right': 'bottom-0 right-0 cursor-nwse-resize rounded-br-lg border-b-4 border-r-4',
+};
 
 function loadBox(key) {
   try {
@@ -29,13 +36,26 @@ function saveBox(key, box) {
 // the middle of the frame, and closed; where it is and how big are remembered as shares of the
 // frame. The children stay mounted either way, so the video keeps playing and the map keeps its state.
 const SmallWindow = ({
-  small, dragAnywhere, storageKey, aspect, resizeCorner, fullClassName, smallClassName, defaultClassName,
+  small, dragAnywhere, storageKey, aspect, fullClassName, smallClassName, defaultClassName,
   closeLabel, onClose, children,
 }) => {
   const ref = useRef(null);
   const gesture = useRef(null);
   const latest = useRef(null);
   const [box, setBox] = useState(() => loadBox(storageKey));
+  const [corner, setCorner] = useState('bottom-right');
+
+  // resize from the corner facing the middle of the frame, wherever the window has been put
+  useLayoutEffect(() => {
+    if (!small || gesture.current) {
+      return;
+    }
+    const frame = ref.current.parentElement.getBoundingClientRect();
+    const win = ref.current.getBoundingClientRect();
+    const right = win.left + (win.width / 2) > frame.left + (frame.width / 2);
+    const bottom = win.top + (win.height / 2) > frame.top + (frame.height / 2);
+    setCorner(`${bottom ? 'top' : 'bottom'}-${right ? 'left' : 'right'}`);
+  });
 
   // the bottom bar and the resize corner grab the pointer at once; the window itself only once
   // the press has moved, so taps still reach what is inside, like the video's double tap
@@ -51,6 +71,7 @@ const SmallWindow = ({
     }
     gesture.current = {
       mode: mode === 'resize' ? 'resize' : 'move',
+      corner,
       grabbed,
       element: ev.currentTarget,
       pointerId: ev.pointerId,
@@ -85,17 +106,17 @@ const SmallWindow = ({
     if (g.mode === 'move') {
       left = clamp(winLeft + dx, 0, frame.width - win.width);
       top = clamp(winTop + dy, 0, frame.height - win.height);
-    } else if (resizeCorner === 'top-left') {
-      // the bottom-right corner stays put
-      const right = winLeft + win.width;
-      const bottom = winTop + win.height;
-      width = clamp(win.width + Math.max(-dx, -dy * aspect), MIN_WIDTH * frame.width, Math.min(right, bottom * aspect));
-      left = right - width;
-      top = bottom - (width / aspect);
     } else {
-      // the top-left corner stays put
-      const maxWidth = Math.min(frame.width - winLeft, (frame.height - winTop) * aspect);
-      width = clamp(win.width + Math.max(dx, dy * aspect), MIN_WIDTH * frame.width, maxWidth);
+      // the opposite corner stays put, and the window keeps its shape inside the frame
+      const fromLeft = g.corner.endsWith('left');
+      const fromTop = g.corner.startsWith('top');
+      const anchorX = fromLeft ? winLeft + win.width : winLeft;
+      const anchorY = fromTop ? winTop + win.height : winTop;
+      const grow = Math.max(fromLeft ? -dx : dx, (fromTop ? -dy : dy) * aspect);
+      const maxWidth = Math.min(fromLeft ? anchorX : frame.width - anchorX, (fromTop ? anchorY : frame.height - anchorY) * aspect);
+      width = clamp(win.width + grow, MIN_WIDTH * frame.width, maxWidth);
+      left = fromLeft ? anchorX - width : anchorX;
+      top = fromTop ? anchorY - (width / aspect) : anchorY;
     }
     latest.current = { left: left / frame.width, top: top / frame.height, width: width / frame.width };
     setBox(latest.current);
@@ -141,15 +162,13 @@ const SmallWindow = ({
           </div>
           <div
             aria-label="Resize"
-            className={`absolute z-[80] h-6 w-6 touch-none ${resizeCorner === 'top-left'
-              ? 'left-0 top-0 cursor-nwse-resize rounded-tl-lg border-l-[3px] border-t-[3px]'
-              : 'bottom-0 right-0 cursor-nwse-resize rounded-br-lg border-b-[3px] border-r-[3px]'} border-white/80`}
+            className={`absolute z-[80] h-8 w-8 touch-none border-white/80 ${CORNER_CLASSES[corner]}`}
             onPointerDown={onPointerDown('resize')}
           />
           <button
             type="button"
             aria-label={closeLabel}
-            className="absolute right-1 top-1 z-[85] flex h-5 w-5 items-center justify-center rounded-full border border-fuchsia-500 bg-black/60 text-xs leading-none text-fuchsia-300 shadow hover:text-white"
+            className={`absolute top-1 z-[85] flex h-7 w-7 items-center justify-center rounded-full border border-fuchsia-500 bg-black/70 text-base leading-none text-fuchsia-300 shadow hover:text-white ${corner === 'top-right' ? 'left-1' : 'right-1'}`}
             onClick={onClose}
           >
             ×
