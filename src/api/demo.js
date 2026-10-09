@@ -6,7 +6,8 @@
 //   - route files: synthetic file listings cloned from one cached public files
 //     response
 //   - video URLs: demo routes stream the underlying public route, except the
-//     clone mutated to be missing qcamera (it has no share credentials)
+//     clone mutated to be missing qcamera (it has no share credentials); the
+//     clone missing one qcamera segment gets a 404 for that segment from hls.js
 // Everything else (billing, athena, ...) passes through.
 export const DEMO_DONGLE_ID = 'deadbeefdeadbeef';
 
@@ -83,6 +84,7 @@ const MISSING_DATA_CASES = [
   },
   {
     title: 'Missing qcamera',
+    missingVideo: true,
     // No share credentials, so this route's stream cannot resolve.
     route(route, affectedSegment) {
       if (affectedSegment === undefined) {
@@ -268,6 +270,24 @@ export function createDemoBackend(realBackend) {
           return realBackend.video.getQcameraStreamUrl(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`, exp, sig);
         }
         return realBackend.video.getQcameraStreamUrl(routeStr, exp, sig);
+      },
+      // Single-segment case: hls.js gets a 404 for the affected segment.
+      getHlsOptions(route, Hls) {
+        const testCase = TEST_CASES[demoRouteIndex(route.fullname)];
+        if (!testCase?.missingVideo || testCase.affectedSegment === undefined) {
+          return {};
+        }
+        return {
+          fLoader: class extends Hls.DefaultConfig.loader {
+            load(context, config, callbacks) {
+              if (fileSegmentNumber(context.url) === testCase.affectedSegment) {
+                callbacks.onError({ code: 404, text: 'Not Found' }, context, null, this.stats);
+              } else {
+                super.load(context, config, callbacks);
+              }
+            }
+          },
+        };
       },
     },
   };

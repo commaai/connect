@@ -390,6 +390,7 @@ class DriveVideo extends Component {
         maxBufferLength: 40,
         startPosition: this.videoTime(this.props.offset),
         workerPath: hlsWorker,
+        ...api.video.getHlsOptions?.(currentRoute, Hls),
       });
       this.hls.on(Hls.Events.BUFFER_CODECS, (event, data) => onAudioStatusChange?.(Boolean(data.audio)));
       this.hls.on(Hls.Events.ERROR, this.onHlsError);
