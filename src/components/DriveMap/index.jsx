@@ -55,7 +55,7 @@ class DriveMap extends Component {
       }
     }
 
-    if (prevProps.seekCount !== undefined && prevProps.seekCount !== seekCount) {
+    if (prevProps.seekCount !== seekCount) {
       this.shouldFlyTo = true;
     }
 

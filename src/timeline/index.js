@@ -10,7 +10,7 @@ let clock = { offset: 0, since: Date.now(), speed: 0, hasRoute: false };
 
 const videoStartOffset = () => store.getState().currentRoute?.videoStartOffset ?? 0;
 let knownStartOffset = 0;
-let subscribed = false;
+let stopWatchingStartOffset = () => {};
 
 const videoToRoute = (time) => (time * 1000) + videoStartOffset();
 export const routeToVideo = (offset) => Math.max(0, offset - videoStartOffset()) / 1000;
@@ -91,10 +91,8 @@ export function attachVideo(el, fullname) {
   setClockSpeed(clock.speed);
   current = { el, route: fullname, ended: false };
   knownStartOffset = videoStartOffset();
-  if (!subscribed) {
-    store.subscribe(keepTimeOnStartOffsetChange);
-    subscribed = true;
-  }
+  stopWatchingStartOffset();
+  stopWatchingStartOffset = store.subscribe(keepTimeOnStartOffsetChange);
   el.addEventListener('loadedmetadata', applyPendingSeek, { once: true });
 }
 
@@ -102,5 +100,6 @@ export function detachVideo(el) {
   if (el !== current?.el) return;
   setClockSpeed(clock.speed);
   el.removeEventListener('loadedmetadata', applyPendingSeek);
+  stopWatchingStartOffset();
   current = null;
 }
