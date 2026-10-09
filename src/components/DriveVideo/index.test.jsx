@@ -1,5 +1,6 @@
 import React from 'react';
 import * as Redux from 'redux';
+import thunk from 'redux-thunk';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import DriveVideo from '.';
@@ -15,7 +16,11 @@ vi.mock('../../api/backend', () => ({
 const currentRoute = { fullname: 'aaaaaaaaaaaaaaaa|2026-08-06--12-00-00', videoStartOffset: 2000 };
 
 function renderVideo(state = {}) {
-  const store = Redux.createStore(rootReducer, { ...createInitialState('/'), currentRoute, ...state });
+  const store = Redux.createStore(
+    rootReducer,
+    { ...createInitialState('/'), currentRoute, ...state },
+    Redux.applyMiddleware(thunk),
+  );
   const { container } = render(<DriveVideo store={store} />);
   const video = container.querySelector('video');
   Object.defineProperty(video, 'readyState', { value: video.HAVE_ENOUGH_DATA });
@@ -67,6 +72,15 @@ describe('drive video', () => {
     fireEvent.rateChange(video);
     expect(store.getState().desiredPlaySpeed).toEqual(4);
     expect(video.defaultPlaybackRate).toEqual(4);
+  });
+
+  it('does not re-render on progress', () => {
+    let renders = 0;
+    const store = Redux.createStore(rootReducer, { ...createInitialState('/'), currentRoute }, Redux.applyMiddleware(thunk));
+    render(<React.Profiler id="video" onRender={() => { renders += 1; }}><DriveVideo store={store} /></React.Profiler>);
+    const before = renders;
+    act(() => store.dispatch(videoProgress(5000)));
+    expect(renders).toEqual(before);
   });
 
   it('seeks even if progress is reported before the render', () => {

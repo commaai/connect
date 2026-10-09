@@ -109,33 +109,28 @@ class TimeDisplay extends Component {
     this.jumpForward = this.jumpForward.bind(this);
   }
 
-  // the clock only changes once a second
-  shouldComponentUpdate(nextProps) {
-    return Object.keys(nextProps).some((key) => key !== 'offset' && nextProps[key] !== this.props[key])
-      || this.getDisplayTime(nextProps) !== this.getDisplayTime();
-  }
-
-  getDisplayTime(props = this.props) {
-    const { currentRoute, offset } = props;
-    const now = new Date(offset + currentRoute.start_time_utc_millis);
+  getDisplayTime() {
+    const { second, segment } = this.props;
+    const now = new Date(second * 1000);
     if (Number.isNaN(now.getTime())) {
       return '...';
     }
     let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute, offset);
-    if (seg !== null) {
-      dateString = `${dateString} \u2013 ${seg}`;
+    if (segment !== null) {
+      dateString = `${dateString} \u2013 ${segment}`;
     }
 
     return dateString;
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(this.props.offset - amount));
+    const { dispatch } = this.props;
+    dispatch((_, getState) => dispatch(seek(getState().offset - amount)));
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(this.props.offset + amount));
+    const { dispatch } = this.props;
+    dispatch((_, getState) => dispatch(seek(getState().offset + amount)));
   }
 
   changeSpeed(step) {
@@ -236,12 +231,13 @@ class TimeDisplay extends Component {
   }
 }
 
+// only what the clock shows, so it renders once a second
 const stateToProps = (state) => ({
-  currentRoute: state.currentRoute,
   zoom: state.zoom,
   desiredPlaySpeed: state.desiredPlaySpeed,
   isPlaying: state.isPlaying,
-  offset: state.offset,
+  second: Math.floor((state.offset + state.currentRoute?.start_time_utc_millis) / 1000),
+  segment: getSegmentNumber(state.currentRoute, state.offset),
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

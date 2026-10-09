@@ -143,7 +143,7 @@ function percentFromPointerEvent(ev) {
 }
 
 // connected on its own so only this bar re-renders on progress
-const PlayedRuler = connect((state) => ({ offset: state.offset }))(({ offset, zoom, className }) => {
+const PlayedRuler = connect((state) => ({ offset: state.offset }))(function PlayedRuler({ offset, zoom, className }) {
   const playedPercent = Math.floor((10000 * (offset - zoom.start)) / (zoom.end - zoom.start)) / 100;
   return <div className={className} style={{ left: `${playedPercent}%`, width: `${100 - playedPercent}%` }} />;
 });
