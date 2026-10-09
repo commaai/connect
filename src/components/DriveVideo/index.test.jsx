@@ -197,4 +197,17 @@ describe('DriveVideo', () => {
     await act(async () => {});
     expect(hls.instances[0].config.startPosition).toEqual(60);
   });
+
+  it('never resets a video that is leaving the page', async () => {
+    window.MediaSource = undefined;
+    renderPlayer();
+    const video = document.querySelector('video');
+    expect(video.getAttribute('src')).toBeTruthy();
+    HTMLMediaElement.prototype.load.mockClear();
+    cleanup();
+    await new Promise((done) => { setTimeout(done, 50); });
+    // a reset paints the box black on iOS before the next page shows
+    expect(HTMLMediaElement.prototype.load).not.toHaveBeenCalled();
+    expect(video.getAttribute('src')).toBeTruthy();
+  });
 });

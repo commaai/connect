@@ -17,7 +17,6 @@ class DriveVideo extends Component {
     super(props);
 
     this.video = React.createRef();
-    this.hls = null;
     this.lastMediaRecovery = 0;
 
     this.load = this.load.bind(this);
@@ -52,9 +51,11 @@ class DriveVideo extends Component {
     }
   }
 
-  // a reset video paints black at once on iOS, while the next page can take 0.4 s to show
+  // The browser pauses a video that leaves the page; resetting it too painted black on iOS.
   componentWillUnmount() {
-    this.unload(true);
+    setVideo(null);
+    this.loading = null;
+    this.hls?.destroy();
   }
 
   // Play the current route from the current playback offset.
@@ -85,9 +86,7 @@ class DriveVideo extends Component {
         if (this.loading === loading) this.fail(NETWORK);
         return;
       }
-      if (this.loading !== loading) {
-        return;
-      }
+      if (this.loading !== loading) return;
       // start where playback starts (deep links, seeks during the download), not at segment 0
       this.hls = new Hls({ maxBufferLength: 40, startPosition: Math.max(0, this.videoTime(currentOffset())) });
       this.hls.on(Hls.Events.ERROR, this.onHlsError);
@@ -101,22 +100,15 @@ class DriveVideo extends Component {
   }
 
   // Stop the video and hand the clock back to Redux first, since the teardown resets currentTime.
-  // Returns the offset handed back, if any. `later` resets the element after the next paint.
-  unload(later = false) {
+  // Returns the offset handed back, if a video was attached.
+  unload() {
     const offset = setVideo(null);
     this.loading = null;
-    const { hls } = this;
-    const video = this.video.current;
+    this.hls?.destroy();
     this.hls = null;
-    const reset = () => {
-      hls?.destroy();
-      if (video?.getAttribute('src')) {
-        video.removeAttribute('src');
-        video.load();
-      }
-    };
-    if (later) requestAnimationFrame(() => setTimeout(reset));
-    else reset();
+    // a no-op on a video that never loaded or that hls.js already reset
+    this.video.current.removeAttribute('src');
+    this.video.current.load();
     return offset;
   }
 
