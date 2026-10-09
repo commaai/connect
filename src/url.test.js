@@ -1,71 +1,46 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { parsePath, pathFor } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
 
-describe('URL pathname helpers', () => {
+const at = (location) => ({ dongleId: null, routeId: null, zoom: null, page: null, legacyZoom: null, ...location });
+
+describe('URL grammar', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
+    [`/${DONGLE}`, { dongleId: DONGLE }],
+    [`/${DONGLE}/prime`, { dongleId: DONGLE, page: 'prime' }],
+    [`/${DONGLE}/stream`, { dongleId: DONGLE, page: 'stream' }],
+    [`/${DONGLE}/${LOG}`, { dongleId: DONGLE, routeId: LOG }],
+    [`/${DONGLE}/${LOG}/556/610`, { dongleId: DONGLE, routeId: LOG, zoom: { start: 556000, end: 610000 } }],
+    [`/${DONGLE}/${LOG}/0/20`, { dongleId: DONGLE, routeId: LOG, zoom: { start: 0, end: 20000 } }],
+  ])('%s round-trips', (path, location) => {
+    expect(parsePath(path)).toEqual(at(location));
+    expect(pathFor(parsePath(path))).toBe(path);
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
-  it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
+  it('parses a legacy millisecond range', () => {
+    expect(parsePath(`/${DONGLE}/1000/2000`)).toEqual(at({ dongleId: DONGLE, legacyZoom: { start: 1000, end: 2000 } }));
   });
 
   it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
+    ['/', at({})],
+    ['/auth/code/provider', at({})],
+    ['/not-a-device/prime', at({})],
+    [`/${DONGLE}/prime/extra`, at({ dongleId: DONGLE })],
+    [`/${DONGLE}/a/b`, at({ dongleId: DONGLE })],
+    [`/${DONGLE}/${LOG}/10`, at({ dongleId: DONGLE, routeId: LOG })],
+    [`/${DONGLE}/${LOG}/a/b`, at({ dongleId: DONGLE, routeId: LOG })],
+  ])('falls back for %s', (path, location) => {
+    expect(parsePath(path)).toEqual(location);
   });
 
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
+  it('rounds a range outward to whole seconds', () => {
+    expect(pathFor({ dongleId: DONGLE, routeId: LOG, zoom: { start: 10500, end: 20100 } })).toBe(`/${DONGLE}/${LOG}/10/21`);
   });
 
-  it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+  it('builds the root without a device', () => {
+    expect(pathFor({ dongleId: null })).toBe('/');
   });
 });
