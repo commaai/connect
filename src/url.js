@@ -66,19 +66,30 @@ const dialogPages = {
   'switch-plan': ['prime'],
   'cancel-prime': ['prime'],
   unpair: ['settings'],
+  clips: ['device', 'drive'],
+  clip: ['device', 'drive'],
+  'delete-clip': ['device', 'drive'],
 };
 
 export function getDialog({ pathname, search = '' }) {
   const query = new URLSearchParams(search);
   const dialog = query.get('dialog');
+  if (['clip', 'delete-clip'].includes(dialog)) {
+    const filename = query.get('clip');
+    if (query.getAll('clip').length !== 1 || !filename || filename.length > 255
+      || /[/\\]/.test(filename) || [...filename].some(character => character.charCodeAt(0) < 32)
+      || filename === '.' || filename === '..') return null;
+  }
   return query.getAll('dialog').length === 1 && Object.hasOwn(dialogPages, dialog)
     && dialogPages[dialog].includes(parseUrl(pathname).page) ? dialog : null;
 }
 
-export function dialogUrl(location, dialog) {
+export function dialogUrl(location, dialog, clip = null) {
   const query = new URLSearchParams(location.search);
   query.delete('dialog');
+  query.delete('clip');
   if (dialog) query.set('dialog', dialog);
+  if (['clip', 'delete-clip'].includes(dialog) && clip) query.set('clip', clip);
   const search = query.toString();
   return `${location.pathname}${search ? `?${search}` : ''}${location.hash || ''}`;
 }

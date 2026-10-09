@@ -7,7 +7,7 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
-import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar, navigateDialog } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
@@ -330,10 +330,9 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
           dongleId={this.props.dongleId}
           anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          onClose={() => this.props.dispatch(navigateDialog(null))}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -413,7 +412,10 @@ class DeviceInfo extends Component {
             <button
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              onClick={(event) => {
+                this.setState({ clipMenu: event.currentTarget });
+                this.props.dispatch(navigateDialog('clips'));
+              }}
               disabled={offline}
             >
               <ContentCut />

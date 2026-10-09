@@ -609,7 +609,11 @@ class Media extends Component {
                 className={classes.mediaOption}
                 style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
                 aria-haspopup="true"
-                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
+                onClick={(ev) => {
+                  if (!deviceIsOnline(device)) return;
+                  this.setState({ clipMenu: ev.currentTarget });
+                  this.props.dispatch(navigateDialog('clips'));
+                }}
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
@@ -669,10 +673,10 @@ class Media extends Component {
     return (
       <>
         <ClipMenu
-          open={Boolean(alwaysOpen || clipMenu)}
+          open={alwaysOpen}
           dongleId={this.props.dongleId}
           anchorEl={clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          onClose={() => this.props.dispatch(navigateDialog(null))}
           route={currentRoute}
           routes={this.props.routes}
           zoom={this.props.zoom}

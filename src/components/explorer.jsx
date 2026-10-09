@@ -18,7 +18,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav, navigate } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav, navigate, closeNavigation } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -269,20 +269,20 @@ class ExplorerApp extends Component {
             </div>
             <IosPwaPopup />
             {url.page === 'pair' && (
-              <AddDevice isOpen onClose={() => dispatch(navigate(dongleId ? deviceUrl(dongleId) : '/'))} />
+              <AddDevice isOpen onClose={() => dispatch(closeNavigation(dongleId ? deviceUrl(dongleId) : '/'))} />
             )}
             {url.page === 'filter' && (
-              <TimeSelect key={`${dongleId}:${filter.start}:${filter.end}`} onClose={() => dispatch(navigate(deviceUrl(dongleId)))} />
+              <TimeSelect key={`${dongleId}:${filter.start}:${filter.end}`} onClose={() => dispatch(closeNavigation(deviceUrl(dongleId)))} />
             )}
             {url.page === 'uploads' && canManageDevice && (
-              <UploadQueue open update device={device} onClose={() => dispatch(navigate(deviceUrl(dongleId, 'settings')))} />
+              <UploadQueue open update device={device} onClose={() => dispatch(closeNavigation(deviceUrl(dongleId, 'settings')))} />
             )}
             {settingsMounted && (
               <DeviceSettingsModal
                 key={dongleId}
                 isOpen={url.page === 'settings'}
                 dongleId={dongleId}
-                onClose={() => dispatch(navigate(deviceUrl(dongleId)))}
+                onClose={() => dispatch(closeNavigation(deviceUrl(dongleId)))}
               />
             )}
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>

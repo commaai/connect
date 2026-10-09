@@ -18,3 +18,6 @@
 - Keep the selected drive visible when its URL's dashboard date filter changes.
 - Address drive uploads, Prime plan switching, Prime cancellation, and device unpair confirmation through validated `dialog` parameters; navigation never confirms an action.
 - Update an open filter form when browser navigation changes its date range, and preserve query parameters when a missing public drive redirects to sign-in.
+- Let failed event, coordinate, and geocoding requests settle and retry; fall back to network reads when browser storage fails, without caching server errors as empty segments.
+- Close dialogs through their originating history entry, or replace directly opened dialog URLs, instead of adding entries that reopen dismissed dialogs on Back.
+- Link to clip inventory, previews, and delete confirmations with validated filenames; explain offline, missing, and unfinished clips, discard obsolete previews, and require explicit confirmation before deletion.

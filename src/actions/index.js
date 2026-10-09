@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router';
+import { goBack, push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -9,7 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
-import { deviceUrl, driveUrl, parseFilter, filterSearch, dialogUrl } from '../url';
+import { deviceUrl, driveUrl, parseFilter, filterSearch, dialogUrl, parseUrl, getDialog } from '../url';
 
 const routesRequests = new WeakMap();
 const LIMIT_INCREMENT = 5
@@ -147,13 +147,36 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 
 export function navigate(pathname) {
   return (dispatch, getState) => {
-    const search = filterSearch(parseFilter(getState().router?.location?.search));
-    dispatch(push(`${pathname}${search}`));
+    const location = getState().router?.location;
+    const search = filterSearch(parseFilter(location?.search));
+    const modal = ['settings', 'uploads', 'filter', 'pair'].includes(parseUrl(pathname).page);
+    dispatch(push(`${pathname}${search}`, modal ? { modalParent: `${location.pathname}${location.search}${location.hash || ''}` } : undefined));
   };
 }
 
-export function navigateDialog(dialog) {
-  return (dispatch, getState) => dispatch(push(dialogUrl(getState().router.location, dialog)));
+export function closeNavigation(pathname) {
+  return (dispatch, getState) => {
+    const location = getState().router.location;
+    dispatch(location.state?.modalParent ? goBack() : replace(`${pathname}${filterSearch(parseFilter(location.search))}`));
+  };
+}
+
+export function navigateDialog(dialog, clip = null) {
+  return (dispatch, getState) => {
+    const location = getState().router.location;
+    const url = dialogUrl(location, dialog, clip);
+    const current = `${location.pathname}${location.search}${location.hash || ''}`;
+    if (url === current) return;
+    if (location.state?.dialogParent === url) {
+      dispatch(goBack());
+    } else if (!dialog) {
+      dispatch(replace(url));
+    } else if (getDialog(location) && getDialog(location) !== 'clips') {
+      dispatch(replace(url, location.state));
+    } else {
+      dispatch(push(url, { ...location.state, dialogParent: current }));
+    }
+  };
 }
 
 export function pushTimelineRange(log_id, start, end) {

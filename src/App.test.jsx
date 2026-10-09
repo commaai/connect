@@ -9,6 +9,11 @@ import { fetchFiles } from './actions/files';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
+vi.mock('localforage', () => {
+  const storage = { getItem: async () => null, setItem: async (_key, value) => value, keys: async () => [], removeItem: async () => {} };
+  return { default: { ...storage, createInstance: () => storage } };
+});
+
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
     init: vi.fn(async () => mocks.authenticated ? 'test-token' : null),
@@ -126,6 +131,12 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
   if (url.hostname === 'athena.comma.ai') {
     const payload = JSON.parse(init.body);
+    if (payload.method === 'getClipChunk' && options.clipChunk) return options.clipChunk(payload.params);
+    if (payload.method === 'getClipState') return json({ jsonrpc: '2.0', id: 0, result: { clips: options.clips || [] } });
+    if (payload.method === 'deleteClip') {
+      options.deletedClip = payload.params.filename;
+      options.clips = [];
+    }
     return json({ jsonrpc: '2.0', id: 0, result: payload.method === 'listUploadQueue' ? [] : {} });
   }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
@@ -171,6 +182,74 @@ describe('whole-app behavior', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
+  });
+
+  test.each([false, true])('clip deletion links are safe when online=%s and the clip is unavailable', async (online) => {
+    const options = { devices: devices.map(device => ({ ...device, last_athena_ping: online ? Date.now() / 1000 : 0 })) };
+    const { history } = await renderApp(`/${FIRST}?dialog=delete-clip&clip=missing.mp4`, options);
+    expect(await screen.findByRole('heading', { name: 'Delete clip?' })).toBeVisible();
+    expect(await screen.findByText(online ? 'This clip is no longer on the device.' : 'Device offline. Reconnect to access this clip.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Delete', exact: true })).toBeDisabled();
+    expect(options.deletedClip).toBeUndefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+    expect(history.location.search).toBe('');
+  });
+
+  test('clip confirmation returns to inventory and deletes only after explicit confirmation', async () => {
+    const options = {
+      devices: devices.map(device => ({ ...device, last_athena_ping: Date.now() / 1000 })),
+      clips: [{ filename: 'road.mp4', status: 'ready', requested_at: 1, source_start_time: 2, source_end_time: 8 }],
+    };
+    const { history } = await renderApp(`/${FIRST}?dialog=clips`, options);
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete clip', exact: true }));
+    expect(history.location.search).toBe('?dialog=delete-clip&clip=road.mp4');
+    expect(options.deletedClip).toBeUndefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+    expect(history.location.search).toBe('?dialog=clips');
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete clip', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }));
+    await waitFor(() => expect(history.location.search).toBe('?dialog=clips'));
+    expect(options.deletedClip).toBe('road.mp4');
+    expect(await screen.findByText('No clips yet')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close clip menu' }));
+    expect(history.location.search).toBe('');
+    act(() => history.goBack());
+    expect(history.location.search).toBe('');
+  });
+
+  test.each(['ready', 'encoding'])('clip URL changes discard a delayed preview and preserve the exact drive range (%s)', async (status) => {
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(blob => `blob:test-${blob.size}`);
+    URL.revokeObjectURL = vi.fn();
+    let finishFirst;
+    const path = `/${FIRST}/${LOG}/5.125/20.25`;
+    const options = {
+      devices: devices.map(device => ({ ...device, last_athena_ping: Date.now() / 1000 })),
+      clips: ['first.mp4', 'second.mp4'].map(filename => ({ filename, status, requested_at: 42, source_start_time: 2, source_end_time: 8 })),
+      clipChunk: ({ filename }) => filename === 'first.mp4'
+        ? new Promise(resolve => { finishFirst = resolve; })
+        : json({ result: { data: btoa('second'), size: 6, offset: 0 } }),
+    };
+    try {
+      const app = await renderApp(`${path}?dialog=clip&clip=first.mp4`, options);
+      if (status === 'encoding') {
+        await screen.findByText('This clip is not ready yet.');
+        options.clips = options.clips.map(clip => ({ ...clip, status: 'ready' }));
+      }
+      await waitFor(() => expect(finishFirst).toBeTypeOf('function'), { timeout: 2000 });
+      act(() => app.history.push(`${path}?dialog=clip&clip=second.mp4`));
+      await waitFor(() => expect(document.querySelector('video')?.src).toBe('blob:test-6'));
+      await act(async () => { finishFirst(await json({ result: { data: btoa('first'), size: 5, offset: 0 } })); });
+      expect(document.querySelector('video').src).toBe('blob:test-6');
+      expect(app.store.getState().zoom).toEqual({ start: 5125, end: 20250 });
+      fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+      expect(app.history.location).toMatchObject({ pathname: path, search: '' });
+      app.unmount();
+    } finally {
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -319,7 +398,8 @@ describe('whole-app behavior', () => {
     expect(app.store.getState()).toMatchObject({ offset, startTime, loop });
     expect(app.store.getState().files).toBe(files);
     act(() => app.history.goBack());
-    expect(await screen.findByText('Upload queue', { exact: true })).toBeVisible();
+    expect(app.history.location).toMatchObject({ pathname: path, search: '' });
+    await waitFor(() => expect(screen.queryByText('Upload queue', { exact: true })).not.toBeInTheDocument());
     expect(app.store.getState().files).toBe(files);
     expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(requests);
     app.unmount();
@@ -416,7 +496,8 @@ describe('whole-app behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(history.location.pathname).toBe(`/${FIRST}`);
     act(() => history.goBack());
-    expect(await screen.findByText('Start date:')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    await waitFor(() => expect(screen.queryByText('Start date:')).not.toBeInTheDocument());
     expect(mocks.requests.some(({ url }) => url.includes('routes_segments'))).toBe(true);
   });
 
@@ -575,6 +656,8 @@ describe('whole-app behavior', () => {
     expect(options.switchPlanResponse).toHaveBeenCalledExactlyOnceWith({ dongle_id: FIRST, plan: target, sim_id: null });
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     act(() => history.goBack());
+    expect(history.location.search).toBe('');
+    fireEvent.click(await screen.findByRole('button', { name: `Switch to ${plan === 'data' ? 'Standard' : 'Lite'} plan`, exact: true }));
     expect(await screen.findByRole('heading', { name: `Switch to ${plan === 'data' ? 'Standard' : 'Lite'} plan` })).toBeVisible();
     expect(options.switchPlanResponse).toHaveBeenCalledTimes(1);
   });
