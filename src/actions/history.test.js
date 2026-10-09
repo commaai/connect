@@ -80,9 +80,7 @@ describe('history middleware', () => {
     await syncStateFromURL(pathname)(store.dispatch, store.getState);
 
     expect(store.dispatch).toHaveBeenCalledWith({ type: ACTION_APPLY_DESTINATION, destination });
-    if (destination.page === 'drive') {
-      expect(actions.checkRoutesData).toHaveBeenCalledOnce();
-    }
+    expect(actions.checkRoutesData).toHaveBeenCalledTimes(destination.page === 'drive' ? 1 : 0);
   });
 
   it('selects a changed device and refreshes routes', async () => {

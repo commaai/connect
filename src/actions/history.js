@@ -15,10 +15,10 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   let selectedDongleId = parsed.dongleId ?? state.dongleId;
   if (!selectedDongleId && state.devices?.length) {
     const remembered = window.localStorage.getItem('selectedDongleId');
-    const device = state.devices.find((device) => device.dongle_id === remembered)
+    const selectedDevice = state.devices.find((device) => device.dongle_id === remembered)
       || state.devices.find((device) => device.dongle_id === defaultDongleId)
       || state.devices[0];
-    selectedDongleId = device.dongle_id;
+    selectedDongleId = selectedDevice.dongle_id;
   }
 
   if (parsed.page === 'root' && selectedDongleId) {
