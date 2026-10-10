@@ -140,6 +140,8 @@ class TimeDisplay extends Component {
   }
 
   getDisplayTime() {
+    // the <video> element is the clock; redux holds a published copy of its
+    // position, so read it directly instead of extrapolating
     const offset = currentOffset();
     const { currentRoute } = this.props;
     const now = new Date(offset + currentRoute.start_time_utc_millis);
@@ -147,7 +149,7 @@ class TimeDisplay extends Component {
       return '...';
     }
     let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute);
+    const seg = getSegmentNumber(currentRoute, offset);
     if (seg !== null) {
       dateString = `${dateString} \u2013 ${seg}`;
     }

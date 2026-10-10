@@ -177,6 +177,7 @@ export function getSegmentNumber(route, offset) {
     return null;
   }
   if (offset === undefined) {
+    // the <video> element is the clock; state.offset mirrors its position
     offset = currentOffset();
   }
 

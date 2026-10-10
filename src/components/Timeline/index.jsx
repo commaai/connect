@@ -267,6 +267,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
+      // the <video> element is the clock; state.offset mirrors its position
       const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
@@ -297,6 +298,8 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
+    // state.offset is a copy of the video element's position, published on
+    // its timeupdate -- just read it, there is no clock to compute here
     let offset = currentOffset();
     if (this.seekIndex) {
       offset = this.seekIndex;
