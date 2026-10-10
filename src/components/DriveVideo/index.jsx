@@ -54,6 +54,7 @@ class RouteVideo extends Component {
   componentDidMount() {
     this.props.dispatch(resetPlayback());
     window.addEventListener('online', this.onOnline);
+    window.addEventListener('unhandledrejection', this.onUnhandledRejection);
   }
 
   componentDidUpdate(prevProps) {
@@ -73,6 +74,7 @@ class RouteVideo extends Component {
   componentWillUnmount() {
     cancelAnimationFrame(this.frameId);
     window.removeEventListener('online', this.onOnline);
+    window.removeEventListener('unhandledrejection', this.onUnhandledRejection);
     this.audioTracks?.removeEventListener('addtrack', this.onAddTrack);
   }
 
@@ -208,6 +210,13 @@ class RouteVideo extends Component {
 
   onOnline = () => {
     if (this.failure === OFFLINE) this.onRetry();
+  };
+
+  // react-player does not forward a rejected hls.js script load.
+  onUnhandledRejection = (event) => {
+    if (!event.reason?.message?.includes('/hls.js@')) return;
+    event.preventDefault();
+    this.onError(event.reason);
   };
 
   onPlaybackRateChange = (rate) => {
