@@ -150,8 +150,11 @@ test('changing routes resets playback and ignores events from the old video', as
   video.currentTime = 42;
   fireEvent.timeUpdate(video);
   fireEvent.error(video);
+  video.audioTracks.length = 1;
+  video.audioTracks.dispatchEvent(new Event('addtrack'));
   expect(store.getState().offset).toBe(0);
   expect(store.getState().videoStatus).toBe('loading');
+  expect(store.getState().hasAudio).toBe(false);
 });
 
 test('a paused seek lands the clock where the video landed', async () => {
