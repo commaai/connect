@@ -12,7 +12,6 @@ import {
   setPlaybackSpeed, resetPlayback, play, pause, videoProgress, setHasAudio, setVideoStatus, VideoStatus,
 } from '../../timeline/playback';
 
-const getVideoStartOffset = (route) => route.videoStartOffset || 0;
 const OFFLINE = 'You\'re offline';
 
 const VideoOverlay = ({ loading, error, onRetry }) => {
@@ -77,7 +76,7 @@ class RouteVideo extends Component {
     const start = loop?.startTime ?? 0;
     const end = loop ? start + loop.duration : currentRoute.duration;
     const clamped = Math.max(start, Math.min(offset, end));
-    const seconds = Math.max(0, (clamped - getVideoStartOffset(currentRoute)) / 1000);
+    const seconds = Math.max(0, (clamped - (currentRoute.videoStartOffset || 0)) / 1000);
     this.player.current.seekTo(seconds, 'seconds');
   };
 
@@ -110,9 +109,9 @@ class RouteVideo extends Component {
   updateOffset = (video) => {
     const { currentRoute, dispatch, loop, isPlaying, offset, videoStatus } = this.props;
     if (!this.ready || video.seeking || videoStatus === VideoStatus.FAILED) return;
-    const nextOffset = Math.round(video.currentTime * 1000) + getVideoStartOffset(currentRoute);
+    const nextOffset = Math.round(video.currentTime * 1000) + (currentRoute.videoStartOffset || 0);
     if (isPlaying && loop?.duration > 0 && nextOffset >= loop.startTime + loop.duration
-      && loop.startTime + loop.duration > getVideoStartOffset(currentRoute)) {
+      && loop.startTime + loop.duration > (currentRoute.videoStartOffset || 0)) {
       this.seekTo(loop.startTime);
     } else if (nextOffset !== offset) {
       dispatch(videoProgress(nextOffset));
