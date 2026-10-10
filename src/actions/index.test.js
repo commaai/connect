@@ -1,11 +1,12 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import * as Types from './types';
+import { loadTimelineRange, popTimelineRange, primeNav, pushTimelineRange, selectDevice, streamNav } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
+  resetPlayback: vi.fn(() => ({ type: 'reset' })),
+  selectLoop: vi.fn(() => ({ type: 'loop' })),
 }));
 
 vi.mock('connected-react-router', async () => {
@@ -17,37 +18,70 @@ vi.mock('connected-react-router', async () => {
   };
 });
 
-describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+const WHOLE = { start: 0, end: 60000 };
+
+function run(thunk, state) {
+  const getState = () => ({
+    dongleId: 'dongle', routes: [{ log_id: 'log', duration: 60000 }], router: { location: { pathname: '/dongle' } }, ...state,
   });
+  const dispatch = vi.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+  thunk(dispatch, getState);
+  return dispatch.mock.calls.map(([action]) => action).filter((action) => typeof action !== 'function');
+}
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
-  });
-
+describe('navigation actions', () => {
   it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    ['a device', selectDevice('other'), '/other'],
+    ['a whole drive', pushTimelineRange('log', 0, 60000), '/dongle/log'],
+    ['a drive range', pushTimelineRange('log', 10000, 20000), '/dongle/log/10/20'],
+    ['a drive range from its start', pushTimelineRange('log', 0, 20000), '/dongle/log/0/20'],
+    ['the previous range', popTimelineRange('log'), '/dongle/log/10/20'],
+    ['Prime', primeNav(true), '/dongle/prime'],
+    ['stream', streamNav(true), '/dongle/stream'],
+  ])('push the URL of %s', (_name, thunk, expected) => {
+    run(thunk, { zoom: { start: 15000, end: 18000, previous: { start: 10000, end: 20000 } } });
     expect(push).toHaveBeenCalledWith(expected);
+  });
+
+  it.each([
+    ['closing a drive', pushTimelineRange(null, null, null)],
+    ['closing Prime', primeNav(false)],
+  ])('push the device URL when %s', (_name, thunk) => {
+    run(thunk, { router: { location: { pathname: '/dongle/somewhere' } } });
+    expect(push).toHaveBeenCalledWith('/dongle');
+  });
+
+  it('do not push the current URL again', () => {
+    run(selectDevice('dongle'));
+    expect(push).not.toHaveBeenCalled();
+  });
+});
+
+describe('loadTimelineRange', () => {
+  it('selects a drive range and loops over it', () => {
+    expect(run(loadTimelineRange('log', 10000, 20000), { selectedRouteId: null, zoom: null })).toEqual([
+      { type: Types.TIMELINE_PUSH_SELECTION, log_id: 'log', start: 10000, end: 20000 },
+      { type: 'reset' },
+      { type: 'loop' },
+    ]);
+  });
+
+  it('selects a whole drive by its duration', () => {
+    expect(run(loadTimelineRange('log'), { selectedRouteId: null, zoom: null })[0]).toEqual(
+      { type: Types.TIMELINE_PUSH_SELECTION, log_id: 'log', ...WHOLE },
+    );
+  });
+
+  it('keeps the range that is already selected', () => {
+    expect(run(loadTimelineRange('log'), { selectedRouteId: 'log', zoom: WHOLE })).toEqual([]);
+  });
+
+  it('pops the zoom stack when going back to the previous range', () => {
+    const zoom = { start: 10000, end: 20000, previous: WHOLE };
+    expect(run(loadTimelineRange('log'), { selectedRouteId: 'log', zoom })[0]).toEqual({ type: Types.TIMELINE_POP_SELECTION });
   });
 });

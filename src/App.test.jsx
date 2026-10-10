@@ -145,6 +145,16 @@ async function renderApp(pathname, options = {}) {
   return { ...view, history, store };
 }
 
+function dragTimeline(timeline, from, to) {
+  fireEvent.pointerDown(timeline, { button: 0, clientX: from, pageX: from });
+  fireEvent.pointerMove(document, { clientX: to, pageX: to });
+  fireEvent.pointerUp(document, { button: 0, clientX: to, pageX: to });
+}
+
+async function findDeviceLink(dongleId) {
+  return (await screen.findByText(dongleId, { selector: 'span, p' })).closest('a');
+}
+
 describe('whole-app behavior', () => {
   beforeAll(() => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
@@ -302,5 +312,107 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('leaving referrals from a drive shows the dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByLabelText('referrals'));
+    await waitFor(() => expect(history.location.pathname).toBe('/referrals'));
+    fireEvent.click(screen.getByLabelText('referrals'));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByRole('slider', { name: 'Drive timeline' })).not.toBeInTheDocument();
+  });
+
+  test('Prime settings opened from a drive show Prime', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByLabelText('menu'));
+    fireEvent.click(within(await findDeviceLink(FIRST)).getByLabelText('device settings'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
+
+  test('browser back keeps the in-app back button one zoom level up', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    dragTimeline(timeline, 200, 700);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/12/42`));
+    dragTimeline(timeline, 200, 700);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/18/33`));
+    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/12/42`));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+  });
+
+  test('a converted legacy timestamp URL is replaced, so Back does not convert it again', async () => {
+    const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.entries.map((entry) => entry.pathname)).toEqual([`/${FIRST}/${LOG}`]);
+  });
+
+  test('root is replaced by the selected device, so Back does not return to it', async () => {
+    const { history } = await renderApp('/');
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(history.entries.map((entry) => entry.pathname)).toEqual([`/${FIRST}`]);
+  });
+
+  test('a range selected from the start of a drive is kept in the URL', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    dragTimeline(await screen.findByRole('slider', { name: 'Drive timeline' }), 0, 500);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/30`));
+  });
+
+  test('closing a deep-linked drive lists all drives', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('page views of a drive range only hide the dongle id', async () => {
+    const gtag = vi.fn();
+    vi.stubGlobal('gtag', gtag);
+    await renderApp(`/${FIRST}/${LOG}/10/20`, { authenticated: false });
+    expect(gtag).toHaveBeenCalledWith('event', 'page_view', { page_location: `/<dongleId>/${LOG}/10/20` });
+  });
+
+  test('reselecting the current device reuses its drives', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    const routeRequests = () => mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    const before = routeRequests();
+    fireEvent.click(screen.getByLabelText('menu'));
+    fireEvent.click(await findDeviceLink(FIRST));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    expect(routeRequests()).toBe(before);
+  });
+
+  test('device settings open by URL and close to the dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Zulu');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(screen.queryByLabelText('Device name')).not.toBeInTheDocument();
+  });
+
+  test('device settings by URL stay owner-only, like the settings button', async () => {
+    await renderApp(`/${SHARED}/settings`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByLabelText('Device name')).not.toBeInTheDocument();
+  });
+
+  test('the device settings button opens that device\'s settings URL', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByLabelText('menu'));
+    fireEvent.click(within(await findDeviceLink(SECOND)).getByLabelText('device settings'));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/settings`));
+    expect(await screen.findByLabelText('Device name')).toHaveValue('Alpha');
   });
 });
