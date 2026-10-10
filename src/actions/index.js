@@ -7,8 +7,8 @@ import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
-import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { urlForDestination } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -224,7 +224,7 @@ export function primeFetchSubscription(dongleId, device, profile) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if (!device && state.device && state.device === dongleId) {
+    if (!device && state.device && (state.device === dongleId || state.device.dongle_id === dongleId)) {
       device = state.device;
     }
     if (!profile && state.profile) {
@@ -268,90 +268,47 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = true) {
+export function selectDevice(dongleId) {
+  return (dispatch) => {
+    const pathname = urlForDestination({ dongleId, page: 'dashboard', drive: null });
+    if (window.location.pathname !== pathname) {
+      dispatch(push(pathname));
+    }
+  };
+}
+
+export function primeNav(nav) {
   return (dispatch, getState) => {
     const state = getState();
-    let device;
-    if (state.devices && state.devices.length > 1) {
-      device = state.devices.find((d) => d.dongle_id === dongleId);
+    const dongleId = state.dongleId;
+    if (!dongleId) {
+      return;
     }
-    if (!device && state.device && state.device.dongle_id === dongleId) {
-      device = state.device;
-    }
-
-    // tear down existing webrtc connection
-    if (state.dongleId && state.dongleId !== dongleId) {
-      webrtcConnectionManager.disconnect();
-    }
-
-    dispatch({
-      type: Types.ACTION_SELECT_DEVICE,
+    const pathname = urlForDestination({
       dongleId,
+      page: nav ? 'prime' : 'dashboard',
+      drive: null,
     });
-
-    dispatch(pushTimelineRange(null, null, null, false));
-    if ((device && !device.shared) || state.profile?.superuser) {
-      dispatch(primeFetchSubscription(dongleId, device));
-      dispatch(fetchDeviceOnline(dongleId));
-    }
-
-    if (fetchRoutes) {
-      dispatch(checkLastRoutesData());
-    }
-
-    if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
+    if (currentPathname(state) !== pathname) {
+      dispatch(push(pathname));
     }
   };
 }
 
-export function primeNav(nav, allowPathChange = true) {
+export function streamNav(nav) {
   return (dispatch, getState) => {
     const state = getState();
-    if (!state.dongleId) {
+    const dongleId = state.dongleId;
+    if (!dongleId) {
       return;
     }
-
-    if (state.primeNav !== nav) {
-      dispatch({
-        type: Types.ACTION_PRIME_NAV,
-        primeNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
-  };
-}
-
-export function streamNav(nav, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.streamNav !== nav) {
-      dispatch({
-        type: Types.ACTION_STREAM_NAV,
-        streamNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
+    const pathname = urlForDestination({
+      dongleId,
+      page: nav ? 'stream' : 'dashboard',
+      drive: null,
+    });
+    if (currentPathname(state) !== pathname) {
+      dispatch(push(pathname));
     }
   };
 }
