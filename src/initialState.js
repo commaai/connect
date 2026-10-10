@@ -20,6 +20,7 @@ export function createInitialState() {
 
     profile: null,
     devices: null,
+    sharedDevice: null,
 
     subscription: null,
     subscribeInfo: null,

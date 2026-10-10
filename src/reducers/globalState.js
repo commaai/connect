@@ -28,7 +28,6 @@ export default function reducer(_state, action) {
       // device changed
       const deviceChanged = state.dongleId !== dongleId;
       if (deviceChanged) {
-        state.device = state.devices?.find((device) => device.dongle_id === dongleId) ?? null;
         state.filter = getDefaultFilter();
         state.subscription = null;
         state.subscribeInfo = null;
@@ -111,12 +110,6 @@ export default function reducer(_state, action) {
           .map(populateFetchedAt)
           .sort(deviceCompareFn),
       };
-      if (state.dongleId) {
-        const newDevice = state.devices.find((d) => d.dongle_id === state.dongleId);
-        if (newDevice) {
-          state.device = newDevice;
-        }
-      }
       break;
     case Types.ACTION_UPDATE_DEVICE: {
       state = {
@@ -124,8 +117,8 @@ export default function reducer(_state, action) {
         devices: state.devices ? [...state.devices] : [],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
-      const isSelected = state.device?.dongle_id === action.device.dongle_id;
-      const previousDevice = isSelected ? state.device : state.devices[deviceIndex];
+      const shared = state.sharedDevice?.dongle_id === action.device.dongle_id ? state.sharedDevice : null;
+      const previousDevice = state.devices[deviceIndex] ?? shared;
       const updatedDevice = populateFetchedAt({
         ...previousDevice, // retains rpc, network_metered
         ...action.device,  // updates alias and other returned fields
@@ -136,11 +129,6 @@ export default function reducer(_state, action) {
       } else {
         state.devices.unshift(updatedDevice);
       }
-
-      if (isSelected) {
-        state.device = updatedDevice;
-      }
-
       break;
     }
     case Types.ACTION_UPDATE_ROUTE:
@@ -218,7 +206,7 @@ export default function reducer(_state, action) {
     }
     case Types.ACTION_UPDATE_SHARED_DEVICE:
       if (action.dongleId === state.dongleId) {
-        state.device = populateFetchedAt(action.device);
+        state.sharedDevice = populateFetchedAt(action.device);
       }
       break;
     case Types.ACTION_UPDATE_DEVICE_ONLINE:
@@ -231,14 +219,6 @@ export default function reducer(_state, action) {
       if (deviceIndex !== -1) {
         state.devices[deviceIndex] = {
           ...state.devices[deviceIndex],
-          last_athena_ping: action.last_athena_ping,
-          fetched_at: action.fetched_at,
-        };
-      }
-
-      if (state.device?.dongle_id === action.dongleId) {
-        state.device = {
-          ...state.device,
           last_athena_ping: action.last_athena_ping,
           fetched_at: action.fetched_at,
         };
@@ -257,13 +237,6 @@ export default function reducer(_state, action) {
           network_metered: action.networkMetered,
         };
       }
-
-      if (state.device?.dongle_id === action.dongleId) {
-        state.device = {
-          ...state.device,
-          network_metered: action.networkMetered,
-        };
-      }
       break;
     case Types.ACTION_UPDATE_DEVICE_RPC:
       // merge RPC-fetched values (e.g. not_car) into a specific device's `rpc` field
@@ -278,16 +251,6 @@ export default function reducer(_state, action) {
           ...state.devices[deviceIndex],
           rpc: {
             ...state.devices[deviceIndex].rpc,
-            ...action.fields,
-          },
-        };
-      }
-
-      if (state.device?.dongle_id === action.dongleId) {
-        state.device = {
-          ...state.device,
-          rpc: {
-            ...state.device.rpc,
             ...action.fields,
           },
         };
@@ -389,8 +352,13 @@ export default function reducer(_state, action) {
       }
       break;
     default:
-      return state;
+      break;
   }
+
+  // state.device is derived
+  const owned = state.devices?.find((d) => d.dongle_id === state.dongleId);
+  const shared = state.sharedDevice?.dongle_id === state.dongleId ? state.sharedDevice : null;
+  state.device = owned ?? shared;
 
   return state;
 }

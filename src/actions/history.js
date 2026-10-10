@@ -43,12 +43,12 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   const updated = getState();
   const { zoom, loop, selectedRouteId } = updated;
   if (state.zoom !== zoom || state.selectedRouteId !== selectedRouteId) {
-    const { start, end } = zoom || {};
+    const target = zoom ? { start: zoom.start, end: zoom.end } : null;
+    const same = target && loop && loop.startTime === target.start && loop.duration === target.end - target.start;
 
-    if (!loop?.startTime || !loop?.duration || loop.startTime < start
-      || loop.startTime + loop.duration > end || loop.duration < end - start) {
+    if (!same) {
       dispatch(resetPlayback());
-      dispatch(selectLoop(start, end));
+      dispatch(selectLoop(target?.start, target?.end));
     }
   }
 
