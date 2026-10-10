@@ -1,66 +1,53 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+const dongleIdRegex = /^[a-f0-9]{16}$/;
+const logIdRegex = /^[a-f0-9-]{20}$/;
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const validRange = (start, end) => Number.isFinite(start) && Number.isFinite(end) && start >= 0 && start < end;
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
-  }
-
-  return parts[0] || null;
-}
-
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+// Parses a pathname into everything the app needs to know about it.
+//   routeId / range: /<dongleId>/<logId>[/<startSec>/<endSec>], range in route-relative ms
+//   legacyRange:     /<dongleId>/<startMs>/<endMs>
+//   prime / stream / settings: /<dongleId>/prime, /<dongleId>/stream, /<dongleId>/settings
+export function destinationFromUrl(pathname) {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const dest = { dongleId: null, routeId: null, range: null, legacyRange: null, prime: false, stream: false, settings: false };
+  if (!dongleIdRegex.test(parts[0])) {
+    return dest;
   }
-  return null;
+
+  dest.dongleId = parts[0];
+  if (logIdRegex.test(parts[1])) {
+    dest.routeId = parts[1];
+    const [start, end] = [Number(parts[2]) * 1000, Number(parts[3]) * 1000];
+    if (parts.length >= 4 && validRange(start, end)) {
+      dest.range = { start, end };
+    }
+  } else if (parts.length >= 3) {
+    const [start, end] = [Number(parts[1]), Number(parts[2])];
+    if (validRange(start, end)) {
+      dest.legacyRange = { start, end };
+    }
+  } else if (parts.length === 2) {
+    dest.prime = parts[1] === 'prime';
+    dest.stream = parts[1] === 'stream';
+    dest.settings = parts[1] === 'settings';
+  }
+  return dest;
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+// Inverse of destinationFromUrl; range is in seconds.
+export function urlForDestination({ dongleId, routeId, start, end, prime, stream, settings }) {
+  const path = [dongleId];
+  if (routeId) {
+    path.push(routeId);
+    if (start != null && end != null) {
+      path.push(start, end);
+    }
+  } else if (prime) {
+    path.push('prime');
+  } else if (stream) {
+    path.push('stream');
+  } else if (settings) {
+    path.push('settings');
   }
-  return false;
-}
-
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
+  return `/${path.join('/')}`;
 }

@@ -303,4 +303,18 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('settings opens at its URL and Prime settings works from inside a drive', async () => {
+    const width = window.innerWidth;
+    window.innerWidth = 1280; // wide enough for the permanent device drawer
+    const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    window.innerWidth = width;
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[1]); // drawer is sorted by alias: Alpha, Zulu (FIRST)
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+    fireEvent.click(await screen.findByText('Prime settings'));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+  });
 });

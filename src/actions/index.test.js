@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { closeSettings, openSettings, primeNav, pushTimelineRange, streamNav } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -13,25 +13,16 @@ vi.mock('connected-react-router', async () => {
   return {
     __esModule: true,
     ...originalModule,
-    push: vi.fn(),
+    push: vi.fn((path) => ({ push: path })),
+    replace: vi.fn((path) => ({ replace: path })),
   };
 });
 
 describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
-  });
-
   it('should push history state when editing zoom', () => {
     const dispatch = vi.fn();
     const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
+    const actionThunk = pushTimelineRange("log_id", 123000, 1234000);
 
     getState.mockImplementationOnce(() => ({
       dongleId: 'statedongle',
@@ -39,7 +30,7 @@ describe('timeline actions', () => {
       zoom: {},
     }));
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+    expect(push).toBeCalledWith('/statedongle/log_id/123/1234');
   });
 
   it.each([
@@ -49,5 +40,29 @@ describe('timeline actions', () => {
     const dispatch = vi.fn();
     action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
     expect(push).toHaveBeenCalledWith(expected);
+  });
+
+  it.each([
+    ['the selected device', 'statedongle', ['/statedongle/settings']],
+    ['another device', 'other00000000000', ['/other00000000000/settings']],
+  ])('opens %s settings with exactly one history entry', (_name, dongleId, expected) => {
+    const state = { dongleId: 'statedongle', devices: [], routes: null, filter: { start: 0, end: 1 }, router: { location: { pathname: '/statedongle' } } };
+    const dispatched = [];
+    const dispatch = (action) => (typeof action === 'function' ? action(dispatch, () => state) : dispatched.push(action));
+    push.mockClear();
+    openSettings(dongleId)(dispatch, () => state);
+    expect(push.mock.calls.map(([path]) => path)).toEqual(expected);
+  });
+
+  it('closing settings returns to the device page', () => {
+    const dispatch = vi.fn();
+    closeSettings()(dispatch, () => ({ router: { location: { pathname: '/0000aaaa0000aaaa/settings' } } }));
+    expect(dispatch).toHaveBeenCalledWith({ replace: '/0000aaaa0000aaaa' });
+  });
+
+  it('closing settings does not undo a navigation that already left them', () => {
+    const dispatch = vi.fn();
+    closeSettings()(dispatch, () => ({ router: { location: { pathname: '/0000aaaa0000aaaa/prime' } } }));
+    expect(dispatch).not.toHaveBeenCalled();
   });
 });

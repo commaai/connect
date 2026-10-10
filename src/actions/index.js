@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router';
+import { push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { destinationFromUrl, urlForDestination } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -142,22 +143,6 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
-  const path = [dongleId];
-
-  if (log_id) {
-    path.push(log_id);
-    if (start && end) {
-      path.push(start);
-      path.push(end);
-    }
-  } else if (prime) {
-    path.push('prime');
-  }
-
-  return `/${path.join('/')}`;
-}
-
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
@@ -171,7 +156,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 
     const urlStart = wholeDrive ? null : Math.floor(start / 1000);
     const urlEnd = wholeDrive ? null : Math.floor(end / 1000);
-    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
+    const desiredPath = urlForDestination({ dongleId: state.dongleId, routeId: log_id, start: urlStart, end: urlEnd });
 
     if (currentPathname(state) !== desiredPath) {
       dispatch(push(desiredPath));
@@ -300,10 +285,29 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
     }
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
+      const desiredPath = urlForDestination({ dongleId });
       if (currentPathname(state) !== desiredPath) {
         dispatch(push(desiredPath));
       }
+    }
+  };
+}
+
+export function openSettings(dongleId) {
+  return (dispatch, getState) => {
+    if (getState().dongleId !== dongleId) {
+      dispatch(selectDevice(dongleId, false));
+    }
+    dispatch(push(urlForDestination({ dongleId, settings: true })));
+  };
+}
+
+// only leaves the settings URL if nothing navigated away from it already (e.g. the Prime button)
+export function closeSettings() {
+  return (dispatch, getState) => {
+    const { dongleId, settings } = destinationFromUrl(currentPathname(getState()));
+    if (settings) {
+      dispatch(replace(urlForDestination({ dongleId })));
     }
   };
 }
@@ -324,7 +328,7 @@ export function primeNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
+      const desiredPath = urlForDestination({ dongleId: state.dongleId, prime: nav });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -348,7 +352,7 @@ export function streamNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = currentPathname(state);
-      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      const desiredPath = urlForDestination({ dongleId: state.dongleId, stream: nav });
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }
