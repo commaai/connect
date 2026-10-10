@@ -24,6 +24,7 @@ export function reducer(_state, action) {
           state.offset = loopOffset + state.loop.duration;
         }
       }
+      state.seekRequest = { offset: state.offset };
       break;
     case Types.ACTION_PAUSE:
       state = {
@@ -68,6 +69,7 @@ export function reducer(_state, action) {
         isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
+        seekRequest: { offset: 0 },
       };
       break;
     default:

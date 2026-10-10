@@ -146,7 +146,7 @@ async function renderApp(pathname, options = {}) {
 }
 
 describe('whole-app behavior', () => {
-  beforeAll(() => {
+  beforeAll(async () => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
@@ -158,7 +158,9 @@ describe('whole-app behavior', () => {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
     });
-  });
+    // Compile lazy route modules before measuring application initialization.
+    await Promise.all([import('./components/explorer'), import('./components/anonymous')]);
+  }, 15000);
   afterEach(() => {
     localStorage.clear();
     sessionStorage.clear();
