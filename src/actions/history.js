@@ -1,61 +1,43 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { parseLocation, buildLocation } from '../url';
+import { checkRoutesData, checkLastRoutesData, loadDevice, applyTimelineRange } from './index';
+import { ACTION_NAVIGATION } from './types';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
-  }
+export const onHistoryMiddleware = ({ dispatch, getState }) => {
+  let legacyRequest = null;
+  return next => action => {
+    const before = getState();
+    const result = next(action);
+    if (action.type !== LOCATION_CHANGE) return result;
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
+    const location = action.payload.location;
+    const navigation = parseLocation(location);
+    const deviceChanged = navigation.dongleId && navigation.dongleId !== before.dongleId;
+    if (deviceChanged) dispatch(loadDevice(navigation.dongleId));
+    dispatch({ type: ACTION_NAVIGATION, navigation });
 
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+    const rangeChanged = navigation.zoom?.start !== before.navigation?.zoom?.start
+      || navigation.zoom?.end !== before.navigation?.zoom?.end;
+    const driveChanged = deviceChanged || navigation.selectedRouteId !== before.selectedRouteId;
+    if (driveChanged || rangeChanged) {
+      dispatch(applyTimelineRange(navigation.selectedRouteId, navigation.zoom?.start, navigation.zoom?.end, location.state?.previousZoom));
     }
+    if (deviceChanged) dispatch(checkLastRoutesData());
+    else if (driveChanged) dispatch(checkRoutesData());
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
+    if (!navigation.legacyZoom) legacyRequest = null;
+    else if (legacyRequest?.pathname !== location.pathname) {
+      const request = { pathname: location.pathname };
+      legacyRequest = request;
+      const { start, end } = navigation.legacyZoom;
+      api.routes.getRoutesSegments(navigation.dongleId, start, end).then(routes => {
+        // A lookup for an old link must not take the user away from a newer view.
+        if (!routes?.length || legacyRequest !== request) return;
+        const current = getState().router.location;
+        dispatch(replace(buildLocation({ ...parseLocation(current), selectedRouteId: routes[0].fullname.split('|')[1], legacyZoom: null }, current.search)));
+      }).catch(err => console.error('Error fetching routes data for log ID conversion', err));
     }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
-  }
+    return result;
+  };
 };
