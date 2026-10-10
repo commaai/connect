@@ -130,7 +130,7 @@ class DriveVideo extends Component {
   }
 
   async loadSource(autoplay = true) {
-    const { onAudioStatusChange } = this.props;
+    const { currentRoute, onAudioStatusChange } = this.props;
     const video = this.video.current;
 
     let Hls = null;
@@ -156,6 +156,7 @@ class DriveVideo extends Component {
         autoStartLoad: false,
         maxBufferLength: 40,
         progressive: true,
+        ...api.video.getHlsConfig(currentRoute, Hls),
       });
       this.hls.on(Hls.Events.MANIFEST_PARSED, () => this.hls.startLoad(this.currentVideoTime()));
       this.hls.on(Hls.Events.BUFFER_CODECS, (event, data) => onAudioStatusChange?.(Boolean(data.audio)));
