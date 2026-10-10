@@ -10,6 +10,8 @@ import { currentOffset, routeOffset, setVideo, videoTime } from '../../timeline'
 import { seek, videoPaused, videoPlayed } from '../../timeline/playback';
 
 const LOADING_DELAY_MS = 250;
+const RETRY_DELAY_MS = 2000;
+const MAX_RETRY_DELAY_MS = 30000;
 const GAP_MARGIN = 0.25;
 const GAP_EXIT = 0.001; // seek just past a gap's end, seeking to the end itself lands inside it
 
@@ -65,7 +67,8 @@ class DriveVideo extends Component {
     this.frame = null;
     this.loadingFrag = null;
     this.stopped = false;
-    this.retried = false;
+    this.retryDelay = RETRY_DELAY_MS;
+    this.retryAt = 0;
     this.reportedPaused = true;
     this.lastTime = 0;
     this.seekedBack = false;
@@ -152,10 +155,17 @@ class DriveVideo extends Component {
       video.src = this.src;
       video.currentTime = this.currentVideoTime();
     } else {
+      const policy = Hls.DefaultConfig.fragLoadPolicy.default;
       this.hls = new Hls({
         autoStartLoad: false,
         maxBufferLength: 40,
         progressive: true,
+        fragLoadPolicy: {
+          default: {
+            ...policy,
+            errorRetry: { ...policy.errorRetry, retryDelayMs: 250 },
+          },
+        },
         ...api.video.getHlsConfig(currentRoute, Hls),
       });
       this.hls.on(Hls.Events.MANIFEST_PARSED, () => this.hls.startLoad(this.currentVideoTime()));
@@ -201,8 +211,9 @@ class DriveVideo extends Component {
       this.waitingSince = performance.now();
     }
     const loading = this.waitingSince !== null && performance.now() - this.waitingSince > LOADING_DELAY_MS;
-    if (loading && this.stopped && !this.retried && video.readyState >= 1) {
-      this.retried = true;
+    if (loading && this.stopped && this.failure !== MISSING_VIDEO_ERROR && performance.now() > this.retryAt) {
+      this.retryAt = performance.now() + this.retryDelay;
+      this.retryDelay = Math.min(this.retryDelay * 2, MAX_RETRY_DELAY_MS);
       this.retry();
     }
     this.updateOverlay(video, loading);
@@ -233,7 +244,8 @@ class DriveVideo extends Component {
 
   onLoaded() {
     this.failure = null;
-    this.retried = false;
+    this.retryDelay = RETRY_DELAY_MS;
+    this.retryAt = 0;
   }
 
   onHlsError(event, data) {
