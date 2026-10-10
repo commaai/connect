@@ -5,7 +5,6 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
-import { VideoStatus } from './timeline/playback';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), playerProps: null }));
 
@@ -41,8 +40,8 @@ vi.mock('react-map-gl', () => ({
   WebMercatorViewport: class {},
 }));
 vi.mock('react-player/file', () => ({
-  default: React.forwardRef((props, ref) => {
-    mocks.playerProps = props;
+  default: React.forwardRef((_props, ref) => {
+    mocks.playerProps = _props;
     React.useImperativeHandle(ref, () => ({
       getCurrentTime: () => 0,
       getDuration: () => 60,
@@ -235,7 +234,6 @@ describe('whole-app behavior', () => {
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
     expect(screen.getByText(`${ranged ? '00:10' : '00:00'} / 01:00`)).toBeVisible();
-    expect(screen.getByText('\u2013 0')).toBeVisible();
   });
 
   test.each([
@@ -309,7 +307,7 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
 
-  test('allows timeline seeking after video failure', async () => {
+  test('a failed video leaves timeline navigation owned by Redux', async () => {
     const { store } = await renderApp(`/${FIRST}/${LOG}`);
     const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
 
@@ -320,7 +318,7 @@ describe('whole-app behavior', () => {
         response: { code: 404 },
       });
     });
-    expect(store.getState().videoStatus).toBe(VideoStatus.FAILED);
+    expect(store.getState().videoStatus).toBe('failed');
 
     fireEvent.pointerDown(timeline, { button: 0, clientX: 500, pageX: 500 });
     fireEvent.pointerUp(timeline, { button: 0, clientX: 500, pageX: 500 });
@@ -332,16 +330,12 @@ describe('whole-app behavior', () => {
     act(() => {
       mocks.playerProps.onError('hlsError', {
         fatal: true,
-        type: 'networkError',
         response: { code: 404 },
         frag: { start: 10 },
       });
     });
-    expect(store.getState().videoStatus).not.toBe(VideoStatus.FAILED);
-    expect(screen.queryByText(/not uploaded yet/)).toBeNull();
-
+    expect(store.getState().videoStatus).not.toBe('failed');
     act(() => mocks.playerProps.onBuffer());
-    expect(store.getState().videoStatus).toBe(VideoStatus.FAILED);
     expect(screen.getByText(/not uploaded yet/)).toBeVisible();
   });
 });

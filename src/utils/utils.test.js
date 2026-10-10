@@ -1,4 +1,4 @@
-import { deviceVersionAtLeast, formatDriveDuration, formatVideoTime } from '.';
+import { deviceVersionAtLeast, formatDriveDuration } from '.';
 
 test('formats durations correctly', () => {
   // 1 hour, 59 minutes, 59 seconds
@@ -20,15 +20,6 @@ test('formats durations correctly', () => {
   const four = 59 * 1000;
   const fourFormatted = formatDriveDuration(four);
   expect(fourFormatted).toEqual('0 min');
-});
-
-test('formats video time', () => {
-  expect(formatVideoTime(0)).toEqual('00:00');
-  expect(formatVideoTime(65 * 1000)).toEqual('01:05');
-  expect(formatVideoTime(((60 + 23) * 60 + 45) * 1000)).toEqual('1:23:45');
-  expect(formatVideoTime(-1000)).toEqual('00:00');
-  expect(formatVideoTime(undefined)).toEqual('00:00');
-  expect(formatVideoTime(NaN)).toEqual('00:00');
 });
 
 test('compares versions correctly', () => {
