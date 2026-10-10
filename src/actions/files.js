@@ -20,7 +20,7 @@ const MAX_RETRIES = 5;
 // connect uploads should be high priority as they are user requested (lower is higher)
 const HIGH_PRIORITY = 0;
 
-let uploadQueueTimeout = null;
+let uploadQueuePoll = null;
 let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
@@ -131,29 +131,38 @@ export function fetchFiles(routeName, nocache = false) {
 }
 
 export function cancelFetchUploadQueue() {
-  if (uploadQueueTimeout) {
-    if (uploadQueueTimeout !== true) {
-      clearTimeout(uploadQueueTimeout);
-    }
-    uploadQueueTimeout = null;
-  }
+  clearTimeout(uploadQueuePoll?.timeout);
+  uploadQueuePoll = null;
 }
 
-export function fetchUploadQueue(dongleId) {
+function pollUploadQueue(poll) {
   return async (dispatch, getState) => {
-    if (uploadQueueTimeout) {
+    const { dongleId } = poll;
+    const pollAgain = () => {
+      poll.timeout = setTimeout(() => dispatch(pollUploadQueue(poll)), 2000);
+    };
+    // don't wake up the device while the tab is hidden
+    if (document.hidden) {
+      pollAgain();
       return;
     }
-    uploadQueueTimeout = true;
-
-    dispatch(fetchDeviceNetworkStatus(dongleId));
+    // only check the network type on the first poll
+    if (!poll.networkStatus) {
+      poll.networkStatus = dispatch(fetchDeviceNetworkStatus(dongleId));
+    }
 
     const payload = {
       method: 'listUploadQueue',
       jsonrpc: '2.0',
       id: 0,
     };
-    const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
+    const [uploadQueue] = await Promise.all([
+      athenaCall(dongleId, payload, 'action_files_athena_uploadqueue'),
+      poll.networkStatus,
+    ]);
+    if (uploadQueuePoll !== poll) {
+      return;
+    }
     if (!uploadQueue || !uploadQueue.result) {
       if (uploadQueue && uploadQueue.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
@@ -201,13 +210,23 @@ export function fetchUploadQueue(dongleId) {
       uploading: newCurrentUploading,
       files: uploadingFiles,
     });
-    if (uploadQueueTimeout === true && uploadQueue.result.length) {
+    // stop when the queue is empty or everything is waiting for wifi
+    if (Object.values(newCurrentUploading).some((u) => u.current || !u.paused)) {
+      pollAgain();
+    } else {
       cancelFetchUploadQueue();
-      uploadQueueTimeout = setTimeout(() => {
-        uploadQueueTimeout = null;
-        dispatch(fetchUploadQueue(dongleId));
-      }, 2000);
     }
+  };
+}
+
+export function fetchUploadQueue(dongleId) {
+  return (dispatch) => {
+    if (uploadQueuePoll?.dongleId === dongleId) {
+      return;
+    }
+    cancelFetchUploadQueue();
+    uploadQueuePoll = { dongleId };
+    dispatch(pollUploadQueue(uploadQueuePoll));
   };
 }
 
