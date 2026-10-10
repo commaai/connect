@@ -6,7 +6,9 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), playerProps: null }));
+const mocks = vi.hoisted(() => ({
+  authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), playerProps: null, readyState: 4,
+}));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -47,7 +49,8 @@ vi.mock('react-player/file', () => ({
       getDuration: () => 60,
       getInternalPlayer: () => ({
         buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
+        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1,
+        get readyState() { return mocks.readyState; },
       }),
       seekTo: vi.fn(),
     }));
@@ -165,6 +168,7 @@ describe('whole-app behavior', () => {
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
     mocks.playerProps = null;
+    mocks.readyState = 4;
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -335,6 +339,10 @@ describe('whole-app behavior', () => {
       });
     });
     expect(store.getState().videoStatus).not.toBe('failed');
+    act(() => mocks.playerProps.onBuffer());
+    expect(screen.queryByText(/not uploaded yet/)).toBeNull();
+
+    mocks.readyState = 2; // playback has run out of what was buffered before the segment
     act(() => mocks.playerProps.onBuffer());
     expect(screen.getByText(/not uploaded yet/)).toBeVisible();
   });

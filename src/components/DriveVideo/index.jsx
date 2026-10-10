@@ -171,14 +171,17 @@ class RouteVideo extends Component {
     else if (expired) this.failure = 'This link has expired';
     else if (status === 401 || status === 403) this.failure = 'You don\'t have access to this video';
     else this.failure = 'Unable to load video';
-    // hls.js can give up on a segment ahead of the playhead, so play what is buffered first.
-    const video = this.player.current.getInternalPlayer();
-    if (!(error.frag?.start > this.player.current.getCurrentTime() && video.readyState >= 3)) this.onBuffer();
+    this.failureStart = error.frag?.start;
+    if (!this.failureIsAhead()) this.onBuffer();
   };
+
+  // hls.js can give up on a segment ahead of the playhead, so play what is buffered first.
+  failureIsAhead = () => this.failureStart > this.player.current.getCurrentTime()
+    && this.player.current.getInternalPlayer().readyState >= 3;
 
   onBuffer = () => {
     const { dispatch, videoStatus } = this.props;
-    if (this.failure) {
+    if (this.failure && !this.failureIsAhead()) {
       dispatch(setVideoStatus(VideoStatus.FAILED));
       this.setState({ videoError: this.failure });
     } else if (videoStatus !== VideoStatus.FAILED) {
