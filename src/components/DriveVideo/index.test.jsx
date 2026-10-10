@@ -38,12 +38,15 @@ async function mountVideo(currentRoute = route) {
 }
 
 test('plays, pauses, seeks and keeps the timeline in sync', async () => {
-  const { store, video } = await mountVideo();
+  const { store, video } = await mountVideo({ ...route, videoStartOffset: null });
   expect(video.play).toHaveBeenCalledTimes(1);
   expect(store.getState().videoStatus).toBe('ready');
 
   video.currentTime = 12;
   fireEvent.timeUpdate(video);
+  expect(store.getState().offset).toBe(12000);
+  act(() => store.dispatch({ type: 'TEST_ROUTE', route }));
+  expect(video.currentTime).toBe(12);
   expect(store.getState().offset).toBe(14000);
   expect(store.getState().seekRequest).toBeNull();
 
@@ -59,6 +62,13 @@ test('plays, pauses, seeks and keeps the timeline in sync', async () => {
   });
   expect(video.play).toHaveBeenCalledTimes(2);
   expect(video.playbackRate).toBe(4);
+});
+
+test('reapplies a user seek when the video start offset arrives late', async () => {
+  const { store, video } = await mountVideo({ ...route, videoStartOffset: null });
+  act(() => store.dispatch(seek(17000)));
+  act(() => store.dispatch({ type: 'TEST_ROUTE', route }));
+  expect(video.currentTime).toBe(15);
 });
 
 test('seeks to the selected loop and wraps while playing', async () => {

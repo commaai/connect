@@ -56,11 +56,16 @@ class RouteVideo extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { seekRequest, loop, offset } = this.props;
+    const { seekRequest, loop, offset, currentRoute } = this.props;
     if (seekRequest && seekRequest !== prevProps.seekRequest) {
       this.seekTo(seekRequest.offset);
     } else if (loop !== prevProps.loop) {
       this.seekTo(offset);
+    } else if ((currentRoute.videoStartOffset || 0)
+      !== (prevProps.currentRoute.videoStartOffset || 0)) {
+      if (this.seekBeforeVideoStart) this.seekTo(offset);
+      else if (this.ready) this.updateOffset(this.player.current.getInternalPlayer());
+      this.seekBeforeVideoStart = false;
     }
   }
 
@@ -76,6 +81,7 @@ class RouteVideo extends Component {
     const start = loop?.startTime ?? 0;
     const end = loop ? start + loop.duration : currentRoute.duration;
     const clamped = Math.max(start, Math.min(offset, end));
+    if (currentRoute.videoStartOffset == null && clamped > 0) this.seekBeforeVideoStart = true;
     const seconds = Math.max(0, (clamped - (currentRoute.videoStartOffset || 0)) / 1000);
     this.player.current.seekTo(seconds, 'seconds');
   };
