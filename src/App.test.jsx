@@ -30,7 +30,7 @@ vi.mock('./utils/webrtc', () => ({
   },
 }));
 vi.mock('react-map-gl', () => ({
-  default: React.forwardRef((_props, ref) => <div ref={ref} data-testid="map" />),
+  default: React.forwardRef(() => <div data-testid="map" />),
   GeolocateControl: () => null,
   HTMLOverlay: () => null,
   Layer: () => null,
@@ -38,20 +38,6 @@ vi.mock('react-map-gl', () => ({
   Marker: ({ children }) => children,
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
-}));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
@@ -84,7 +70,7 @@ function json(body, status = 200) {
 }
 
 async function mockFetch(input, init = {}) {
-  const url = new URL(typeof input === 'string' ? input : input.url);
+  const url = new URL(input.url ?? input);
   mocks.requests.push({ method: init.method || 'GET', url: url.href });
   const options = mocks.options;
   const deviceList = options.devices ?? devices;
@@ -231,6 +217,17 @@ describe('whole-app behavior', () => {
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
+  });
+
+  test('switching to the map and back keeps the same video element', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    const video = document.querySelector('video');
+    expect(video).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Map', { exact: true }));
+    expect(await screen.findByTestId('map')).toBeInTheDocument();
+    expect(document.querySelector('video')).toBe(video);
+    fireEvent.click(screen.getByText('Video', { exact: true }));
+    expect(document.querySelector('video')).toBe(video);
   });
 
   test.each([
