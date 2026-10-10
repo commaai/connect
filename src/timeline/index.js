@@ -1,33 +1,23 @@
 import store from '../store';
+import { videoOffsetMs } from './video';
 
 /**
  * Get current playback offset
  *
+ * The <video> element is the clock once it is attached and has metadata; before that, redux holds the intent.
+ *
  * @param {object} state
  * @returns {number}
  */
-export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
+export function currentOffset(state = store.getState()) {
+  let offset = videoOffsetMs(state.currentRoute);
+  if (offset === null) {
+    return state.offset ?? state.loop?.startTime ?? 0;
   }
 
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
-
-  if (offset !== null && state.loop?.startTime) {
+  if (state.loop) {
     // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
+    offset = Math.min(Math.max(offset, state.loop.startTime), state.loop.startTime + state.loop.duration);
   }
   return offset;
 }
