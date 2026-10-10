@@ -1,10 +1,15 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
 import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { currentOffset } from '../timeline';
+import { resetPlayback, seek } from '../timeline/playback';
+
+vi.mock('../timeline', () => ({ currentOffset: vi.fn() }));
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
   resetPlayback: vi.fn(),
+  seek: vi.fn(),
   selectLoop: vi.fn(),
 }));
 
@@ -18,6 +23,8 @@ vi.mock('connected-react-router', async () => {
 });
 
 describe('timeline actions', () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it.each([
     ['device', ['dongle', null, null, null, false], '/dongle'],
     ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
@@ -40,6 +47,17 @@ describe('timeline actions', () => {
     }));
     actionThunk(dispatch, getState);
     expect(push).toBeCalledWith('/statedongle/log_id');
+  });
+
+  it.each([
+    ['another drive resets playback', 'other', 30000, 1, []],
+    ['the same drive keeps playing inside the new range', 'log_id', 30000, 0, []],
+    ['the same drive seeks to a new range without the position', 'log_id', 5000, 0, [[10000]]],
+  ])('changing the range: %s', (_name, selectedRouteId, offset, resets, seeks) => {
+    currentOffset.mockReturnValue(offset);
+    pushTimelineRange('log_id', 10000, 50000, false)(vi.fn(), () => ({ selectedRouteId, loop: {}, zoom: {} }));
+    expect(resetPlayback).toHaveBeenCalledTimes(resets);
+    expect(seek.mock.calls).toEqual(seeks);
   });
 
   it.each([
