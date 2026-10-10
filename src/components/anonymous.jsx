@@ -9,6 +9,7 @@ import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 import { stringifyQuery } from '../utils/query';
+import { parseQuery } from '../url';
 
 const AUTH_PROVIDERS = { GOOGLE: 'g', APPLE: 'a', GITHUB: 'h' };
 
@@ -47,11 +48,11 @@ const styles = () => ({
   },
 });
 
-const AnonymousLanding = ({ classes, pathname }) => {
+const AnonymousLanding = ({ classes, pathname, search }) => {
   useEffect(() => {
     if (typeof window.sessionStorage !== 'undefined') {
-      const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
+      const { r } = parseQuery(search);
+      const redirectURL = r ?? sessionStorage.getItem('redirectURL') ?? (pathname + search);
       sessionStorage.setItem('redirectURL', redirectURL);
     }
 
@@ -129,6 +130,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
 
 const stateToProps = (state) => ({
   pathname: state.router.location.pathname,
+  search: state.router.location.search,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));

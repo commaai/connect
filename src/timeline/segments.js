@@ -6,6 +6,9 @@ export function hasRoutesData(state) {
     // new users without devices won't have segment metadata
     return true;
   }
+  if (state.selectedRouteId) {
+    return Boolean(state.routes?.some((route) => route.fullname === `${state.dongleId}|${state.selectedRouteId}`));
+  }
   if (!state.routesMeta || !state.routesMeta.dongleId || state.routesMeta.start === null
     || state.routesMeta.end === null) {
     console.debug('No routes data at all');

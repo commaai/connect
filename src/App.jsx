@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
+import { parseQuery, parseRoute, ROUTES } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -28,10 +28,7 @@ class App extends Component {
       initialized: false,
     };
 
-    let pairToken;
-    if (window.location) {
-      pairToken = new URLSearchParams(window.location.search).get('pair');
-    }
+    const { pair: pairToken } = parseQuery((props.history || defaultHistory).location.search);
 
     if (pairToken) {
       try {
@@ -78,10 +75,9 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { pathname } = window.location;
-      const teleopDongleId = getDongleID(pathname);
-      if (teleopDongleId && getStreamNav(pathname)) {
-        webrtcConnectionManager.reconnect(teleopDongleId);
+      const route = parseRoute((this.props.history || defaultHistory).location);
+      if (route?.type === ROUTES.STREAM) {
+        webrtcConnectionManager.reconnect(route.dongleId);
       }
 
       fetchTurnCredentials().catch((err) => {
@@ -130,11 +126,13 @@ class App extends Component {
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
     let content = (
       <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+        <Route render={({ location }) => {
+          const route = parseRoute(location);
+          const publicDrive = route?.type === ROUTES.DRIVE || route?.type === ROUTES.LEGACY;
+          return !api.auth.isAuthenticated() && !publicDrive ? this.anonymousRoutes() : this.authRoutes();
+        }} />
       </Suspense>
     );
 

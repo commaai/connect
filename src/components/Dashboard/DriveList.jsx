@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { checkRoutesData, checkLastRoutesData } from '../../actions';
+import { checkRoutesData, checkLastRoutesData, modalNav } from '../../actions';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import { FilterList } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
@@ -34,10 +34,9 @@ const styles = () => ({
 });
 
 const DriveList = (props) => {
-  const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
+  const { dispatch, classes, device, dongleId, routes, lastRoutes, isTimeSelectOpen } = props;
 
   const [deviceStats, setDeviceStats] = useState({});
-  const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
 
   const fetchDeviceInfo = useCallback(async () => {
     if (!dongleId || device?.shared) {
@@ -143,7 +142,7 @@ const DriveList = (props) => {
         <button
           className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98] cursor-pointer"
           style={{ background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 150%)' }}
-          onClick={() => setIsTimeSelectOpen(true)}
+          onClick={() => dispatch(modalNav('filter'))}
         >
           <FilterList className="mr-2 text-xl" />
           <Typography>Filter</Typography>
@@ -151,14 +150,16 @@ const DriveList = (props) => {
       </div>
       {content}
       {contentStatus}
-      {isTimeSelectOpen && <TimeSelect onClose={() => setIsTimeSelectOpen(false)} />}
+      {isTimeSelectOpen && <TimeSelect onClose={() => dispatch(modalNav(null))} />}
     </div>
   );
 };
 
 const stateToProps = (state) => ({
+  isTimeSelectOpen: state.navigation?.query.modal === 'filter',
   dongleId: state.dongleId,
-  routes: state.routes,
+  routes: state.routes && state.dashboardRouteIds
+    ? state.routes.filter((r) => state.dashboardRouteIds.includes(r.fullname)) : state.routes,
   lastRoutes: state.lastRoutes,
   device: state.device,
 });

@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { createMemoryHistory } from 'history';
 
 import App from './App';
+import { pushTimelineRange, popTimelineRange } from './actions';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
@@ -116,10 +117,15 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/stripe_session')) return json({ payment_status: 'paid' });
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const method = JSON.parse(init.body || '{}').method;
+    return json({ jsonrpc: '2.0', id: 0, result: method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -163,6 +169,147 @@ describe('whole-app behavior', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
+  });
+
+
+  test('Settings cold entry works on mobile with the drawer closed', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByLabelText('Device name')).toHaveValue('Zulu');
+    const device = store.getState().device;
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(store.getState().device).toBe(device);
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('Settings responds to push, back, forward, and Prime navigation', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    act(() => history.push(`/${FIRST}/settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByText('Device settings')).not.toBeInTheDocument());
+    act(() => history.goForward());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Prime settings' }));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/prime`);
+  });
+
+  test('same-device drive navigation fetches the requested drive and reuses cached drives', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const device = store.getState().device;
+    act(() => history.push(`/${FIRST}/${RECENT_LOG}/0/20`));
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(RECENT_LOG));
+    expect(store.getState().zoom).toMatchObject({ start: 0, end: 20000 });
+    expect(store.getState().device).toBe(device);
+    const count = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    act(() => history.goBack());
+    await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(count);
+  });
+
+  test('upload queue URL retains the drive and range when closed', async () => {
+    const pathname = `/${FIRST}/${LOG}/0/20`;
+    const { history, store } = await renderApp(`${pathname}?modal=uploads`);
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    const route = store.getState().currentRoute;
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(pathname);
+    expect(store.getState().currentRoute).toBe(route);
+  });
+
+  test('pairing modal opens directly and follows browser history', async () => {
+    const { history } = await renderApp('/?modal=add-device', { devices: [] });
+    expect(await screen.findByText('Pair device')).toBeVisible();
+    act(() => history.push('/'));
+    await waitFor(() => expect(screen.queryByText('Pair device')).not.toBeInTheDocument());
+    act(() => history.goBack());
+    expect(await screen.findByText('Pair device')).toBeVisible();
+  });
+
+  test('login return retains payment query parameters', async () => {
+    const path = `/${FIRST}/prime?stripe_success=cs_test`;
+    await renderApp(path, { authenticated: false });
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+    expect(sessionStorage.getItem('redirectURL')).toBe(path);
+  });
+
+  test('Stripe cancellation query survives Prime cold entry and history', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/prime?stripe_cancelled=1`);
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(store.getState().navigation.query.stripe_cancelled).toBe('1');
+    expect(history.location.search).toBe('?stripe_cancelled=1');
+    act(() => history.push(`/${FIRST}`));
+    act(() => history.goBack());
+    await waitFor(() => expect(store.getState().navigation.query.stripe_cancelled).toBe('1'));
+  });
+
+
+  test('Stripe success returns to Prime and verifies the checkout session', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/prime?stripe_success=cs_test`, {
+      subscription: { user_id: 'test-user', plan: 'nodata' },
+    });
+    await waitFor(() => expect(mocks.requests.some(({ url }) => url.includes('stripe_session') && url.includes('session_id=cs_test'))).toBe(true));
+    expect(history.location.search).toBe('?stripe_success=cs_test');
+    expect(store.getState().navigation.query.stripe_success).toBe('cs_test');
+    await waitFor(() => expect(store.getState().subscription?.user_id).toBe('test-user'));
+  });
+
+  test('camera permission completing after browser navigation releases its stream', async () => {
+    let resolveCamera;
+    const stop = vi.fn();
+    const original = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+    const getUserMedia = vi.fn(() => new Promise((resolve) => { resolveCamera = resolve; }));
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: async () => [{ kind: 'videoinput' }], getUserMedia,
+    } });
+    try {
+      const { history } = await renderApp('/?modal=add-device', { devices: [] });
+      await waitFor(() => expect(getUserMedia).toHaveBeenCalledOnce());
+      act(() => history.push('/'));
+      await act(async () => resolveCamera({ getTracks: () => [{ stop }] }));
+      expect(stop).toHaveBeenCalledOnce();
+    } finally {
+      if (original) Object.defineProperty(navigator, 'mediaDevices', original);
+      else delete navigator.mediaDevices;
+    }
+  });
+
+
+  test('nested timeline zoom unwinds without cycling between selections', async () => {
+    const { store, history } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => store.dispatch(pushTimelineRange(LOG, 10000, 40000)));
+    act(() => store.dispatch(pushTimelineRange(LOG, 20000, 30000)));
+    act(() => store.dispatch(popTimelineRange(LOG)));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/40`);
+    act(() => store.dispatch(popTimelineRange(LOG)));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(store.getState().zoom.previous).toBeNull();
+  });
+
+  test('settings for another device preserve the viewed drive and target Prime correctly', async () => {
+    const pathname = `/${FIRST}/${LOG}/0/20`;
+    const { history, store } = await renderApp(pathname);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const route = store.getState().currentRoute;
+    act(() => history.push(`${pathname}?modal=settings&device=${SECOND}`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(store.getState().currentRoute).toBe(route);
+    expect(store.getState().dongleId).toBe(FIRST);
+    fireEvent.click(screen.getByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}/prime`));
+  });
+
+  test('filter modal opens directly and closes without losing the device', async () => {
+    const { history } = await renderApp(`/${FIRST}?modal=filter`);
+    expect(await screen.findByRole('button', { name: 'Cancel' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}`);
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -244,7 +391,7 @@ describe('whole-app behavior', () => {
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${encodeURIComponent(pathname)}`));
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {

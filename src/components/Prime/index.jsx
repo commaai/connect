@@ -5,16 +5,8 @@ import PrimeManage from './PrimeManage';
 import PrimeCheckout from './PrimeCheckout';
 
 const Prime = (props) => {
-  let stripeCancelled;
-  let stripeSuccess;
-  if (window.location) {
-    const params = new URLSearchParams(window.location.search);
-    stripeCancelled = params.get('stripe_cancelled');
-    stripeSuccess = params.get('stripe_success');
-  }
-
-  const { device, profile } = props;
-  if (!profile) {
+  const { device, profile, stripeCancelled, stripeSuccess } = props;
+  if (!profile || !device) {
     return null;
   }
 
@@ -28,6 +20,8 @@ const Prime = (props) => {
 };
 
 const stateToProps = (state) => ({
+  stripeSuccess: state.navigation?.query.stripe_success,
+  stripeCancelled: state.navigation?.query.stripe_cancelled,
   subscription: state.subscription,
   device: state.device,
   profile: state.profile,

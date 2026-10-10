@@ -4,16 +4,17 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseRoute, ROUTES } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
+  const route = parseRoute(pathname);
+  const dongleId = route?.dongleId;
   if (dongleId) {
     pageLocation = pageLocation.replace(dongleId, '<dongleId>');
   }
-  const zoom = getZoom(pageLocation);
+  const zoom = route?.type === ROUTES.LEGACY ? route.zoom : null;
   if (zoom) {
     pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
     pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
@@ -106,19 +107,6 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.TIMELINE_PUSH_SELECTION:
-      if (!prevState.zoom && state.zoom) {
-        params = {
-          ...params,
-          start: state.zoom.start,
-          end: state.zoom.end,
-        };
-        attachRelTime(params, 'start', true, 'h');
-        attachRelTime(params, 'end', true, 'h');
-        gtag('event', 'select_zoom', params);
-      }
-      return;
-
     case Types.ACTION_STARTUP_DATA:
       gtag('set', {
         user_id: state.profile?.user_id,
@@ -142,7 +130,14 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_ROUTE_CHANGE:
+      if (!prevState.zoom && state.zoom) {
+        params = { ...params, start: state.zoom.start, end: state.zoom.end };
+        attachRelTime(params, 'start', true, 'h');
+        attachRelTime(params, 'end', true, 'h');
+        gtag('event', 'select_zoom', params);
+      }
+      if (prevState.dongleId === state.dongleId) return;
       gtag('event', 'select_device', {
         ...params,
         device_prime_type: state.device?.prime_type,

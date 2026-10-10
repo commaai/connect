@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav, modalNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -24,6 +24,10 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import UploadQueue from './Files/UploadQueue';
+import { ROUTES, buildUrl, parseQuery } from '../url';
 
 const styles = (theme) => ({
   app: {
@@ -97,9 +101,9 @@ class ExplorerApp extends Component {
 
     window.scrollTo({ top: 0 }); // for ios header
 
-    const q = new URLSearchParams(window.location.search);
-    if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
+    const { r } = parseQuery(this.props.location.search);
+    if (r) {
+      this.props.dispatch(replace(r));
     }
 
     this.props.dispatch(init());
@@ -136,7 +140,6 @@ class ExplorerApp extends Component {
           this.props.dispatch(analyticsEvent('pair_device', { method: 'url_string' }));
         } else {
           await localforage.removeItem('pairToken');
-          console.log(resp);
           this.setState({ pairDongleId: null, pairLoading: false, pairError: 'Error: could not pair, please try again' });
         }
       } catch (err) {
@@ -154,7 +157,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -167,12 +170,7 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
 
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
-    }
+
   }
 
   async closePair() {
@@ -198,12 +196,16 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, profile, navigation, device,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = navigation?.type === ROUTES.REFERRALS;
+    const modal = navigation?.query.modal;
+    const settingsId = navigation?.query.device || dongleId;
+    const settingsDevice = devices?.find((d) => d.dongle_id === settingsId) || (device?.dongle_id === settingsId ? device : null);
+    const canManageSettings = settingsDevice && (settingsDevice.is_owner || profile?.superuser);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -250,6 +252,14 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            {canManageSettings && (navigation?.type === ROUTES.SETTINGS || modal === 'settings') && (
+              <DeviceSettingsModal key={settingsId} dongleId={settingsId} isOpen={!['uploads', 'add-device'].includes(modal)}
+                onClose={() => dispatch(modal === 'settings' ? modalNav(null) : replace(buildUrl({ dongleId })))} />
+            )}
+            {modal === 'add-device' && devices && <AddDevice modalOnly />}
+            {modal === 'uploads' && canManageSettings && (!selectedRouteId || navigation?.query.device) && (
+              <UploadQueue open update device={settingsDevice} onClose={() => dispatch(modalNav(null))} />
+            )}
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -276,6 +286,9 @@ class ExplorerApp extends Component {
 }
 
 const stateToProps = (state) => ({
+  navigation: state.navigation,
+  device: state.device,
+  location: state.router.location,
   zoom: state.zoom,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
