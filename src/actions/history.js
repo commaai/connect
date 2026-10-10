@@ -1,61 +1,46 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { parseLocation, toPath } from '../url';
+import { checkLastRoutesData, checkRoutesData, loadDevice, loadTimelineRange } from './index';
 import { api } from '../api/backend';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
+// url -> state. Every location change (initial load, link, push, replace, back/forward) is parsed
+// once here and only what differs from the current state is loaded, so device data, routes and
+// playback are reused. Components read the page (prime, stream, settings) from the URL directly.
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (!action) {
     return;
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
+  next(action); // must be first, otherwise breaks history
+  if (action.type !== LOCATION_CHANGE) {
+    return;
+  }
 
-    next(action); // must be first, otherwise breaks history
+  const state = getState();
+  const { pathname } = action.payload.location;
+  const { dongleId, routeId = null, start, end, legacyRange } = parseLocation(pathname);
+  const deviceChanged = Boolean(dongleId) && dongleId !== state.dongleId;
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
+  if (deviceChanged) {
+    dispatch(loadDevice(dongleId));
+  }
+  dispatch(loadTimelineRange(routeId, start, end));
+  // routes are checked after the drive is selected: a selected drive is fetched on its own, and
+  // the drive list once no drive is selected
+  if (deviceChanged) {
+    dispatch(checkLastRoutesData());
+  } else if (routeId !== state.selectedRouteId) {
+    dispatch(checkRoutesData());
+  }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  if (legacyRange) {
+    // an old link names a time range: look up its drive and replace the link with the drive's URL
+    api.routes.getRoutesSegments(dongleId, legacyRange.start, legacyRange.end).then((routes) => {
+      if (routes?.length && getState().router.location.pathname === pathname) {
+        dispatch(replace(toPath({ dongleId, routeId: routes[0].fullname.split('|')[1] })));
+      }
+    }).catch((err) => {
+      console.error('Error fetching routes data for log ID conversion', err);
+    });
   }
 };
