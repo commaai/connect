@@ -130,7 +130,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -302,5 +302,71 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('timeline back steps out one zoom level at a time', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/50`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.pointerDown(timeline, { button: 0, clientX: 200, pageX: 200 });
+    fireEvent.pointerMove(document, { clientX: 700, pageX: 700 });
+    fireEvent.pointerUp(document, { button: 0, clientX: 700, pageX: 700 });
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/18/38`));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/50`));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+  });
+
+  test('device settings open over a drive and close back to it', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    const { zoom, loop } = store.getState();
+    fireEvent.click(await screen.findByRole('button', { name: 'menu' }));
+    const alpha = await screen.findByRole('link', { name: /Alpha/ });
+    fireEvent.click(within(alpha).getByRole('button', { name: 'device settings' }));
+    await waitFor(() => expect(history.location.search).toBe(`?settings=${SECOND}`));
+    expect(await screen.findByDisplayValue('Alpha')).toBeVisible();
+    expect(store.getState()).toMatchObject({ dongleId: FIRST, selectedRouteId: LOG });
+    expect(store.getState().zoom).toBe(zoom);
+    expect(store.getState().loop).toBe(loop);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test.each([['dashboard', ''], ['stream', '/stream']])('settings URL opens over the %s from a cold entry', async (_name, page) => {
+    await renderApp(`/${FIRST}${page}?settings=${FIRST}`);
+    expect(await screen.findByDisplayValue('Zulu')).toBeVisible();
+  });
+
+  test('settings URL does not open for a shared device', async () => {
+    await renderApp(`/${SHARED}?settings=${SHARED}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
+  });
+
+  test('closing a drive opened by its URL shows the whole drive list', async () => {
+    vi.stubGlobal('IntersectionObserver', class {
+      constructor(callback) { this.callback = callback; }
+      observe() { this.callback([{ isIntersecting: true }]); }
+      disconnect() {}
+      unobserve() {}
+    });
+    await renderApp(`/${FIRST}/${LOG}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
+  });
+
+  test('navigating between pages reuses the loaded routes', async () => {
+    const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    act(() => history.push(`/${FIRST}/prime`));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    act(() => history.go(-2));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(1);
   });
 });

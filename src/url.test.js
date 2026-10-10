@@ -1,71 +1,50 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { driveUrl, parseUrl, settingsUrl } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
 
 describe('URL pathname helpers', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
+    ['/', {}],
+    ['/referrals', {}],
+    ['/auth/code/provider', {}],
+    ['/not-a-device/prime', {}],
+    [`/${DONGLE}`, { dongleId: DONGLE }],
+    [`/${DONGLE}/prime`, { dongleId: DONGLE, page: 'prime' }],
+    [`/${DONGLE}/stream`, { dongleId: DONGLE, page: 'stream' }],
+    [`/${DONGLE}/prime/extra`, { dongleId: DONGLE }],
+    [`/${DONGLE}/${LOG}`, { dongleId: DONGLE, routeId: LOG, zoom: null }],
+    [`/${DONGLE}/${LOG}/556/610`, { dongleId: DONGLE, routeId: LOG, zoom: { start: 556000, end: 610000 } }],
+    [`/${DONGLE}/${LOG}/0/20/`, { dongleId: DONGLE, routeId: LOG, zoom: { start: 0, end: 20000 } }],
+    [`/${DONGLE}/${LOG}/abc/def`, { dongleId: DONGLE, routeId: LOG, zoom: null }],
+    [`/${DONGLE}/1000/2000`, { dongleId: DONGLE, legacyZoom: { start: 1000, end: 2000 } }],
+    [`/${DONGLE}/10`, { dongleId: DONGLE }],
+  ])('parseUrl(%s)', (pathname, expected) => {
+    expect(parseUrl(pathname)).toEqual(expected);
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
+  const route = { dongle_id: DONGLE, log_id: LOG, duration: 60500 };
+  it.each([
+    ['whole drive', [], `/${DONGLE}/${LOG}`],
+    ['full range', [0, 60500], `/${DONGLE}/${LOG}`],
+    ['nearly full range', [400, 60200], `/${DONGLE}/${LOG}`],
+    ['range', [10000, 20000], `/${DONGLE}/${LOG}/10/20`],
+    ['zero-start range', [0, 20000], `/${DONGLE}/${LOG}/0/20`],
+    ['short range', [10100, 10900], `/${DONGLE}/${LOG}/10/11`],
+    ['range to the end', [30000, 60500], `/${DONGLE}/${LOG}/30/60`],
+    ['range in the last partial second', [60100, 60500], `/${DONGLE}/${LOG}/59/60`],
+  ])('driveUrl for a %s', (_name, range, expected) => {
+    expect(driveUrl(route, ...range)).toBe(expected);
   });
 
   it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+    ['/d', '', 'x', '/d?settings=x'],
+    ['/d/prime', '?stripe_success=1', 'x', '/d/prime?stripe_success=1&settings=x'],
+    ['/d/prime', '?stripe_success=1&settings=x', null, '/d/prime?stripe_success=1'],
+    ['/d', '?settings=x', null, '/d'],
+  ])('settingsUrl(%s%s, %s)', (pathname, search, dongleId, expected) => {
+    expect(settingsUrl({ pathname, search }, dongleId)).toBe(expected);
   });
 });

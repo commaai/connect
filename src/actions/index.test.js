@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { pushTimelineRange } from './index';
+import * as Types from './types';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -8,46 +8,36 @@ vi.mock('../timeline/playback', () => ({
   selectLoop: vi.fn(),
 }));
 
-vi.mock('connected-react-router', async () => {
-  const originalModule = await vi.importActual('connected-react-router');
-  return {
-    __esModule: true,
-    ...originalModule,
-    push: vi.fn(),
-  };
-});
+const LOG = '2026-08-06--12-00-00';
+
+function run(state, ...args) {
+  const dispatch = vi.fn();
+  pushTimelineRange(...args)(dispatch, () => state);
+  return dispatch;
+}
 
 describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+  it('selects a whole drive as its full range', () => {
+    const dispatch = run({ routes: [{ log_id: LOG, duration: 60000 }], zoom: null }, LOG, null, null);
+    expect(dispatch).toHaveBeenCalledWith({ type: Types.TIMELINE_PUSH_SELECTION, log_id: LOG, start: 0, end: 60000 });
   });
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+  it('pushes a nested zoom level', () => {
+    const zoom = { start: 0, end: 60000, previous: null };
+    const dispatch = run({ selectedRouteId: LOG, zoom }, LOG, 10000, 20000);
+    expect(dispatch).toHaveBeenCalledWith({ type: Types.TIMELINE_PUSH_SELECTION, log_id: LOG, start: 10000, end: 20000 });
   });
 
-  it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
-    expect(push).toHaveBeenCalledWith(expected);
+  it('pops back to the previous zoom level', () => {
+    const zoom = { start: 12000, end: 15000, previous: { start: 10000, end: 20000 } };
+    const dispatch = run({ selectedRouteId: LOG, zoom }, LOG, 10000, 20000);
+    expect(dispatch).toHaveBeenCalledWith({ type: Types.TIMELINE_POP_SELECTION });
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: Types.TIMELINE_PUSH_SELECTION }));
+  });
+
+  it('does nothing for the current zoom level', () => {
+    const zoom = { start: 10000, end: 20000, previous: null };
+    const dispatch = run({ selectedRouteId: LOG, zoom }, LOG, 10000, 20000);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 });

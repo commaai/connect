@@ -13,13 +13,15 @@ import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, updateDevices, checkLastRoutesData } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { parseUrl, settingsUrl } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -81,11 +83,6 @@ class ExplorerApp extends Component {
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
-    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
-  }
-
-  closeBodyTeleop() {
-    this.props.dispatch(streamNav(false));
   }
 
   async componentDidMount() {
@@ -167,8 +164,7 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
 
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
+    // fetch routes for a newly selected device, selecting a device resets the limit to 0
     // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
     if (prevProps.dongleId !== dongleId && limit === 0) {
       this.props.dispatch(checkLastRoutesData());
@@ -179,7 +175,7 @@ class ExplorerApp extends Component {
     const { pairDongleId } = this.state;
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      this.props.dispatch(push(`/${pairDongleId}`));
     }
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
@@ -198,7 +194,8 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, location, page, selectedRouteId, settingsDongleId,
+      pathname, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -224,8 +221,8 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
-        { bodyTeleopOpen ? (
-          <BodyTeleop onClose={ this.closeBodyTeleop } />
+        { page === 'stream' ? (
+          <BodyTeleop onClose={ () => dispatch(push(`/${dongleId}`)) } />
         ) : (
           <>
             <AppHeader
@@ -270,6 +267,11 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        <DeviceSettingsModal
+          isOpen={ Boolean(settingsDongleId) }
+          dongleId={ settingsDongleId }
+          onClose={ () => dispatch(push(settingsUrl(location, null))) }
+        />
       </div>
     );
   }
@@ -278,12 +280,14 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  location: state.router.location,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
   limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
+  page: parseUrl(state.router.location.pathname).page,
+  settingsDongleId: new URLSearchParams(state.router.location.search).get('settings'),
   profile: state.profile,
 });
 

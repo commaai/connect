@@ -1,16 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'connected-react-router';
 import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
-import { pushTimelineRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
 import { RightArrow } from '../../icons';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
+import { driveUrl } from '../../url';
 import Timeline from '../Timeline';
 
 const styles = () => ({
@@ -84,7 +85,7 @@ const DriveListItem = (props) => {
   }, [drive, dispatch, isVisible, el]);
 
   const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
+    () => dispatch(push(driveUrl(drive))),
   );
 
   const small = windowWidth < 580;
@@ -119,7 +120,7 @@ const DriveListItem = (props) => {
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
+      href={driveUrl(drive)}
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
