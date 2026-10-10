@@ -38,7 +38,7 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
     return null;
   }
   return (
-    <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
+    <div className={`z-50 absolute h-full w-full bg-[#16181AAA] ${error ? '' : 'animate-[fadein_0.25s_0.4s_both]'}`}>
       <div className="flex h-full flex-col items-center justify-center px-4 text-center">
         {content}
       </div>

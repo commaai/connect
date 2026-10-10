@@ -81,10 +81,11 @@ test('seeks to the selected loop and wraps while playing', async () => {
 });
 
 test('clears loading on seeked without waiting for canplay', async () => {
-  const { store, video } = await mountVideo();
+  const { store, video, getByRole } = await mountVideo();
   act(() => store.dispatch(seek(30000)));
   fireEvent.seeking(video);
   expect(store.getState().videoStatus).toBe(VideoStatus.LOADING);
+  expect(getByRole('progressbar').parentElement.parentElement).toHaveClass('animate-[fadein_0.25s_0.4s_both]');
   fireEvent.seeked(video);
   expect(store.getState().videoStatus).toBe(VideoStatus.READY);
 });
