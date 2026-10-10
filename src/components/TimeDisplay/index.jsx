@@ -100,7 +100,7 @@ const styles = (theme) => ({
     fontSize: '0.875em',
   },
   currentTime: {
-    margin: '0 0.5em',
+    margin: '0 0.25em',
     fontSize: '0.9375em',
     fontWeight: 500,
     display: 'block',
