@@ -12,6 +12,7 @@ import {
   setPlaybackSpeed, resetPlayback, play, pause, videoProgress, setHasAudio, setVideoStatus, VideoStatus,
 } from '../../timeline/playback';
 
+const EXPIRED = 'This link has expired';
 const OFFLINE = 'You\'re offline';
 
 const VideoOverlay = ({ loading, error, onRetry }) => {
@@ -21,14 +22,14 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
       <>
         <ErrorOutline className="mb-2" />
         <Typography>{error}</Typography>
-        <Button
+        {error !== EXPIRED && <Button
           className="mt-3 rounded-3xl bg-white/10 px-6 py-1.5 text-sm font-medium normal-case text-white hover:bg-white/20"
           onClick={onRetry}
           disableRipple
         >
           <RefreshIcon className="mr-2" style={{ fontSize: 20 }} />
           Retry
-        </Button>
+        </Button>}
       </>
     );
   } else if (loading) {
@@ -168,7 +169,7 @@ class RouteVideo extends Component {
     const expired = currentRoute.share_exp && Number(currentRoute.share_exp) * 1000 < Date.now();
     if (status === 404) this.failure = 'This video segment has not uploaded yet or has been deleted.';
     else if (navigator.onLine === false) this.failure = OFFLINE;
-    else if (expired) this.failure = 'This link has expired';
+    else if (expired) this.failure = EXPIRED;
     else if (status === 401 || status === 403) this.failure = 'You don\'t have access to this video';
     else this.failure = 'Unable to load video';
     this.failureStart = error.frag?.start;

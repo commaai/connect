@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, createEvent, fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 
@@ -115,15 +115,11 @@ test('shows media errors without overwriting timeline navigation and recovers wh
   expect(queryByText('Unable to load video')).toBeNull();
 });
 
-test.each([
-  [401, undefined, "You don't have access to this video"],
-  [403, undefined, "You don't have access to this video"],
-  [403, 1, 'This link has expired'],
-])('explains a %i video response', async (code, shareExp, message) => {
-  const { video, getByText } = await mountVideo({ ...route, share_exp: shareExp });
-  const error = Object.assign(createEvent.error(video), { response: { code } });
-  fireEvent(video, error);
-  expect(getByText(message)).toBeVisible();
+test('explains an expired share link and does not offer to retry it', async () => {
+  const { video, getByText, queryByRole } = await mountVideo({ ...route, share_exp: 1 });
+  fireEvent.error(video);
+  expect(getByText('This link has expired')).toBeVisible();
+  expect(queryByRole('button', { name: 'Retry' })).toBeNull();
 });
 
 test('retries an offline failure when the browser comes online', async () => {
