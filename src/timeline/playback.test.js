@@ -1,133 +1,66 @@
-import { asyncSleep } from '../utils';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { bufferVideo, pause, play, reducer, seek, selectLoop, mediaMiddleware } from './playback';
+vi.mock('../store', () => ({ default: { getState: vi.fn() } }));
+const initial = () => ({ desiredPlaySpeed: 1, offset: 0, startTime: Date.now(), isBufferingVideo: false });
+afterEach(() => vi.useRealTimers());
 
-const makeDefaultStruct = function makeDefaultStruct() {
-  return {
-    desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
-    offset: 0, // in miliseconds from the start
-    startTime: Date.now(), // millisecond timestamp in which play began
-
-    isBuffering: true,
-  };
-};
-
-// make Date.now super stable for tests
-let mostRecentNow = Date.now();
-const oldNow = Date.now;
-Date.now = function now() {
-  return mostRecentNow;
-};
-function newNow() {
-  mostRecentNow = oldNow();
-  return mostRecentNow;
-}
-
-describe('playback', () => {
-  it('has playback controls', async () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // should do nothing
+describe('playback commands and observations', () => {
+  it('keeps a clock only for map-only playback, including speed and pause', () => {
+    vi.useFakeTimers();
+    let state = initial();
+    vi.advanceTimersByTime(100);
     state = reducer(state, pause());
-    expect(state.desiredPlaySpeed).toEqual(0);
-
-    // start playing, should set start time and such
-    let playTime = newNow();
-    state = reducer(state, play());
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset
-    let ellapsed = newNow() - playTime;
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // start playing, should set start time and such
-    playTime = newNow();
+    expect(state.offset).toBe(100);
+    vi.advanceTimersByTime(100);
+    expect(currentOffset(state)).toBe(100);
     state = reducer(state, play(0.5));
-    // this is a (usually 1ms) race condition
-    expect(state.startTime).toEqual(playTime);
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
-    await asyncSleep(100 + Math.random() * 200);
-    // should update offset, playback speed 1/2
-    ellapsed += (newNow() - playTime) / 2;
-    expect(currentOffset(state)).toEqual(ellapsed);
-    state = reducer(state, pause());
-
-    expect(state.offset).toEqual(ellapsed);
-
-    // seek!
-    newNow();
+    vi.advanceTimersByTime(200);
+    expect(currentOffset(state)).toBe(200);
     state = reducer(state, seek(123));
-    expect(state.offset).toEqual(123);
-    expect(state.startTime).toEqual(Date.now());
-    expect(currentOffset(state)).toEqual(123);
+    expect(currentOffset(state)).toBe(123);
   });
-
-  it('should clamp loop when seeked after loop end time', () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
-
-    // seek past loop end boundary a
-    state = reducer(state, seek(3000));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(2000);
+  it('clamps explicit seeks at both boundaries, including zero-start ranges', () => {
+    const state = reducer(initial(), selectLoop(0, 2000));
+    expect(reducer(state, seek(-100)).seekOffset).toBe(0);
+    expect(reducer(state, seek(3000)).seekOffset).toBe(2000);
+    expect(reducer(state, seek(NaN))).toBe(state);
   });
-
-  it('should clamp loop when seeked before loop start time', () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    // set up loop
-    state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
-    expect(state.loop.startTime).toEqual(1000);
-
-    // seek past loop end boundary a
-    state = reducer(state, seek(0));
-    expect(state.loop.startTime).toEqual(1000);
-    expect(state.offset).toEqual(1000);
-  });
-
-  it('should buffer video and data', async () => {
-    newNow();
-    let state = makeDefaultStruct();
-
-    state = reducer(state, play());
-    expect(state.desiredPlaySpeed).toEqual(1);
-
-    // claim the video is buffering
-    state = reducer(state, bufferVideo(true));
-    expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    state = reducer(state, play(0.5));
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
-
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-
+  it('freezes map-only buffering without changing play intent', () => {
+    vi.useFakeTimers();
+    let state = reducer(initial(), bufferVideo(true));
+    vi.advanceTimersByTime(100);
+    expect(currentOffset(state)).toBe(0);
     state = reducer(state, play(2));
     state = reducer(state, bufferVideo(false));
-    expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBufferingVideo).toEqual(false);
-
-    expect(state.desiredPlaySpeed).toEqual(2);
+    vi.advanceTimersByTime(100);
+    expect(currentOffset(state)).toBe(200);
+  });
+  it('observations neither advance with wall time nor become seeks; stale observations are rejected', () => {
+    vi.useFakeTimers();
+    const source = {};
+    let state = { ...initial(), mediaSource: source, seekRevision: 3 };
+    state = reducer(state, { type: 'ACTION_MEDIA_TIME', source, revision: 3, offset: 1250 });
+    vi.advanceTimersByTime(5000);
+    expect(currentOffset(state)).toBe(1250);
+    expect(state.seekRevision).toBe(3);
+    expect(reducer(state, { type: 'ACTION_MEDIA_TIME', source: {}, revision: 3, offset: 5000 })).toBe(state);
+    expect(reducer(state, { type: 'ACTION_MEDIA_TIME', source, revision: 2, offset: 5000 })).toBe(state);
+    state = reducer(state, seek(2500));
+    expect(state.seekRevision).toBe(4);
+    expect(state.seekOffset).toBe(2500);
+  });
+  it('delivers commands synchronously after reducing them, but never forwards observations as commands', () => {
+    let state = initial();
+    const dispatch = mediaMiddleware({ getState: () => state })(action => { state = reducer(state, action); });
+    const player = { update: vi.fn() };
+    const unbind = dispatch({ type: 'ACTION_BIND_MEDIA', player });
+    dispatch(play(2));
+    expect(player.update).toHaveBeenCalledWith(expect.objectContaining({ desiredPlaySpeed: 2, activate: true }));
+    player.update.mockClear();
+    dispatch({ type: 'ACTION_MEDIA_TIME', source: {}, revision: 0, offset: 100 });
+    expect(player.update).not.toHaveBeenCalled();
+    unbind(); dispatch(play());
+    expect(player.update).not.toHaveBeenCalled();
   });
 });

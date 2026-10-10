@@ -4,6 +4,7 @@ import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
+  mediaMiddleware: () => (next) => (action) => next(action),
   resetPlayback: vi.fn(),
   selectLoop: vi.fn(),
 }));
