@@ -303,4 +303,14 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test.each([
+    ['a drive on this site', `/${FIRST}/${LOG}`, `/${FIRST}/${LOG}`],
+    ['another site', '//evil.example.com', `/${FIRST}`],
+    ['another site with a backslash', '/\\evil.example.com', `/${FIRST}`],
+  ])('the ?r= return link only opens %s', async (_name, target, expected) => {
+    // browsers throw a SecurityError when asked to put another origin in history
+    const { history } = await renderApp(`/${FIRST}?r=${encodeURIComponent(target)}`);
+    await waitFor(() => expect(history.location.pathname).toBe(expected));
+  });
 });
