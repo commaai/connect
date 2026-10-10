@@ -19,6 +19,7 @@ import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
+import { isIos } from '../../utils/browser';
 import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
@@ -212,7 +213,10 @@ class Media extends Component {
       routePreserved: null,
       isMuted: true,
       clipsSupported: false,
+      isFullscreen: false,
     };
+
+    this.player = React.createRef();
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -239,6 +243,7 @@ class Media extends Component {
 
   componentDidMount() {
     this.mounted = true;
+    document.addEventListener('fullscreenchange', this.onFullscreenChange);
     this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
       this.setState({ windowWidth: width });
     });
@@ -288,8 +293,18 @@ class Media extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    document.removeEventListener('fullscreenchange', this.onFullscreenChange);
     this.unsubscribeWindowSize?.();
   }
+
+  onFullscreenChange = () => this.setState({ isFullscreen: document.fullscreenElement === this.player.current });
+
+  toggleFullscreen = () => {
+    const video = this.player.current.querySelector('video');
+    if (isIos()) video.webkitEnterFullscreen();
+    else if (document.fullscreenElement) document.exitFullscreen();
+    else this.player.current.requestFullscreen();
+  };
 
   async checkClipsSupport() {
     const { device, dongleId } = this.props;
@@ -525,7 +540,7 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted } = this.state;
+    const { inView, windowWidth, isMuted, isFullscreen } = this.state;
     const { hasAudio } = this.props;
 
     if (this.props.menusOnly) { // for test
@@ -533,21 +548,26 @@ class Media extends Component {
     }
 
     const showMapAlways = windowWidth >= 1536;
+    const canFullscreen = isIos() ? 'webkitEnterFullscreen' in HTMLVideoElement.prototype : 'requestFullscreen' in HTMLElement.prototype;
+    const controls = <TimeDisplay isThin isMuted={isMuted} hasAudio={hasAudio} onMuteToggle={this.handleMuteToggle} />;
 
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
-          <div className={`relative ${showMapAlways ? 'w-[60%]' : 'w-full'}`}>
+          <div ref={this.player} className={`relative ${showMapAlways && !isFullscreen ? 'w-[60%]' : 'w-full'} ${isFullscreen ? 'flex flex-col items-center justify-center gap-4 bg-[#16181A]' : ''}`}>
             {/* Keep video mounted so it drives playback even under the map. */}
             <DriveVideo
               isMuted={isMuted}
+              isFullscreen={isFullscreen}
+              onFullscreenToggle={inView === MediaType.VIDEO && canFullscreen ? this.toggleFullscreen : null}
             />
             {!showMapAlways && (
               <div className={`absolute inset-0 h-full z-[60] overflow-hidden ${inView === MediaType.MAP ? '' : 'invisible'}`}>
                 <DriveMap />
               </div>
             )}
+            {isFullscreen && controls}
           </div>
           {(inView === MediaType.VIDEO && showMapAlways) && (
             <div className="w-[40%]">
@@ -555,14 +575,7 @@ class Media extends Component {
             </div>
           )}
         </div>
-        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
-          <TimeDisplay
-            isThin
-            isMuted={isMuted}
-            hasAudio={hasAudio}
-            onMuteToggle={this.handleMuteToggle}
-          />
-        </div>
+        {!isFullscreen && <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>{controls}</div>}
       </div>
     );
   }

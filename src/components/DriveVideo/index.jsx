@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { Button, CircularProgress, Typography } from '@material-ui/core';
+import { Button, CircularProgress, IconButton, Typography } from '@material-ui/core';
 import ReactPlayer from 'react-player/file';
 
 import { api } from '../../api/backend';
 
 import Colors from '../../colors';
-import { ErrorOutline, RefreshIcon } from '../../icons';
+import { ErrorOutline, Fullscreen, RefreshIcon } from '../../icons';
 import {
   setPlaybackSpeed, resetPlayback, play, pause, videoProgress, setHasAudio, setVideoStatus, VideoStatus,
 } from '../../timeline/playback';
@@ -95,6 +95,7 @@ class RouteVideo extends Component {
     this.ready = true;
     this.seekTo(this.props.offset, this.props.seekRequest);
     const video = player.getInternalPlayer();
+    video.addEventListener('webkitendfullscreen', this.onWebkitEndFullscreen);
     const hls = player.getInternalPlayer('hls');
     if (hls) {
       hls.on('hlsBufferCodecs', (_event, data) => this.props.dispatch(setHasAudio(!!data.audio)));
@@ -198,7 +199,17 @@ class RouteVideo extends Component {
   };
 
   onPause = () => {
-    if (this.props.isPlaying && !this.player.current.getInternalPlayer().ended) this.props.dispatch(pause());
+    const video = this.player.current.getInternalPlayer();
+    const resumeVideo = this.resumeAfterFullscreen && this.props.isPlaying && video;
+    this.resumeAfterFullscreen = false;
+    if (resumeVideo) setTimeout(() => this.props.isPlaying
+      && resumeVideo === this.player.current?.getInternalPlayer() && resumeVideo.play().catch(this.onError));
+    else if (this.props.isPlaying && !video.ended) this.props.dispatch(pause());
+  };
+
+  onWebkitEndFullscreen = ({ currentTarget: video }) => {
+    this.resumeAfterFullscreen = this.props.isPlaying && !video.paused;
+    setTimeout(() => { this.resumeAfterFullscreen = false; }, 1000);
   };
 
   onRetry = () => {
@@ -236,10 +247,10 @@ class RouteVideo extends Component {
   };
 
   render() {
-    const { currentRoute, isPlaying, desiredPlaySpeed, videoStatus, isMuted } = this.props;
+    const { currentRoute, isPlaying, desiredPlaySpeed, videoStatus, isMuted, isFullscreen, onFullscreenToggle } = this.props;
     const { videoError, attempt } = this.state;
     return (
-      <div className="w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]">
+      <div className={`relative m-[0_auto] aspect-[1.593] ${isFullscreen ? 'w-[min(100%,140vh)]' : 'w-full max-w-[964px]'}`}>
         <VideoOverlay loading={videoStatus === VideoStatus.LOADING} error={videoError} onRetry={this.onRetry} />
         <ReactPlayer
           key={attempt}
@@ -261,6 +272,10 @@ class RouteVideo extends Component {
           onError={this.onError}
           config={this.config}
         />
+        {onFullscreenToggle && <IconButton className="z-[60] absolute bottom-1 right-1 h-10 w-10 bg-black/30 text-white hover:bg-black/50"
+          onClick={onFullscreenToggle} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+          <Fullscreen exit={isFullscreen} />
+        </IconButton>}
       </div>
     );
   }
