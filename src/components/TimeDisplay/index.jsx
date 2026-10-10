@@ -35,10 +35,10 @@ const styles = (theme) => ({
     display: 'flex',
     alignItems: 'center',
     backgroundColor: theme.palette.grey[999],
-    height: '64px',
-    borderRadius: '32px',
-    padding: theme.spacing.unit,
-    width: 400,
+    height: '4em',
+    borderRadius: '2em',
+    padding: '0.5em',
+    width: '25em',
     maxWidth: '100%',
     margin: '0 auto',
     opacity: 0,
@@ -49,17 +49,17 @@ const styles = (theme) => ({
       pointerEvents: 'auto',
     },
     '&.isThin': {
-      height: 50,
+      height: '3.125em',
       paddingBottom: 0,
       paddingTop: 0,
     },
   },
   desiredPlaySpeedContainer: {
-    marginRight: theme.spacing.unit * 1,
+    marginRight: '0.5em',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    minWidth: '40px',
+    minWidth: '2.5em',
   },
   icon: {
     width: '98%',
@@ -77,12 +77,14 @@ const styles = (theme) => ({
     },
   },
   iconButton: {
-    width: '40px',
-    height: '40px',
+    fontSize: 'inherit',
+    width: '2.5em',
+    height: '2.5em',
   },
   tinyArrowIcon: {
-    width: 12,
-    height: 12,
+    fontSize: 'inherit',
+    width: '0.75em',
+    height: '0.75em',
     color: theme.palette.grey[500],
     '&[disabled]': {
       visibility: 'hidden',
@@ -94,9 +96,12 @@ const styles = (theme) => ({
   leftBorderBox: {
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
   },
+  desiredPlaySpeed: {
+    fontSize: '0.875em',
+  },
   currentTime: {
-    margin: `0 ${theme.spacing.unit * 1}px`,
-    fontSize: 15,
+    margin: '0 0.5em',
+    fontSize: '0.9375em',
     fontWeight: 500,
     display: 'block',
     flexGrow: 1,
@@ -161,7 +166,7 @@ class TimeDisplay extends Component {
             >
               <UpArrow className={classes.tinyArrowIcon} />
             </IconButton>
-            <Typography variant="body2" align="center">
+            <Typography variant="body2" align="center" className={classes.desiredPlaySpeed}>
               {desiredPlaySpeed}
               ×
             </Typography>
@@ -193,6 +198,7 @@ class TimeDisplay extends Component {
         </div>
         <div className={ classes.leftBorderBox }>
           <IconButton
+            className={ classes.iconButton }
             onClick={() => dispatch(isPlaying ? pause() : play())}
             disabled={controlsDisabled}
             aria-label={!isPlaying ? 'Unpause' : 'Pause'}
