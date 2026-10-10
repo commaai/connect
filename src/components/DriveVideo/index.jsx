@@ -76,6 +76,7 @@ class DriveVideo extends Component {
     this.gaps = [];
     this.failure = null;
     this.recoveredMediaError = false;
+    this.reloadedPlaylist = false;
 
     this.state = {
       blank: false,
@@ -85,7 +86,7 @@ class DriveVideo extends Component {
   }
 
   componentDidMount() {
-    const { currentRoute, desiredPlaySpeed, onAudioStatusChange } = this.props;
+    const { desiredPlaySpeed, onAudioStatusChange } = this.props;
     const video = this.video.current;
     this.mounted = true;
     video.defaultPlaybackRate = desiredPlaySpeed;
@@ -97,7 +98,6 @@ class DriveVideo extends Component {
     window.addEventListener('online', this.retry);
     this.frame = requestAnimationFrame(this.onFrame);
 
-    this.src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
     this.loadSource();
   }
 
@@ -132,6 +132,11 @@ class DriveVideo extends Component {
     }
   }
 
+  streamUrl() {
+    const { currentRoute } = this.props;
+    return api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
+  }
+
   async loadSource(autoplay = true) {
     const { currentRoute, onAudioStatusChange } = this.props;
     const video = this.video.current;
@@ -152,7 +157,7 @@ class DriveVideo extends Component {
     }
 
     if (!Hls || !Hls.isSupported()) {
-      video.src = this.src;
+      video.src = this.streamUrl();
       video.currentTime = this.currentVideoTime();
     } else {
       const policy = Hls.DefaultConfig.fragLoadPolicy.default;
@@ -177,7 +182,7 @@ class DriveVideo extends Component {
         this.onLoaded();
       });
       this.hls.on(Hls.Events.ERROR, this.onHlsError);
-      this.hls.loadSource(this.src);
+      this.hls.loadSource(this.streamUrl());
       this.hls.attachMedia(video);
     }
     if (autoplay) {
@@ -246,6 +251,7 @@ class DriveVideo extends Component {
     this.failure = null;
     this.retryDelay = RETRY_DELAY_MS;
     this.retryAt = 0;
+    this.reloadedPlaylist = false;
   }
 
   onHlsError(event, data) {
@@ -256,6 +262,12 @@ class DriveVideo extends Component {
       if (data.fatal) {
         this.stopped = true;
       }
+      return;
+    }
+    // segment links expire a day after the playlist loads
+    if (frag && response?.code === 403 && !this.reloadedPlaylist) {
+      this.reloadedPlaylist = true;
+      this.reload(currentOffset(), true);
       return;
     }
 
@@ -315,13 +327,15 @@ class DriveVideo extends Component {
       } else if (this.hls.levels.length) {
         this.hls.startLoad(this.currentVideoTime());
       } else {
-        this.hls.loadSource(this.src);
+        this.hls.loadSource(this.streamUrl());
       }
     }
   }
 
-  reload(offset) {
-    if (this.hls) {
+  reload(offset, playlist = false) {
+    if (playlist) {
+      this.hls.loadSource(this.streamUrl());
+    } else if (this.hls) {
       this.hls.recoverMediaError();
     } else {
       this.video.current.load();
@@ -370,7 +384,7 @@ class DriveVideo extends Component {
       return;
     }
 
-    if (!gap || video.paused) {
+    if (!gap || video.paused || !this.hls.latestLevelDetails) {
       return;
     }
     if (gap.end >= this.videoEnd()) {
@@ -413,7 +427,11 @@ class DriveVideo extends Component {
 
   videoEnd() {
     const { currentRoute, zoom } = this.props;
-    return Math.min(videoTime(currentRoute, zoom.end), this.video.current.duration || this.hls.latestLevelDetails.fragmentEnd);
+    let end = this.video.current.duration;
+    if (!end) {
+      end = this.hls.latestLevelDetails?.fragmentEnd;
+    }
+    return Math.min(videoTime(currentRoute, zoom.end), end);
   }
 
   isPastVideoEnd() {
