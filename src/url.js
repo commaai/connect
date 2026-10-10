@@ -1,5 +1,6 @@
-// The URL grammar: parseLocation reads a pathname into the location it names, toPath writes a
-// location back as its canonical pathname, and parseLocation(toPath(location)) equals location.
+// The URL grammar: parseLocation reads a pathname into the location it names, and toPath writes a
+// location back as its canonical pathname. Parsing that pathname gives the same location back,
+// with a range rounded out to whole seconds.
 //
 //   /:dongleId                          { dongleId }                          device dashboard
 //   /:dongleId/prime|stream|settings    { dongleId, page }                    device page

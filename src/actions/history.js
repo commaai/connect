@@ -25,6 +25,8 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
     dispatch(loadDevice(dongleId));
   }
   dispatch(loadTimelineRange(routeId, start, end));
+  // routes are checked after the drive is selected: a selected drive is fetched on its own, and
+  // the drive list once no drive is selected
   if (deviceChanged) {
     dispatch(checkLastRoutesData());
   } else if (routeId !== state.selectedRouteId) {
