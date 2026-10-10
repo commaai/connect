@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parsePath } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -67,5 +67,40 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/prime`, false],
   ])('getStreamNav(%s)', (pathname, expected) => {
     expect(getStreamNav(pathname)).toBe(expected);
+  });
+
+  describe('parsePath', () => {
+    const root = { dongleId: null, routeId: null, zoom: null, primeNav: false, streamNav: false };
+
+    it.each([
+      ['/', { ...root }],
+      ['/prime', { ...root }],
+      [`/${DONGLE}`, { ...root, dongleId: DONGLE }],
+      [`/${DONGLE}/prime`, { ...root, dongleId: DONGLE, primeNav: true }],
+      [`/${DONGLE}/stream`, { ...root, dongleId: DONGLE, streamNav: true }],
+      [`/${DONGLE}/${LOG}`, { ...root, dongleId: DONGLE, routeId: LOG }],
+      [`/${DONGLE}/${LOG}/556/610`, {
+        ...root, dongleId: DONGLE, routeId: LOG, zoom: { start: 556000, end: 610000 },
+      }],
+      [`/${DONGLE}/${LOG}/0/20`, { ...root, dongleId: DONGLE, routeId: LOG, zoom: { start: 0, end: 20000 } }],
+    ])('parsePath(%s)', (pathname, expected) => {
+      expect(parsePath(pathname)).toEqual(expected);
+    });
+
+    it('agrees with the individual getters it replaces', () => {
+      const pathnames = [
+        '/', '/prime', `/auth/code/provider`,
+        `/${DONGLE}`, `/${DONGLE}/prime`, `/${DONGLE}/stream`,
+        `/${DONGLE}/${LOG}`, `/${DONGLE}/${LOG}/556/610`, `/${DONGLE}/10/20`,
+      ];
+      for (const pathname of pathnames) {
+        const parsed = parsePath(pathname);
+        expect(parsed.dongleId).toBe(getDongleID(pathname));
+        expect(parsed.routeId).toBe(getRouteId(pathname));
+        expect(parsed.zoom).toEqual(getRouteZoom(pathname));
+        expect(parsed.primeNav).toBe(getPrimeNav(pathname));
+        expect(parsed.streamNav).toBe(getStreamNav(pathname));
+      }
+    });
   });
 });
