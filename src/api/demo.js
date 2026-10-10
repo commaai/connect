@@ -100,6 +100,15 @@ const MISSING_DATA_CASES = [
     missingThumbnails: true,
     route() {},
   },
+  {
+    title: 'Stale end time',
+    // The API clamps segment end times to a stale route end time (#553).
+    route(route, affectedSegment) {
+      const endTime = route.segment_start_times[affectedSegment ?? 0] + 2000;
+      route.end_time_utc_millis = endTime;
+      route.segment_end_times = route.segment_end_times.map((time) => Math.min(time, endTime));
+    },
+  },
 ];
 
 // Keep two full-length routes for every case: one where the whole route is
