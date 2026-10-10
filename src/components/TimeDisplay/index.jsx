@@ -8,8 +8,7 @@ import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
+import { seek, play, pause, setPlaybackSpeed } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -22,6 +21,11 @@ const timerSteps = [
   4,
   8,
 ];
+
+// the browser's speed menu can leave the speed between steps
+function nextSpeed(speed, step) {
+  return step > 0 ? timerSteps.find((s) => s > speed) : timerSteps.filter((s) => s < speed).pop();
+}
 
 const styles = (theme) => ({
   base: {
@@ -102,134 +106,49 @@ const styles = (theme) => ({
 });
 
 class TimeDisplay extends Component {
-  static getDerivedStateFromProps(props, state) {
-    if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
-      return {
-        ...state,
-        desiredPlaySpeed: props.desiredPlaySpeed,
-      };
-    }
-    return state;
-  }
-
   constructor(props) {
     super(props);
 
-    this.textHolder = React.createRef();
-
-    this.updateTime = this.updateTime.bind(this);
     this.togglePause = this.togglePause.bind(this);
-    this.increaseSpeed = this.increaseSpeed.bind(this);
-    this.decreaseSpeed = this.decreaseSpeed.bind(this);
     this.jumpBack = this.jumpBack.bind(this);
     this.jumpForward = this.jumpForward.bind(this);
-
-    this.state = {
-      desiredPlaySpeed: 1,
-      displayTime: this.getDisplayTime(),
-    };
-  }
-
-  componentDidMount() {
-    this.mounted = true;
-    requestAnimationFrame(this.updateTime);
-  }
-
-  componentWillUnmount() {
-    this.mounted = false;
   }
 
   getDisplayTime() {
-    const offset = currentOffset();
-    const { currentRoute } = this.props;
-    const now = new Date(offset + currentRoute.start_time_utc_millis);
+    const { second, segment } = this.props;
+    const now = new Date(second * 1000);
     if (Number.isNaN(now.getTime())) {
       return '...';
     }
     let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute);
-    if (seg !== null) {
-      dateString = `${dateString} \u2013 ${seg}`;
+    if (segment !== null) {
+      dateString = `${dateString} \u2013 ${segment}`;
     }
 
     return dateString;
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
+    this.props.dispatch((dispatch, getState) => dispatch(seek(getState().offset - amount)));
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
+    this.props.dispatch((dispatch, getState) => dispatch(seek(getState().offset + amount)));
   }
 
-  updateTime() {
-    if (!this.mounted || !this.textHolder.current) {
-      return;
-    }
-    const newDisplayTime = this.getDisplayTime();
-    const { displayTime } = this.state;
-    if (newDisplayTime !== displayTime) {
-      this.setState({ displayTime: newDisplayTime });
-    }
-
-    requestAnimationFrame(this.updateTime);
-  }
-
-  decreaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.max(0, curIndex - 1);
-    dispatch(play(timerSteps[curIndex]));
-  }
-
-  canDecreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    return curIndex > 0;
-  }
-
-  increaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    dispatch(play(timerSteps[curIndex]));
-  }
-
-  canIncreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    return curIndex < timerSteps.length - 1;
+  changeSpeed(step) {
+    const { desiredPlaySpeed, dispatch } = this.props;
+    dispatch(setPlaybackSpeed(nextSpeed(desiredPlaySpeed, step)));
   }
 
   togglePause() {
-    const { desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed === 0) {
-      // eslint-disable-next-line react/destructuring-assignment
-      dispatch(play(this.state.desiredPlaySpeed));
-    } else {
-      dispatch(pause());
-    }
+    const { isPlaying, dispatch } = this.props;
+    dispatch(isPlaying ? pause() : play());
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime, desiredPlaySpeed } = this.state;
-    const isPaused = videoPlaySpeed === 0;
+    const { classes, zoom, desiredPlaySpeed, isPlaying, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
+    const isPaused = !isPlaying;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (
@@ -258,26 +177,26 @@ class TimeDisplay extends Component {
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+          { this.getDisplayTime() }
         </Typography>
         {!isIos() && (
           <div className={ classes.desiredPlaySpeedContainer }>
             <IconButton
               className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
+              onClick={() => this.changeSpeed(1)}
+              disabled={nextSpeed(desiredPlaySpeed, 1) === undefined}
               aria-label="Increase play speed by 1 step"
             >
               <UpArrow className={classes.tinyArrowIcon} />
             </IconButton>
             <Typography variant="body2" align="center" className={classes.desiredPlaySpeed}>
-              {desiredPlaySpeed}
+              {Math.round(desiredPlaySpeed * 100) / 100}
               ×
             </Typography>
             <IconButton
               className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
+              onClick={() => this.changeSpeed(-1)}
+              disabled={nextSpeed(desiredPlaySpeed, -1) === undefined}
               aria-label="Decrease play speed by 1 step"
             >
               <DownArrow className={classes.tinyArrowIcon} />
@@ -316,10 +235,13 @@ class TimeDisplay extends Component {
   }
 }
 
+// whole seconds, so this re-renders once a second
 const stateToProps = (state) => ({
-  currentRoute: state.currentRoute,
   zoom: state.zoom,
   desiredPlaySpeed: state.desiredPlaySpeed,
+  isPlaying: state.isPlaying,
+  second: Math.floor((state.offset + state.currentRoute?.start_time_utc_millis) / 1000),
+  segment: getSegmentNumber(state.currentRoute, state.offset),
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

@@ -15,7 +15,6 @@ import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -217,6 +216,7 @@ class Media extends Component {
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
+    this.handleMuteChange = this.handleMuteChange.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
@@ -238,6 +238,10 @@ class Media extends Component {
 
   handleMuteToggle() {
     this.setState(prevState => ({ isMuted: !prevState.isMuted }));
+  }
+
+  handleMuteChange(isMuted) {
+    this.setState({ isMuted });
   }
 
   handleAudioStatusChange(hasAudio) {
@@ -263,10 +267,6 @@ class Media extends Component {
     }
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
-    }
-
-    if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
     }
 
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
@@ -313,12 +313,12 @@ class Media extends Component {
   }
 
   async copySegmentName() {
-    const { currentRoute } = this.props;
+    const { currentRoute, segment } = this.props;
     if (!currentRoute || !navigator.clipboard) {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${segment}`);
     this.setState({ moreInfoMenu: null });
   }
 
@@ -354,7 +354,7 @@ class Media extends Component {
   }
 
   async uploadFile(type) {
-    const { dongleId, currentRoute } = this.props;
+    const { dongleId, currentRoute, segment } = this.props;
     if (!currentRoute) {
       return;
     }
@@ -364,7 +364,7 @@ class Media extends Component {
     }));
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
-    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
+    const fileName = `${dongleId}|${routeNoDongleId}--${segment}/${type}`;
 
     const uploading = {};
     uploading[fileName] = { requested: true };
@@ -375,7 +375,7 @@ class Media extends Component {
 
     // request all possible file names
     for (const fn of FILE_NAMES[type]) {
-      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${fn}`;
+      const path = `${routeNoDongleId}--${segment}/${fn}`;
       paths.push(path);
       url_promises.push(fetchUploadUrls(dongleId, [path]).then(urls => urls[0]));
     }
@@ -549,12 +549,14 @@ class Media extends Component {
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {inView === MediaType.VIDEO && (
+            {/* stays mounted in map view so it keeps playing and moving the marker */}
+            <div className={inView === MediaType.VIDEO ? '' : 'hidden'}>
               <DriveVideo
                 isMuted={isMuted}
+                onMuteChange={this.handleMuteChange}
                 onAudioStatusChange={this.handleAudioStatusChange}
               />
-            )}
+            </div>
             {(inView === MediaType.MAP && !showMapAlways) && (
               <div className="w-full">
                 <DriveMap />
@@ -636,7 +638,7 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentRoute, device, classes, files, profile } = this.props;
+    const { currentRoute, device, classes, files, profile, segment } = this.props;
     const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
@@ -646,7 +648,7 @@ class Media extends Component {
     let fcam = {}; let ecam = {}; let dcam = {}; let
       rlog = {};
     if (files && currentRoute) {
-      const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`;
+      const seg = `${currentRoute.fullname}--${segment}`;
       fcam = files[`${seg}/cameras`] || {};
       ecam = files[`${seg}/ecameras`] || {};
       dcam = files[`${seg}/dcameras`] || {};
@@ -787,7 +789,7 @@ class Media extends Component {
             onClick={ this.copySegmentName }
             style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
           >
-            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}` : '---' }</div>
+            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${segment}` : '---' }</div>
             <ContentCopy />
           </MenuItem>
           { typeof navigator.share !== 'undefined'
@@ -924,12 +926,12 @@ const stateToProps = (state) => ({
   device: state.device,
   routes: state.routes,
   currentRoute: state.currentRoute,
+  segment: getSegmentNumber(state.currentRoute, state.offset),
   zoom: state.zoom,
   loop: state.loop,
   filter: state.filter,
   files: state.files,
   profile: state.profile,
-  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

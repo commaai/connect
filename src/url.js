@@ -36,7 +36,7 @@ export function getRouteId(pathname) {
 
 export function getRouteZoom(pathname) {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
+  if (getRouteId(pathname) && Number(parts[3]) > Number(parts[2])) {
     return {
       start: Number(parts[2]) * 1000,
       end: Number(parts[3]) * 1000,
