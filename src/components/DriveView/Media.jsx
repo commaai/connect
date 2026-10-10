@@ -54,23 +54,10 @@ const styles = () => ({
       borderRight: 'none',
     },
   },
-  mediaOptionDisabled: {
-    cursor: 'auto',
-  },
-  mediaOptionIcon: {
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    height: 20,
-    margin: '2px 0',
-    width: 30,
-  },
   mediaOptionText: {
     fontSize: 12,
     fontWeight: 500,
     textAlign: 'center',
-  },
-  mediaSource: {
-    width: '100%',
   },
   menuLoading: {
     position: 'absolute',
@@ -151,45 +138,6 @@ const styles = () => ({
     backgroundColor: Colors.grey800,
     color: Colors.white,
     '& p': { fontSize: '0.8rem' },
-  },
-  noPrimePopover: {
-    borderRadius: 16,
-    padding: 16,
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    marginTop: 12,
-    zIndex: 5,
-    '& p': {
-      fontSize: '0.9rem',
-      color: Colors.white,
-      margin: 0,
-    },
-  },
-  noPrimeHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    '& p': {
-      fontSize: '1rem',
-      fontWeight: 500,
-    },
-  },
-  noPrimeButton: {
-    padding: '6px 24px',
-    borderRadius: 15,
-    textTransform: 'none',
-    minHeight: 'unset',
-    color: Colors.white,
-    backgroundColor: Colors.primeBlue50,
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:hover': {
-      color: Colors.white,
-      backgroundColor: Colors.primeBlue200,
-    },
   },
 });
 
