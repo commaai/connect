@@ -6,7 +6,9 @@ import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), playerProps: null, readyState: 4,
+}));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -41,12 +43,14 @@ vi.mock('react-map-gl', () => ({
 }));
 vi.mock('react-player/file', () => ({
   default: React.forwardRef((_props, ref) => {
+    mocks.playerProps = _props;
     React.useImperativeHandle(ref, () => ({
       getCurrentTime: () => 0,
       getDuration: () => 60,
       getInternalPlayer: () => ({
         buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
+        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1,
+        get readyState() { return mocks.readyState; },
       }),
       seekTo: vi.fn(),
     }));
@@ -163,6 +167,8 @@ describe('whole-app behavior', () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.hardNavigate.mockClear();
+    mocks.playerProps = null;
+    mocks.readyState = 4;
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -231,6 +237,7 @@ describe('whole-app behavior', () => {
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
+    expect(screen.getByText(`${ranged ? '00:10' : '00:00'} / 01:00`)).toBeVisible();
   });
 
   test.each([
@@ -302,5 +309,41 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('a failed video leaves timeline navigation owned by Redux', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+
+    act(() => {
+      mocks.playerProps.onError('hlsError', {
+        fatal: true,
+        type: 'networkError',
+        response: { code: 404 },
+      });
+    });
+    expect(store.getState().videoStatus).toBe('failed');
+
+    fireEvent.pointerDown(timeline, { button: 0, clientX: 500, pageX: 500 });
+    fireEvent.pointerUp(timeline, { button: 0, clientX: 500, pageX: 500 });
+    expect(store.getState().offset).toBe(30000);
+  });
+
+  test('plays up to a segment that failed to load, then shows the error', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    act(() => {
+      mocks.playerProps.onError('hlsError', {
+        fatal: true,
+        response: { code: 404 },
+        frag: { start: 10 },
+      });
+    });
+    expect(store.getState().videoStatus).not.toBe('failed');
+    act(() => mocks.playerProps.onBuffer());
+    expect(screen.queryByText(/not uploaded yet/)).toBeNull();
+
+    mocks.readyState = 2; // playback has run out of what was buffered before the segment
+    act(() => mocks.playerProps.onBuffer());
+    expect(screen.getByText(/not uploaded yet/)).toBeVisible();
   });
 });
