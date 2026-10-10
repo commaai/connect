@@ -43,10 +43,10 @@ const styles = () => ({
     flexDirection: 'column',
     justifyContent: 'center',
     cursor: 'pointer',
-    minHeight: '2rem',
-    minWidth: '2.75rem',
-    paddingLeft: '0.9375rem',
-    paddingRight: '0.9375rem',
+    minHeight: '2em',
+    minWidth: '2.75em',
+    paddingLeft: '0.9375em',
+    paddingRight: '0.9375em',
     '&.disabled': {
       cursor: 'default',
     },
@@ -65,7 +65,7 @@ const styles = () => ({
     width: 30,
   },
   mediaOptionText: {
-    fontSize: '0.75rem',
+    fontSize: '0.75em',
     fontWeight: 500,
     textAlign: 'center',
   },
