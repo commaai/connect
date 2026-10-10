@@ -98,8 +98,10 @@ class ExplorerApp extends Component {
     window.scrollTo({ top: 0 }); // for ios header
 
     const q = new URLSearchParams(window.location.search);
-    if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
+    // only paths on this site: anything else makes replaceState throw
+    const redirect = q.get('r');
+    if (redirect?.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('\\')) {
+      this.props.dispatch(replace(redirect));
     }
 
     this.props.dispatch(init());
