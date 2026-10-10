@@ -14,6 +14,7 @@ const RETRY_DELAY_MS = 2000;
 const MAX_RETRY_DELAY_MS = 30000;
 const GAP_MARGIN = 0.25;
 const GAP_EXIT = 0.001; // seek just past a gap's end, seeking to the end itself lands inside it
+const POSITION_KEY = 'driveVideoPosition';
 
 const MISSING_SEGMENT_ERROR = 'This video segment has not uploaded yet or has been deleted.';
 const BROKEN_SEGMENT_ERROR = 'This video segment could not be played.';
@@ -60,6 +61,7 @@ class DriveVideo extends Component {
     this.onSeeking = this.onSeeking.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.retry = this.retry.bind(this);
+    this.savePosition = this.savePosition.bind(this);
     this.sync = this.sync.bind(this);
 
     this.video = React.createRef();
@@ -86,7 +88,7 @@ class DriveVideo extends Component {
   }
 
   componentDidMount() {
-    const { desiredPlaySpeed, onAudioStatusChange } = this.props;
+    const { currentRoute, desiredPlaySpeed, dispatch, onAudioStatusChange, zoom } = this.props;
     const video = this.video.current;
     this.mounted = true;
     video.defaultPlaybackRate = desiredPlaySpeed;
@@ -96,7 +98,17 @@ class DriveVideo extends Component {
       video.audioTracks.onaddtrack = () => onAudioStatusChange?.(true);
     }
     window.addEventListener('online', this.retry);
+    window.addEventListener('pagehide', this.savePosition);
+    document.addEventListener('visibilitychange', this.savePosition);
     this.frame = requestAnimationFrame(this.onFrame);
+
+    const saved = sessionStorage.getItem(POSITION_KEY);
+    if (saved) {
+      const position = JSON.parse(saved);
+      if (position.route === currentRoute.fullname && position.zoom.start === zoom.start && position.zoom.end === zoom.end) {
+        dispatch(seek(position.offset));
+      }
+    }
 
     this.loadSource();
   }
@@ -123,6 +135,9 @@ class DriveVideo extends Component {
     setVideo(null);
     cancelAnimationFrame(this.frame);
     window.removeEventListener('online', this.retry);
+    window.removeEventListener('pagehide', this.savePosition);
+    document.removeEventListener('visibilitychange', this.savePosition);
+    sessionStorage.removeItem(POSITION_KEY);
 
     if (this.hls) {
       this.hls.destroy();
@@ -467,6 +482,12 @@ class DriveVideo extends Component {
     const { currentRoute, zoom } = this.props;
     const videoStart = currentRoute.videoStartOffset || 0;
     return zoom.end <= videoStart || videoTime(currentRoute, zoom.start) >= this.video.current.duration;
+  }
+
+  // Safari reloads background pages when memory runs low
+  savePosition() {
+    const { currentRoute, zoom } = this.props;
+    sessionStorage.setItem(POSITION_KEY, JSON.stringify({ route: currentRoute.fullname, zoom, offset: currentOffset() }));
   }
 
   currentVideoTime() {
