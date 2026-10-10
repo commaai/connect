@@ -8,8 +8,17 @@ import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { VideoStatus, seek, play, pause, setPlaybackSpeed } from '../../timeline/playback';
-import { formatVideoTime, getSegmentNumber } from '../../utils';
+import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
+
+function formatVideoTime(offset) {
+  const totalSeconds = offset > 0 ? Math.floor(offset / 1000) : 0;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${hours ? `${hours}:` : ''}${pad(minutes)}:${pad(seconds)}`;
+}
 
 const timerSteps = [
   0.1,
@@ -92,11 +101,6 @@ const styles = (theme) => ({
     display: 'block',
     flexGrow: 1,
   },
-  segment: {
-    '@media (max-width: 380px)': {
-      display: 'none',
-    },
-  },
 });
 
 class TimeDisplay extends Component {
@@ -145,7 +149,7 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           {offset == null || currentRoute?.duration == null ? '...'
             : `${formatVideoTime(offset)} / ${formatVideoTime(currentRoute.duration)}`}
-          {seg !== null && <span className={classes.segment}>{` \u2013 ${seg}`}</span>}
+          {seg !== null && <span className="max-[380px]:hidden">{` \u2013 ${seg}`}</span>}
         </Typography>
         {!isIos() && (
           <div className={ classes.desiredPlaySpeedContainer }>

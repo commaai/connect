@@ -28,15 +28,6 @@ export function formatDriveDuration(duration) {
   return `${hours > 0 ? `${hours} hr ` : ''}${minutes} min`;
 }
 
-export function formatVideoTime(offset) {
-  const totalSeconds = offset > 0 ? Math.floor(offset / 1000) : 0;
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const pad = (value) => String(value).padStart(2, '0');
-  return `${hours ? `${hours}:` : ''}${pad(minutes)}:${pad(seconds)}`;
-}
-
 export function timeFromNow(ts) {
   const dt = (Date.now() - ts) / 1000;
   if (dt > 3600 * 24 * 30) {
@@ -180,7 +171,10 @@ export function getDeviceFromState(state, dongleId) {
 }
 
 export function getSegmentNumber(route, offset) {
-  if (!route || offset == null) {
+  if (!route) {
+    return null;
+  }
+  if (offset === undefined || offset === null) {
     return null;
   }
 
