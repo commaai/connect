@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -40,43 +39,28 @@ async function initDevices() {
   return devices;
 }
 
-export default function init() {
+let accountRequest = null;
+
+// Load the profile and devices once. Everything that needs them waits on the same request.
+export function loadAccount() {
   return async (dispatch, getState) => {
-    let state = getState();
-    if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
+    if (getState().devices !== null) {
+      const { profile, devices } = getState();
+      return { profile, devices };
     }
 
-    const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    state = getState();
-
-    if (profile) {
-      Sentry.setUser({ id: profile.id });
+    if (!accountRequest) {
+      accountRequest = Promise.all([initProfile(), initDevices()]).finally(() => {
+        accountRequest = null;
+      });
     }
-
-    if (devices.length > 0) {
-      if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
-        }
+    const [profile, devices] = await accountRequest;
+    if (getState().devices === null) {
+      if (profile) {
+        Sentry.setUser({ id: profile.id });
       }
-      const dongleId = getState().dongleId;
-      const device = devices.find((dev) => dev.dongle_id === dongleId);
-      if (device) {
-        dispatch(primeFetchSubscription(dongleId, device, profile));
-      } else if (dongleId) {
-        dispatch(fetchSharedDevice(dongleId));
-      }
+      dispatch({ type: ACTION_STARTUP_DATA, profile, devices });
     }
-
-    dispatch({
-      type: ACTION_STARTUP_DATA,
-      profile,
-      devices,
-    });
+    return { profile, devices };
   };
 }

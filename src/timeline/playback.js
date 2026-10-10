@@ -43,16 +43,6 @@ export function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_LOOP:
-      if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
-        state.loop = {
-          startTime: action.start,
-          duration: action.end - action.start,
-        };
-      } else {
-        state.loop = null;
-      }
-      break;
     case Types.ACTION_BUFFER_VIDEO:
       state = {
         ...state,
@@ -125,14 +115,6 @@ export function play(speed = 1) {
   return {
     type: Types.ACTION_PLAY,
     speed,
-  };
-}
-
-export function selectLoop(start, end) {
-  return {
-    type: Types.ACTION_LOOP,
-    start,
-    end,
   };
 }
 

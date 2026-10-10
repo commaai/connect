@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Link } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -8,13 +9,14 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
+import { openDialog } from '../../actions/history';
 import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
+import { deviceNamePretty, deviceIsOnline, emptyDevice } from '../../utils';
+import { Dialog, Page, urlFor } from '../../url';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
-import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
+import { AddDeviceButton } from './AddDevice';
 
 const styles = (theme) => ({
   deviceList: {
@@ -88,24 +90,17 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
+  // settings open on top of the current page, or on the dashboard of another device
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    const { dispatch, selectedDevice } = this.props;
+    dispatch(openDialog(Dialog.SETTINGS, dongleId === selectedDevice ? {} : { page: Page.DASHBOARD, dongleId }));
   }
 
   async onVisible() {
@@ -126,11 +121,11 @@ class DeviceList extends Component {
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
-      <a
+      <Link
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
+        onClick={ handleDeviceSelected }
+        to={ urlFor({ page: Page.DASHBOARD, dongleId: device.dongle_id }) }
       >
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
@@ -153,12 +148,11 @@ class DeviceList extends Component {
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
           )}
-      </a>
+      </Link>
     );
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -198,15 +192,10 @@ class DeviceList extends Component {
           {devices.map(this.renderDevice)}
           {MyCommaAuth.isAuthenticated() && (
             <div className={classes.addDeviceContainer}>
-              <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
+              <AddDeviceButton buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }

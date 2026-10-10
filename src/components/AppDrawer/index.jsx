@@ -6,12 +6,10 @@ import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
-import { selectDevice } from '../../actions';
-
 const listener = (ev) => ev.stopPropagation();
 
 const AppDrawer = ({
-  dispatch, isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width,
+  isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width,
 }) => {
   const contentRef = useRef(null);
 
@@ -26,11 +24,6 @@ const AppDrawer = ({
   const toggleDrawerOff = useCallback(() => {
     handleDrawerStateChanged(false);
   }, [handleDrawerStateChanged]);
-
-  const handleDeviceSelected = useCallback((dongleId) => {
-    dispatch(selectDevice(dongleId));
-    toggleDrawerOff();
-  }, [dispatch, toggleDrawerOff]);
 
   return (
     <Drawer
@@ -49,7 +42,7 @@ const AppDrawer = ({
           )}
         <DeviceList
           selectedDevice={selectedDongleId}
-          handleDeviceSelected={handleDeviceSelected}
+          handleDeviceSelected={toggleDrawerOff}
         />
       </div>
     </Drawer>

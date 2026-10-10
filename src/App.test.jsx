@@ -128,6 +128,7 @@ async function renderApp(pathname, options = {}) {
   mocks.options = options;
   mocks.requests = [];
   window.history.replaceState({}, '', pathname);
+  Object.defineProperty(window, 'innerWidth', { value: options.width ?? 1024, configurable: true });
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
   const store = createAppStore(history, createInitialState(history.location.pathname));
@@ -302,5 +303,119 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('unknown paths go to the selected device', async () => {
+    const { history } = await renderApp('/unknown/path', { selected: FIRST });
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+  });
+
+  test('a login redirect opens the requested page', async () => {
+    const { history } = await renderApp(`/?r=/${FIRST}/prime`);
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/prime`);
+  });
+
+  test('a device opened after startup shows its dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${SHARED}`));
+    expect(await screen.findByText('Shared device')).toBeVisible();
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('closing a drive link shows every drive of the device', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('moving between the dashboard and a drive reuses loaded routes', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => history.goBack());
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.goForward());
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(1);
+  });
+
+  test('the drive back button zooms out to the whole drive', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(store.getState().zoom).toMatchObject({ start: 0, end: 60000 });
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
+  });
+
+  test('the drive back button steps out one zoom level', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    const drag = (from, to) => {
+      fireEvent.pointerDown(timeline, { button: 0, clientX: from, pageX: from });
+      fireEvent.pointerMove(document, { clientX: to, pageX: to });
+      fireEvent.pointerUp(document, { button: 0, clientX: to, pageX: to });
+    };
+    drag(100, 900);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/6/54`));
+    drag(200, 800);
+    await waitFor(() => expect(history.location.pathname).not.toBe(`/${FIRST}/${LOG}/6/54`));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/6/54`));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+  });
+
+  test('settings open from a link and close to the page under them', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}?dialog=settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByDisplayValue('Zulu')).toBeVisible();
+    expect(screen.getByRole('slider', { name: 'Drive timeline', hidden: true })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(history.length).toBe(1);
+  });
+
+  test('settings opened in the app close back to where they were opened', async () => {
+    const { history } = await renderApp(`/${FIRST}`, { width: 1280 });
+    await screen.findByText('Mock recent route start');
+    fireEvent.click(screen.getAllByRole('button', { name: 'device settings' })[1]);
+    await waitFor(() => expect(`${history.location.pathname}${history.location.search}`).toBe(`/${FIRST}?dialog=settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.pathname).toBe(`/${FIRST}`);
+    act(() => history.goForward());
+    expect(await screen.findByText('Device settings')).toBeVisible();
+  });
+
+  test('settings for another device open on its dashboard', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`, { width: 1280 });
+    await screen.findByText('Mock recent route start');
+    fireEvent.click(screen.getAllByRole('button', { name: 'device settings' })[0]);
+    await waitFor(() => expect(`${history.location.pathname}${history.location.search}`).toBe(`/${SECOND}?dialog=settings`));
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(store.getState().dongleId).toBe(SECOND);
+  });
+
+  test('the drive filter opens by URL', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Filter' }));
+    await waitFor(() => expect(history.location.search).toBe('?dialog=filter'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+  });
+
+  test('pairing opens by URL without devices', async () => {
+    const { history } = await renderApp('/?dialog=add-device', { devices: [] });
+    expect(await screen.findByText('scan QR code')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Pair your device', hidden: true })).toBeInTheDocument();
+    expect(`${history.location.pathname}${history.location.search}`).toBe('/?dialog=add-device');
   });
 });
