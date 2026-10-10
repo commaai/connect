@@ -103,13 +103,6 @@ function logAction(action, prevState, state) {
           superuser: state.profile?.superuser,
           has_prime: state.profile?.prime,
           devices_count: state.devices?.length,
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
         },
       });
 

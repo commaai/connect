@@ -57,7 +57,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
 
     const device = getState().device;
     if ((device && !device.shared) || state.profile?.superuser) {
-      dispatch(primeFetchSubscription(dongleId, device));
+      dispatch(primeFetchSubscription());
       dispatch(fetchDeviceOnline(dongleId));
     }
     if (!device && state.devices && api.auth.isAuthenticated()) {

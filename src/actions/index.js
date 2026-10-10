@@ -163,16 +163,9 @@ export function primeGetSubscription(dongleId, subscription) {
   };
 }
 
-export function primeFetchSubscription(dongleId, device, profile) {
+export const primeFetchSubscription = () => {
   return (dispatch, getState) => {
-    const state = getState();
-
-    if (!device && state.device && state.device === dongleId) {
-      device = state.device;
-    }
-    if (!profile && state.profile) {
-      profile = state.profile;
-    }
+    const { dongleId, device, profile } = getState();
 
     if (device && (device.is_owner || profile.superuser)) {
       if (device.prime) {
