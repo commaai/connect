@@ -164,11 +164,9 @@ class Timeline extends Component {
     this.hoverBead = React.createRef();
     this.thumbnailsRef = React.createRef();
 
-    const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
       hoverX: null,
-      zoom: zoomOverride || zoom,
       thumbnail: {
         height: 0,
         width: 0,
@@ -179,7 +177,6 @@ class Timeline extends Component {
   componentDidMount() {
     this.mounted = true;
     requestAnimationFrame(this.getOffset);
-    this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
       this.resizeObserver = new ResizeObserver((entries) => {
@@ -191,13 +188,6 @@ class Timeline extends Component {
         this.setState({ thumbnail: { width, height } });
       });
       this.resizeObserver.observe(this.thumbnailsRef.current);
-    }
-  }
-
-  componentDidUpdate(prevProps) {
-    const { zoomOverride, zoom } = this.props;
-    if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
-      this.setState({ zoom: zoomOverride || zoom });
     }
   }
 
@@ -275,7 +265,7 @@ class Timeline extends Component {
       const startTime = startOffset;
       const endTime = endOffset;
 
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      dispatch(pushTimelineRange(route.log_id, startTime, endTime));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
@@ -310,12 +300,12 @@ class Timeline extends Component {
   }
 
   percentToOffset(perc) {
-    const { zoom } = this.state;
+    const zoom = this.props.zoomOverride || this.props.zoom;
     return perc * (zoom.end - zoom.start) + zoom.start;
   }
 
   offsetToPercent(offset) {
-    const { zoom } = this.state;
+    const zoom = this.props.zoomOverride || this.props.zoom;
     return (offset - zoom.start) / (zoom.end - zoom.start);
   }
 
@@ -329,7 +319,7 @@ class Timeline extends Component {
 
   renderRoute() {
     const { classes, route } = this.props;
-    const { zoom } = this.state;
+    const zoom = this.props.zoomOverride || this.props.zoom;
 
     if (!route.events) {
       return null;

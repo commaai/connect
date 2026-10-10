@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { primeNav, pushTimelineRange, popTimelineRange, streamNav } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -17,37 +17,48 @@ vi.mock('connected-react-router', async () => {
   };
 });
 
+beforeEach(() => vi.clearAllMocks());
+
 describe('timeline actions', () => {
   it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
+    ['whole drive', null, null, '/statedongle/log_id'],
+    ['full drive range', 0, 40000, '/statedongle/log_id'],
+    ['drive range', 10000, 20000, '/statedongle/log_id/10/20'],
+    ['zero-start drive range', 0, 20000, '/statedongle/log_id/0/20'],
+  ])('generates a %s URL when editing zoom', (_name, start, end, expected) => {
+    const getState = () => ({
+      dongleId: 'statedongle',
+      routes: [{ log_id: 'log_id', duration: 40000 }],
+      router: { location: { pathname: '/statedongle' } },
+    });
+    pushTimelineRange('log_id', start, end)(vi.fn(), getState);
+    expect(push).toHaveBeenCalledWith(expected);
   });
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
+  it('navigates to the previous zoom range', () => {
+    const getState = () => ({
       dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+      routes: [{ log_id: 'log_id', duration: 40000 }],
+      zoom: {
+        start: 10000,
+        end: 20000,
+        previous: { start: 0, end: 40000 },
+      },
+      router: { location: { pathname: '/statedongle/log_id/10/20' } },
+    });
+    const dispatch = vi.fn((action) => {
+      if (typeof action === 'function') return action(dispatch, getState);
+    });
+    popTimelineRange('log_id')(dispatch, getState);
+    expect(push).toHaveBeenCalledWith('/statedongle/log_id');
   });
 
   it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
+    ['Prime', primeNav, '/statedongle/prime'],
+    ['stream', streamNav, '/statedongle/stream'],
+  ])('generates the %s URL while opening', (_name, action, expected) => {
     const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    action(true)(dispatch, () => ({ dongleId: 'statedongle' }));
     expect(push).toHaveBeenCalledWith(expected);
   });
 });

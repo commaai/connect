@@ -4,25 +4,15 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseURL } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
-  }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
+  const { page, dongleId, logId, range } = parseURL({ pathname });
+  if (!dongleId) return pathname.replace(/\/$/, '');
+  if (page === 'drive') return `/<dongleId>/${logId}${range ? '/<zoomStart>/<zoomEnd>' : ''}`;
+  if (page === 'legacy-drive') return '/<dongleId>/<zoomStart>/<zoomEnd>';
+  return `/<dongleId>${page === 'dashboard' ? '' : `/${page}`}`;
 }
 
 const clusterMap = {
@@ -106,7 +96,23 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.TIMELINE_PUSH_SELECTION:
+    case Types.ACTION_STARTUP_DATA:
+      gtag('set', {
+        user_id: state.profile?.user_id,
+        user_properties: {
+          superuser: state.profile?.superuser,
+          has_prime: state.profile?.prime,
+          devices_count: state.devices?.length,
+        },
+      });
+
+      gtag('event', 'page_view', {
+        ...params,
+        page_location: getPageViewEventLocation(window.location.pathname),
+      });
+      return;
+
+    case Types.ACTION_APPLY_DESTINATION: {
       if (!prevState.zoom && state.zoom) {
         params = {
           ...params,
@@ -117,34 +123,10 @@ function logAction(action, prevState, state) {
         attachRelTime(params, 'end', true, 'h');
         gtag('event', 'select_zoom', params);
       }
-      return;
 
-    case Types.ACTION_STARTUP_DATA:
-      gtag('set', {
-        user_id: state.profile?.user_id,
-        user_properties: {
-          superuser: state.profile?.superuser,
-          has_prime: state.profile?.prime,
-          devices_count: state.devices?.length,
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
-        },
-      });
+      if (prevState.dongleId === state.dongleId) return;
 
-      gtag('event', 'page_view', {
-        ...params,
-        page_location: getPageViewEventLocation(window.location.pathname),
-      });
-      return;
-
-    case Types.ACTION_SELECT_DEVICE:
-      gtag('event', 'select_device', {
-        ...params,
+      const deviceProperties = {
         device_prime_type: state.device?.prime_type,
         device_type: state.device?.device_type,
         device_version: state.device?.openpilot_version,
@@ -152,20 +134,11 @@ function logAction(action, prevState, state) {
         device_online: state.device ? deviceIsOnline(state.device) : undefined,
         device_sim_type: state.device?.sim_type,
         device_trial_claimed: state.device?.trial_claimed,
-      });
-
-      gtag('set', {
-        user_properties: {
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
-        },
-      });
+      };
+      gtag('event', 'select_device', { ...params, ...deviceProperties });
+      gtag('set', { user_properties: deviceProperties });
       return;
+    }
 
     case Types.ACTION_SELECT_TIME_FILTER:
       params = {

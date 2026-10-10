@@ -1,5 +1,4 @@
 import * as Types from '../actions/types';
-import { emptyDevice } from '../utils';
 import { getDefaultFilter } from '../utils/filter';
 
 const eventsMap = {};
@@ -13,15 +12,9 @@ function populateFetchedAt(d) {
 }
 
 function deviceCompareFn(a, b) {
-  if (a.is_owner !== b.is_owner) {
-    return b.is_owner - a.is_owner;
-  }
-  if (a.alias && b.alias) {
-    return a.alias.localeCompare(b.alias);
-  }
-  if (!a.alias && !b.alias) {
-    return a.dongle_id.localeCompare(b.dongle_id);
-  }
+  if (a.is_owner !== b.is_owner) return b.is_owner - a.is_owner;
+  if (a.alias && b.alias) return a.alias.localeCompare(b.alias);
+  if (!a.alias && !b.alias) return a.dongle_id.localeCompare(b.dongle_id);
   return Boolean(b.alias) - Boolean(a.alias);
 }
 
@@ -29,60 +22,59 @@ export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
-    case Types.ACTION_STARTUP_DATA: {
-      const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
+    case Types.ACTION_APPLY_DESTINATION: {
+      const { page, dongleId = null, logId, range } = action.destination;
 
-      if (!state.dongleId && devices.length > 0) {
-        state = {
-          ...state,
-          device: devices[0],
-        };
-      } else {
-        state = {
-          ...state,
-          device: devices.find((device) => device.dongle_id === state.dongleId),
-        };
-        if (!state.device) {
-          state.device = {
-            ...emptyDevice,
-            dongle_id: state.dongleId,
-          };
-        }
+      // device changed
+      const deviceChanged = state.dongleId !== dongleId;
+      if (deviceChanged) {
+        state.filter = getDefaultFilter();
+        state.subscription = null;
+        state.subscribeInfo = null;
+        state.routes = null;
+        state.lastRoutes = null;
+        state.routesMeta = { dongleId: null, start: null, end: null };
+        state.limit = 0;
       }
-      state.devices = devices;
+
+      // route changed
+      const routeId = page === 'drive' ? logId : null;
+      const routeChanged = deviceChanged || state.selectedRouteId !== routeId;
+      const currentRoute = routeChanged
+        ? state.routes?.find((route) => route.log_id === routeId) || null
+        : state.currentRoute;
+
+      // zoom changed
+      const start = routeId ? range?.start ?? 0 : null;
+      const end = routeId ? range?.end ?? currentRoute?.duration ?? null : null;
+      const zoom = end !== null ? { start, end } : null;
+      const zoomChanged = state.zoom?.start !== zoom?.start || state.zoom?.end !== zoom?.end;
+
+      if (routeChanged || zoomChanged) {
+        const prevZoom = routeChanged ? null : state.zoom;
+        const restorePrevious = zoom && prevZoom?.previous?.start === start && prevZoom?.previous?.end === end;
+
+        if (!prevZoom || !zoom || start === 0 || start < prevZoom.start || end > prevZoom.end) {
+          state.files = null;
+        }
+
+        if (restorePrevious) state.zoom = prevZoom.previous;
+        else state.zoom = zoom ? { ...zoom, previous: prevZoom } : null;
+
+        if (routeChanged || !range) state.loop = null;
+      }
+
+      // apply selected drive and page
+      state.selectedRouteId = routeId;
+      state.currentRoute = currentRoute;
+      state.dongleId = dongleId;
+      break;
+    }
+    case Types.ACTION_STARTUP_DATA: {
+      state.devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
       state.profile = action.profile;
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
-      state = {
-        ...state,
-        filter: getDefaultFilter(),
-        dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
-        subscription: null,
-        subscribeInfo: null,
-        files: null,
-        limit: 0,
-      };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
-      if (state.devices) {
-        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
-        if (!state.device || state.device.dongle_id !== action.dongleId) {
-          state.device = newDevice;
-        }
-      }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
-        state.routesMeta = {
-          dongleId: null,
-          start: null,
-          end: null,
-        };
-        state.routes = null;
-        state.lastRoutes = null;
-        state.currentRoute = null;
-      }
-      break;
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
@@ -118,12 +110,6 @@ export default function reducer(_state, action) {
           .map(populateFetchedAt)
           .sort(deviceCompareFn),
       };
-      if (state.dongleId) {
-        const newDevice = state.devices.find((d) => d.dongle_id === state.dongleId);
-        if (newDevice) {
-          state.device = newDevice;
-        }
-      }
       break;
     case Types.ACTION_UPDATE_DEVICE: {
       state = {
@@ -131,8 +117,8 @@ export default function reducer(_state, action) {
         devices: state.devices ? [...state.devices] : [],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
-      const isSelected = state.device?.dongle_id === action.device.dongle_id;
-      const previousDevice = isSelected ? state.device : state.devices[deviceIndex];
+      const shared = state.sharedDevice?.dongle_id === action.device.dongle_id ? state.sharedDevice : null;
+      const previousDevice = state.devices[deviceIndex] ?? shared;
       const updatedDevice = populateFetchedAt({
         ...previousDevice, // retains rpc, network_metered
         ...action.device,  // updates alias and other returned fields
@@ -143,11 +129,6 @@ export default function reducer(_state, action) {
       } else {
         state.devices.unshift(updatedDevice);
       }
-
-      if (isSelected) {
-        state.device = updatedDevice;
-      }
-
       break;
     }
     case Types.ACTION_UPDATE_ROUTE:
@@ -225,7 +206,7 @@ export default function reducer(_state, action) {
     }
     case Types.ACTION_UPDATE_SHARED_DEVICE:
       if (action.dongleId === state.dongleId) {
-        state.device = populateFetchedAt(action.device);
+        state.sharedDevice = populateFetchedAt(action.device);
       }
       break;
     case Types.ACTION_UPDATE_DEVICE_ONLINE:
@@ -242,14 +223,6 @@ export default function reducer(_state, action) {
           fetched_at: action.fetched_at,
         };
       }
-
-      if (state.device.dongle_id === action.dongleId) {
-        state.device = {
-          ...state.device,
-          last_athena_ping: action.last_athena_ping,
-          fetched_at: action.fetched_at,
-        };
-      }
       break;
     case Types.ACTION_UPDATE_DEVICE_NETWORK:
       state = {
@@ -261,13 +234,6 @@ export default function reducer(_state, action) {
       if (deviceIndex !== -1) {
         state.devices[deviceIndex] = {
           ...state.devices[deviceIndex],
-          network_metered: action.networkMetered,
-        };
-      }
-
-      if (state.device.dongle_id === action.dongleId) {
-        state.device = {
-          ...state.device,
           network_metered: action.networkMetered,
         };
       }
@@ -289,31 +255,6 @@ export default function reducer(_state, action) {
           },
         };
       }
-
-      if (state.device.dongle_id === action.dongleId) {
-        state.device = {
-          ...state.device,
-          rpc: {
-            ...state.device.rpc,
-            ...action.fields,
-          },
-        };
-      }
-      break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
@@ -335,42 +276,6 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
-        state.files = null;
-      }
-
-      state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
-        }
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    }
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
@@ -447,8 +352,13 @@ export default function reducer(_state, action) {
       }
       break;
     default:
-      return state;
+      break;
   }
+
+  // state.device is derived
+  const owned = state.devices?.find((d) => d.dongle_id === state.dongleId);
+  const shared = state.sharedDevice?.dongle_id === state.dongleId ? state.sharedDevice : null;
+  state.device = owned ?? shared;
 
   return state;
 }
