@@ -306,7 +306,11 @@ export default function reducer(_state, action) {
         primeNav: action.primeNav,
       };
       if (action.primeNav) {
+        // Prime is a dashboard view, so leave any drive that was open
         state.zoom = null;
+        state.loop = null;
+        state.selectedRouteId = null;
+        state.currentRoute = null;
       }
       break;
     case Types.ACTION_STREAM_NAV:
