@@ -1,3 +1,4 @@
+import { serializeUrl } from '../../routing/routes';
 import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
@@ -119,7 +120,7 @@ const DriveListItem = (props) => {
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
+      href={serializeUrl({ page: 'drive', dongleId: drive.dongle_id, routeId: drive.log_id })}
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>

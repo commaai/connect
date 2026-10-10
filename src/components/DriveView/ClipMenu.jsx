@@ -548,9 +548,11 @@ class ClipMenu extends Component {
         <Menu
           open={open}
           anchorEl={anchorEl}
+          anchorReference={anchorEl ? 'anchorEl' : 'anchorPosition'}
+          anchorPosition={anchorEl ? undefined : { top: window.innerHeight / 2, left: window.innerWidth / 2 }}
           onClose={onClose}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={anchorEl ? { vertical: 'top', horizontal: 'right' } : { vertical: 'center', horizontal: 'center' }}
           classes={{ paper: `${classes.paper} ${!inventoryOnly ? classes.createPaper : ''}` }}
           MenuListProps={{ className: `${classes.menuList} ${!inventoryOnly ? classes.createMenuList : ''}`, style: { outline: 'none' } }}
           disableAutoFocusItem

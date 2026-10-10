@@ -1,3 +1,5 @@
+import { openDialog, closeDialog } from '../../routing/actions';
+import { routePanelStyle } from '../../routing/panel';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
@@ -39,16 +41,7 @@ const styles = (theme) => ({
       color: Colors.grey900,
     },
   },
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
-    maxWidth: '90%',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    outline: 'none',
-  },
+  modal: routePanelStyle,
   divider: {
     marginBottom: 10,
   },
@@ -101,7 +94,6 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -130,11 +122,14 @@ class AddDevice extends Component {
   }
 
   async componentDidMount() {
+    this.mounted = true;
     this.componentDidUpdate({}, {});
   }
 
   async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+    const { modalOpen } = this.props;
+    const { pairLoading, pairError, pairDongleId } = this.state;
+    if (!modalOpen || !this.props.dialogOnly) return;
     let { hasCamera } = this.state;
 
     // Check for camera availability
@@ -156,6 +151,11 @@ class AddDevice extends Component {
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
+        if (!this.mounted || !this.videoRef || !this.props.modalOpen) {
+          this.stream.getTracks().forEach((track) => track.stop());
+          this.stream = null;
+          return;
+        }
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
@@ -255,6 +255,7 @@ class AddDevice extends Component {
   }
 
   async componentWillUnmount() {
+    this.mounted = false;
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
@@ -296,7 +297,8 @@ class AddDevice extends Component {
       return;
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
+    this.props.dispatch(closeDialog());
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -370,30 +372,31 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    this.props.dispatch(openDialog('add-device'));
   }
 
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes, buttonText, buttonStyle, buttonIcon, modalOpen, dialogOnly } = this.props;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
+        {!dialogOnly && <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
           { buttonText }
           { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
-        </Button>
-        <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
+        </Button>}
+        <Modal aria-labelledby="add-device-modal" open={ Boolean(dialogOnly && modalOpen) } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
-              <Typography variant="title">Pair device</Typography>
+              <Typography id="add-device-modal" variant="title">Pair device</Typography>
               <Typography variant="caption">
                 scan QR code
               </Typography>
             </div>
             <hr className={ classes.divider } />
+            <Typography style={{ marginBottom: 20, color: Colors.white70 }}>Open Settings on your comma device and scan its pairing code to get started.</Typography>
             { hasCamera === false
               ? (
                 <>
@@ -435,6 +438,7 @@ class AddDevice extends Component {
                   <video className={ classes.video } ref={ this.onVideoRef } />
                 </div>
               )}
+            <Button onClick={this.modalClose} style={{ marginTop: 24 }}>Close</Button>
           </Paper>
         </Modal>
       </>
@@ -443,6 +447,7 @@ class AddDevice extends Component {
 }
 
 const stateToProps = (state) => ({
+  modalOpen: state.route?.dialog === 'add-device',
   profile: state.profile,
   devices: state.devices,
 });

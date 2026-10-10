@@ -1,3 +1,4 @@
+import { serializeUrl } from '../../routing/routes';
 import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
 import { push } from 'connected-react-router';
@@ -79,7 +80,7 @@ const styles = () => ({
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
+  forwardRef, handleDrawerStateChanged, primeNav, dongleId, page,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
@@ -99,22 +100,22 @@ const AppHeader = ({
   }, []);
 
   const openReferrals = useCallback(() => {
-    if (pathname === '/referrals') return;
+    if (page === 'referrals') return;
     dispatch(push('/referrals'));
-  }, [dispatch, pathname]);
+  }, [dispatch, page]);
 
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
-  }, [dispatch, dongleId, pathname]);
+    dispatch(push(page === 'referrals' ? serializeUrl({ dongleId }) : '/referrals'));
+  }, [dispatch, dongleId, page]);
 
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
   }, [drawerIsOpen, handleDrawerStateChanged]);
 
   const open = menuOpen;
-  const referralsOpen = pathname === '/referrals';
+  const referralsOpen = page === 'referrals';
   const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
 
   return (
@@ -133,7 +134,7 @@ const AppHeader = ({
             )
               : (
                 <a
-                  href={`/${dongleId}`}
+                  href={serializeUrl({ dongleId })}
                   className={classes.logoImgLink}
                   onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
                 >
@@ -141,7 +142,7 @@ const AppHeader = ({
                 </a>
               )}
             <a
-              href={`/${dongleId}`}
+              href={serializeUrl({ dongleId })}
               onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
             >
               <Typography className={classes.logoText}>connect</Typography>
@@ -150,7 +151,7 @@ const AppHeader = ({
           <div className="flex flex-row gap-2">
             <IconButton
               component="a"
-              href={referralsOpen ? `/${dongleId}` : '/referrals'}
+              href={referralsOpen ? serializeUrl({ dongleId }) : '/referrals'}
               aria-label="referrals"
               className={classes.giftButton}
               onClick={filterRegularClick(toggleReferrals)}
@@ -188,7 +189,7 @@ const stateToProps = (state) => ({
   filter: state.filter,
   profile: state.profile,
   primeNav: state.primeNav,
-  pathname: state.router.location.pathname,
+  page: state.route.page,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

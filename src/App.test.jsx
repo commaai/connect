@@ -165,6 +165,37 @@ describe('whole-app behavior', () => {
     mocks.hardNavigate.mockClear();
   });
 
+  test('settings over a drive survives Back and Forward without fetching or resetting playback', async () => {
+    const { history, store } = await renderApp('/' + FIRST + '/drive/' + LOG);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const before = store.getState();
+    const requestCount = mocks.requests.filter(r => r.url.includes('routes_segments')).length;
+    act(() => history.push('/' + FIRST + '/drive/' + LOG + '?dialog=settings'));
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+    expect(store.getState().currentRoute).toBe(before.currentRoute);
+    expect(store.getState().zoom).toBe(before.zoom);
+    act(() => history.goBack());
+    await waitFor(() => expect(store.getState().route.dialog).toBeNull());
+    act(() => history.goForward());
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+    expect(mocks.requests.filter(r => r.url.includes('routes_segments'))).toHaveLength(requestCount);
+  });
+
+  test('direct settings link closes to its device dashboard', async () => {
+    const { history } = await renderApp('/' + FIRST + '/settings');
+    await screen.findByRole('heading', { name: 'Device settings' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe('/' + FIRST));
+  });
+
+  test('direct pairing dialog works without any devices', async () => {
+    const { store } = await renderApp('/devices/add', { devices: [] });
+    expect(store.getState().route.dialog).toBe('add-device');
+    expect(await screen.findByText('Open Settings on your comma device and scan its pairing code to get started.')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(store.getState().route.dialog).toBeNull());
+  });
+
   test('root uses a valid stored device and keeps the selection', async () => {
     const app = await renderApp('/', { selected: FIRST });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
@@ -217,10 +248,10 @@ describe('whole-app behavior', () => {
   });
 
   test.each([
-    ['authenticated whole drive', `/${FIRST}/${LOG}`, true],
-    ['authenticated ranged drive', `/${FIRST}/${LOG}/10/20`, true],
-    ['public whole drive', `/${FIRST}/${LOG}`, false],
-    ['public ranged drive', `/${FIRST}/${LOG}/10/20`, false],
+    ['authenticated whole drive', `/${FIRST}/drive/${LOG}`, true],
+    ['authenticated ranged drive', `/${FIRST}/drive/${LOG}/10/20`, true],
+    ['public whole drive', `/${FIRST}/drive/${LOG}`, false],
+    ['public ranged drive', `/${FIRST}/drive/${LOG}/10/20`, false],
   ])('%s opens from a cold entry', async (_name, pathname, authenticated) => {
     const { history, store } = await renderApp(pathname, { authenticated });
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
@@ -242,7 +273,7 @@ describe('whole-app behavior', () => {
   });
 
   test('a missing public route redirects to login with the requested route', async () => {
-    const pathname = `/${FIRST}/2026-08-06--99-99-99`;
+    const pathname = `/${FIRST}/drive/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
     await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
   });
@@ -250,7 +281,7 @@ describe('whole-app behavior', () => {
   test('legacy timestamp URL converts after a successful lookup', async () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/drive/${LOG}`));
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
@@ -292,14 +323,14 @@ describe('whole-app behavior', () => {
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
     const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/drive/${RECENT_LOG}`));
     const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
     fireEvent.pointerDown(timeline, { button: 0, clientX: 200, pageX: 200 });
     fireEvent.pointerMove(document, { clientX: 700, pageX: 700 });
     fireEvent.pointerUp(document, { button: 0, clientX: 700, pageX: 700 });
-    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
+    await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/drive/${RECENT_LOG}/[\\d.]+/[\\d.]+$`)));
     act(() => history.goBack());
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/drive/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });

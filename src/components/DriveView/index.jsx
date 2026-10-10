@@ -1,3 +1,4 @@
+import { serializeUrl } from '../../routing/routes';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
@@ -18,7 +19,7 @@ class DriveView extends Component {
   }
 
   onBack(zoom, currentRoute) {
-    if (zoom.previous) {
+    if (zoom?.previous) {
       this.props.dispatch(popTimelineRange(currentRoute?.log_id));
     } else if (currentRoute) {
       this.props.dispatch(
@@ -43,7 +44,7 @@ class DriveView extends Component {
     }
 
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const backButtonDisabled = !zoom?.previous && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -80,7 +81,7 @@ class DriveView extends Component {
                 className="text-[1.5em] w-[2em] h-[2em]"
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={serializeUrl({ dongleId })}
               >
                 <CloseBold fontSize="inherit" />
               </IconButton>
@@ -88,9 +89,7 @@ class DriveView extends Component {
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
           <div className='px-3 pb-3 md:px-8 md:pb-8'>
-            {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
-              : <Media />}
+            <Media />
           </div>
         </div>
       </div>
