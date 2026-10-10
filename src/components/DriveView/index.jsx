@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { popTimelineRange, selectDevice } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -12,27 +12,8 @@ import Media from './Media';
 import Timeline from '../Timeline';
 
 class DriveView extends Component {
-  constructor(props) {
-    super(props);
-    this.close = this.close.bind(this);
-  }
-
-  onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
-  }
-
-  close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
-  }
-
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dispatch, dongleId, zoom, currentRoute, routes } = this.props;
 
     if (!currentRoute) {
       return (
@@ -58,7 +39,7 @@ class DriveView extends Component {
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
                 className="text-[1.5em] w-[2em] h-[2em]"
-                onClick={ () => this.onBack(zoom, currentRoute) }
+                onClick={ () => dispatch(popTimelineRange(currentRoute.log_id)) }
                 aria-label="Go Back"
                 disabled={ backButtonDisabled }
               >
@@ -77,7 +58,7 @@ class DriveView extends Component {
               </div>
               <IconButton
                 className="text-[1.5em] w-[2em] h-[2em]"
-                onClick={ filterRegularClick(this.close) }
+                onClick={ filterRegularClick(() => dispatch(selectDevice(dongleId))) }
                 aria-label="Close"
                 href={ `/${dongleId}` }
               >

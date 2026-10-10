@@ -219,7 +219,7 @@ class ExplorerApp extends Component {
     const closeSettings = () => {
       const params = new URLSearchParams(search);
       params.delete('settings');
-      dispatch(replace({ pathname, search: params.toString() }));
+      dispatch(push({ pathname, search: params.toString() }));
     };
 
     return (
@@ -273,7 +273,6 @@ class ExplorerApp extends Component {
         {settingsDongleId && (
           <DeviceSettingsModal
             key={settingsDongleId}
-            isOpen
             dongleId={settingsDongleId}
             onClose={closeSettings}
           />

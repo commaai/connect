@@ -142,18 +142,15 @@ export function checkLastRoutesData() {
 
 export const popTimelineRange = (logId) => (dispatch, getState) => {
   const previous = getState().zoom?.previous;
-  if (previous) dispatch(pushTimelineRange(logId, previous.start, previous.end));
+  dispatch(pushTimelineRange(logId, previous?.start, previous?.end));
 }
 
 export const pushTimelineRange = (logId, start, end) => (dispatch, getState) => {
   const state = getState();
   const selectedRoute = state.routes?.find((route) => route.log_id === logId);
   const wholeDrive = start == null || end == null || (start === 0 && end === selectedRoute?.duration);
-  const path = state.dongleId ? [state.dongleId] : [];
-  if (state.dongleId && logId) {
-    path.push(logId);
-    if (!wholeDrive) path.push(start / 1000, end / 1000);
-  }
+  const path = [state.dongleId, logId];
+  if (!wholeDrive) path.push(start / 1000, end / 1000);
   const pathname = `/${path.join('/')}`;
   if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }

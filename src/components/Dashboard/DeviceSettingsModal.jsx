@@ -110,27 +110,22 @@ const styles = (theme) => ({
   },
 });
 
-const initialState = {
-  deviceAlias: '',
-  loadingDeviceAlias: false,
-  loadingDeviceShare: false,
-  hasSavedAlias: false,
-  shareEmail: '',
-  unpairConfirm: false,
-  unpaired: false,
-  loadingUnpair: false,
-  error: null,
-  unpairError: null,
-  uploadModal: false,
-};
-
 class DeviceSettingsModal extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      ...initialState,
       deviceAlias: props.device?.alias || '',
+      loadingDeviceAlias: false,
+      loadingDeviceShare: false,
+      hasSavedAlias: false,
+      shareEmail: '',
+      unpairConfirm: false,
+      unpaired: false,
+      loadingUnpair: false,
+      error: null,
+      unpairError: null,
+      uploadModal: false,
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -258,7 +253,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
+          open
           onClose={this.props.onClose}
         >
           <Paper className={classes.modal}>
