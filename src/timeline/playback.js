@@ -63,6 +63,7 @@ export function seek(offset) {
   };
 }
 
+// change playback speed without changing play/pause state
 export function setPlaybackSpeed(speed) {
   return {
     type: Types.ACTION_PLAYBACK_SPEED,
