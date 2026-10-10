@@ -2,6 +2,23 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import { getOrientationSource } from '../../hooks/window';
 
+// Coordinates are normalized from -1 to 1, so each percentage of the full
+// joystick dimension is doubled here.
+const STEERING_ONLY_EDGE_HALF_HEIGHT = 0.2;
+const FORWARD_ONLY_EDGE_HALF_WIDTH = 0.1;
+
+export const isInSteeringOnlyZone = (x, y) => (
+  Math.abs(y) <= STEERING_ONLY_EDGE_HALF_HEIGHT * Math.abs(x)
+);
+
+export const isInForwardOnlyZone = (x, y) => (
+  Math.abs(x) <= FORWARD_ONLY_EDGE_HALF_WIDTH * Math.abs(y)
+);
+
+export const getSteeringCommand = (steering, x, y) => (
+  y > 0 && !isInSteeringOnlyZone(x, y) ? steering : -steering
+);
+
 const TriggerGroup = ({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel }) => {
   const activeStyle = cameraActive ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined;
 
@@ -83,6 +100,18 @@ const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onT
       <div className="absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-white/10" />
       <div className="absolute top-1/2 left-2 right-2 h-px -translate-y-1/2 bg-white/10" />
       <div className="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/30" />
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <polygon points="50,50 0,60 0,100 100,100 100,60" fill="rgba(168,85,247,0.14)" stroke="#a855f7" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        <polygon points="50,50 0,40 0,60" fill="none" stroke="#22c55e" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        <polygon points="50,50 100,40 100,60" fill="none" stroke="#22c55e" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        <polygon points="50,50 45,0 55,0" fill="none" stroke="#3b82f6" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        <polygon points="50,50 45,100 55,100" fill="none" stroke="#3b82f6" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+      </svg>
       <div
         className={`absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px] bg-glass bg-radial-white
           ${thumbPos ? 'bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.6),rgba(255,255,255,0.15))]' : 'bg-radial-white'}`}
@@ -133,8 +162,13 @@ const Joystick = ({
     dy = Math.max(-1, Math.min(1, dy));
     setThumbPos({ x: dx, y: dy });
     const cx = Math.sign(dx) * Math.max(Math.abs(dx), 0.20);
-    const cy = Math.sign(dy) * Math.max(Math.abs(dy), 0.20);
-    setFlippedJoystick(cy, -cx);
+    const cy = isInSteeringOnlyZone(dx, dy)
+      ? 0
+      : Math.sign(dy) * Math.max(Math.abs(dy), 0.20);
+    const steering = isInForwardOnlyZone(dx, dy)
+      ? 0
+      : getSteeringCommand(cx, dx, dy);
+    setFlippedJoystick(cy, steering);
   }, [setFlippedJoystick]);
 
   const resetJoystick = useCallback(() => {
