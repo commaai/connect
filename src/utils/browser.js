@@ -2,8 +2,9 @@ export function isIos() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
-export function isFirefox() {
-  return navigator.userAgent.toLowerCase().includes('firefox');
+export function playsHlsNatively() {
+  const isIpadInDesktopMode = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return isIos() || isIpadInDesktopMode;
 }
 
 export function isMobileDevice(navigatorLike = navigator) {

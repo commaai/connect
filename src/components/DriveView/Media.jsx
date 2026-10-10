@@ -6,6 +6,7 @@ import { withStyles, Typography, Menu, MenuItem, CircularProgress, Button, Poppe
 
 import { USERADMIN_URL_ROOT } from '../../api';
 import { api } from '../../api/backend';
+import { getRouteVideoUrl } from '../../api/routeVideo';
 import { deviceSupportsClips } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
@@ -15,7 +16,6 @@ import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -211,13 +211,13 @@ class Media extends Component {
       uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
-      isMuted: true,
       hasAudio: false,
       clipsSupported: false,
     };
 
-    this.handleMuteToggle = this.handleMuteToggle.bind(this);
-    this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
+    this.playerRef = React.createRef();
+    this.restartPlayback = this.restartPlayback.bind(this);
+    this.handleHasAudioChange = this.handleHasAudioChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
@@ -236,11 +236,11 @@ class Media extends Component {
     this.routeViewed = false;
   }
 
-  handleMuteToggle() {
-    this.setState(prevState => ({ isMuted: !prevState.isMuted }));
+  restartPlayback() {
+    this.playerRef.current?.restart();
   }
 
-  handleAudioStatusChange(hasAudio) {
+  handleHasAudioChange(hasAudio) {
     this.setState({ hasAudio });
   }
 
@@ -265,9 +265,12 @@ class Media extends Component {
       this.setState({ inView: MediaType.VIDEO });
     }
 
-    if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
-    }
+    const hasRouteChanged = prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname;
+    const hasZoomChanged = prevProps.zoom?.start !== this.props.zoom?.start || prevProps.zoom?.end !== this.props.zoom?.end;
+    const isZoomWithinRoute = hasZoomChanged && !hasRouteChanged;
+    if (isZoomWithinRoute) this.restartPlayback();
+    const isLeavingPreviousRoute = hasRouteChanged && Boolean(prevProps.currentRoute);
+    if (isLeavingPreviousRoute) this.setState({ hasAudio: false });
 
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
       this.props.dispatch(fetchEvents(this.props.currentRoute));
@@ -536,30 +539,37 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted, hasAudio } = this.state;
+    const { inView, windowWidth, hasAudio } = this.state;
+    const { currentRoute, loop } = this.props;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
     const showMapAlways = windowWidth >= 1536;
+    const isMapReplacingVideo = inView === MediaType.MAP && !showMapAlways;
 
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {inView === MediaType.VIDEO && (
-              <DriveVideo
-                isMuted={isMuted}
-                onAudioStatusChange={this.handleAudioStatusChange}
-              />
-            )}
-            {(inView === MediaType.MAP && !showMapAlways) && (
-              <div className="w-full">
-                <DriveMap />
+            <div className="relative isolate">
+              <div className={isMapReplacingVideo ? 'absolute inset-0 -z-10 overflow-hidden' : ''}>
+                <DriveVideo
+                  ref={this.playerRef}
+                  src={getRouteVideoUrl(currentRoute)}
+                  route={currentRoute}
+                  loop={loop}
+                  onHasAudioChange={this.handleHasAudioChange}
+                />
               </div>
-            )}
+              {isMapReplacingVideo && (
+                <div className="w-full">
+                  <DriveMap />
+                </div>
+              )}
+            </div>
           </div>
           {(inView === MediaType.VIDEO && showMapAlways) &&
             <div className="w-[40%]">
@@ -570,9 +580,7 @@ class Media extends Component {
         <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
           <TimeDisplay
             isThin
-            isMuted={isMuted}
             hasAudio={hasAudio}
-            onMuteToggle={this.handleMuteToggle}
           />
         </div>
       </div>
@@ -929,7 +937,6 @@ const stateToProps = (state) => ({
   filter: state.filter,
   files: state.files,
   profile: state.profile,
-  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

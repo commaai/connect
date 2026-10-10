@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import decodeJwt, { InvalidTokenError } from 'jwt-decode';
 
-import { currentOffset } from '../timeline';
+import { getCurrentRouteMs } from '../timeline/routeTime';
 
 dayjs.extend(relativeTime);
 
@@ -172,13 +172,13 @@ export function getDeviceFromState(state, dongleId) {
   return state.devices.find((d) => d.dongle_id === dongleId) || null;
 }
 
-export function getSegmentNumber(route, offset) {
+export function segmentAtRouteMs(routeMs) {
+  return Math.floor(routeMs / (60*1000));
+}
+
+export function getSegmentNumber(route, offset = getCurrentRouteMs(route?.videoStartOffset)) {
   if (!route) {
     return null;
   }
-  if (offset === undefined) {
-    offset = currentOffset();
-  }
-
-  return Math.floor(offset / (60*1000));
+  return segmentAtRouteMs(offset);
 }
