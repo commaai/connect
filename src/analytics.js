@@ -193,7 +193,7 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_seek', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.isPlaying ? state.desiredPlaySpeed : 0,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -201,19 +201,20 @@ function logAction(action, prevState, state) {
       return;
 
     case Types.ACTION_PAUSE:
-      if (state.zoom) {
+      if (state.zoom && !action.auto) {
         percent = getVideoPercent(state);
         gtag('event', 'video_pause', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: 0,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
       }
       return;
 
+    case Types.ACTION_PLAYBACK_SPEED:
     case Types.ACTION_PLAY:
-      if (state.zoom) {
+      if (state.zoom && state.isPlaying && !action.auto) {
         percent = getVideoPercent(state);
         gtag('event', 'video_play', {
           ...params,
