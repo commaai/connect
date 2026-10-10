@@ -14,8 +14,8 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
-import init from '../actions/startup';
+import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
+import { syncStateFromUrl } from '../actions/history';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
@@ -99,10 +99,11 @@ class ExplorerApp extends Component {
 
     const q = new URLSearchParams(window.location.search);
     if (q.has('r')) {
+      // The LOCATION_CHANGE middleware will synchronize the redirected URL.
       this.props.dispatch(replace(q.get('r')));
+    } else {
+      this.props.dispatch(syncStateFromUrl(window.location.pathname));
     }
-
-    this.props.dispatch(init());
 
     let pairToken;
     try {
@@ -154,7 +155,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -167,12 +168,7 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
 
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
-    }
+
   }
 
   async closePair() {

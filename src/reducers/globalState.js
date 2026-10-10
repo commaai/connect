@@ -53,35 +53,52 @@ export default function reducer(_state, action) {
       state.profile = action.profile;
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
-      state = {
-        ...state,
-        filter: getDefaultFilter(),
-        dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
-        subscription: null,
-        subscribeInfo: null,
-        files: null,
-        limit: 0,
-      };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
-      if (state.devices) {
-        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
-        if (!state.device || state.device.dongle_id !== action.dongleId) {
-          state.device = newDevice;
-        }
-      }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
-        state.routesMeta = {
-          dongleId: null,
-          start: null,
-          end: null,
-        };
+    case Types.ACTION_APPLY_DESTINATION: {
+      const destination = action.destination;
+      const dongleId = destination.dongleId ?? null;
+      const deviceChanged = state.dongleId !== dongleId;
+      const previous = state.destination;
+      state.destination = destination;
+      state.deviceNotFound = false;
+      state.dongleId = dongleId;
+      state.primeNav = destination.kind === 'prime';
+      state.streamNav = destination.kind === 'stream';
+      state.settingsNav = destination.kind === 'settings';
+      if (deviceChanged) {
+        state.filter = getDefaultFilter();
+        state.device = state.devices?.find((device) => device.dongle_id === dongleId) || null;
+        state.subscription = null;
+        state.subscribeInfo = null;
+        state.files = null;
         state.routes = null;
         state.lastRoutes = null;
         state.currentRoute = null;
+        state.limit = 0;
+        state.routesMeta = { dongleId: null, start: null, end: null };
       }
+      const logId = destination.kind === 'drive' ? destination.logId : null;
+      const sameDrive = !deviceChanged && logId && previous?.logId === logId;
+      const rangeChanged = !sameDrive || previous.start !== destination.start || previous.end !== destination.end;
+      if (logId !== state.selectedRouteId || deviceChanged) state.files = null;
+      state.selectedRouteId = logId;
+      state.currentRoute = logId
+        ? state.routes?.find((route) => route.log_id === logId) || null
+        : null;
+      if (rangeChanged) {
+        state.zoom = destination.start != null && destination.end != null
+          ? { start: destination.start, end: destination.end, previous: null }
+          : (state.currentRoute ? { start: 0, end: state.currentRoute.duration } : null);
+        state.loop = state.zoom
+          ? { startTime: state.zoom.start, duration: state.zoom.end - state.zoom.start }
+          : null;
+        state.offset = null;
+        state.startTime = Date.now();
+      }
+      break;
+    }
+    case Types.ACTION_DEVICE_NOT_FOUND:
+      state.deviceNotFound = true;
+      state.device = null;
       break;
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
@@ -131,7 +148,7 @@ export default function reducer(_state, action) {
         devices: state.devices ? [...state.devices] : [],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
-      const isSelected = state.device?.dongle_id === action.device.dongle_id;
+      const isSelected = state.dongleId === action.device.dongle_id;
       const previousDevice = isSelected ? state.device : state.devices[deviceIndex];
       const updatedDevice = populateFetchedAt({
         ...previousDevice, // retains rpc, network_metered
@@ -299,21 +316,6 @@ export default function reducer(_state, action) {
           },
         };
       }
-      break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
