@@ -14,7 +14,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav, closeModal } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -24,6 +24,10 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import TimeSelect from './TimeSelect';
+import UploadQueue from './Files/UploadQueue';
 
 const styles = (theme) => ({
   app: {
@@ -198,7 +202,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, navigation, modalDevice,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -270,12 +274,23 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        {(navigation.modal === 'settings' || navigation.modal === 'unpair' || navigation.parentModal === 'settings') && modalDevice && (modalDevice.is_owner || profile?.superuser) && (
+          <DeviceSettingsModal key={modalDevice.dongle_id} isOpen={navigation.modal === 'settings'} dongleId={modalDevice.dongle_id} onClose={() => dispatch(closeModal())} />
+        )}
+        {navigation.modal === 'add-device' && <AddDevice modalOnly />}
+        {navigation.modal === 'filter' && dongleId && <TimeSelect key={dongleId} onClose={() => dispatch(closeModal())} />}
+        {navigation.modal === 'uploads' && modalDevice && (
+          <UploadQueue key={modalDevice.dongle_id} open update device={modalDevice} onClose={() => dispatch(closeModal())} />
+        )}
       </div>
     );
   }
 }
 
 const stateToProps = (state) => ({
+  navigation: state.navigation,
+  modalDevice: state.devices?.find(device => device.dongle_id === (state.navigation.modalDeviceId || state.dongleId))
+    || (state.device?.dongle_id === (state.navigation.modalDeviceId || state.dongleId) ? state.device : null),
   zoom: state.zoom,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,

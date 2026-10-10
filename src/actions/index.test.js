@@ -1,53 +1,41 @@
-import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import '../store';
+import { primeNav, streamNav, selectDevice, openModal, closeModal } from './index';
+import { parseLocation } from '../url';
 
-vi.mock('../timeline/playback', () => ({
-  reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
-}));
+const DONGLE = 'aaaaaaaaaaaaaaaa';
+const LOG = '2026-08-06--12-00-00';
 
-vi.mock('connected-react-router', async () => {
-  const originalModule = await vi.importActual('connected-react-router');
-  return {
-    __esModule: true,
-    ...originalModule,
-    push: vi.fn(),
-  };
+function destination(thunk, pathname = `/${DONGLE}/${LOG}`, search = '') {
+  const state = { dongleId: DONGLE, navigation: parseLocation({ pathname, search }), router: { location: { pathname, search } } };
+  let action;
+  const dispatch = value => typeof value === 'function' ? value(dispatch, () => state) : (action = value);
+  dispatch(thunk);
+  return action?.payload.args[0];
+}
+
+it.each([
+  [selectDevice('bbbbbbbbbbbbbbbb'), '/bbbbbbbbbbbbbbbb'],
+  [primeNav(true), `/${DONGLE}/prime`],
+  [streamNav(true), `/${DONGLE}/stream`],
+])('navigation writes the target URL', (action, pathname) => {
+  expect(destination(action)).toEqual({ pathname, search: '' });
 });
 
-describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
-  });
+it('opening settings retains the drive and unrelated query arguments', () => {
+  expect(destination(openModal('settings'), `/${DONGLE}/${LOG}`, '?ci=1'))
+    .toEqual({ pathname: `/${DONGLE}/${LOG}`, search: '?ci=1&modal=settings' });
+});
 
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
+it('closing a dialog retains its background and clears its arguments', () => {
+  expect(destination(closeModal(), `/${DONGLE}/${LOG}`, '?ci=1&modal=clip&clip=road.mp4'))
+    .toEqual({ pathname: `/${DONGLE}/${LOG}`, search: '?ci=1' });
+});
 
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
-  });
+it.each([selectDevice('bbbbbbbbbbbbbbbb'), primeNav(true)])('does not carry page-specific query values to another page', (action) => {
+  expect(destination(action, `/${DONGLE}/${LOG}`, '?stripe_success=session-a&ci=1').search).toBe('');
+});
 
-  it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
-    expect(push).toHaveBeenCalledWith(expected);
-  });
+it('returning from uploads restores its parent settings URL', () => {
+  expect(destination(closeModal(), `/${DONGLE}/${LOG}`, '?modal=uploads&parent=settings'))
+    .toEqual({ pathname: `/${DONGLE}/${LOG}`, search: '?modal=settings' });
 });
