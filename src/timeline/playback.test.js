@@ -1,5 +1,5 @@
 import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
+import { currentOffset, setVideoClock } from '.';
 import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
@@ -129,5 +129,30 @@ describe('playback', () => {
     expect(state.isBufferingVideo).toEqual(false);
 
     expect(state.desiredPlaySpeed).toEqual(2);
+  });
+
+  it('should move playback into a newly selected loop', () => {
+    newNow();
+    let state = makeDefaultStruct();
+
+    state = reducer(state, seek(500));
+    state = reducer(state, selectLoop(1000, 2000));
+    expect(state.offset).toEqual(1000);
+
+    state = reducer(state, seek(1500));
+    state = reducer(state, selectLoop(1000, 3000));
+    expect(state.offset).toEqual(1500);
+  });
+
+  it('should follow the video clock of the current route only', () => {
+    newNow();
+    const state = { ...makeDefaultStruct(), offset: 100, currentRoute: { fullname: 'a' } };
+
+    setVideoClock('a', () => 4200);
+    expect(currentOffset(state)).toEqual(4200);
+    expect(currentOffset({ ...state, currentRoute: { fullname: 'b' } })).toEqual(100);
+
+    setVideoClock(null);
+    expect(currentOffset(state)).toEqual(100);
   });
 });

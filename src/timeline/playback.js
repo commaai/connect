@@ -49,6 +49,10 @@ export function reducer(_state, action) {
           startTime: action.start,
           duration: action.end - action.start,
         };
+        if (state.offset !== null && (state.offset < action.start || state.offset > action.end)) {
+          state.offset = action.start;
+          state.startTime = Date.now();
+        }
       } else {
         state.loop = null;
       }
@@ -72,32 +76,6 @@ export function reducer(_state, action) {
       break;
     default:
       break;
-  }
-
-  if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom
-    && state.loop.startTime === state.zoom.start && state.zoom.start === 0) {
-    const loopRouteOffset = state.loop.startTime - state.zoom.start;
-    if (state.currentRoute.videoStartOffset > loopRouteOffset) {
-      state.loop = {
-        startTime: state.zoom.start + state.currentRoute.videoStartOffset,
-        duration: state.loop.duration - (state.currentRoute.videoStartOffset - loopRouteOffset),
-      };
-    }
-  }
-
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
   }
 
   state.isBufferingVideo = Boolean(state.isBufferingVideo);

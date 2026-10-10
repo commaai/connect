@@ -1,5 +1,18 @@
 import store from '../store';
 
+// while a route's video is loaded, its position is the playback clock
+let videoClock = null;
+
+/**
+ * Make a video the playback clock, or hand the clock back to redux with null
+ *
+ * @param {string} route fullname of the route the video belongs to
+ * @param {function(): number} getOffset video position as a route offset in ms
+ */
+export function setVideoClock(route, getOffset) {
+  videoClock = getOffset ? { route, getOffset } : null;
+}
+
 /**
  * Get current playback offset
  *
@@ -13,7 +26,9 @@ export function currentOffset(state = null) {
 
   /** @type {number} */
   let offset;
-  if (state.offset === null && state.loop?.startTime) {
+  if (videoClock && videoClock.route === state.currentRoute?.fullname) {
+    offset = videoClock.getOffset();
+  } else if (state.offset === null && state.loop?.startTime) {
     offset = state.loop.startTime;
   } else {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
