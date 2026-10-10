@@ -74,11 +74,6 @@ const styles = (theme) => ({
     width: '2.5em',
     height: '2.5em',
   },
-  pauseButton: {
-    fontSize: 'inherit',
-    width: '3em',
-    height: '3em',
-  },
   tinyArrowIcon: {
     fontSize: 'inherit',
     width: '0.75em',
@@ -307,7 +302,7 @@ class TimeDisplay extends Component {
         </div>
         <div className={ classes.leftBorderBox }>
           <IconButton
-            className={ classes.pauseButton }
+            className={ classes.iconButton }
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >
