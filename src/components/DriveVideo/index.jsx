@@ -146,7 +146,7 @@ export class RouteVideo extends Component {
     const { status, error, attempt } = this.state;
     const blocked = status === 'ready' && !desiredPlaySpeed;
     return (
-      <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
+      <div className="w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]">
         {(status !== 'ready' || blocked) && (
           <div className="z-50 absolute h-full w-full bg-[#16181AAA] flex items-center justify-center">
             <div className="text-center">
