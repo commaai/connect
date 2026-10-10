@@ -13,6 +13,9 @@ import { attachVideo, detachVideo, isNativeHls, videoOffsetMs } from '../../time
 
 // show the spinner only once a stall has lasted this long, so warm seeks do not flash it
 const SPINNER_DELAY_MS = 150;
+// keep a visible spinner this long after a data-ready signal: Safari native HLS reports readyState 4 for an instant
+// mid cold seek (canplaythrough, then `waiting` 33 ms later) and clearing at once flickered
+const STALL_END_HOLD_MS = 200;
 // native HLS above 2x switches to I-frame-only or pause/seek/play and freezes the picture (WebKit bug 309378)
 const NATIVE_HLS_MAX_RATE = 2;
 // playback moves at most this far between two progress ticks (250 ms) at rate 1; a seek jumps further
@@ -21,6 +24,11 @@ const MAX_PROGRESS_STEP_S = 1;
 // `seeked` and `playing` fire at readyState 3 per spec; Safari native HLS still shows a frozen picture then
 export function isStallOver(readyState) {
   return readyState >= 4;
+}
+
+// at the end of the hold: still enough data, and no new seek under way
+export function shouldEndStall(readyState, seeking) {
+  return isStallOver(readyState) && !seeking;
 }
 
 // our own `currentTime =` write moves playedSeconds before any data exists there, so only a small forward step is progress
@@ -52,7 +60,13 @@ export function shouldPositionOnReady(positionedSrc, src) {
   return Boolean(src) && positionedSrc !== src;
 }
 
-const VideoOverlay = ({ loading, error, tapToPlay, onTap }) => {
+// `waiting` only fires once playback has started, so the wait for a new source's first frame needs its own stall
+export function needsInitialStall(readyState) {
+  return readyState < 4;
+}
+
+// error > tap-to-play > spinner: the spinner never covers an error or the prompt
+export const VideoOverlay = ({ loading, error, tapToPlay, onTap }) => {
   let content;
   if (error) {
     content = (
@@ -82,7 +96,7 @@ const VideoOverlay = ({ loading, error, tapToPlay, onTap }) => {
   );
 };
 
-class DriveVideo extends Component {
+export class DriveVideo extends Component {
   constructor(props) {
     super(props);
 
@@ -102,6 +116,7 @@ class DriveVideo extends Component {
     this.positionedSrc = null; // the state.src onPlayerReady last positioned the element for
     this.stalledAt = null; // Date.now() when the current stall began, null while frames are flowing
     this.spinnerTimer = null;
+    this.holdTimer = null; // pending end of the stall after a data-ready signal
     this.lastProgressTime = null;
 
     this.state = {
@@ -116,9 +131,18 @@ class DriveVideo extends Component {
     this.updateVideoSource({});
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
     this.updateVideoSource(prevProps);
     const { seekId, offset, currentRoute } = this.props;
+    const { src } = this.state;
+    if (src !== prevState.src) {
+      // the element already holds the new source (children update first): end its stall and wait for the first frame
+      this.setStalled(false);
+      const video = this.videoPlayer.current?.getInternalPlayer();
+      if (src && needsInitialStall(video ? video.readyState : 0)) {
+        this.setStalled(true);
+      }
+    }
     if (!this.video) {
       return;
     }
@@ -199,8 +223,26 @@ class DriveVideo extends Component {
   // `seeked`, `canplaythrough` and `playing`: over only once the element has enough data at the new position
   onVideoDataReady() {
     if (this.video && isStallOver(this.video.readyState)) {
-      this.setStalled(false);
+      this.endStallAfterHold();
     }
+  }
+
+  // end only if the data is still there STALL_END_HOLD_MS later; before the spinner shows there is nothing to flicker
+  endStallAfterHold() {
+    if (this.stalledAt === null || this.holdTimer !== null) {
+      return;
+    }
+    if (this.spinnerTimer !== null) {
+      this.setStalled(false);
+      return;
+    }
+    this.holdTimer = setTimeout(() => {
+      this.holdTimer = null;
+      const { video } = this;
+      if (video && shouldEndStall(video.readyState, video.seeking)) {
+        this.setStalled(false);
+      }
+    }, STALL_END_HOLD_MS);
   }
 
   // `playing`
@@ -319,6 +361,9 @@ class DriveVideo extends Component {
   }
 
   setStalled(stalled) {
+    // a pending hold is void either way: a new stall keeps stalling, a direct end needs no hold
+    clearTimeout(this.holdTimer);
+    this.holdTimer = null;
     if (stalled) {
       if (this.stalledAt !== null) {
         return;
