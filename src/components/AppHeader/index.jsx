@@ -7,10 +7,12 @@ import { Typography, IconButton, AppBar } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
+import { openDialog, closeDialog } from '../../actions/history';
 import { selectDevice } from '../../actions';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
+import { selectLocation } from '../../url';
 
 import AccountMenu from './AccountMenu';
 
@@ -78,43 +80,42 @@ const styles = () => ({
 });
 
 const AppHeader = ({
-  profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
+  profile, classes, dispatch, drawerIsOpen, showDrawerButton,
+  forwardRef, handleDrawerStateChanged, dongleId, page, dialog,
 }) => {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
     window.localStorage.getItem(REFERRALS_SEEN_KEY) !== 'true'
   ));
 
   const handleClickedAccount = useCallback(() => {
     if (MyCommaAuth.isAuthenticated()) {
-      setMenuOpen((prev) => !prev);
+      dispatch(dialog === 'account' ? closeDialog() : openDialog('account'));
     } else if (window.location) {
       window.location = window.location.origin;
     }
-  }, []);
+  }, [dispatch, dialog]);
 
   const handleClose = useCallback(() => {
-    setMenuOpen(false);
-  }, []);
+    dispatch(closeDialog());
+  }, [dispatch]);
 
   const openReferrals = useCallback(() => {
-    if (pathname === '/referrals') return;
+    if (page === 'referrals') return;
     dispatch(push('/referrals'));
-  }, [dispatch, pathname]);
+  }, [dispatch, page]);
 
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
-  }, [dispatch, dongleId, pathname]);
+    dispatch(push(page === 'referrals' ? (dongleId ? `/${dongleId}` : '/') : '/referrals'));
+  }, [dispatch, dongleId, page]);
 
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
   }, [drawerIsOpen, handleDrawerStateChanged]);
 
-  const open = menuOpen;
-  const referralsOpen = pathname === '/referrals';
+  const open = dialog === 'account';
+  const referralsOpen = page === 'referrals';
   const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
 
   return (
@@ -184,11 +185,10 @@ const AppHeader = ({
 };
 
 const stateToProps = (state) => ({
+  dialog: selectLocation(state).dialog,
   dongleId: state.dongleId,
-  filter: state.filter,
   profile: state.profile,
-  primeNav: state.primeNav,
-  pathname: state.router.location.pathname,
+  page: selectLocation(state).page,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

@@ -7,6 +7,8 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
+import { openDialog, closeDialog } from '../../actions/history';
+import { selectLocation } from '../../url';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
@@ -148,12 +150,12 @@ class DeviceInfo extends Component {
   constructor(props) {
     super(props);
     this.mounted = null;
+    this.clipsButton = React.createRef();
     this.state = {
       carHealth: {},
       snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
-      clipMenu: null,
       clipsSupported: false,
     };
 
@@ -190,7 +192,6 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
-        clipMenu: null,
         clipsSupported: false,
       });
       this.checkClipsSupport();
@@ -330,10 +331,10 @@ class DeviceInfo extends Component {
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
+          open={['clips', 'clip', 'delete-clip'].includes(this.props.dialog)}
           dongleId={this.props.dongleId}
-          anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          anchorEl={this.clipsButton.current}
+          onClose={() => this.props.dispatch(closeDialog())}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
@@ -413,7 +414,8 @@ class DeviceInfo extends Component {
             <button
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              ref={this.clipsButton}
+              onClick={() => this.props.dispatch(openDialog('clips'))}
               disabled={offline}
             >
               <ContentCut />
@@ -514,6 +516,7 @@ class DeviceInfo extends Component {
 }
 
 const stateToProps = (state) => ({
+  dialog: selectLocation(state).dialog,
   dongleId: state.dongleId,
   device: state.device,
   routes: state.routes,
