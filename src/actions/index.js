@@ -77,6 +77,13 @@ export function checkRoutesData() {
           r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
           r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + ((x + 1) * 60 * 1000), endTime));
         }
+        // segment end times are clamped to the route end time, which can be stale (#553).
+        // every segment but the last is a full minute
+        const lastIndex = r.segment_numbers.length - 1;
+        r.segment_end_times = r.segment_end_times.map((end, i) => (
+          Math.max(end, r.segment_start_times[i] + (i < lastIndex ? 60 * 1000 : 0))
+        ));
+        endTime = r.segment_end_times[lastIndex];
         // TODO: backwards compatiblity, remove later
         if (r.distance == null && r.length != null) {
           r.distance = r.length;
