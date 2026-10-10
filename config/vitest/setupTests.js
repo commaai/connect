@@ -12,3 +12,8 @@ vi.mock('mapbox-gl/dist/mapbox-gl', () => ({
     remove: vi.fn(),
   })),
 }));
+
+// jsdom can't load or play media
+HTMLMediaElement.prototype.load = () => {};
+HTMLMediaElement.prototype.play = () => Promise.resolve();
+HTMLMediaElement.prototype.pause = () => {};
