@@ -98,12 +98,15 @@ const MISSING_DATA_CASES = [
   {
     title: 'Missing thumbnails',
     missingThumbnails: true,
+    route() {},
   },
 ];
+
 
 const TEST_CASES = [
   {
     title: 'Public route (no issues)',
+    route() {},
   },
   ...MISSING_DATA_CASES.flatMap((testCase) => [
     testCase,
@@ -116,17 +119,16 @@ const TEST_CASES = [
   {
     title: 'Video not recorded (first segment, qlog present)',
     missingVideoSegments: (route) => [route.segment_numbers[0]],
+    route() {},
   },
   {
     title: 'Video not recorded (middle segment, qlog present)',
     missingVideoSegments: (route) => [route.segment_numbers[Math.floor(route.segment_numbers.length / 2)]],
+    route() {},
   },
 ];
 
-// Serve the real playlist with the missing segments pointing at files that do
-// not exist, so both players hit the same 404 and keep the segment's duration
-// in the timeline. The #.m3u8 suffix is what makes react-player reach for
-// hls.js off iOS; native HLS ignores the fragment and sniffs the data: type.
+// The data MIME type reaches native HLS; #.m3u8 keeps ReactPlayer on hls.js elsewhere.
 function missingVideoPlaylist(playlist, missingUrl, missingSegments) {
   const lines = playlist.split('\n').map((line) => {
     if (!line.startsWith('http')) return line;
@@ -163,7 +165,6 @@ export function createDemoBackend(realBackend) {
   let publicFilesPromise = null;
   let publicPlaylistPromise = null;
   const videoUrls = new Map();
-  const routeMissingSegments = new Map();
 
   // Fetch the existing public shared route once and cache it.
   function fetchPublicRoute() {
@@ -220,13 +221,14 @@ export function createDemoBackend(realBackend) {
       route.dongle_id = DEMO_DONGLE_ID;
       route.fullname = `${DEMO_DONGLE_ID}|${logId}`;
       route.demo_title = testCase.title;
-      testCase.route?.(route, testCase.affectedSegment);
+      testCase.route(route, testCase.affectedSegment);
       if (testCase.missingVideoSegments) {
-        const missing = testCase.missingVideoSegments(route);
-        routeMissingSegments.set(route.fullname, missing);
+        route.demo_missing_video_segments = testCase.missingVideoSegments(route);
         if (playlist) {
           const missingUrl = route.url.replace(PUBLIC_ROUTE_LOG_ID, logId);
-          videoUrls.set(route.fullname, missingVideoPlaylist(playlist, missingUrl, missing));
+          videoUrls.set(route.fullname, missingVideoPlaylist(
+            playlist, missingUrl, route.demo_missing_video_segments,
+          ));
         }
       }
       return route;
@@ -241,8 +243,7 @@ export function createDemoBackend(realBackend) {
     const testCase = TEST_CASES[index];
     const files = structuredClone(await fetchPublicFiles());
     if (testCase.missingVideoSegments) {
-      const missingSegments = routeMissingSegments.get(routeName)
-        ?? testCase.missingVideoSegments(await fetchPublicRoute());
+      const missingSegments = testCase.missingVideoSegments(await fetchPublicRoute());
       for (const type of ['qcameras', 'cameras', 'dcameras', 'ecameras']) {
         for (const segment of missingSegments) removeFileSegments(files, type, segment);
       }
@@ -309,7 +310,7 @@ export function createDemoBackend(realBackend) {
       thumbnail(route, segment) {
         const index = demoRouteIndex(route.fullname);
         const testCase = TEST_CASES[index];
-        if (routeMissingSegments.get(route.fullname)?.includes(segment)
+        if (route.demo_missing_video_segments?.includes(segment)
           || (testCase?.missingThumbnails
             && (testCase.affectedSegment === undefined || testCase.affectedSegment === segment))) {
           return missingAssetUrl(route, segment, 'sprite.jpg');
