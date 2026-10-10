@@ -152,7 +152,7 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
   }), [videoStartOffset, loopStart]);
 
   return (
-    <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
+    <div className="w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]">
       <VideoOverlay loading={buffering} error={error} onRetry={retry} />
       <div className="w-full h-full">
         <Video
