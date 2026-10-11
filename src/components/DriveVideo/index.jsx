@@ -9,26 +9,18 @@ import { api } from '../../api/backend';
 import Colors from '../../colors';
 import { ErrorOutline, PlayArrow } from '../../icons';
 import { pause, play } from '../../timeline/playback';
-import { attachVideo, detachVideo, isNativeHls, videoOffsetMs } from '../../timeline/video';
+import { attachVideo, detachVideo, videoOffsetMs } from '../../timeline/video';
 
 // show the spinner only once a stall has lasted this long, so warm seeks do not flash it
 const SPINNER_DELAY_MS = 150;
-// keep a visible spinner this long after a data-ready signal: Safari native HLS reports readyState 4 for an instant
-// mid cold seek (canplaythrough, then `waiting` 33 ms later) and clearing at once flickered
-const STALL_END_HOLD_MS = 200;
-// native HLS above 2x switches to I-frame-only or pause/seek/play and freezes the picture (WebKit bug 309378)
-const NATIVE_HLS_MAX_RATE = 2;
+// hls.js needs MediaSource, or Safari's ManagedMediaSource (iOS 17.1+); without either the element plays the m3u8 itself
+const HLS_JS = typeof MediaSource !== 'undefined' || typeof ManagedMediaSource !== 'undefined';
 // playback moves at most this far between two progress ticks (250 ms) at rate 1; a seek jumps further
 const MAX_PROGRESS_STEP_S = 1;
 
-// `seeked` and `playing` fire at readyState 3 per spec; Safari native HLS still shows a frozen picture then
+// `seeked` and `playing` fire at readyState 3 per spec; wait for HAVE_ENOUGH_DATA before dropping the spinner
 export function isStallOver(readyState) {
   return readyState >= 4;
-}
-
-// at the end of the hold: still enough data, and no new seek under way
-export function shouldEndStall(readyState, seeking) {
-  return isStallOver(readyState) && !seeking;
 }
 
 // our own `currentTime =` write moves playedSeconds before any data exists there, so only a small forward step is progress
@@ -40,11 +32,6 @@ export function isPlaybackProgress(prevSeconds, nowSeconds, seeking, readyState,
   return step > 0 && step < MAX_PROGRESS_STEP_S * Math.max(playbackRate, 1);
 }
 
-export function playbackRateFor(desiredPlaySpeed, nativeHls) {
-  const rate = desiredPlaySpeed || 1;
-  return nativeHls ? Math.min(rate, NATIVE_HLS_MAX_RATE) : rate;
-}
-
 // videoStartOffset changed after the element was positioned: shift it by the delta to keep the same route offset on screen
 export function correctedElementTime(currentTime, oldVso, newVso) {
   const deltaMs = (oldVso || 0) - (newVso || 0);
@@ -52,12 +39,6 @@ export function correctedElementTime(currentTime, oldVso, newVso) {
     return null;
   }
   return Math.max(0, currentTime + (deltaMs / 1000));
-}
-
-// react-player's onReady is the element's every native `canplay`, one per cold seek on Safari; re-positioning on each
-// re-seeked the same target until fully buffered (iPad: 34 writes in 3 s). Position once per source
-export function shouldPositionOnReady(positionedSrc, src) {
-  return Boolean(src) && positionedSrc !== src;
 }
 
 // `waiting` only fires once playback has started, so the wait for a new source's first frame needs its own stall
@@ -113,10 +94,8 @@ export class DriveVideo extends Component {
 
     this.videoPlayer = React.createRef();
     this.video = null; // the <video> element, once ReactPlayer is ready
-    this.positionedSrc = null; // the state.src onPlayerReady last positioned the element for
     this.stalledAt = null; // Date.now() when the current stall began, null while frames are flowing
     this.spinnerTimer = null;
-    this.holdTimer = null; // pending end of the stall after a data-ready signal
     this.lastProgressTime = null;
 
     this.state = {
@@ -173,8 +152,7 @@ export class DriveVideo extends Component {
   }
 
   onPlayerReady(player) {
-    const { onAudioStatusChange, offset, loop, desiredPlaySpeed } = this.props;
-    const { src } = this.state;
+    const { onAudioStatusChange, offset, loop } = this.props;
     const video = player.getInternalPlayer();
     if (video && video !== this.video) {
       this.video = video;
@@ -183,39 +161,23 @@ export class DriveVideo extends Component {
       video.addEventListener('canplaythrough', this.onVideoDataReady);
       attachVideo(video);
     }
-    // everything below runs once per source: later `canplay` readies for the same source are no-ops
-    if (!shouldPositionOnReady(this.positionedSrc, src)) {
-      return;
-    }
-    this.positionedSrc = src;
     if (video) {
       // the element is the clock from here on; start it where redux intended (deep link, route switch)
       video.currentTime = this.currentVideoTime(offset ?? loop?.startTime ?? 0);
     }
 
-    if (isNativeHls()) { // the element plays the m3u8 itself so its audioTracks are visible; through hls.js they are not
-      if (video && video.audioTracks && video.audioTracks.length > 0) {
+    // inspect audio tracks before hls.js changes things
+    const hlsPlayer = player.getInternalPlayer('hls'); // a new instance per source, so this listener is per source too
+    if (hlsPlayer) {
+      hlsPlayer.on('hlsBufferCodecs', (event, data) => {
         if (onAudioStatusChange) {
-          onAudioStatusChange(true);
+          onAudioStatusChange(!!data.audio);
         }
-      }
-      // re-render so the native rate cap applies now that the element is attached
-      if (playbackRateFor(desiredPlaySpeed, true) !== playbackRateFor(desiredPlaySpeed, false)) {
-        this.forceUpdate();
-      }
-    } else { // through hls.js, inspect audio tracks before it changes things
-      const hlsPlayer = player.getInternalPlayer('hls'); // a new instance per source, so this listener is per source too
-      if (hlsPlayer) {
-        hlsPlayer.on('hlsBufferCodecs', (event, data) => {
-          if (onAudioStatusChange) {
-            onAudioStatusChange(!!data.audio);
-          }
-        });
-      }
+      });
     }
   }
 
-  // `waiting` and native `seeking`: no frames until the element says otherwise
+  // `waiting` and `seeking`: no frames until the element says otherwise
   onVideoStall() {
     this.setStalled(true);
   }
@@ -223,26 +185,8 @@ export class DriveVideo extends Component {
   // `seeked`, `canplaythrough` and `playing`: over only once the element has enough data at the new position
   onVideoDataReady() {
     if (this.video && isStallOver(this.video.readyState)) {
-      this.endStallAfterHold();
-    }
-  }
-
-  // end only if the data is still there STALL_END_HOLD_MS later; before the spinner shows there is nothing to flicker
-  endStallAfterHold() {
-    if (this.stalledAt === null || this.holdTimer !== null) {
-      return;
-    }
-    if (this.spinnerTimer !== null) {
       this.setStalled(false);
-      return;
     }
-    this.holdTimer = setTimeout(() => {
-      this.holdTimer = null;
-      const { video } = this;
-      if (video && shouldEndStall(video.readyState, video.seeking)) {
-        this.setStalled(false);
-      }
-    }, STALL_END_HOLD_MS);
   }
 
   // `playing`
@@ -298,8 +242,9 @@ export class DriveVideo extends Component {
    * @param {Error} e
    */
   onHlsError(e) {
-    if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
-      // buffer but no error
+    // hls.js recovers from its non-fatal errors itself (buffer stalls, nudges, a hole skipped at a fragment start);
+    // only a fatal one means the video cannot play. Safari's MSE reports bufferSeekOverHole on routes with audio
+    if (!e.fatal) {
       return;
     }
 
@@ -361,9 +306,6 @@ export class DriveVideo extends Component {
   }
 
   setStalled(stalled) {
-    // a pending hold is void either way: a new stall keeps stalling, a direct end needs no hold
-    clearTimeout(this.holdTimer);
-    this.holdTimer = null;
     if (stalled) {
       if (this.stalledAt !== null) {
         return;
@@ -408,7 +350,6 @@ export class DriveVideo extends Component {
     const { currentRoute } = this.props;
     if (!currentRoute) {
       if (src !== '') {
-        this.positionedSrc = null;
         this.setState({ src: '', videoError: null });
       }
       return;
@@ -416,8 +357,6 @@ export class DriveVideo extends Component {
 
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
       src = api.video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
-      // the element is reused across routes: the new source's first ready must position it again, even for the same URL
-      this.positionedSrc = null;
       this.setState({ src, videoError: null });
     }
   }
@@ -452,11 +391,12 @@ export class DriveVideo extends Component {
           width="100%"
           height="100%"
           playing={Boolean(currentRoute && desiredPlaySpeed)}
-          playbackRate={playbackRateFor(desiredPlaySpeed, isNativeHls())}
+          playbackRate={desiredPlaySpeed || 1}
           progressInterval={250}
           onReady={this.onPlayerReady}
           config={{
-            hlsVersion: '1.4.8',
+            forceHLS: HLS_JS,
+            hlsVersion: '1.7.3',
             hlsOptions: {
               maxBufferLength: 40,
             },

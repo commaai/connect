@@ -10,14 +10,9 @@ import { Tooltip } from '@material-ui/core';
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
-import { isNativeHls } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
-import { isIos } from '../../utils/browser.js';
 
-// native HLS above 2x falls back to pause/seek/play and freezes the picture (WebKit bug 309378). Decided from the
-// attached element (an iPad sends a desktop UA); the UA is only a guess for the first render before one is attached
-const nativeHlsSteps = [0.5, 1, 2];
-const hlsJsSteps = [
+const timerSteps = [
   0.1,
   0.25,
   0.5,
@@ -26,10 +21,6 @@ const hlsJsSteps = [
   4,
   8,
 ];
-
-export function speedSteps(nativeHls = isNativeHls() ?? isIos()) {
-  return nativeHls ? nativeHlsSteps : hlsJsSteps;
-}
 
 const styles = (theme) => ({
   base: {
@@ -187,7 +178,6 @@ class TimeDisplay extends Component {
   decreaseSpeed() {
     const { dispatch } = this.props;
     const { desiredPlaySpeed } = this.state;
-    const timerSteps = speedSteps();
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -198,7 +188,6 @@ class TimeDisplay extends Component {
 
   canDecreaseSpeed() {
     const { desiredPlaySpeed } = this.state;
-    const timerSteps = speedSteps();
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -209,7 +198,6 @@ class TimeDisplay extends Component {
   increaseSpeed() {
     const { dispatch } = this.props;
     const { desiredPlaySpeed } = this.state;
-    const timerSteps = speedSteps();
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -220,7 +208,6 @@ class TimeDisplay extends Component {
 
   canIncreaseSpeed() {
     const { desiredPlaySpeed } = this.state;
-    const timerSteps = speedSteps();
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -272,30 +259,28 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           <span ref={this.textHolder}>{ displayTime }</span>
         </Typography>
-        {!isIos() && (
-          <div className={ classes.desiredPlaySpeedContainer }>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
-              aria-label="Increase play speed by 1 step"
-            >
-              <UpArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-            <Typography variant="body2" align="center" className={classes.desiredPlaySpeed}>
-              {desiredPlaySpeed}
-              ×
-            </Typography>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
-              aria-label="Decrease play speed by 1 step"
-            >
-              <DownArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-          </div>
-        )}
+        <div className={ classes.desiredPlaySpeedContainer }>
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={this.increaseSpeed}
+            disabled={!this.canIncreaseSpeed()}
+            aria-label="Increase play speed by 1 step"
+          >
+            <UpArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+          <Typography variant="body2" align="center" className={classes.desiredPlaySpeed}>
+            {desiredPlaySpeed}
+            ×
+          </Typography>
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={this.decreaseSpeed}
+            disabled={!this.canDecreaseSpeed()}
+            aria-label="Decrease play speed by 1 step"
+          >
+            <DownArrow className={classes.tinyArrowIcon} />
+          </IconButton>
+        </div>
         <div className={ classes.leftBorderBox }>
           <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
             <div>

@@ -2,13 +2,12 @@ import React from 'react';
 import { vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import {
-  DriveVideo, VideoOverlay, correctedElementTime, isPlaybackProgress, isStallOver, needsInitialStall, playbackRateFor,
-  shouldEndStall, shouldPositionOnReady,
+  DriveVideo, VideoOverlay, correctedElementTime, isPlaybackProgress, isStallOver, needsInitialStall,
 } from './index';
 
 describe('DriveVideo stall end', () => {
   it('seeked at readyState 3 does not clear', () => {
-    // iPad native HLS: seeked and playing at readyState 3, currentTime frozen for 1.4s (back60) and 7s (fwd300)
+    // seeked and playing can fire at readyState 3 with currentTime still frozen (iPad: 1.4s and 7s)
     expect(isStallOver(3)).toBe(false);
     expect(isStallOver(2)).toBe(false);
     expect(isStallOver(1)).toBe(false);
@@ -24,8 +23,8 @@ describe('DriveVideo stall end', () => {
   });
 });
 
-describe('DriveVideo stall end hold', () => {
-  // the class without redux: a fake element, synchronous setState, fake timers for the 150ms delay and the 200ms hold
+describe('DriveVideo stall state', () => {
+  // the class without redux: a fake element, synchronous setState, fake timers for the 150ms spinner delay
   const stalledVideo = () => {
     const c = new DriveVideo({});
     c.setState = (next) => { c.state = { ...c.state, ...next }; };
@@ -42,72 +41,31 @@ describe('DriveVideo stall end hold', () => {
     vi.useRealTimers();
   });
 
-  it('ends only once the data has stayed for the hold', () => {
-    expect(shouldEndStall(4, false)).toBe(true);
-    expect(shouldEndStall(2, false)).toBe(false); // iPad B3 cold toMiddle: readyState 4 for one sample, then 2
-    expect(shouldEndStall(4, true)).toBe(false); // a new seek started during the hold
-  });
-
-  it('keeps the spinner when waiting follows a data-ready signal within the hold', () => {
-    // iPad B3 cold toMiddle: canplaythrough@1951 readyState 4, waiting@1984 readyState 2, canplaythrough@4688
+  it('clears on a data-ready signal once the element has enough data', () => {
     const c = stalledVideo();
     vi.advanceTimersByTime(150);
     expect(c.state.spinner).toBe(true);
-    const startedAt = c.stalledAt;
-    c.video.readyState = 4;
-    c.onVideoDataReady();
-    expect(c.stalledAt).toBe(startedAt); // not cleared yet
-    vi.advanceTimersByTime(33);
-    c.video.readyState = 2;
-    c.onVideoStall(); // `waiting` cancels the pending end
-    vi.advanceTimersByTime(200);
-    expect(c.stalledAt).toBe(startedAt); // the same stall, its clock did not restart
-    expect(c.state.spinner).toBe(true);
-    c.setStalled(false);
-  });
-
-  it('clears once readyState 4 has held for 200ms', () => {
-    const c = stalledVideo();
-    vi.advanceTimersByTime(150);
-    c.video.readyState = 4;
-    c.onVideoDataReady();
-    vi.advanceTimersByTime(199);
+    c.video.readyState = 3;
+    c.onVideoDataReady(); // `seeked` at readyState 3: the picture may still be frozen
     expect(c.stalledAt).not.toBeNull();
     expect(c.state.spinner).toBe(true);
-    vi.advanceTimersByTime(1);
+    c.video.readyState = 4;
+    c.onVideoDataReady();
     expect(c.stalledAt).toBeNull();
     expect(c.state.spinner).toBe(false);
   });
 
-  it('does not clear when the data is gone again at the end of the hold', () => {
+  it('clears on playback progress', () => {
     const c = stalledVideo();
     vi.advanceTimersByTime(150);
     c.video.readyState = 4;
-    c.onVideoDataReady();
-    c.video.readyState = 2; // dropped back without a `waiting`
-    vi.advanceTimersByTime(200);
-    expect(c.stalledAt).not.toBeNull();
-    expect(c.state.spinner).toBe(true);
-    c.video.readyState = 4;
-    c.onVideoDataReady(); // the next canplaythrough starts a new hold
-    vi.advanceTimersByTime(200);
-    expect(c.stalledAt).toBeNull();
-    expect(c.state.spinner).toBe(false);
-  });
-
-  it('clears at once on playback progress, without the hold', () => {
-    const c = stalledVideo();
-    vi.advanceTimersByTime(150);
-    c.video.readyState = 4;
-    c.onVideoDataReady();
     c.onVideoProgress({ playedSeconds: 100 });
     c.onVideoProgress({ playedSeconds: 100.25 });
-    expect(c.stalledAt).toBeNull(); // no timers advanced
+    expect(c.stalledAt).toBeNull();
     expect(c.state.spinner).toBe(false);
-    expect(c.holdTimer).toBeNull();
   });
 
-  it('clears at once before the spinner shows, so a warm seek never shows it', () => {
+  it('clears before the spinner shows, so a warm seek never shows it', () => {
     // desktop warm seek: seeking@3ms, seeked@16ms at readyState 4, well inside the 150ms delay
     const c = stalledVideo();
     vi.advanceTimersByTime(16);
@@ -118,23 +76,17 @@ describe('DriveVideo stall end hold', () => {
     expect(c.state.spinner).toBe(false);
   });
 
-  it('drops the pending hold on unmount and on a source change', () => {
+  it('drops the stall on unmount and on a source change', () => {
     const c = stalledVideo();
     vi.advanceTimersByTime(150);
-    c.video.readyState = 4;
-    c.onVideoDataReady();
-    expect(c.holdTimer).not.toBeNull();
     c.componentWillUnmount();
-    expect(c.holdTimer).toBeNull();
     expect(c.stalledAt).toBeNull();
 
     const d = stalledVideo();
     vi.advanceTimersByTime(150);
-    d.video.readyState = 4;
-    d.onVideoDataReady();
     d.componentDidUpdate(d.props, { src: 'https://api.comma.ai/v1/route/a/qcamera.m3u8' }); // no route: src becomes ''
-    expect(d.holdTimer).toBeNull();
     expect(d.stalledAt).toBeNull();
+    expect(d.state.spinner).toBe(false);
   });
 });
 
@@ -167,19 +119,6 @@ describe('DriveVideo playback progress', () => {
   });
 });
 
-describe('DriveVideo playback rate', () => {
-  it('caps native HLS at 2x and never writes 0', () => {
-    expect(playbackRateFor(4, true)).toBe(2);
-    expect(playbackRateFor(8, true)).toBe(2);
-    expect(playbackRateFor(2, true)).toBe(2);
-    expect(playbackRateFor(0.5, true)).toBe(0.5);
-    expect(playbackRateFor(4, false)).toBe(4);
-    expect(playbackRateFor(4, null)).toBe(4); // no element attached yet: no cap
-    expect(playbackRateFor(0, true)).toBe(1); // paused: the element is paused by `playing`, not by rate 0
-    expect(playbackRateFor(0, false)).toBe(1);
-  });
-});
-
 describe('DriveVideo late videoStartOffset', () => {
   it('moves the element back when the offset arrives after it was positioned', () => {
     // seeked to route offset 12000 with the offset unknown, 500ms of first-frame offset lands later
@@ -202,31 +141,6 @@ describe('DriveVideo late videoStartOffset', () => {
   it('shifts by the difference when the offset changes from one number to another', () => {
     expect(correctedElementTime(12, 300, 500)).toBeCloseTo(11.8, 6);
     expect(correctedElementTime(12, 500, 300)).toBeCloseTo(12.2, 6);
-  });
-});
-
-describe('DriveVideo ready positioning', () => {
-  const a = 'https://api.comma.ai/v1/route/a/qcamera.m3u8';
-  const b = 'https://api.comma.ai/v1/route/b/qcamera.m3u8';
-
-  it('positions on the first ready for a source', () => {
-    expect(shouldPositionOnReady(null, a)).toBe(true);
-  });
-
-  it('does not position again on a later ready for the same source', () => {
-    // iPad toStart: Safari fires `canplay` after each cold seek, react-player forwards each as onReady
-    expect(shouldPositionOnReady(a, a)).toBe(false);
-  });
-
-  it('positions again once the source changed', () => {
-    expect(shouldPositionOnReady(a, b)).toBe(true);
-    expect(shouldPositionOnReady(a, null)).toBe(false); // back to the same route: updateVideoSource resets to null
-    expect(shouldPositionOnReady(null, a)).toBe(true);
-  });
-
-  it('has nothing to position without a source', () => {
-    expect(shouldPositionOnReady(null, '')).toBe(false);
-    expect(shouldPositionOnReady(null, null)).toBe(false);
   });
 });
 
@@ -269,5 +183,26 @@ describe('DriveVideo overlay precedence', () => {
     unmount();
     const { container } = render(React.createElement(VideoOverlay, { loading: false, error: null, tapToPlay: false, onTap: () => {} }));
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('DriveVideo hls.js errors', () => {
+  const video = () => { const c = new DriveVideo({}); c.setState = (next) => { c.state = { ...c.state, ...next }; }; return c; };
+
+  it('ignores non-fatal errors, which hls.js recovers from itself', () => {
+    const c = video();
+    c.onHlsError({ type: 'mediaError', details: 'bufferSeekOverHole', fatal: false }); // iPad, route with audio
+    c.onHlsError({ type: 'mediaError', details: 'bufferStalledError', fatal: false });
+    c.onHlsError({ type: 'networkError', details: 'fragLoadError', fatal: false, response: { code: 404 } }); // still retrying
+    expect(c.state.videoError).toBeNull();
+  });
+
+  it('shows the missing-segment message on a fatal 404 and a generic one otherwise', () => {
+    const c = video();
+    c.onHlsError({ type: 'networkError', details: 'fragLoadError', fatal: true, response: { code: 404 } });
+    expect(c.state.videoError).toBe('This video segment has not uploaded yet or has been deleted.');
+    const d = video();
+    d.onHlsError({ type: 'mediaError', details: 'bufferAppendError', fatal: true });
+    expect(d.state.videoError).toBe('Unable to load video');
   });
 });
