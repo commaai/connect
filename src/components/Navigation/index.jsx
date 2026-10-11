@@ -513,6 +513,21 @@ class Navigation extends Component {
       return;
     }
 
+    if (searchSelect && viewport.width && viewport.height) {
+      const mapViewport = new WebMercatorViewport(viewport);
+      const [x, y] = mapViewport.project(this.itemLngLat(searchSelect));
+      const cardHeight = this.searchSelectBoxRef.current?.getBoundingClientRect().height || 0;
+      const targetX = Math.max(20, Math.min(viewport.width - 20, x));
+      const targetY = Math.max(82, Math.min(viewport.height - cardHeight - 30, y));
+      if (targetX !== x || targetY !== y) {
+        const [longitude, latitude] = mapViewport.unproject([
+          viewport.width / 2 + x - targetX, viewport.height / 2 + y - targetY,
+        ]);
+        this.setState({ viewport: { ...viewport, longitude, latitude } });
+      }
+      return;
+    }
+
     const bounds = [];
     if (geoLocateCoords && (!search || searchSelect)) {
       bounds.push([geoLocateCoords, geoLocateCoords]);
@@ -535,15 +550,6 @@ class Navigation extends Component {
         Math.max.apply(null, bounds.map((e) => e[1][1])),
       ]];
 
-      if (Math.abs(bbox[0][0] - bbox[1][0]) < 0.01) {
-        bbox[0][0] -= 0.01;
-        bbox[0][1] += 0.01;
-      }
-      if (Math.abs(bbox[1][0] - bbox[1][1]) < 0.01) {
-        bbox[1][0] -= 0.01;
-        bbox[1][1] += 0.01;
-      }
-
       const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200)
         ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
 
@@ -555,7 +561,7 @@ class Navigation extends Component {
       };
       if (viewport.width) {
         try {
-          const newVp = new WebMercatorViewport(viewport).fitBounds(bbox, { padding, maxZoom: 10 });
+          const newVp = new WebMercatorViewport(viewport).fitBounds(bbox, { padding, maxZoom: 16 });
           this.setState({ viewport: newVp });
         } catch (err) {
           console.error(err);
