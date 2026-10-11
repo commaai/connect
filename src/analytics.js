@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
+import { videoOffsetMs } from './timeline/video';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
@@ -55,7 +56,8 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
 function getVideoPercent(state, offset) {
   const { zoom } = state;
   if (!offset) {
-    offset = state.offset;
+    // the <video> element is the clock; state.offset is only the last seek target
+    offset = videoOffsetMs(state.currentRoute) ?? state.offset;
   }
   return (offset - (zoom.start)) / (zoom.end - zoom.start);
 }
