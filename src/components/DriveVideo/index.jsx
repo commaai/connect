@@ -300,7 +300,7 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
+    const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted, isFullscreen } = this.props;
     const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
@@ -324,7 +324,7 @@ class DriveVideo extends Component {
     };
 
     return (
-      <div className="w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]">
+      <div className={`w-full relative m-[0_auto] ${isFullscreen ? 'h-full' : 'max-w-[964px] aspect-[1.593]'}`}>
         <VideoOverlay loading={isBufferingVideo} error={videoError} />
         <ReactPlayer
           ref={this.videoPlayer}
