@@ -12,14 +12,10 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
 
   const parsed = parseURL({ pathname });
   const { page, range } = parsed;
-
-  if (page === 'not-found') {
-    dispatch(replace('/'));
-    return;
-  }
+  const { search } = state.router.location;
 
   let dongleId = parsed.dongleId ?? state.dongleId;
-  if (!dongleId && state.devices?.length) {
+  if (!dongleId && state.devices.length) {
     const rememberedDongleId = window.localStorage.getItem('selectedDongleId');
     const selectedDevice = state.devices.find((device) => device.dongle_id === rememberedDongleId)
       || state.devices.find((device) => device.dongle_id === defaultDongleId)
@@ -27,13 +23,16 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
     dongleId = selectedDevice.dongle_id;
   }
 
-  if (page === 'root' && dongleId) {
-    dispatch(replace({ pathname: `/${dongleId}`, search: getState().router.location.search }));
+  if (page === 'not-found') {
+    dispatch(replace(dongleId ? `/${dongleId}` : '/'));
     return;
   }
-
+  if (page === 'root' && dongleId) {
+    dispatch(replace({ pathname: `/${dongleId}`, search }));
+    return;
+  }
   if (page === 'drive' && !range && pathname !== `/${dongleId}/${parsed.logId}`) {
-    dispatch(replace({ pathname: `/${dongleId}/${parsed.logId}`, search: getState().router.location.search }));
+    dispatch(replace({ pathname: `/${dongleId}/${parsed.logId}`, search }));
     return;
   }
 
@@ -57,11 +56,11 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
       dispatch(primeFetchSubscription());
       dispatch(fetchDeviceOnline(dongleId));
     }
-    if (!device && state.devices && api.auth.isAuthenticated()) {
+    if (!device && api.auth.isAuthenticated()) {
       dispatch(fetchSharedDevice(dongleId));
     }
     dispatch(checkLastRoutesData());
-  } else if (dongleId && page === 'drive') {
+  } else if (page === 'drive') {
     dispatch(checkRoutesData());
   }
 
