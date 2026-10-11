@@ -594,7 +594,7 @@ class Media extends Component {
               </div>
             }
           </div>
-          <div className={`${isFullscreen ? 'absolute bottom-2 inset-x-2' : `${videoWidthCls} self-start`} flex justify-center`}>
+          <div className={`${isFullscreen ? 'absolute z-50 bottom-2 inset-x-2' : `${videoWidthCls} self-start`} flex justify-center`}>
             <TimeDisplay
               isThin
               isMuted={isMuted}
