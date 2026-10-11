@@ -146,6 +146,8 @@ async function renderApp(pathname, options = {}) {
 }
 
 describe('whole-app behavior', () => {
+  // load the lazy explorer chunk up front, so the first test isn't timed on it
+  beforeAll(() => import('./components/explorer'), 30_000);
   beforeAll(() => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
@@ -302,5 +304,33 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('settings opens by url and closing it does not come back with back', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/settings`)); // what the settings button does
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    act(() => history.goBack());
+    expect(history.location.pathname).not.toBe(`/${FIRST}/settings`);
+  });
+
+  test('settings opened from a link closes to its dashboard', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(history.length).toBe(1);
+  });
+
+  test('the drive back arrow zooms out to the whole drive', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/20`);
+    const back = await screen.findByRole('button', { name: 'Go Back' });
+    expect(back).toBeEnabled();
+    fireEvent.click(back);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeDisabled();
   });
 });

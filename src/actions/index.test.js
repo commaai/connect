@@ -1,53 +1,57 @@
 import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
-
-vi.mock('../timeline/playback', () => ({
-  reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
-}));
+import { goBack, push, replace } from 'connected-react-router';
+import { closeSettings, navigate, primeNav, pushTimelineRange, streamNav } from './index';
 
 vi.mock('connected-react-router', async () => {
   const originalModule = await vi.importActual('connected-react-router');
   return {
     __esModule: true,
     ...originalModule,
+    goBack: vi.fn(),
     push: vi.fn(),
+    replace: vi.fn(),
   };
 });
 
-describe('timeline actions', () => {
+const state = {
+  dongleId: 'statedongle',
+  routes: [{ log_id: 'log', duration: 60000 }],
+  router: { action: 'PUSH', location: { pathname: '/statedongle' } },
+};
+
+function run(thunk, overrides = {}) {
+  const getState = () => ({ ...state, ...overrides });
+  const dispatch = vi.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+  thunk(dispatch, getState);
+}
+
+beforeEach(() => vi.clearAllMocks());
+
+describe('navigation actions only change the url', () => {
   it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
-  });
-
-  it('should push history state when editing zoom', () => {
-    const dispatch = vi.fn();
-    const getState = vi.fn();
-    const actionThunk = pushTimelineRange("log_id", 123, 1234);
-
-    getState.mockImplementationOnce(() => ({
-      dongleId: 'statedongle',
-      loop: {},
-      zoom: {},
-    }));
-    actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
-  });
-
-  it.each([
-    ['Prime', primeNav, 'primeNav', '/statedongle/prime'],
-    ['stream', streamNav, 'streamNav', '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, stateKey, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
+    ['a drive range', pushTimelineRange('log', 10000, 20000), '/statedongle/log/10/20'],
+    ['a range from 0', pushTimelineRange('log', 0, 20000), '/statedongle/log/0/20'],
+    ['the whole drive', pushTimelineRange('log', 0, 60000), '/statedongle/log'],
+    ['no drive', pushTimelineRange(null, null, null), '/statedongle'],
+    ['Prime', primeNav(true), '/statedongle/prime'],
+    ['stream', streamNav(true), '/statedongle/stream'],
+  ])('pushes %s', (_name, thunk, expected) => {
+    run(thunk, { router: { location: { pathname: '/' } } });
     expect(push).toHaveBeenCalledWith(expected);
+  });
+
+  it('does not push the url it is already on', () => {
+    run(navigate({ page: 'dashboard', dongleId: 'statedongle' }));
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('closes settings with back when the app opened it', () => {
+    run(closeSettings());
+    expect(goBack).toHaveBeenCalled();
+  });
+
+  it('closes settings with a replace when it was opened from a link', () => {
+    run(closeSettings(), { router: { action: 'POP', location: { pathname: '/statedongle/settings' } } });
+    expect(replace).toHaveBeenCalledWith('/statedongle');
   });
 });

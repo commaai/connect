@@ -15,6 +15,10 @@ export function hasRoutesData(state) {
     console.debug('Still loading...');
     return false;
   }
+  if (state.routesMeta.routeId && state.routesMeta.routeId !== state.selectedRouteId) {
+    console.debug('Only one drive loaded');
+    return false;
+  }
   if (state.dongleId !== state.routesMeta.dongleId) {
     console.debug('Bad dongle id');
     return false;
