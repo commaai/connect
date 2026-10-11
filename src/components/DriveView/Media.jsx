@@ -249,13 +249,9 @@ class Media extends Component {
 
   handleFullscreenToggle() {
     const video = this.videoContainer.current.querySelector('video');
-    if (!video) {
-      return;
-    }
+    if (!video) return;
     const onExit = () => {
-      if (document.fullscreenElement) {
-        return;
-      }
+      if (document.fullscreenElement) return;
       video.removeEventListener('fullscreenchange', onExit);
       video.controls = false;
       this.props.dispatch(seek(video.currentTime * 1000 + (this.props.currentRoute.videoStartOffset || 0)));
