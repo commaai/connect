@@ -243,6 +243,30 @@ describe('whole-app behavior', () => {
     expect(store.getState().desiredPlaySpeed).toBe(0);
   });
 
+  test('shared viewers can open the upload queue', async () => {
+    const { store } = await renderApp(`/${SHARED}/${LOG}`);
+    await waitFor(() => expect(store.getState().device?.is_owner).toBe(false));
+    const now = Math.floor(Date.now() / 1000);
+
+    act(() => {
+      store.dispatch({
+        type: 'ACTION_UPDATE_DEVICE_ONLINE',
+        dongleId: SHARED,
+        last_athena_ping: now,
+        fetched_at: now,
+      });
+    });
+
+    fireEvent.click(await screen.findByText('Files'));
+    await waitFor(() => expect(store.getState().files).not.toBeNull());
+
+    fireEvent.click(screen.getByText('View upload queue'));
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('All logs')).toBeVisible();
+  });
+
   test('late copy completion leaves Files open', async () => {
     const path = `/${FIRST}/${LOG}`;
     const { history } = await renderApp(`${path}?dialog=files`);

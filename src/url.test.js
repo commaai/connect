@@ -17,8 +17,22 @@ describe('navigation URLs', () => {
     expect(view.range).toEqual({ start, end });
   });
 
+  it.each([0, 10])('opens copied segment %s as a whole drive', (segment) => {
+    const pathname = `${DRIVE}/${segment}`;
+
+    const view = parseLocation(pathname);
+
+    expect(view).toMatchObject({
+      page: 'drive',
+      dongleId: DONGLE,
+      logId: LOG,
+      range: null,
+      canonicalPath: pathname,
+    });
+  });
+
   it.each([
-    `${DRIVE}/10`,
+    `${DRIVE}/segment`,
     `${DRIVE}/20/10`,
     `${DRIVE}/NaN/20`,
     `${DRIVE}/0/Infinity`,

@@ -30,7 +30,7 @@ function Dialogs({ view, device, currentRoute, zoom, dispatch, profile, activeDe
       )}
       {view.dialog === 'add-device' && <AddDeviceDialog />}
       {view.dialog === 'filter' && <TimeSelect onClose={close} />}
-      {['uploads', 'settings-uploads'].includes(view.dialog) && authorized && (
+      {device && (view.dialog === 'uploads' || (view.dialog === 'settings-uploads' && authorized)) && (
         <UploadQueue
           key={device.dongle_id}
           open

@@ -77,7 +77,8 @@ function parsePath(pathname) {
     } else if (LOG.test(parts[1])) {
       view.logId = parts[1]; view.page = 'drive';
       view.range = parts.length === 4 ? range(parts[2], parts[3], 1000) : null;
-      valid = parts.length === 2 || (parts.length === 4 && Boolean(view.range));
+      valid = parts.length === 2 || (parts.length === 3 && /^\d+$/.test(parts[2]))
+        || (parts.length === 4 && Boolean(view.range));
       if (!valid) { view.logId = null; view.range = null; view.page = 'dashboard'; }
     } else if (parts.length === 3) {
       view.legacyRange = range(parts[1], parts[2]);
