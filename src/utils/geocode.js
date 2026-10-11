@@ -190,3 +190,34 @@ export async function reverseLookup(coords, navFormat = false) {
   return null;
 }
 
+
+async function navigationRequest(path, params, signal) {
+  const { request } = await import('../api');
+  const response = await fetch(`${request.baseUrl}v1/nav/${path}?${new URLSearchParams(params)}`, {
+    headers: request.headers,
+    signal,
+  });
+  if (!response.ok) throw new Error(`Navigation request failed: ${response.status}`);
+  return response.json();
+}
+
+export async function forwardLookup(query, proximity, signal) {
+  const params = { limit: '10', autocomplete: 'true' };
+  if (proximity) params.proximity = proximity.join(',');
+  const data = await navigationRequest(`geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`, params, signal);
+  return data.features.filter(place => place.center?.length === 2 && place.center.every(Number.isFinite)
+    && Math.abs(place.center[0]) <= 180 && Math.abs(place.center[1]) <= 90).map(place => ({
+    id: place.id,
+    title: place.text,
+    resultType: 'place',
+    position: { lng: place.center[0], lat: place.center[1] },
+    address: { label: place.place_name },
+  }));
+}
+
+export async function getDirections(points, signal) {
+  const data = await navigationRequest(`directions/v5/mapbox/driving-traffic/${points.map(point => point.join(',')).join(';')}`, {
+    geometries: 'geojson', overview: 'full', steps: 'false',
+  }, signal);
+  return data.routes;
+}

@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 
 import DriveList from './DriveList';
 import Navigation from '../Navigation';
-import DestinationEntry from '../Navigation/DestinationEntry';
 import Promotions from '../Promotions';
 import DeviceInfo from '../DeviceInfo';
 import FullPageLoading from '../FullPageLoading';
@@ -22,7 +21,6 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
           ? <Prime />
           : (
             <>
-              <DestinationEntry key={dongleId} device={device} dongleId={dongleId} />
               <Navigation />
               <Promotions />
               <DeviceInfo />
