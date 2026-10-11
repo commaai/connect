@@ -252,7 +252,6 @@ class Media extends Component {
     if (!video) {
       return;
     }
-    // the browser's own fullscreen player (the only kind iPhone allows) drives playback, so sync the timeline to it on exit
     const onExit = () => {
       if (document.fullscreenElement) {
         return;
