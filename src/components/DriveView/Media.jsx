@@ -214,14 +214,12 @@ class Media extends Component {
       isMuted: true,
       hasAudio: false,
       clipsSupported: false,
-      isFullscreen: false,
     };
 
     this.videoContainer = React.createRef();
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
     this.handleFullscreenToggle = this.handleFullscreenToggle.bind(this);
-    this.onFullscreenChange = this.onFullscreenChange.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
@@ -250,29 +248,32 @@ class Media extends Component {
   }
 
   handleFullscreenToggle() {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else if (document.fullscreenEnabled) {
-      this.setState({ inView: MediaType.VIDEO });
-      this.videoContainer.current.requestFullscreen();
-    } else {
-      //separate path for fullscreen for iOS Safari
-      const video = this.videoContainer.current.querySelector('video');
-      video?.addEventListener('webkitendfullscreen', () => {
-        this.props.dispatch(seek(video.currentTime * 1000 + (this.props.currentRoute.videoStartOffset || 0)));
-        this.props.dispatch(video.paused ? pause() : play());
-      }, { once: true });
-      video?.webkitEnterFullscreen();
+    const video = this.videoContainer.current.querySelector('video');
+    if (!video) {
+      return;
     }
-  }
-
-  onFullscreenChange() {
-    this.setState({ isFullscreen: Boolean(document.fullscreenElement) });
+    // the browser's own fullscreen player (the only kind iPhone allows) drives playback, so sync the timeline to it on exit
+    const onExit = () => {
+      if (document.fullscreenElement) {
+        return;
+      }
+      video.removeEventListener('fullscreenchange', onExit);
+      video.controls = false;
+      this.props.dispatch(seek(video.currentTime * 1000 + (this.props.currentRoute.videoStartOffset || 0)));
+      this.props.dispatch(video.paused ? pause() : play());
+    };
+    if (document.fullscreenEnabled) {
+      video.controls = true;
+      video.addEventListener('fullscreenchange', onExit);
+      video.requestFullscreen();
+    } else {
+      video.addEventListener('webkitendfullscreen', onExit, { once: true });
+      video.webkitEnterFullscreen();
+    }
   }
 
   componentDidMount() {
     this.mounted = true;
-    document.addEventListener('fullscreenchange', this.onFullscreenChange);
     this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
       this.setState({ windowWidth: width });
     });
@@ -327,7 +328,6 @@ class Media extends Component {
   componentWillUnmount() {
     this.mounted = false;
     this.unsubscribeWindowSize?.();
-    document.removeEventListener('fullscreenchange', this.onFullscreenChange);
   }
 
   async checkClipsSupport() {
@@ -564,51 +564,45 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted, hasAudio, isFullscreen } = this.state;
+    const { inView, windowWidth, isMuted, hasAudio } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
     const showMapAlways = windowWidth >= 1536;
-    const showMapBeside = showMapAlways && !isFullscreen;
-    const videoWidthCls = showMapBeside ? 'w-[60%]' : 'w-full';
 
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
-        <div ref={this.videoContainer} className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-[1300] bg-black' : 'gap-4'}`}>
-          <div className={`flex flex-row gap-5 ${isFullscreen ? 'flex-1 min-h-0' : ''}`}>
-            <div className={videoWidthCls}>
-              {inView === MediaType.VIDEO && (
-                <DriveVideo
-                  isMuted={isMuted}
-                  isFullscreen={isFullscreen}
-                  onAudioStatusChange={this.handleAudioStatusChange}
-                />
-              )}
-              {(inView === MediaType.MAP && !showMapAlways) && (
-                <div className="w-full">
-                  <DriveMap />
-                </div>
-              )}
-            </div>
-            {(inView === MediaType.VIDEO && showMapBeside) &&
-              <div className="w-[40%]">
+        <div className="flex flex-row gap-5">
+          <div ref={this.videoContainer} className={showMapAlways ? 'w-[60%]' : 'w-full'}>
+            {inView === MediaType.VIDEO && (
+              <DriveVideo
+                isMuted={isMuted}
+                onAudioStatusChange={this.handleAudioStatusChange}
+              />
+            )}
+            {(inView === MediaType.MAP && !showMapAlways) && (
+              <div className="w-full">
                 <DriveMap />
               </div>
-            }
+            )}
           </div>
-          <div className={`${isFullscreen ? 'absolute z-50 bottom-2 inset-x-2' : `${videoWidthCls} self-start`} flex justify-center`}>
-            <TimeDisplay
-              isThin
-              isMuted={isMuted}
-              hasAudio={hasAudio}
-              onMuteToggle={this.handleMuteToggle}
-              isFullscreen={isFullscreen}
-              onFullscreenToggle={this.handleFullscreenToggle}
-            />
-          </div>
+          {(inView === MediaType.VIDEO && showMapAlways) &&
+            <div className="w-[40%]">
+              <DriveMap />
+            </div>
+          }
+        </div>
+        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
+          <TimeDisplay
+            isThin
+            isMuted={isMuted}
+            hasAudio={hasAudio}
+            onMuteToggle={this.handleMuteToggle}
+            onFullscreenToggle={this.handleFullscreenToggle}
+          />
         </div>
       </div>
     );

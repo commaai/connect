@@ -7,7 +7,7 @@ import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
-import { DownArrow, Forward10, Fullscreen, FullscreenExit, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
+import { DownArrow, Forward10, Fullscreen, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
@@ -45,9 +45,6 @@ const styles = (theme) => ({
       height: '3.125em',
       paddingBottom: 0,
       paddingTop: 0,
-    },
-    '&.isFullscreen': {
-      backgroundColor: 'rgba(12, 14, 15, 0.5)',
     },
   },
   desiredPlaySpeedContainer: {
@@ -230,14 +227,13 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio, onFullscreenToggle, isFullscreen } = this.props;
+    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio, onFullscreenToggle } = this.props;
     const { displayTime, desiredPlaySpeed } = this.state;
     const isPaused = videoPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
-    const isFullscreenCls = isFullscreen ? 'isFullscreen' : '';
     return (
-      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls} ${isFullscreenCls}` }>
+      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.rightBorderBox }>
           <IconButton
             className={ classes.iconButton }
@@ -319,11 +315,9 @@ class TimeDisplay extends Component {
           <IconButton
             className={ classes.iconButton }
             onClick={onFullscreenToggle}
-            aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            aria-label="Fullscreen"
           >
-            {isFullscreen
-              ? (<FullscreenExit className={`${classes.icon} small`} />)
-              : (<Fullscreen className={`${classes.icon} small`} />)}
+            <Fullscreen className={`${classes.icon} small`} />
           </IconButton>
         </div>
       </div>
