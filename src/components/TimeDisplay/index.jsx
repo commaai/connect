@@ -47,10 +47,7 @@ const styles = (theme) => ({
       paddingTop: 0,
     },
     '&.isFullscreen': {
-      backgroundColor: `color-mix(in srgb, ${theme.palette.grey[999]} 70%, transparent)`,
-      '& > div': {
-        borderColor: `color-mix(in srgb, ${theme.palette.grey[900]} 70%, transparent)`,
-      },
+      backgroundColor: 'rgba(12, 14, 15, 0.5)',
     },
   },
   desiredPlaySpeedContainer: {
