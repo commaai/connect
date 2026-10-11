@@ -361,6 +361,18 @@ class Navigation extends Component {
     }
   }
 
+  async getSearchLocation() {
+    const location = this.state.geoLocateCoords || this.getCarLocation()?.location;
+    if (location) return location;
+    const pos = await new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error('location unavailable'));
+      navigator.geolocation.getCurrentPosition(resolve, reject, { maximumAge: 60000, timeout: 5000 });
+    });
+    const coords = [pos.coords.longitude, pos.coords.latitude];
+    if (this.mounted) this.setState({ geoLocateCoords: coords });
+    return coords;
+  }
+
   onSearch() {
     this.focus();
     clearTimeout(this.searchTimer);
@@ -375,15 +387,16 @@ class Navigation extends Component {
     const request = new AbortController();
     this.searchController = request;
     this.searchTimer = setTimeout(async () => {
-      const vp = this.state.viewport;
-      const proximity = this.getCarLocation()?.location || this.state.geoLocateCoords || [vp.longitude, vp.latitude];
       try {
+        const proximity = await this.getSearchLocation();
+        if (request.signal.aborted || !this.mounted) return;
         const search = await forwardLookup(query, proximity, request.signal);
         if (this.mounted && !request.signal.aborted) this.setState({ search, noFly: false, searchLooking: false });
       } catch {
-        if (this.mounted && !request.signal.aborted) this.setState({ navError: 'Could not search for places. Please try again.' });
+        if (this.mounted && !request.signal.aborted) this.setState({ search: null, navError: this.state.geoLocateCoords || this.getCarLocation()
+          ? 'Could not search for places. Please try again.' : 'Allow location access or turn on your device to find nearby places.' });
       }
-    }, 200);
+    }, 400);
   }
 
   onFocus() {
@@ -501,10 +514,10 @@ class Navigation extends Component {
     }
 
     const bounds = [];
-    if (geoLocateCoords) {
+    if (geoLocateCoords && (!search || searchSelect)) {
       bounds.push([geoLocateCoords, geoLocateCoords]);
     }
-    if (carLocation) {
+    if (carLocation && (!search || searchSelect)) {
       bounds.push([carLocation.location, carLocation.location]);
     }
     if (searchSelect) {
