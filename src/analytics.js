@@ -4,16 +4,15 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { parseLocation } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
+  const { dongleId, legacyRange: zoom } = parseLocation(pathname);
   if (dongleId) {
     pageLocation = pageLocation.replace(dongleId, '<dongleId>');
   }
-  const zoom = getZoom(pageLocation);
   if (zoom) {
     pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
     pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
@@ -106,7 +105,41 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.TIMELINE_PUSH_SELECTION:
+    case Types.ACTION_APPLY_LOCATION:
+      if (prevState.dongleId !== state.dongleId) {
+        gtag('event', 'select_device', {
+          ...params,
+          device_prime_type: state.device?.prime_type,
+          device_type: state.device?.device_type,
+          device_version: state.device?.openpilot_version,
+          device_owner: state.device?.is_owner,
+          device_online: state.device ? deviceIsOnline(state.device) : undefined,
+          device_sim_type: state.device?.sim_type,
+          device_trial_claimed: state.device?.trial_claimed,
+        });
+
+        gtag('set', {
+          user_properties: {
+            device_prime_type: state.device?.prime_type,
+            device_type: state.device?.device_type,
+            device_version: state.device?.openpilot_version,
+            device_owner: state.device?.is_owner,
+            device_online: state.device ? deviceIsOnline(state.device) : undefined,
+            device_sim_type: state.device?.sim_type,
+            device_trial_claimed: state.device?.trial_claimed,
+          },
+        });
+      }
+      if (prevState.dongleId === state.dongleId && prevState.filter !== state.filter) {
+        params = {
+          ...params,
+          start: state.filter.start,
+          end: state.filter.end,
+        };
+        attachRelTime(params, 'start', true, 'h');
+        attachRelTime(params, 'end', true, 'h');
+        gtag('event', 'select_time_filter', params);
+      }
       if (!prevState.zoom && state.zoom) {
         params = {
           ...params,
@@ -140,42 +173,6 @@ function logAction(action, prevState, state) {
         ...params,
         page_location: getPageViewEventLocation(window.location.pathname),
       });
-      return;
-
-    case Types.ACTION_SELECT_DEVICE:
-      gtag('event', 'select_device', {
-        ...params,
-        device_prime_type: state.device?.prime_type,
-        device_type: state.device?.device_type,
-        device_version: state.device?.openpilot_version,
-        device_owner: state.device?.is_owner,
-        device_online: state.device ? deviceIsOnline(state.device) : undefined,
-        device_sim_type: state.device?.sim_type,
-        device_trial_claimed: state.device?.trial_claimed,
-      });
-
-      gtag('set', {
-        user_properties: {
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
-        },
-      });
-      return;
-
-    case Types.ACTION_SELECT_TIME_FILTER:
-      params = {
-        ...params,
-        start: action.start,
-        end: action.end,
-      };
-      attachRelTime(params, 'start', true, 'h');
-      attachRelTime(params, 'end', true, 'h');
-      gtag('event', 'select_time_filter', params);
       return;
 
     case Types.ACTION_UPDATE_DEVICE_ONLINE:

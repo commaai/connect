@@ -7,14 +7,14 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
-import { updateDevices } from '../../actions';
+import { updateDevices, openDialog } from '../../actions';
 import Colors from '../../colors';
+import { dialogUrl, locationHref, deviceUrl } from '../../url';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
 
 const styles = (theme) => ({
   deviceList: {
@@ -51,6 +51,8 @@ const styles = (theme) => ({
   deviceInfo: {
     display: 'flex',
     alignItems: 'center',
+    textDecoration: 'none',
+    flex: 1,
   },
   deviceName: {
     display: 'flex',
@@ -88,24 +90,14 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
-    ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    filterRegularClick(() => this.props.dispatch(openDialog('settings', dongleId)))(ev);
   }
 
   async onVisible() {
@@ -122,17 +114,18 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
+    const { classes, handleDeviceSelected, profile, selectedDevice, location } = this.props;
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
-      <a
+      <div
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
       >
-        <div className={classes.deviceInfo}>
+        <a className={classes.deviceInfo}
+          onClick={filterRegularClick(() => handleDeviceSelected(device.dongle_id))}
+          href={locationHref(dialogUrl({ ...location, pathname: deviceUrl(device.dongle_id) }, null))}
+        >
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
           <div className={ classes.deviceName }>
             <Typography className={classes.deviceAlias}>
@@ -142,10 +135,12 @@ class DeviceList extends Component {
               { device.dongle_id }
             </Typography>
           </div>
-        </div>
+        </a>
         { (device.is_owner || (profile && profile.superuser))
           && (
           <IconButton
+            component="a"
+            href={locationHref(dialogUrl(location, 'settings', device.dongle_id))}
             className={classes.settingsButton}
             aria-label="device settings"
             onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
@@ -153,12 +148,11 @@ class DeviceList extends Component {
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
           )}
-      </a>
+      </div>
     );
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -202,17 +196,13 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }
 }
 
 const stateToProps = (state) => ({
+  location: state.router.location,
   devices: state.devices,
   device: state.device,
   profile: state.profile,

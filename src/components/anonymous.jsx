@@ -1,6 +1,7 @@
 /* global AppleID */
 import React, { useEffect } from 'react';
 import { connect } from 'react-redux';
+import { appReturnUrl } from '../url';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -47,11 +48,12 @@ const styles = () => ({
   },
 });
 
-const AnonymousLanding = ({ classes, pathname }) => {
+const AnonymousLanding = ({ classes, location }) => {
   useEffect(() => {
     if (typeof window.sessionStorage !== 'undefined') {
-      const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
+      const q = new URLSearchParams(location.search);
+      const destination = location.pathname === '/' ? appReturnUrl(q.get('r')) : null;
+      const redirectURL = destination || location.pathname + location.search + location.hash;
       sessionStorage.setItem('redirectURL', redirectURL);
     }
 
@@ -128,7 +130,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
 };
 
 const stateToProps = (state) => ({
-  pathname: state.router.location.pathname,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));

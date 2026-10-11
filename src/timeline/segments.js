@@ -19,6 +19,7 @@ export function hasRoutesData(state) {
     console.debug('Bad dongle id');
     return false;
   }
+  if ((state.routesMeta.limit || 0) < state.limit) return false;
   const fetchRange = state.filter;
   if (fetchRange.start < state.routesMeta.start) {
     console.debug('Bad start offset');

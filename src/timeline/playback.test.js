@@ -131,3 +131,11 @@ describe('playback', () => {
     expect(state.desiredPlaySpeed).toEqual(2);
   });
 });
+
+it('keeps a zero-start sub-second loop valid when the first video frame is outside it', () => {
+  const state = { currentRoute: { videoStartOffset: 1000 }, zoom: { start: 0, end: 123 },
+    loop: { startTime: 0, duration: 123 }, offset: 42, startTime: Date.now(), desiredPlaySpeed: 0, isBufferingVideo: true };
+  const after = reducer(state, { type: 'TEST' });
+  expect(after.loop).toBe(state.loop);
+  expect(after.offset).toBe(42);
+});

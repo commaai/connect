@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -14,10 +14,11 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav, openDialog, closeDialog } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
-import { play, pause } from '../timeline/playback';
+import { currentView, appReturnUrl } from '../url';
+import Dialogs from './Dialogs';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 
@@ -89,6 +90,7 @@ class ExplorerApp extends Component {
   }
 
   async componentDidMount() {
+    this.mounted = true;
     const { pairLoading, pairError, pairDongleId } = this.state;
 
     this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
@@ -97,13 +99,13 @@ class ExplorerApp extends Component {
 
     window.scrollTo({ top: 0 }); // for ios header
 
-    const q = new URLSearchParams(window.location.search);
-    if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
-    }
+    const { location } = this.props;
+    const destination = location.pathname === '/' ? appReturnUrl(new URLSearchParams(location.search).get('r')) : null;
+    if (destination) this.props.dispatch(replace(destination));
 
     this.props.dispatch(init());
 
+    const pairLocation = this.props.location;
     let pairToken;
     try {
       pairToken = await localforage.getItem('pairToken');
@@ -111,6 +113,7 @@ class ExplorerApp extends Component {
       console.error(err);
     }
     if (pairToken && !pairLoading && !pairError && !pairDongleId) {
+      if (this.props.location === pairLocation && !new URLSearchParams(this.props.location.search).has('pair')) this.props.dispatch(openDialog('pair-result'));
       this.setState({ pairLoading: true });
 
       try {
@@ -150,37 +153,25 @@ class ExplorerApp extends Component {
   }
 
   componentWillUnmount() {
+    this.mounted = false;
     this.unsubscribeWindowSize?.();
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+  componentDidUpdate(prevProps) {
+    const { pathname } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
-    }
-
-    if (!prevProps.zoom && zoom) {
-      this.props.dispatch(play());
-    }
-    if (prevProps.zoom && !zoom) {
-      this.props.dispatch(pause());
-    }
-
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
     }
   }
 
   async closePair() {
     const { pairDongleId } = this.state;
+    const { location } = this.props;
     await localforage.removeItem('pairToken');
-    if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
-    }
+    if (!this.mounted || this.props.location !== location) return;
+    this.props.dispatch(closeDialog());
+    if (pairDongleId) this.props.dispatch(selectDevice(pairDongleId));
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
 
@@ -198,12 +189,12 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, page, selectedRouteId, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -224,7 +215,7 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
-        { bodyTeleopOpen ? (
+        { page === 'stream' ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
           <>
@@ -244,13 +235,14 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(selectDevice(dongleId))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
-            <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+            <Dialogs />
+            <Modal open={ this.props.dialog === 'pair-result' } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
                 <hr />
@@ -263,6 +255,7 @@ class ExplorerApp extends Component {
                   </Typography>
                   )}
                 { pairError && <Typography>{ pairError }</Typography> }
+                { !pairLoading && !pairError && !pairDongleId && <Typography>Scan your device’s pairing QR code to pair.</Typography> }
                 <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
                   Close
                 </Button>
@@ -276,14 +269,14 @@ class ExplorerApp extends Component {
 }
 
 const stateToProps = (state) => ({
-  zoom: state.zoom,
+  location: state.router.location,
+  dialog: currentView(state).dialog,
   pathname: state.router.location.pathname,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
+  page: currentView(state).page,
   profile: state.profile,
 });
 

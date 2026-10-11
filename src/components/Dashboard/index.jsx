@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
+import { currentView } from '../../url';
 
 import DriveList from './DriveList';
 import Navigation from '../Navigation';
@@ -18,7 +19,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
     <div className="relative flex flex-col">
       <Suspense fallback={<FullPageLoading />}>
         { primeNav
-          ? <Prime />
+          ? <Prime key={dongleId} />
           : (
             <>
               <Navigation />
@@ -34,7 +35,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  primeNav: state.primeNav,
+  primeNav: currentView(state).page === 'prime',
   device: state.device,
 });
 

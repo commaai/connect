@@ -9,6 +9,7 @@ import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
 import { RightArrow } from '../../icons';
+import { driveUrl, dialogUrl, locationHref } from '../../url';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Timeline from '../Timeline';
@@ -57,7 +58,7 @@ const DriveListItem = (props) => {
   const el = useRef();
   const [isVisible, setVisible] = useState(false);
   const windowWidth = useWindowWidth();
-  const { classes, dispatch, drive } = props;
+  const { classes, dispatch, drive, location } = props;
 
   useEffect(() => {
     const onScroll = () => {
@@ -119,7 +120,7 @@ const DriveListItem = (props) => {
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
+      href={locationHref(dialogUrl({ ...location, pathname: driveUrl(drive.dongle_id, drive.log_id) }, null))}
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
@@ -161,4 +162,4 @@ const DriveListItem = (props) => {
   );
 };
 
-export default connect(() => ({}))(withStyles(styles)(DriveListItem));
+export default connect((state) => ({ location: state.router?.location || window.location }))(withStyles(styles)(DriveListItem));

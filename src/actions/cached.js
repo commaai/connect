@@ -262,19 +262,11 @@ function parseEvents(route, driveEvents) {
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.routes) {
+    if (!state.routeMetadata) {
       return;
     }
 
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.events) {
-          return;
-        }
-        break;
-      }
-    }
+    if (state.routeMetadata[route.fullname]?.events) return;
 
     // already requesting
     if (eventsRequests[route.fullname] !== undefined) {
@@ -345,19 +337,11 @@ export function fetchEvents(route) {
 export function fetchCoord(route, coord, locationKey) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.routes || (!coord[0] && !coord[1])) {
+    if (!state.routeMetadata || (!coord[0] && !coord[1])) {
       return;
     }
 
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r[locationKey]) {
-          return;
-        }
-        break;
-      }
-    }
+    if (state.routeMetadata[route.fullname]?.[locationKey]) return;
 
     // round for better caching
     coord[0] = Math.round(coord[0] * 1000) / 1000;
@@ -418,19 +402,11 @@ export function fetchLocations(route) {
 export function fetchDriveCoords(route) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.routes) {
+    if (!state.routeMetadata) {
       return;
     }
 
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.driveCoords) {
-          return;
-        }
-        break;
-      }
-    }
+    if (state.routeMetadata[route.fullname]?.driveCoords) return;
 
     // already requesting
     if (driveCoordsRequests[route.fullname] !== undefined) {

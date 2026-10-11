@@ -7,14 +7,13 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 
 import { athena as Athena } from '../../api';
 import { deviceSupportsClips } from '../../api/clips';
-import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { openDialog, analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
 import VisibilityHandler from '../VisibilityHandler';
 import { subscribeWindowSize } from '../../hooks/window';
 import CommacareBadge from '../CommacareBadge';
-import ClipMenu from '../DriveView/ClipMenu';
 import { LivestreamIcon, CarBatteryIcon, CameraIcon, ContentCut, GamepadIcon } from '../../icons';
 
 const styles = (theme) => ({
@@ -152,8 +151,6 @@ class DeviceInfo extends Component {
       carHealth: {},
       snapshot: {},
       windowWidth: window.innerWidth,
-      bodyTeleopOpen: false,
-      clipMenu: null,
       clipsSupported: false,
     };
 
@@ -190,7 +187,6 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
-        clipMenu: null,
         clipsSupported: false,
       });
       this.checkClipsSupport();
@@ -329,15 +325,6 @@ class DeviceInfo extends Component {
             { this.renderButtons() }
           </div>
         </div>
-        <ClipMenu
-          open={Boolean(this.state.clipMenu)}
-          dongleId={this.props.dongleId}
-          anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
-          routes={this.props.routes}
-          deviceOnline={deviceIsOnline(device)}
-          inventoryOnly
-        />
         { snapshot.result && (
           <div className={ classes.snapshotContainer }>
             { windowWidth >= 640
@@ -413,7 +400,8 @@ class DeviceInfo extends Component {
             <button
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              data-clips-anchor={this.props.dongleId}
+              onClick={() => this.props.dispatch(openDialog('clips', this.props.dongleId))}
               disabled={offline}
             >
               <ContentCut />

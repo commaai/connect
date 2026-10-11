@@ -9,7 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
+import { parseLocation, appReturnUrl } from './url';
 import { webrtcConnectionManager } from './utils/webrtc';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
@@ -79,8 +79,9 @@ class App extends Component {
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
       const { pathname } = window.location;
-      const teleopDongleId = getDongleID(pathname);
-      if (teleopDongleId && getStreamNav(pathname)) {
+      const teleop = parseLocation(pathname);
+      const teleopDongleId = teleop.dongleId;
+      if (teleopDongleId && teleop.page === 'stream') {
         webrtcConnectionManager.reconnect(teleopDongleId);
       }
 
@@ -96,7 +97,7 @@ class App extends Component {
   redirectLink() {
     let url = '/';
     if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
-      url = sessionStorage.getItem('redirectURL');
+      url = appReturnUrl(sessionStorage.getItem('redirectURL')) || '/';
       sessionStorage.removeItem('redirectURL');
     }
     return url;
@@ -130,12 +131,15 @@ class App extends Component {
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
     let content = (
-      <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
-      </Suspense>
+      <Route render={({ location }) => (
+        <Suspense fallback={<FullPageLoading />}>
+          {!api.auth.isAuthenticated()
+            && !['drive', 'legacy'].includes(parseLocation(location).page)
+            ? this.anonymousRoutes()
+            : this.authRoutes()}
+        </Suspense>
+      )} />
     );
 
     // Use ErrorBoundary in production only

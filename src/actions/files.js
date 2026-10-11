@@ -20,7 +20,7 @@ const MAX_RETRIES = 5;
 // connect uploads should be high priority as they are user requested (lower is higher)
 const HIGH_PRIORITY = 0;
 
-let uploadQueueTimeout = null;
+let uploadQueue = null;
 let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
@@ -85,15 +85,8 @@ export async function fetchUploadUrls(dongleId, paths) {
   return null;
 }
 
-export function updateFiles(files) {
-  return (dispatch, getState) => {
-    const { dongleId } = getState();
-    dispatch({
-      type: Types.ACTION_FILES_UPDATE,
-      dongleId,
-      files,
-    });
-  };
+export function updateFiles(dongleId, files) {
+  return { type: Types.ACTION_FILES_UPDATE, dongleId, files };
 }
 
 export function fetchFiles(routeName, nocache = false) {
@@ -108,13 +101,13 @@ export function fetchFiles(routeName, nocache = false) {
     }
 
     const dongleId = routeName.split('|')[0];
-    const urlName = routeName.replace('|', '/');
     const urls = Object
       .keys(FILE_NAMES)
       .filter((type) => files[type])
       .flatMap((type) => files[type].map((file) => ([type, file])))
       .reduce((state, [type, file]) => {
-        const segmentNum = parseInt(file.split(urlName)[1].split('/')[1], 10);
+        // Demo routes reuse public assets whose URLs contain a different route ID.
+        const segmentNum = parseInt(new URL(file).pathname.split('/').at(-2), 10);
         const fileName = `${routeName}--${segmentNum}/${type}`;
         state[fileName] = {
           url: file,
@@ -131,20 +124,16 @@ export function fetchFiles(routeName, nocache = false) {
 }
 
 export function cancelFetchUploadQueue() {
-  if (uploadQueueTimeout) {
-    if (uploadQueueTimeout !== true) {
-      clearTimeout(uploadQueueTimeout);
-    }
-    uploadQueueTimeout = null;
-  }
+  clearTimeout(uploadQueue?.timeout);
+  uploadQueue = null;
 }
 
 export function fetchUploadQueue(dongleId) {
   return async (dispatch, getState) => {
-    if (uploadQueueTimeout) {
-      return;
-    }
-    uploadQueueTimeout = true;
+    if (uploadQueue?.dongleId === dongleId) return;
+    cancelFetchUploadQueue();
+    const request = { dongleId };
+    uploadQueue = request;
 
     dispatch(fetchDeviceNetworkStatus(dongleId));
 
@@ -153,9 +142,10 @@ export function fetchUploadQueue(dongleId) {
       jsonrpc: '2.0',
       id: 0,
     };
-    const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
-    if (!uploadQueue || !uploadQueue.result) {
-      if (uploadQueue && uploadQueue.offline) {
+    const response = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
+    if (uploadQueue !== request) return;
+    if (!response || !response.result) {
+      if (response && response.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
       }
       cancelFetchUploadQueue();
@@ -163,11 +153,11 @@ export function fetchUploadQueue(dongleId) {
     }
     dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
 
-    const prevFilesUploading = getState().filesUploading || {};
+    const prevFilesUploading = { ...getState().uploadQueues?.[dongleId] };
     const device = getDeviceFromState(getState(), dongleId);
     const uploadingFiles = {};
     const newCurrentUploading = {};
-    uploadQueue.result.forEach((uploading) => {
+    response.result.forEach((uploading) => {
       const urlParts = uploading.url.split('?')[0].split('/');
       const filename = urlParts[urlParts.length - 1];
       const segNum = urlParts[urlParts.length - 2];
@@ -201,10 +191,9 @@ export function fetchUploadQueue(dongleId) {
       uploading: newCurrentUploading,
       files: uploadingFiles,
     });
-    if (uploadQueueTimeout === true && uploadQueue.result.length) {
-      cancelFetchUploadQueue();
-      uploadQueueTimeout = setTimeout(() => {
-        uploadQueueTimeout = null;
+    if (uploadQueue === request && response.result.length) {
+      request.timeout = setTimeout(() => {
+        uploadQueue = null;
         dispatch(fetchUploadQueue(dongleId));
       }, 2000);
     }
@@ -213,7 +202,7 @@ export function fetchUploadQueue(dongleId) {
 
 export function doUpload(dongleId, paths, urls) {
   return async (dispatch, getState) => {
-    const { device } = getState();
+    const device = getDeviceFromState(getState(), dongleId);
     let loopedUploads = !deviceVersionAtLeast(device, '0.8.13');
     if (!loopedUploads) {
       const filesData = paths.map((path, i) => ({
@@ -240,7 +229,7 @@ export function doUpload(dongleId, paths, urls) {
           return state;
         }, {});
         dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
-        dispatch(updateFiles(newUploading));
+        dispatch(updateFiles(dongleId, newUploading));
       } else if (resp.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
       } else if (resp.result === 'Device offline, message queued') {
@@ -248,7 +237,7 @@ export function doUpload(dongleId, paths, urls) {
           state[pathToFileName(dongleId, path)] = { progress: 0, current: false };
           return state;
         }, {});
-        dispatch(updateFiles(newUploading));
+        dispatch(updateFiles(dongleId, newUploading));
       } else if (resp.result) {
         let failed = resp.result.failed || [];
 
@@ -269,9 +258,9 @@ export function doUpload(dongleId, paths, urls) {
               state[fn] = { notFound: true };
               return state;
             }, {});
-          dispatch(updateFiles(uploading));
+          dispatch(updateFiles(dongleId, uploading));
         }
-        dispatch(fetchUploadQueue(dongleId));
+        if (getState().dongleId === dongleId && (!uploadQueue || uploadQueue.dongleId === dongleId)) dispatch(fetchUploadQueue(dongleId));
       }
     }
 
@@ -290,19 +279,19 @@ export function doUpload(dongleId, paths, urls) {
           const uploading = {};
           uploading[pathToFileName(dongleId, paths[i])] = {};
           dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
-          dispatch(updateFiles(uploading));
+          dispatch(updateFiles(dongleId, uploading));
         } else if (resp.offline) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else if (resp.result === 'Device offline, message queued') {
           const uploading = {};
           uploading[pathToFileName(dongleId, paths[i])] = { progress: 0, current: false };
-          dispatch(updateFiles(uploading));
+          dispatch(updateFiles(dongleId, uploading));
         } else if (resp.result === 404 || resp?.result?.failed?.[0] === paths[i]) {
           const uploading = {};
           uploading[pathToFileName(dongleId, paths[i])] = { notFound: true };
-          dispatch(updateFiles(uploading));
+          dispatch(updateFiles(dongleId, uploading));
         } else if (resp.result) {
-          dispatch(fetchUploadQueue(dongleId));
+          if (getState().dongleId === dongleId && (!uploadQueue || uploadQueue.dongleId === dongleId)) dispatch(fetchUploadQueue(dongleId));
         }
       }
     }
@@ -336,7 +325,7 @@ export function fetchAthenaQueue(dongleId) {
         }
       }
     }
-    dispatch(updateFiles(newUploading));
+    dispatch(updateFiles(dongleId, newUploading));
   };
 }
 
