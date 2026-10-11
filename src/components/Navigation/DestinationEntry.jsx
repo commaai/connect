@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { athena } from '../../api';
-import { MAPBOX_TOKEN } from '../../utils/geocode';
+import { athena, request as apiRequest } from '../../api';
 import { deviceIsOnline } from '../../utils';
 
 export default function DestinationEntry({ device, dongleId }) {
@@ -36,8 +35,9 @@ export default function DestinationEntry({ device, dongleId }) {
     setMessage('');
     setError('');
     try {
-      const params = new URLSearchParams({ access_token: MAPBOX_TOKEN, limit: '5', autocomplete: 'false' });
-      const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query.trim())}.json?${params}`, {
+      const params = new URLSearchParams({ limit: '5', autocomplete: 'false' });
+      const response = await fetch(`${apiRequest.baseUrl}v1/nav/geocoding/v5/mapbox.places/${encodeURIComponent(query.trim())}.json?${params}`, {
+        headers: apiRequest.headers,
         signal: request.signal,
       });
       if (!response.ok) throw new Error('search failed');
