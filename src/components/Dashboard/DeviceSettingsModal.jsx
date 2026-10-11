@@ -144,10 +144,9 @@ class DeviceSettingsModal extends Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.device?.dongle_id !== this.props.device?.dongle_id) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
       this.setState({
         ...initialState,
-        deviceAlias: alias,
+        deviceAlias: this.props.device?.alias,
       });
     }
   }
@@ -267,7 +266,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
+          open
           onClose={this.props.onClose}
         >
           <Paper className={classes.modal}>

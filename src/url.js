@@ -1,24 +1,27 @@
 const dongleIdRegex = /^[a-f0-9]{16}$/;
 const logIdRegex = /^[a-f0-9-]{20}$/;
 const numberRegex = /^\d+$/;
+const devicePages = ['prime', 'stream'];
 
 function parseRange(start, end, scale) {
-  if (!numberRegex.test(start) || !numberRegex.test(end)) {
+  if (!numberRegex.test(start) || !numberRegex.test(end) || Number(start) >= Number(end)) {
     return null;
   }
   return { start: Number(start) * scale, end: Number(end) * scale };
 }
 
+// /                                the selected device's dashboard
+// /referrals                       referrals
 // /:dongleId                       dashboard
 // /:dongleId/prime|stream          device page
 // /:dongleId/:logId                drive
 // /:dongleId/:logId/:start/:end    drive zoomed to a range, in seconds
 // /:dongleId/:start/:end           legacy timestamp range, in milliseconds
 // ?settings=:dongleId              device settings over any page, see settingsUrl
-export function parseUrl(pathname) {
+function parsePath(pathname) {
   const [dongleId, ...parts] = pathname.split('/').filter(Boolean);
   if (!dongleIdRegex.test(dongleId)) {
-    return {};
+    return pathname === '/referrals' ? { page: 'referrals' } : {};
   }
 
   if (logIdRegex.test(parts[0])) {
@@ -28,10 +31,17 @@ export function parseUrl(pathname) {
   if (legacyZoom) {
     return { dongleId, legacyZoom };
   }
-  if (parts.length === 1 && ['prime', 'stream'].includes(parts[0])) {
+  if (parts.length === 1 && devicePages.includes(parts[0])) {
     return { dongleId, page: parts[0] };
   }
-  return { dongleId };
+  // anything else under a device is its dashboard
+  return parts.length ? { dongleId, redirect: `/${dongleId}` } : { dongleId };
+}
+
+export function parseUrl({ pathname, search = '' }) {
+  const url = parsePath(pathname);
+  const settingsDongleId = new URLSearchParams(search).get('settings');
+  return settingsDongleId ? { ...url, settingsDongleId } : url;
 }
 
 export function driveUrl(route, start, end) {

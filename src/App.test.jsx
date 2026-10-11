@@ -241,6 +241,12 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
   });
 
+  test('signed-out close of a public drive shows login', async () => {
+    await renderApp(`/${FIRST}/${LOG}`, { authenticated: false });
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+  });
+
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
@@ -289,6 +295,15 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${SECOND}`));
   });
 
+  test('browser back returns to a shared device', async () => {
+    const { history } = await renderApp(`/${SHARED}`);
+    expect(await screen.findByRole('heading', { name: 'Shared device' })).toBeVisible();
+    act(() => history.push(`/${FIRST}`));
+    expect(await screen.findByRole('heading', { name: 'Zulu' })).toBeVisible();
+    act(() => history.goBack());
+    expect(await screen.findByRole('heading', { name: 'Shared device' })).toBeVisible();
+  });
+
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
     const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));
@@ -331,6 +346,7 @@ describe('whole-app behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.search).toBe(''));
     expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    expect(history.index).toBe(0); // closing steps back, so browser back does not reopen it
     expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
   });
 
@@ -345,17 +361,12 @@ describe('whole-app behavior', () => {
     expect(screen.queryByText('Device settings')).not.toBeInTheDocument();
   });
 
-  test('closing a drive opened by its URL shows the whole drive list', async () => {
-    vi.stubGlobal('IntersectionObserver', class {
-      constructor(callback) { this.callback = callback; }
-      observe() { this.callback([{ isIntersecting: true }]); }
-      disconnect() {}
-      unobserve() {}
-    });
-    await renderApp(`/${FIRST}/${LOG}`);
+  test('closing a drive opened by its URL shows the whole drive list, and back shows the drive', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`);
     fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
+    act(() => history.goBack());
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
   });
 
   test('navigating between pages reuses the loaded routes', async () => {

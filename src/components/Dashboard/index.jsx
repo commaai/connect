@@ -35,7 +35,7 @@ const Dashboard = ({ page, device, dongleId }) => {
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  page: parseUrl(state.router.location.pathname).page,
+  page: parseUrl(state.router.location).page,
   device: state.device,
 });
 

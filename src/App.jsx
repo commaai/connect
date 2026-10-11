@@ -78,7 +78,7 @@ class App extends Component {
 
       // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
       // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { dongleId, page } = parseUrl(window.location.pathname);
+      const { dongleId, page } = parseUrl(window.location);
       if (page === 'stream') {
         webrtcConnectionManager.reconnect(dongleId);
       }
@@ -129,12 +129,13 @@ class App extends Component {
     }
 
     const { store = defaultStore, history = defaultHistory } = this.props;
-    const pathname = history.location.pathname;
-    const { routeId, legacyZoom } = parseUrl(pathname);
-    const showLogin = !api.auth.isAuthenticated() && !routeId && !legacyZoom;
     let content = (
       <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+        <Route render={({ location }) => {
+          // signed out, only drives are public
+          const { routeId, legacyZoom } = parseUrl(location);
+          return !api.auth.isAuthenticated() && !routeId && !legacyZoom ? this.anonymousRoutes() : this.authRoutes();
+        }} />
       </Suspense>
     );
 

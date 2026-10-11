@@ -9,13 +9,13 @@ import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
-  const { dongleId, legacyZoom: zoom } = parseUrl(pageLocation);
+  const { dongleId, legacyZoom } = parseUrl({ pathname: pageLocation });
   if (dongleId) {
     pageLocation = pageLocation.replace(dongleId, '<dongleId>');
   }
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  if (legacyZoom) {
+    pageLocation = pageLocation.replace(legacyZoom.start.toString(), '<zoomStart>');
+    pageLocation = pageLocation.replace(legacyZoom.end.toString(), '<zoomEnd>');
   }
 
   if (pageLocation.endsWith('/')) {
@@ -100,6 +100,10 @@ function logAction(action, prevState, state) {
   // eslint-disable-next-line default-case
   switch (action.type) {
     case LOCATION_CHANGE:
+      if (action.payload.location.pathname === prevState.router.location.pathname
+        && action.payload.location.search !== prevState.router.location.search) {
+        return; // only the query changed, like ?settings opening over the same page
+      }
       gtag('event', 'page_view', {
         page_location: getPageViewEventLocation(action.payload.location.pathname),
       });

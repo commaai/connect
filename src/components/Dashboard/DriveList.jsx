@@ -59,6 +59,11 @@ const DriveList = (props) => {
     fetchDeviceInfo();
   }, [fetchDeviceInfo]);
 
+  // a drive opened by its url only loaded that drive, not the list
+  useEffect(() => {
+    dispatch(checkRoutesData());
+  }, [dispatch]);
+
   const onVisible = useCallback(() => {
     dispatch(checkRoutesData());
     fetchDeviceInfo();

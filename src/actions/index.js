@@ -20,8 +20,8 @@ export function checkRoutesData() {
     if (!state.dongleId) {
       return;
     }
-    if (hasRoutesData(state)) {
-      // already has metadata, don't bother
+    if (hasRoutesData(state) && (!state.selectedRouteId || state.currentRoute)) {
+      // already has metadata, and the selected drive if there is one, don't bother
       return;
     }
     if (routesRequest && routesRequest.dongleId === state.dongleId) {
@@ -104,6 +104,10 @@ export function checkRoutesData() {
       });
 
       routesRequest = null;
+      // a drive selected while the list was loading, like a converted legacy url, may not be in it
+      if (!selectedRouteId && getState().selectedRouteId && !getState().currentRoute) {
+        dispatch(checkRoutesData());
+      }
 
       return routes
     }).catch((err) => {
@@ -234,34 +238,6 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function selectDevice(dongleId) {
-  return (dispatch, getState) => {
-    const state = getState();
-    let device;
-    if (state.devices && state.devices.length > 1) {
-      device = state.devices.find((d) => d.dongle_id === dongleId);
-    }
-    if (!device && state.device && state.device.dongle_id === dongleId) {
-      device = state.device;
-    }
-
-    // tear down existing webrtc connection
-    if (state.dongleId && state.dongleId !== dongleId) {
-      webrtcConnectionManager.disconnect();
-    }
-
-    dispatch({
-      type: Types.ACTION_SELECT_DEVICE,
-      dongleId,
-    });
-
-    if ((device && !device.shared) || state.profile?.superuser) {
-      dispatch(primeFetchSubscription(dongleId, device));
-      dispatch(fetchDeviceOnline(dongleId));
-    }
-  };
-}
-
 export function fetchSharedDevice(dongleId) {
   return async (dispatch) => {
     try {
@@ -276,6 +252,33 @@ export function fetchSharedDevice(dongleId) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'action_fetch_shared_device' });
       }
+    }
+  };
+}
+
+export function selectDevice(dongleId) {
+  return (dispatch, getState) => {
+    const state = getState();
+    let device = state.devices?.find((d) => d.dongle_id === dongleId);
+    if (!device && state.device && state.device.dongle_id === dongleId) {
+      device = state.device;
+    }
+
+    // tear down existing webrtc connection
+    if (state.dongleId && state.dongleId !== dongleId) {
+      webrtcConnectionManager.disconnect();
+    }
+
+    dispatch({
+      type: Types.ACTION_SELECT_DEVICE,
+      dongleId,
+    });
+
+    if (!device && state.devices) {
+      dispatch(fetchSharedDevice(dongleId)); // not one of the user's devices
+    } else if ((device && !device.shared) || state.profile?.superuser) {
+      dispatch(primeFetchSubscription(dongleId, device));
+      dispatch(fetchDeviceOnline(dongleId));
     }
   };
 }

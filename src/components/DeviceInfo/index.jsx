@@ -153,7 +153,6 @@ class DeviceInfo extends Component {
       carHealth: {},
       snapshot: {},
       windowWidth: window.innerWidth,
-      bodyTeleopOpen: false,
       clipMenu: null,
       clipsSupported: false,
     };

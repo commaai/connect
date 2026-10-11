@@ -16,7 +16,7 @@ vi.mock('../api', () => ({
   video: {},
 }));
 vi.mock('./index', () => ({
-  selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
+  checkRoutesData: vi.fn(), selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
@@ -24,7 +24,7 @@ const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
 const LEGACY = `/${DONGLE}/1000/2000`;
 const baseState = {
-  dongleId: DONGLE, selectedRouteId: null, router: { location: { pathname: LEGACY } },
+  dongleId: DONGLE, selectedRouteId: null, router: { location: { pathname: LEGACY, search: '' } },
 };
 
 function create(state = baseState) {
@@ -35,12 +35,12 @@ function create(state = baseState) {
 }
 
 function location(pathname, action = 'POP') {
-  return { type: LOCATION_CHANGE, payload: { action, location: { pathname } } };
+  return { type: LOCATION_CHANGE, payload: { action, location: { pathname, search: '' } } };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange']) {
+  for (const name of ['checkRoutesData', 'selectDevice', 'pushTimelineRange']) {
     actions[name].mockImplementation((...args) => ({ action: name, args }));
   }
 });
@@ -80,6 +80,12 @@ describe('history middleware', () => {
     const { store, invoke } = create();
     invoke(location(pathname));
     expect(store.dispatch).not.toHaveBeenCalled();
+  });
+
+  it.each([[`/${DONGLE}/prime/extra`], ['/']])('replaces %s with the device url', (pathname) => {
+    const { store, invoke } = create();
+    invoke(location(pathname));
+    expect(store.dispatch).toHaveBeenCalledWith(replace(`/${DONGLE}`));
   });
 
   it('enters a log range', () => {

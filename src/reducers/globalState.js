@@ -66,7 +66,8 @@ export default function reducer(_state, action) {
       // devices aren't loaded yet when a link is opened, that shouldn't change the remembered device
       if (state.devices) {
         window.localStorage.setItem('selectedDongleId', action.dongleId);
-        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
+        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId)
+          || { ...emptyDevice, dongle_id: action.dongleId };
         if (!state.device || state.device.dongle_id !== action.dongleId) {
           state.device = newDevice;
         }
@@ -327,13 +328,16 @@ export default function reducer(_state, action) {
         state.files = null;
       }
 
+      // back steps out to the previous zoom, so it is only kept when it is around this one in the same drive
+      const outer = state.zoom && state.selectedRouteId === action.log_id
+        && state.zoom.start <= action.start && action.end <= state.zoom.end;
       state.selectedRouteId = action.log_id;
       state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
       if (action.log_id && action.start != null && action.end != null) {
         state.zoom = {
           start: action.start,
           end: action.end,
-          previous: state.zoom,
+          previous: outer ? state.zoom : null,
         };
       } else {
         state.zoom = null;

@@ -62,19 +62,21 @@ export default function init() {
           selectedDongleId = devices[0].dongle_id;
           window.localStorage.setItem('selectedDongleId', selectedDongleId);
         }
-        if (state.router.location.pathname === '/') {
-          dispatch(replace(`/${selectedDongleId}`));
+        const { pathname, search } = state.router.location;
+        if (['/demo', '/referrals'].includes(pathname)) {
+          dispatch(selectDevice(selectedDongleId)); // pages without a device in their url
         } else {
-          dispatch(selectDevice(selectedDongleId)); // urls without a device, like /demo and /referrals
+          dispatch(replace(`/${selectedDongleId}${search}`)); // '/', or a url that is not a page
         }
       }
-      const dongleId = getState().dongleId;
-      const device = devices.find((dev) => dev.dongle_id === dongleId);
-      if (device) {
-        dispatch(primeFetchSubscription(dongleId, device, profile));
-      } else if (dongleId) {
-        dispatch(fetchSharedDevice(dongleId));
-      }
+    }
+
+    const dongleId = getState().dongleId;
+    const device = devices.find((dev) => dev.dongle_id === dongleId);
+    if (device) {
+      dispatch(primeFetchSubscription(dongleId, device, profile));
+    } else if (dongleId && api.auth.isAuthenticated()) {
+      dispatch(fetchSharedDevice(dongleId)); // shared with the user, also when they have no devices
     }
 
     dispatch({
