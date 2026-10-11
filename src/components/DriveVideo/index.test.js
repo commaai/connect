@@ -1,5 +1,9 @@
+import React from 'react';
+import { vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import {
-  correctedElementTime, isPlaybackProgress, isStallOver, playbackRateFor, shouldPositionOnReady,
+  DriveVideo, VideoOverlay, correctedElementTime, isPlaybackProgress, isStallOver, needsInitialStall, playbackRateFor,
+  shouldEndStall, shouldPositionOnReady,
 } from './index';
 
 describe('DriveVideo stall end', () => {
@@ -17,6 +21,120 @@ describe('DriveVideo stall end', () => {
   it('canplaythrough clears', () => {
     // canplaythrough fires on the transition to HAVE_ENOUGH_DATA, so the handler always sees readyState 4
     expect(isStallOver(4)).toBe(true);
+  });
+});
+
+describe('DriveVideo stall end hold', () => {
+  // the class without redux: a fake element, synchronous setState, fake timers for the 150ms delay and the 200ms hold
+  const stalledVideo = () => {
+    const c = new DriveVideo({});
+    c.setState = (next) => { c.state = { ...c.state, ...next }; };
+    c.video = { readyState: 2, seeking: false, playbackRate: 1, removeEventListener: () => {} };
+    c.onVideoStall(); // `waiting`
+    return c;
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('ends only once the data has stayed for the hold', () => {
+    expect(shouldEndStall(4, false)).toBe(true);
+    expect(shouldEndStall(2, false)).toBe(false); // iPad B3 cold toMiddle: readyState 4 for one sample, then 2
+    expect(shouldEndStall(4, true)).toBe(false); // a new seek started during the hold
+  });
+
+  it('keeps the spinner when waiting follows a data-ready signal within the hold', () => {
+    // iPad B3 cold toMiddle: canplaythrough@1951 readyState 4, waiting@1984 readyState 2, canplaythrough@4688
+    const c = stalledVideo();
+    vi.advanceTimersByTime(150);
+    expect(c.state.spinner).toBe(true);
+    const startedAt = c.stalledAt;
+    c.video.readyState = 4;
+    c.onVideoDataReady();
+    expect(c.stalledAt).toBe(startedAt); // not cleared yet
+    vi.advanceTimersByTime(33);
+    c.video.readyState = 2;
+    c.onVideoStall(); // `waiting` cancels the pending end
+    vi.advanceTimersByTime(200);
+    expect(c.stalledAt).toBe(startedAt); // the same stall, its clock did not restart
+    expect(c.state.spinner).toBe(true);
+    c.setStalled(false);
+  });
+
+  it('clears once readyState 4 has held for 200ms', () => {
+    const c = stalledVideo();
+    vi.advanceTimersByTime(150);
+    c.video.readyState = 4;
+    c.onVideoDataReady();
+    vi.advanceTimersByTime(199);
+    expect(c.stalledAt).not.toBeNull();
+    expect(c.state.spinner).toBe(true);
+    vi.advanceTimersByTime(1);
+    expect(c.stalledAt).toBeNull();
+    expect(c.state.spinner).toBe(false);
+  });
+
+  it('does not clear when the data is gone again at the end of the hold', () => {
+    const c = stalledVideo();
+    vi.advanceTimersByTime(150);
+    c.video.readyState = 4;
+    c.onVideoDataReady();
+    c.video.readyState = 2; // dropped back without a `waiting`
+    vi.advanceTimersByTime(200);
+    expect(c.stalledAt).not.toBeNull();
+    expect(c.state.spinner).toBe(true);
+    c.video.readyState = 4;
+    c.onVideoDataReady(); // the next canplaythrough starts a new hold
+    vi.advanceTimersByTime(200);
+    expect(c.stalledAt).toBeNull();
+    expect(c.state.spinner).toBe(false);
+  });
+
+  it('clears at once on playback progress, without the hold', () => {
+    const c = stalledVideo();
+    vi.advanceTimersByTime(150);
+    c.video.readyState = 4;
+    c.onVideoDataReady();
+    c.onVideoProgress({ playedSeconds: 100 });
+    c.onVideoProgress({ playedSeconds: 100.25 });
+    expect(c.stalledAt).toBeNull(); // no timers advanced
+    expect(c.state.spinner).toBe(false);
+    expect(c.holdTimer).toBeNull();
+  });
+
+  it('clears at once before the spinner shows, so a warm seek never shows it', () => {
+    // desktop warm seek: seeking@3ms, seeked@16ms at readyState 4, well inside the 150ms delay
+    const c = stalledVideo();
+    vi.advanceTimersByTime(16);
+    c.video.readyState = 4;
+    c.onVideoDataReady();
+    expect(c.stalledAt).toBeNull();
+    vi.advanceTimersByTime(150);
+    expect(c.state.spinner).toBe(false);
+  });
+
+  it('drops the pending hold on unmount and on a source change', () => {
+    const c = stalledVideo();
+    vi.advanceTimersByTime(150);
+    c.video.readyState = 4;
+    c.onVideoDataReady();
+    expect(c.holdTimer).not.toBeNull();
+    c.componentWillUnmount();
+    expect(c.holdTimer).toBeNull();
+    expect(c.stalledAt).toBeNull();
+
+    const d = stalledVideo();
+    vi.advanceTimersByTime(150);
+    d.video.readyState = 4;
+    d.onVideoDataReady();
+    d.componentDidUpdate(d.props, { src: 'https://api.comma.ai/v1/route/a/qcamera.m3u8' }); // no route: src becomes ''
+    expect(d.holdTimer).toBeNull();
+    expect(d.stalledAt).toBeNull();
   });
 });
 
@@ -109,5 +227,47 @@ describe('DriveVideo ready positioning', () => {
   it('has nothing to position without a source', () => {
     expect(shouldPositionOnReady(null, '')).toBe(false);
     expect(shouldPositionOnReady(null, null)).toBe(false);
+  });
+});
+
+describe('DriveVideo initial stall', () => {
+  it('stalls when the source lands with no data yet', () => {
+    // iPad toStart / toMiddle: 500-630ms at readyState 1 with no frame and, before B3, no spinner
+    expect(needsInitialStall(1)).toBe(true);
+    expect(needsInitialStall(0)).toBe(true); // no element yet (first mount) counts as HAVE_NOTHING
+    expect(needsInitialStall(3)).toBe(true); // Safari freezes at readyState 3 (B2.1), still waiting
+  });
+
+  it('does not stall when the element already has enough data', () => {
+    expect(needsInitialStall(4)).toBe(false);
+  });
+
+  it('stalls again for a new source after a warm one', () => {
+    // componentDidUpdate asks on every source change, so the warm previous source does not carry over
+    expect(needsInitialStall(4)).toBe(false); // the previous source, fully buffered
+    expect(needsInitialStall(0)).toBe(true); // the new source, just set on the element
+  });
+});
+
+describe('DriveVideo overlay precedence', () => {
+  it('shows the error rather than the spinner or the prompt', () => {
+    render(React.createElement(VideoOverlay, { loading: true, error: 'Unable to load video', tapToPlay: true, onTap: () => {} }));
+    expect(screen.getByText('Unable to load video')).toBeInTheDocument();
+    expect(screen.queryByText('Tap to play')).toBeNull();
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('shows the prompt rather than the spinner', () => {
+    render(React.createElement(VideoOverlay, { loading: true, error: null, tapToPlay: true, onTap: () => {} }));
+    expect(screen.getByText('Tap to play')).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('shows the spinner only while loading with nothing else to say', () => {
+    const { unmount } = render(React.createElement(VideoOverlay, { loading: true, error: null, tapToPlay: false, onTap: () => {} }));
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    unmount();
+    const { container } = render(React.createElement(VideoOverlay, { loading: false, error: null, tapToPlay: false, onTap: () => {} }));
+    expect(container).toBeEmptyDOMElement();
   });
 });
