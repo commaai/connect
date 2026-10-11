@@ -149,9 +149,8 @@ export const pushTimelineRange = (logId, start, end) => (dispatch, getState) => 
   const state = getState();
   const selectedRoute = state.routes?.find((route) => route.log_id === logId);
   const wholeDrive = start == null || end == null || (start === 0 && end === selectedRoute?.duration);
-  const path = [state.dongleId, logId];
-  if (!wholeDrive) path.push(start / 1000, end / 1000);
-  const pathname = `/${path.join('/')}`;
+  const range = wholeDrive ? '' : `/${start / 1000}/${end / 1000}`;
+  const pathname = `/${state.dongleId}/${logId}${range}`;
   if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
 

@@ -14,10 +14,10 @@ const parseDriveRange = (start, end, legacy = false) => {
   return { start: startMillis, end: endMillis };
 }
 
-const parsePathname = (pathname) => {
-  const rootPages = ['auth', 'demo', 'referrals'];
-  const devicePages = ['prime', 'stream'];
+const rootPages = ['auth', 'demo', 'referrals'];
+const devicePages = ['prime', 'stream'];
 
+const parsePathname = (pathname) => {
   const parts = pathname.split('/').filter(Boolean);
 
   if (!parts.length) return { page: 'root' };

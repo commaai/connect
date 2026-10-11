@@ -32,6 +32,11 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
     return;
   }
 
+  if (page === 'drive' && !range && pathname !== `/${dongleId}/${parsed.logId}`) {
+    dispatch(replace({ pathname: `/${dongleId}/${parsed.logId}`, search: getState().router.location.search }));
+    return;
+  }
+
   const deviceChanged = state.dongleId !== dongleId;
   if (deviceChanged && state.dongleId) webrtcConnectionManager.disconnect();
 
@@ -40,22 +45,18 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
     destination: { ...parsed, dongleId },
   });
 
-  const updated = getState();
-  const { zoom, loop, selectedRouteId } = updated;
+  const { zoom, loop, selectedRouteId, device } = getState();
   if (state.zoom !== zoom || state.selectedRouteId !== selectedRouteId) {
-    const target = zoom ? { start: zoom.start, end: zoom.end } : null;
-    const same = target && loop && loop.startTime === target.start && loop.duration === target.end - target.start;
-
+    const { start, end } = zoom ?? {};
+    const same = zoom && loop && loop.startTime === start && loop.duration === end - start;
     if (!same) {
       dispatch(resetPlayback());
-      dispatch(selectLoop(target?.start, target?.end));
+      dispatch(selectLoop(start, end));
     }
   }
 
   if (deviceChanged) {
     window.localStorage.setItem('selectedDongleId', dongleId);
-
-    const device = getState().device;
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription());
       dispatch(fetchDeviceOnline(dongleId));

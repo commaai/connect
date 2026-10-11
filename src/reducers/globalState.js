@@ -40,9 +40,7 @@ export default function reducer(_state, action) {
       // route changed
       const routeId = page === 'drive' ? logId : null;
       const routeChanged = deviceChanged || state.selectedRouteId !== routeId;
-      const currentRoute = routeChanged
-        ? state.routes?.find((route) => route.log_id === routeId) || null
-        : state.currentRoute;
+      const currentRoute = routeChanged ? state.routes?.find((route) => route.log_id === routeId) ?? null : state.currentRoute;
 
       // zoom changed
       const start = routeId ? range?.start ?? 0 : null;
@@ -50,18 +48,17 @@ export default function reducer(_state, action) {
       const zoom = end !== null ? { start, end } : null;
       const zoomChanged = state.zoom?.start !== zoom?.start || state.zoom?.end !== zoom?.end;
 
-      if (routeChanged || zoomChanged) {
-        const prevZoom = routeChanged ? null : state.zoom;
-        const restorePrevious = zoom && prevZoom?.previous?.start === start && prevZoom?.previous?.end === end;
-
-        if (!prevZoom || !zoom || start === 0 || start < prevZoom.start || end > prevZoom.end) {
-          state.files = null;
-        }
-
-        if (restorePrevious) state.zoom = prevZoom.previous;
-        else state.zoom = zoom ? { ...zoom, previous: prevZoom } : null;
-
-        if (routeChanged || !range) state.loop = null;
+      if (routeChanged) {
+        state.zoom = zoom ? { ...zoom, previous: null } : null;
+        state.files = null;
+        state.loop = null;
+      } else if (zoomChanged) {
+        const prevZoom = state.zoom;
+        const restored = zoom && prevZoom?.previous?.start === start && prevZoom?.previous?.end === end;
+        const incomplete = !prevZoom || !zoom || start === 0 || start < prevZoom.start || end > prevZoom.end;
+        if (incomplete) state.files = null;
+        if (!range) state.loop = null;
+        state.zoom = restored ? prevZoom.previous : zoom ? { ...zoom, previous: prevZoom } : null;
       }
 
       // apply selected drive and page
