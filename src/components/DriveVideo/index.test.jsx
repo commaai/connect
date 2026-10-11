@@ -66,6 +66,19 @@ describe('DriveVideo', () => {
     expect(store.getState().desiredPlaySpeed).toEqual(0);
   });
 
+  it('hides the spinner when a seek ends in the same tick', async () => {
+    const { video } = await setup();
+    fireEvent.loadedMetadata(video);
+    fireEvent.canPlay(video);
+    expect(screen.queryByRole('progressbar')).toBeNull();
+
+    act(() => {
+      fireEvent.seeking(video);
+      fireEvent.seeked(video);
+    });
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
   it('asks for a tap when autoplay is blocked', async () => {
     const play = vi.spyOn(HTMLMediaElement.prototype, 'play')
       .mockRejectedValueOnce(new DOMException('blocked', 'NotAllowedError'));

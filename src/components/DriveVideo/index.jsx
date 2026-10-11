@@ -331,7 +331,8 @@ class DriveVideo extends Component {
     if (loading) {
       this.stallTimer = setTimeout(() => this.fail(ERRORS.slow), STALL_TIMEOUT);
     }
-    if (loading !== this.state.loading) this.setState({ loading });
+    // seeking and seeked can fire in the same tick, so compare with the pending state
+    this.setState((state) => (loading === state.loading ? null : { loading }));
   }
 
   applyPlayback() {
