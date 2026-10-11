@@ -8,6 +8,7 @@ import { api } from '../../api/backend';
 
 import Colors from '../../colors';
 import { ErrorOutline, Fullscreen, RefreshIcon } from '../../icons';
+import { isIos } from '../../utils/browser';
 import {
   setPlaybackSpeed, resetPlayback, play, pause, videoProgress, setHasAudio, setVideoStatus, VideoStatus,
 } from '../../timeline/playback';
@@ -49,7 +50,7 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
 class RouteVideo extends Component {
   player = React.createRef();
   ready = false;
-  state = { videoError: null, attempt: 0 };
+  state = { videoError: null, attempt: 0, canFullscreen: false };
 
   componentDidMount() {
     this.props.dispatch(resetPlayback());
@@ -216,7 +217,7 @@ class RouteVideo extends Component {
     cancelAnimationFrame(this.frameId);
     this.ready = false;
     this.failure = null;
-    this.setState(({ attempt }) => ({ videoError: null, attempt: attempt + 1 }));
+    this.setState(({ attempt }) => ({ videoError: null, attempt: attempt + 1, canFullscreen: false }));
     this.props.dispatch(setVideoStatus(VideoStatus.LOADING));
   };
 
@@ -243,12 +244,14 @@ class RouteVideo extends Component {
       onSeeking: this.onSeeking,
       onSeeked: this.onSeeked,
       onCanPlay: this.onPlayable,
+      onLoadedMetadata: (event) => this.setState({ canFullscreen: event.target.readyState > 0 && event.target.webkitSupportsFullscreen }),
+      onEmptied: () => this.setState({ canFullscreen: false }),
     },
   };
 
   render() {
     const { currentRoute, isPlaying, desiredPlaySpeed, videoStatus, isMuted, isFullscreen, onFullscreenToggle } = this.props;
-    const { videoError, attempt } = this.state;
+    const { videoError, attempt, canFullscreen } = this.state;
     return (
       <div className={`relative m-[0_auto] aspect-[1.593] ${isFullscreen ? 'w-[min(100%,140vh)]' : 'w-full max-w-[964px]'}`}>
         <VideoOverlay loading={videoStatus === VideoStatus.LOADING} error={videoError} onRetry={this.onRetry} />
@@ -272,7 +275,7 @@ class RouteVideo extends Component {
           onError={this.onError}
           config={this.config}
         />
-        {onFullscreenToggle && <IconButton className="z-[60] absolute bottom-1 right-1 h-10 w-10 bg-black/30 text-white hover:bg-black/50"
+        {onFullscreenToggle && (!isIos() || canFullscreen) && <IconButton className="z-[60] absolute bottom-1 right-1 h-10 w-10 bg-black/30 text-white hover:bg-black/50"
           onClick={onFullscreenToggle} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
           <Fullscreen exit={isFullscreen} />
         </IconButton>}

@@ -299,11 +299,15 @@ class Media extends Component {
 
   onFullscreenChange = () => this.setState({ isFullscreen: document.fullscreenElement === this.player.current });
 
-  toggleFullscreen = () => {
-    const video = this.player.current.querySelector('video');
-    if (isIos()) video.webkitEnterFullscreen();
-    else if (document.fullscreenElement) document.exitFullscreen();
-    else this.player.current.requestFullscreen();
+  toggleFullscreen = async () => {
+    try {
+      const video = this.player.current?.querySelector('video');
+      if (isIos()) return video?.readyState > 0 && video.webkitSupportsFullscreen && video.webkitEnterFullscreen();
+      else if (document.fullscreenElement) await document.exitFullscreen();
+      else await this.player.current.requestFullscreen();
+    } catch {
+      // A denied transition leaves the platform's fullscreen state unchanged.
+    }
   };
 
   async checkClipsSupport() {
@@ -548,7 +552,7 @@ class Media extends Component {
     }
 
     const showMapAlways = windowWidth >= 1536;
-    const canFullscreen = isIos() ? 'webkitEnterFullscreen' in HTMLVideoElement.prototype : 'requestFullscreen' in HTMLElement.prototype;
+    const canFullscreen = isIos() ? 'webkitEnterFullscreen' in HTMLVideoElement.prototype : document.fullscreenEnabled && 'requestFullscreen' in HTMLElement.prototype;
     const controls = <TimeDisplay isThin isMuted={isMuted} hasAudio={hasAudio} onMuteToggle={this.handleMuteToggle} />;
 
     return (
