@@ -250,8 +250,6 @@ class Media extends Component {
   }
 
   toggleFullscreen() {
-    // DriveView scales with viewport width, which grows in fullscreen, so keep the current size
-    this.fullscreenFontSize = getComputedStyle(this.videoContainer.current).fontSize;
     if (document.fullscreenElement) {
       document.exitFullscreen();
     } else if (document.fullscreenEnabled) {
@@ -574,11 +572,7 @@ class Media extends Component {
     return (
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
-        <div
-          ref={this.videoContainer}
-          className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-[1300] bg-black' : 'gap-4'}`}
-          style={isFullscreen ? { fontSize: this.fullscreenFontSize } : undefined}
-        >
+        <div ref={this.videoContainer} className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-[1300] bg-black' : 'gap-4'}`}>
           <div className={`flex flex-row gap-5 ${isFullscreen ? 'flex-1 min-h-0' : ''}`}>
             <div className={videoWidthCls}>
               {inView === MediaType.VIDEO && (
