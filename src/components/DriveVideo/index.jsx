@@ -132,7 +132,8 @@ class RouteVideo extends Component {
 
   onPlayable = () => {
     const { dispatch } = this.props;
-    this.setState({ videoError: null });
+    const video = this.player.current.getInternalPlayer();
+    this.setState({ videoError: null, canFullscreen: video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0 && !video.error && video.webkitSupportsFullscreen });
     dispatch(setVideoStatus(VideoStatus.READY));
   };
 
@@ -189,7 +190,7 @@ class RouteVideo extends Component {
     const { dispatch, videoStatus } = this.props;
     if (this.failure && !this.failureIsAhead()) {
       dispatch(setVideoStatus(VideoStatus.FAILED));
-      this.setState({ videoError: this.failure });
+      this.setState({ videoError: this.failure, canFullscreen: false });
     } else if (videoStatus !== VideoStatus.FAILED) {
       dispatch(setVideoStatus(VideoStatus.LOADING));
     }
@@ -244,7 +245,6 @@ class RouteVideo extends Component {
       onSeeking: this.onSeeking,
       onSeeked: this.onSeeked,
       onCanPlay: this.onPlayable,
-      onLoadedMetadata: (event) => this.setState({ canFullscreen: event.target.readyState > 0 && event.target.webkitSupportsFullscreen }),
       onEmptied: () => this.setState({ canFullscreen: false }),
     },
   };

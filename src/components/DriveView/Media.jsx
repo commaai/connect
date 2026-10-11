@@ -302,7 +302,7 @@ class Media extends Component {
   toggleFullscreen = async () => {
     try {
       const video = this.player.current?.querySelector('video');
-      if (isIos()) return video?.readyState > 0 && video.webkitSupportsFullscreen && video.webkitEnterFullscreen();
+      if (isIos()) return video?.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0 && !video.error && video.webkitSupportsFullscreen && video.webkitEnterFullscreen();
       else if (document.fullscreenElement) await document.exitFullscreen();
       else await this.player.current.requestFullscreen();
     } catch {
