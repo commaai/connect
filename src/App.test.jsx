@@ -39,20 +39,7 @@ vi.mock('react-map-gl', () => ({
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
 }));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
-}));
+vi.mock('hls.js/light', () => ({ default: { isSupported: () => false } }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
 const FIRST = 'aaaaaaaaaaaaaaaa';
@@ -154,6 +141,8 @@ describe('whole-app behavior', () => {
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
     Object.defineProperty(window, 'visualViewport', { value: { height: 800 }, configurable: true });
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, value: vi.fn(() => null) });
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', { configurable: true, value: vi.fn(async () => undefined) });
+    Object.defineProperty(HTMLMediaElement.prototype, 'pause', { configurable: true, value: vi.fn() });
     Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
@@ -302,5 +291,17 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('a failed video leaves timeline navigation owned by Redux', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+
+    fireEvent.error(document.querySelector('video'));
+    expect(store.getState().videoStatus).toBe('failed');
+
+    fireEvent.pointerDown(timeline, { button: 0, clientX: 500, pageX: 500 });
+    fireEvent.pointerUp(timeline, { button: 0, clientX: 500, pageX: 500 });
+    expect(store.getState().offset).toBe(30000);
   });
 });
