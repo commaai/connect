@@ -267,10 +267,6 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
       const { dispatch } = this.props;
       const startTime = startOffset;
       const endTime = endOffset;
@@ -459,7 +455,6 @@ class Timeline extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
-  loop: state.loop,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

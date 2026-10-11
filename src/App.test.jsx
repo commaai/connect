@@ -40,17 +40,10 @@ vi.mock('react-map-gl', () => ({
   WebMercatorViewport: class {},
 }));
 vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
+  default: React.forwardRef(({ config }, ref) => {
+    const video = React.useRef();
+    React.useImperativeHandle(ref, () => ({ getInternalPlayer: () => video.current }));
+    return <video ref={video} data-testid="video" {...config.attributes} />;
   }),
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
@@ -123,6 +116,19 @@ async function mockFetch(input, init = {}) {
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
+// jsdom plays no media: a test moves the video by hand, then fires the event a browser would
+function setVideo(video, state, event) {
+  Object.entries(state).forEach(([key, value]) => Object.defineProperty(video, key, { configurable: true, value, writable: true }));
+  if (event) fireEvent[event](video);
+}
+
+async function openDrive(pathname, options) {
+  const app = await renderApp(pathname, options);
+  const video = await screen.findByTestId('video');
+  fireEvent.loadStart(video);
+  return { ...app, video, overlay: within(video.parentElement) };
+}
+
 async function renderApp(pathname, options = {}) {
   mocks.authenticated = options.authenticated !== false;
   mocks.options = options;
@@ -154,6 +160,17 @@ describe('whole-app behavior', () => {
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
     Object.defineProperty(window, 'visualViewport', { value: { height: 800 }, configurable: true });
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, value: vi.fn(() => null) });
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value() {
+        if (mocks.options.autoplayRefused) return Promise.reject(new DOMException('refused', 'NotAllowedError'));
+        setVideo(this, { paused: false }, 'play');
+        return Promise.resolve();
+      },
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+      configurable: true, value() { setVideo(this, { paused: true }, 'pause'); },
+    });
     Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
@@ -229,8 +246,73 @@ describe('whole-app behavior', () => {
     expect(store.getState()).toMatchObject({
       selectedRouteId: LOG,
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
-      loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
+  });
+
+  test('a drive starts playing and shows a spinner only while the video waits for data', async () => {
+    const { video, overlay } = await openDrive(`/${FIRST}/${LOG}`);
+    expect(video.paused).toBe(false);
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeVisible();
+    expect(overlay.getByRole('progressbar')).toBeVisible();
+    setVideo(video, { readyState: 4 }, 'canPlay');
+    expect(overlay.queryByRole('progressbar')).toBeNull();
+    setVideo(video, { readyState: 2 }, 'waiting');
+    expect(overlay.getByRole('progressbar')).toBeVisible();
+    setVideo(video, { readyState: 4, seeking: true }, 'seeking');
+    expect(overlay.getByRole('progressbar')).toBeVisible();
+    setVideo(video, { seeking: false }, 'seeked');
+    expect(overlay.queryByRole('progressbar')).toBeNull();
+    setVideo(video, { seeking: true }, 'seeking');
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    expect(overlay.queryByRole('progressbar')).toBeNull();
+  });
+
+  test('refused autoplay leaves a play button, not a spinner', async () => {
+    const { video, overlay } = await openDrive(`/${FIRST}/${LOG}`, { autoplayRefused: true });
+    expect(await screen.findByRole('button', { name: 'Unpause' })).toBeVisible();
+    expect(overlay.queryByRole('progressbar')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Jump forward 10 seconds' }));
+    expect(video.currentTime).toBe(10);
+    expect(overlay.queryByRole('progressbar')).toBeNull();
+  });
+
+  test('the controls command the video and draw what it reports', async () => {
+    const { video } = await openDrive(`/${FIRST}/${LOG}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    expect(video.paused).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Unpause' }));
+    expect(video.paused).toBe(false);
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Increase play speed by 1 step' }));
+    expect(video.playbackRate).toBe(2);
+    expect(screen.getByText('2×')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Unpause' }));
+    expect(video.playbackRate).toBe(2);
+
+    video.currentTime = 30;
+    fireEvent.click(screen.getByRole('button', { name: 'Jump back 10 seconds' }));
+    expect(video.currentTime).toBe(20);
+    expect(await screen.findByText(/^\d\d:\d\d:20/)).toBeVisible();
+  });
+
+  test('a ranged drive starts at its range and loops inside it', async () => {
+    const { video } = await openDrive(`/${FIRST}/${LOG}/10/20`);
+    expect(video.currentTime).toBe(10);
+    setVideo(video, { currentTime: 19.9 }, 'timeUpdate');
+    expect(video.currentTime).toBe(19.9);
+    setVideo(video, { currentTime: 20.1 }, 'timeUpdate');
+    expect(video.currentTime).toBe(10);
+    fireEvent.click(screen.getByRole('button', { name: 'Jump back 10 seconds' }));
+    expect(video.currentTime).toBe(10);
+  });
+
+  test('the whole drive loops when the video ends', async () => {
+    const { video } = await openDrive(`/${FIRST}/${LOG}`);
+    setVideo(video, { currentTime: 59.5, paused: true }, 'ended');
+    expect(video.currentTime).toBe(0);
+    expect(video.paused).toBe(false);
   });
 
   test.each([

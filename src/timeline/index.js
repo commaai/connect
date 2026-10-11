@@ -1,33 +1,35 @@
 import store from '../store';
 
+// the <video> of the open drive. it is the playback clock: nothing else keeps time
+export let video = null;
+
+export function attachVideo(el) {
+  video = el;
+}
+
 /**
  * Get current playback offset
  *
  * @param {object} state
  * @returns {number}
  */
-export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
+export function currentOffset(state = store.getState()) {
+  if (!video) {
+    return state.zoom?.start ?? 0;
   }
+  return (video.currentTime * 1000) + (state.currentRoute?.videoStartOffset || 0);
+}
 
-  /** @type {number} */
-  let offset;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
+// logs start earlier than video, so offsets before the first frame land on it
+export function seekVideo(offset, state) {
+  video.currentTime = Math.max(0, offset - (state.currentRoute?.videoStartOffset || 0)) / 1000;
+}
 
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
+// the selected range loops: playback that leaves it goes back to its start
+export function loopVideo(state) {
+  const { zoom } = state;
+  const offset = currentOffset(state);
+  if (offset < zoom.start || offset >= zoom.end) {
+    seekVideo(zoom.start, state);
   }
-  return offset;
 }

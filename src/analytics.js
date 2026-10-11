@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
+import { currentOffset } from './timeline';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
@@ -52,12 +53,9 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
   }
 }
 
-function getVideoPercent(state, offset) {
+function getVideoPercent(state) {
   const { zoom } = state;
-  if (!offset) {
-    offset = state.offset;
-  }
-  return (offset - (zoom.start)) / (zoom.end - zoom.start);
+  return (currentOffset(state) - (zoom.start)) / (zoom.end - zoom.start);
 }
 
 function logAction(action, prevState, state) {
@@ -107,6 +105,16 @@ function logAction(action, prevState, state) {
       return;
 
     case Types.TIMELINE_PUSH_SELECTION:
+      if (state.currentRoute && state.zoom) {
+        const duration = state.zoom.end - state.zoom.start;
+        percent = duration / state.currentRoute.duration;
+        gtag('event', 'video_loop', {
+          ...params,
+          loop_duration: duration,
+          loop_duration_percentage: percent,
+          loop_duration_percentage_round: Math.round(percent * 10) / 10,
+        });
+      }
       if (!prevState.zoom && state.zoom) {
         params = {
           ...params,
@@ -193,7 +201,7 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_seek', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playSpeed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -205,7 +213,7 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_pause', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playSpeed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -217,21 +225,9 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_play', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.playSpeed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
-        });
-      }
-      return;
-
-    case Types.ACTION_LOOP:
-      if (state.currentRoute && state.zoom && state.loop?.duration !== 0) {
-        percent = state.loop && state.currentRoute ? state.loop.duration / state.currentRoute.duration : undefined;
-        gtag('event', 'video_loop', {
-          ...params,
-          loop_duration: state.loop?.duration,
-          loop_duration_percentage: percent,
-          loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
         });
       }
       return;

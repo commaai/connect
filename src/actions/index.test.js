@@ -2,12 +2,6 @@ import { vi } from 'vitest';
 import { push } from 'connected-react-router';
 import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
 
-vi.mock('../timeline/playback', () => ({
-  reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
-}));
-
 vi.mock('connected-react-router', async () => {
   const originalModule = await vi.importActual('connected-react-router');
   return {
@@ -35,7 +29,6 @@ describe('timeline actions', () => {
 
     getState.mockImplementationOnce(() => ({
       dongleId: 'statedongle',
-      loop: {},
       zoom: {},
     }));
     actionThunk(dispatch, getState);
