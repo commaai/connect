@@ -60,7 +60,7 @@ class RouteVideo extends Component {
   componentDidUpdate(prevProps) {
     const { seekRequest, loop, offset, currentRoute } = this.props;
     if (seekRequest && seekRequest !== prevProps.seekRequest) {
-      this.seekTo(seekRequest.offset);
+      this.seekTo(seekRequest.offset, seekRequest);
     } else if (loop !== prevProps.loop) {
       this.seekTo(offset);
     } else if ((currentRoute.videoStartOffset || 0)
@@ -78,7 +78,7 @@ class RouteVideo extends Component {
     this.audioTracks?.removeEventListener('addtrack', this.onAddTrack);
   }
 
-  seekTo = (offset) => {
+  seekTo = (offset, seekRequest) => {
     if (!this.ready) return; // onReady applies the latest request after loading.
     const { currentRoute, loop } = this.props;
     const start = loop?.startTime ?? 0;
@@ -87,12 +87,13 @@ class RouteVideo extends Component {
     if (currentRoute.videoStartOffset == null && clamped > 0) this.seekBeforeVideoStart = true;
     const seconds = Math.max(0, (clamped - (currentRoute.videoStartOffset || 0)) / 1000);
     this.player.current.seekTo(seconds, 'seconds');
+    if (seekRequest) this.props.dispatch(setVideoStatus(this.props.videoStatus, seekRequest));
   };
 
   onReady = (player) => {
     if (this.ready) return;
     this.ready = true;
-    this.seekTo(this.props.offset);
+    this.seekTo(this.props.offset, this.props.seekRequest);
     const video = player.getInternalPlayer();
     const hls = player.getInternalPlayer('hls');
     if (hls) {

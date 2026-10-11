@@ -48,8 +48,11 @@ describe('playback', () => {
     expect(reducer(pending, videoProgress(456))).toBe(pending);
 
     const ready = reducer(pending, setVideoStatus(VideoStatus.READY));
-    expect(ready.seekRequest).toBeNull();
-    expect(reducer(ready, videoProgress(456)).offset).toBe(456);
+    expect(ready.seekRequest).toBe(pending.seekRequest);
+    expect(reducer(ready, videoProgress(456))).toBe(ready);
+
+    const applied = reducer(ready, setVideoStatus(VideoStatus.READY, pending.seekRequest));
+    expect(reducer(applied, videoProgress(456)).offset).toBe(456);
   });
 
   it('should set loop start time and duration', () => {

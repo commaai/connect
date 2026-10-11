@@ -7,7 +7,7 @@ export const VideoStatus = {
 };
 
 // User seeks are commands; progress only reports the media clock. A seek stays
-// pending until the video is playable again, so stale progress can't undo it.
+// pending until it is handed to the video, so stale progress can't undo it.
 export function reducer(state, action) {
   switch (action.type) {
     case Types.ACTION_SEEK:
@@ -44,7 +44,7 @@ export function reducer(state, action) {
       return {
         ...state,
         videoStatus: action.status,
-        seekRequest: action.status === VideoStatus.READY ? null : state.seekRequest,
+        seekRequest: action.appliedSeek === state.seekRequest ? null : state.seekRequest,
       };
     default:
       return state;
@@ -100,9 +100,10 @@ export function setHasAudio(hasAudio) {
   };
 }
 
-export function setVideoStatus(status) {
+export function setVideoStatus(status, appliedSeek) {
   return {
     type: Types.ACTION_VIDEO_STATUS,
     status,
+    appliedSeek,
   };
 }
