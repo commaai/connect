@@ -42,7 +42,10 @@ async function setup(state = {}) {
 }
 
 describe('DriveVideo', () => {
-  afterEach(() => attachVideo(null));
+  afterEach(() => {
+    attachVideo(null);
+    vi.restoreAllMocks();
+  });
 
   it('becomes the playback clock once it has loaded', async () => {
     const { store, video } = await setup();
@@ -75,6 +78,29 @@ describe('DriveVideo', () => {
     fireEvent.click(button);
     expect(store.getState().desiredPlaySpeed).toEqual(1);
     play.mockRestore();
+  });
+
+  it('redraws a paused video when iOS brings the app back', async () => {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('iPhone');
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(function () {
+      fireEvent.play(this);
+      this.currentTime += 0.05;
+      return Promise.resolve();
+    });
+    const store = Redux.createStore(reducer, {
+      desiredPlaySpeed: 0, offset: 5000, loop: null, currentRoute: route,
+    }, Redux.applyMiddleware(thunk));
+    render(<Provider store={store}><DriveVideo isMuted={false} /></Provider>);
+    const video = document.querySelector('video');
+    Object.defineProperty(video, 'readyState', { value: 4, configurable: true });
+    fireEvent.loadedMetadata(video);
+    video.currentTime = 30;
+
+    await act(async () => fireEvent(document, new Event('visibilitychange')));
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(video.currentTime).toEqual(30);
+    expect(video.muted).toBe(false);
+    expect(store.getState().desiredPlaySpeed).toEqual(0);
   });
 
   it('only reports a missing segment once playback reaches it', async () => {

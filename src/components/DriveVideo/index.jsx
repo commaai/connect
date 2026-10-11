@@ -89,6 +89,7 @@ class DriveVideo extends Component {
       video.audioTracks.onaddtrack = () => this.props.onAudioStatusChange?.(true);
     }
     window.addEventListener('online', this.onOnline);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
     this.load();
   }
 
@@ -123,6 +124,7 @@ class DriveVideo extends Component {
 
   componentWillUnmount() {
     window.removeEventListener('online', this.onOnline);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
     cancelAnimationFrame(this.frame);
     clearTimeout(this.stallTimer);
     this.unload();
@@ -140,6 +142,7 @@ class DriveVideo extends Component {
 
   onPlay = () => {
     const { desiredPlaySpeed, dispatch } = this.props;
+    if (this.redrawing) return;
     if (this.state.needsTap) this.setState({ needsTap: false });
     if (!desiredPlaySpeed) {
       // started from outside the app, e.g. the lock screen or headphones
@@ -213,6 +216,27 @@ class DriveVideo extends Component {
 
   onOnline = () => {
     if (this.failed) this.reload();
+  };
+
+  onVisibilityChange = () => {
+    const video = this.video.current;
+    if (document.hidden || !hasNativeHls() || !video.paused || !video.readyState || this.failed) {
+      return;
+    }
+    // when the app comes back, iOS can show the wrong frame for a paused video until it plays,
+    // seeking doesn't redraw it, so play for a moment and go back
+    const id = this.loadId;
+    const { currentTime } = video;
+    this.redrawing = true;
+    video.muted = true;
+    video.play()?.then(() => {
+      if (id !== this.loadId || this.props.desiredPlaySpeed) return;
+      video.pause();
+      video.currentTime = currentTime;
+    }).catch(() => {}).finally(() => {
+      this.redrawing = false;
+      video.muted = this.props.isMuted;
+    });
   };
 
   async load() {
