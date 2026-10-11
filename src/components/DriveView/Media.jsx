@@ -220,7 +220,7 @@ class Media extends Component {
     this.videoContainer = React.createRef();
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
-    this.toggleFullscreen = this.toggleFullscreen.bind(this);
+    this.handleFullscreenToggle = this.handleFullscreenToggle.bind(this);
     this.onFullscreenChange = this.onFullscreenChange.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -249,7 +249,7 @@ class Media extends Component {
     this.setState({ hasAudio });
   }
 
-  toggleFullscreen() {
+  handleFullscreenToggle() {
     if (document.fullscreenElement) {
       document.exitFullscreen();
     } else if (document.fullscreenEnabled) {
@@ -601,7 +601,7 @@ class Media extends Component {
               hasAudio={hasAudio}
               onMuteToggle={this.handleMuteToggle}
               isFullscreen={isFullscreen}
-              onFullscreenToggle={this.toggleFullscreen}
+              onFullscreenToggle={this.handleFullscreenToggle}
             />
           </div>
         </div>
