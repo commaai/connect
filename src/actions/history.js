@@ -45,14 +45,10 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
     destination: { ...parsed, dongleId },
   });
 
-  const { zoom, loop, selectedRouteId, device } = getState();
+  const { zoom, selectedRouteId, device } = getState();
   if (state.zoom !== zoom || state.selectedRouteId !== selectedRouteId) {
-    const { start, end } = zoom ?? {};
-    const same = zoom && loop && loop.startTime === start && loop.duration === end - start;
-    if (!same) {
-      dispatch(resetPlayback());
-      dispatch(selectLoop(start, end));
-    }
+    dispatch(resetPlayback());
+    dispatch(selectLoop(zoom?.start, zoom?.end));
   }
 
   if (deviceChanged) {
