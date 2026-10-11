@@ -232,7 +232,8 @@ class DriveVideo extends Component {
   syncVideo() {
     const { dispatch, isBufferingVideo, isMuted } = this.props;
     const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
+    // Apple's fullscreen player controls playback until it exits
+    if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration() || videoPlayer.getInternalPlayer().webkitDisplayingFullscreen) {
       return;
     }
 
