@@ -99,14 +99,23 @@ class RouteVideo extends Component {
       this.audioTracks.addEventListener('addtrack', this.onAddTrack);
       this.onAddTrack();
     }
+    if (!hls && video.requestVideoFrameCallback) this.watchFrames(video);
     this.frameId = requestAnimationFrame(this.onAnimationFrame);
   };
 
   onAddTrack = () => this.props.dispatch(setHasAudio(this.audioTracks.length > 0));
 
+  // iOS native HLS never reports a missing segment, the clock just runs on without new frames.
+  watchFrames = (video) => video.requestVideoFrameCallback((_now, { mediaTime }) => {
+    this.frameTime = mediaTime; if (video === this.player.current?.getInternalPlayer()) this.watchFrames(video);
+  });
+
   onAnimationFrame = () => {
     const video = this.player.current.getInternalPlayer();
     const { skipAt } = this.state;
+    if (this.frameTime != null && !this.failure && this.props.isPlaying && !video.paused && !video.seeking
+      && !video.webkitDisplayingFullscreen && video.currentTime - this.frameTime > 3) this.onError({ response: { code: 404 },
+      frag: { start: this.frameTime, duration: (Math.floor(video.currentTime / 60) + 1) * 60 - this.frameTime } });
     if (skipAt != null && navigator.onLine === false) this.onError(new Error());
     else if (skipAt != null && !this.props.isPlaying) this.cancelSkip();
     else if (skipAt != null) {
@@ -142,6 +151,7 @@ class RouteVideo extends Component {
   };
 
   onSeeking = (event) => {
+    if (this.frameTime != null) this.frameTime = event.target.currentTime;
     this.failure = null;
     this.failureStart = this.failureEnd = null;
     this.clearVideoError();
@@ -211,8 +221,8 @@ class RouteVideo extends Component {
   clearRecoveredGap = (video) => {
     if (this.failureEnd == null || video.readyState < 3) return false;
     const buffered = video.buffered;
-    let recovered = video.currentTime > this.failureEnd;
-    for (let i = 0; buffered && !recovered && i < buffered.length; i++) recovered = video.currentTime > this.failureStart && buffered.start(i) <= video.currentTime && buffered.end(i) >= video.currentTime;
+    let recovered = video.currentTime > this.failureEnd || this.frameTime > this.failureStart;
+    for (let i = 0; buffered && !recovered && this.frameTime == null && i < buffered.length; i++) recovered = video.currentTime > this.failureStart && buffered.start(i) <= video.currentTime && buffered.end(i) >= video.currentTime;
     if (!recovered) return false;
     this.failure = this.failureStart = this.failureEnd = null;
     this.clearVideoError(); this.props.dispatch(setVideoStatus(VideoStatus.READY)); return true;
