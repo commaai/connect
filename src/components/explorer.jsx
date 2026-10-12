@@ -152,7 +152,7 @@ class ExplorerApp extends Component {
     this.unsubscribeWindowSize?.();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     const { pathname, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {
