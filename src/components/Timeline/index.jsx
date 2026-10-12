@@ -233,8 +233,6 @@ class Timeline extends Component {
     if (!this.rulerRef.current) {
       return;
     }
-    ev.preventDefault();
-
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.pageX));
     if (dragging) {
