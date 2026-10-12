@@ -32,6 +32,8 @@ export function checkRoutesData() {
     console.debug('We need to update the segment metadata...');
     const { dongleId, limit: fetchLimit } = state;
     const fetchRange = state.filter;
+    // a drive opened by its URL is fetched on its own, which says nothing about the rest of the time range
+    const singleRoute = Boolean(state.selectedRouteId);
 
     // if requested segment range not in loaded routes, fetch it explicitly
     if (state.selectedRouteId) {
@@ -98,8 +100,8 @@ export function checkRoutesData() {
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
-        start: fetchRange.start,
-        end: fetchRange.end,
+        start: singleRoute ? null : fetchRange.start,
+        end: singleRoute ? null : fetchRange.end,
         routes,
       });
 
