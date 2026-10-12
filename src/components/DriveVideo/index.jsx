@@ -191,7 +191,7 @@ class RouteVideo extends Component {
   };
 
   // hls.js can give up on a segment ahead of the playhead, so play what is buffered first.
-  failureIsAhead = () => this.failureEnd != null && this.failureStart > this.player.current.getCurrentTime()
+  failureIsAhead = () => this.failureStart > this.player.current.getCurrentTime()
     && this.player.current.getInternalPlayer().readyState >= 3;
 
   onBuffer = () => {
@@ -215,8 +215,7 @@ class RouteVideo extends Component {
     for (let i = 0; buffered && !recovered && i < buffered.length; i++) recovered = buffered.start(i) <= this.failureStart && buffered.end(i) >= this.failureEnd;
     if (!recovered) return false;
     this.failure = this.failureStart = this.failureEnd = null;
-    this.clearVideoError(); this.props.dispatch(setVideoStatus(VideoStatus.READY));
-    return true;
+    this.clearVideoError(); this.props.dispatch(setVideoStatus(VideoStatus.READY)); return true;
   };
 
   getSkipTarget = () => {
@@ -228,7 +227,8 @@ class RouteVideo extends Component {
     if (loop?.duration > 0 && (target < loop.startTime || target >= loop.startTime + loop.duration)) {
       const gapStart = this.failureStart * 1000 + (currentRoute.videoStartOffset || 0);
       const gapEnd = this.failureEnd * 1000 + (currentRoute.videoStartOffset || 0);
-      return gapStart <= loop.startTime && gapEnd >= loop.startTime + loop.duration ? null : loop.startTime;
+      return gapStart <= loop.startTime && gapEnd >= loop.startTime + loop.duration ? null
+        : gapStart <= loop.startTime && gapEnd > loop.startTime ? gapEnd : loop.startTime;
     }
     return target;
   };
