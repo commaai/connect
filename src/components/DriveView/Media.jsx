@@ -47,9 +47,6 @@ const styles = () => ({
     minWidth: '2.75em',
     paddingLeft: '0.9375em',
     paddingRight: '0.9375em',
-    '&.disabled': {
-      cursor: 'default',
-    },
     '&:last-child': {
       borderRight: 'none',
     },
