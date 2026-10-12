@@ -24,15 +24,24 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   }
 
   if (page === 'not-found') {
-    dispatch(replace(dongleId ? `/${dongleId}` : '/'));
-    return;
+    return dispatch(replace(dongleId ? `/${dongleId}` : '/'));
   }
   if (page === 'root' && dongleId) {
-    dispatch(replace({ pathname: `/${dongleId}`, search }));
-    return;
+    return dispatch(replace({ pathname: `/${dongleId}`, search }));
   }
   if (page === 'drive' && !range && pathname !== `/${dongleId}/${parsed.logId}`) {
-    dispatch(replace({ pathname: `/${dongleId}/${parsed.logId}`, search }));
+    return dispatch(replace({ pathname: `/${dongleId}/${parsed.logId}`, search }));
+  }
+  if (page === 'legacy-drive') {
+    try {
+      const routes = await api.routes.getRoutesSegments(dongleId, range.start, range.end);
+      const logId = routes?.[0]?.fullname?.split('|')[1];
+      const location = getState().router.location;
+      if (location.pathname !== pathname) return;
+      if (logId) dispatch(replace({ pathname: `/${dongleId}/${logId}`, search: location.search }));
+    } catch (err) {
+      console.error('Failed to resolve legacy drive URL', err);
+    }
     return;
   }
 
@@ -62,18 +71,6 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
     dispatch(checkLastRoutesData());
   } else if (page === 'drive') {
     dispatch(checkRoutesData());
-  }
-
-  if (page === 'legacy-drive') {
-    try {
-      const routesData = await api.routes.getRoutesSegments(dongleId, range.start, range.end);
-      if (getState().router.location.pathname !== pathname) return;
-
-      const logId = routesData?.[0]?.fullname?.split('|')[1];
-      if (logId) dispatch(replace({ pathname: `/${dongleId}/${logId}`, search: getState().router.location.search }));
-    } catch (err) {
-      console.error('Error fetching routes data for log ID conversion', err);
-    }
   }
 }
 
