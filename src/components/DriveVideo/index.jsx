@@ -11,9 +11,6 @@ import Colors from '../../colors';
 import { ErrorOutline, RefreshIcon } from '../../icons';
 import { pause, play, setPlaybackSpeed, videoProgress } from '../../timeline/playback';
 
-// Chrome caches a failed import(), so only a page reload retries it
-let hlsFailed = false;
-
 const VideoOverlay = ({ loading, error, onRetry }) => {
   let content;
   if (error) {
@@ -181,11 +178,10 @@ class DriveVideo extends Component {
     }
   };
 
+  // hls.js resumes by itself when the connection comes back
   onOnline = () => {
-    if (this.hls && !this.state.videoError) {
-      this.hls.startLoad(this.videoPlayer.current.currentTime);
-    } else {
-      this.reload();
+    if (!this.hls || this.state.videoError) {
+      this.loadSource();
     }
   };
 
@@ -322,15 +318,7 @@ class DriveVideo extends Component {
     });
   }
 
-  reload = () => {
-    if (hlsFailed) {
-      window.location.reload();
-      return;
-    }
-    this.loadSource();
-  };
-
-  loadSource() {
+  loadSource = () => {
     const { currentRoute, onAudioStatusChange } = this.props;
     const video = this.videoPlayer.current;
     this.updateSpeed();
@@ -360,12 +348,9 @@ class DriveVideo extends Component {
       this.hls.on(Hls.Events.ERROR, this.onHlsError);
       this.hls.loadSource(src);
       this.hls.attachMedia(video);
-    }, () => {
-      hlsFailed = true;
-      this.setState({ videoError: errorMessage() });
-    });
+    }, () => this.setState({ videoError: errorMessage() }));
     this.pendingHls = load;
-  }
+  };
 
   render() {
     const { isMuted } = this.props;
@@ -374,7 +359,7 @@ class DriveVideo extends Component {
 
     return (
       <div className="w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-        <VideoOverlay loading={buffering} error={error} onRetry={this.reload} />
+        <VideoOverlay loading={buffering} error={error} onRetry={this.loadSource} />
         <video
           ref={this.videoPlayer}
           className="w-full h-full"
