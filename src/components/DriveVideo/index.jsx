@@ -160,8 +160,7 @@ class DriveVideo extends Component {
   };
 
   onVideoError = () => {
-    const video = this.videoPlayer.current;
-    if (!this.hls && video.error) {
+    if (!this.hls) {
       this.setState({ videoError: errorMessage() });
     }
   };
@@ -236,13 +235,8 @@ class DriveVideo extends Component {
   reportProgress() {
     const { currentRoute, dispatch } = this.props;
     const video = this.videoPlayer.current;
-    if (!video.readyState) {
-      return;
-    }
-    const offset = this.storedOffset();
-    const progress = Math.round(video.currentTime * 1000) + (currentRoute.videoStartOffset || 0);
-    if (progress !== offset) {
-      dispatch(videoProgress(progress));
+    if (video.readyState) {
+      dispatch(videoProgress(Math.round(video.currentTime * 1000) + (currentRoute.videoStartOffset || 0)));
     }
   }
 
@@ -292,18 +286,12 @@ class DriveVideo extends Component {
     return Math.max(0, (offset - (this.props.currentRoute.videoStartOffset || 0)) / 1000);
   }
 
-  // loading a source resets playbackRate to defaultPlaybackRate
-  updateSpeed() {
-    const { desiredPlaySpeed } = this.props;
+  updatePlayback() {
+    const { isPlaying, desiredPlaySpeed, dispatch } = this.props;
     const video = this.videoPlayer.current;
     video.playbackRate = desiredPlaySpeed;
+    // loading a source resets playbackRate to defaultPlaybackRate
     video.defaultPlaybackRate = desiredPlaySpeed;
-  }
-
-  updatePlayback() {
-    const { isPlaying, dispatch } = this.props;
-    const video = this.videoPlayer.current;
-    this.updateSpeed();
     if (!isPlaying) {
       // Chrome resumes a video it paused in a hidden tab, unless the page has called pause() on it too
       if (!video.paused) {
@@ -321,7 +309,6 @@ class DriveVideo extends Component {
   loadSource = () => {
     const { currentRoute, onAudioStatusChange } = this.props;
     const video = this.videoPlayer.current;
-    this.updateSpeed();
     this.hls?.destroy();
     this.hls = null;
     this.missingFrag = null;
