@@ -151,7 +151,6 @@ class Timeline extends Component {
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
-    this.segmentNum = this.segmentNum.bind(this);
     this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
 
@@ -290,14 +289,6 @@ class Timeline extends Component {
     return (offset - zoom.start) / (zoom.end - zoom.start);
   }
 
-  segmentNum(offset) {
-    const { route } = this.props;
-    if (route) {
-      return getSegmentNumber(route, offset);
-    }
-    return null;
-  }
-
   renderRoute() {
     const { classes, route } = this.props;
     const { zoom } = this.state;
@@ -360,7 +351,7 @@ class Timeline extends Component {
       hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
       if (!Number.isNaN(hoverOffset)) {
         hoverString = dayjs(route.start_time_utc_millis + hoverOffset).format('HH:mm:ss');
-        const segNum = this.segmentNum(hoverOffset);
+        const segNum = route ? getSegmentNumber(route, hoverOffset) : null;
         if (segNum !== null) {
           hoverString = `${segNum}, ${hoverString}`;
         }
