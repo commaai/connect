@@ -221,16 +221,14 @@ class RouteVideo extends Component {
   getSkipTarget = () => {
     const { currentRoute, loop } = this.props;
     if (this.failureEnd == null || !Number.isFinite(currentRoute.duration)) return null;
-    const target = Math.min(Math.ceil(this.failureEnd / 60) * 60 * 1000
-      + (currentRoute.videoStartOffset || 0), currentRoute.duration);
-    if (target >= currentRoute.duration) return null;
+    const target = Math.ceil(this.failureEnd / 60) * 60 * 1000 + (currentRoute.videoStartOffset || 0);
     if (loop?.duration > 0 && (target < loop.startTime || target >= loop.startTime + loop.duration)) {
       const gapStart = this.failureStart * 1000 + (currentRoute.videoStartOffset || 0);
       const gapEnd = this.failureEnd * 1000 + (currentRoute.videoStartOffset || 0);
       return gapStart <= loop.startTime && gapEnd >= loop.startTime + loop.duration ? null
         : gapStart <= loop.startTime && gapEnd > loop.startTime ? gapEnd : loop.startTime;
     }
-    return target;
+    return target < currentRoute.duration ? target : null;
   };
 
   cancelSkip = () => { this.setState({ skipAt: null }); };
