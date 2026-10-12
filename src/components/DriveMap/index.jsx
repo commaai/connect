@@ -1,13 +1,20 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 
-import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
+import ReactMapGL from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
 import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
+const GESTURE_STALE = 2000; // a gesture whose end was never reported (a crash, a cancelled touch) stops blocking updates
+const ZOOM_SETTLE = 150; // after the last wheel/pinch zoom event, bring the car back to the center
+const FOLLOW_INTERVAL = 50; // ms between marker/camera updates: every map update is a full WebGL repaint
+// street level, so what is around the car can be read, in the small window and expanded alike
+const ZOOM = 17;
+const MIN_ZOOM = 10; // a whole drive
+const MAX_ZOOM = 19; // building level
 
 class DriveMap extends Component {
   constructor(props) {
@@ -16,7 +23,7 @@ class DriveMap extends Component {
     this.state = {
       viewport: {
         ...DEFAULT_LOCATION,
-        zoom: 14,
+        zoom: ZOOM,
       },
       driveCoordsMin: null,
       driveCoordsMax: null,
@@ -31,10 +38,13 @@ class DriveMap extends Component {
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onInteraction = this.onInteraction.bind(this);
 
-    this.shouldFlyTo = false;
     this.isInteracting = false;
     this.isInteractingTimeout = null;
+    this.zoomTimeout = null;
+    this.gesturing = false;
+    this.gestureTimeout = null;
     this.lastMapPos = [0, 0];
+    this.lastFollow = 0;
   }
 
   componentDidMount() {
@@ -56,12 +66,14 @@ class DriveMap extends Component {
     }
 
     if (prevProps.seekId !== seekId) {
-      this.shouldFlyTo = true;
+      // the user jumped somewhere else: follow the car there, even right after panning the map
+      clearTimeout(this.isInteractingTimeout);
+      this.isInteracting = false;
+      this.lastMapPos = [0, 0];
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
       && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
-      this.shouldFlyTo = false;
       const keys = Object.keys(currentRoute.driveCoords);
       this.setState({
         driveCoordsMin: Math.min(...keys),
@@ -73,38 +85,59 @@ class DriveMap extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    clearTimeout(this.isInteractingTimeout);
+    clearTimeout(this.zoomTimeout);
+    clearTimeout(this.gestureTimeout);
   }
 
   onInteraction(ev) {
-    if (ev.isDragging || ev.isRotating || ev.isZooming) {
-      this.shouldFlyTo = true;
+    this.gesturing = Boolean(ev.isDragging); // a finger or mouse button is down on the map
+    clearTimeout(this.gestureTimeout);
+    if (this.gesturing) {
+      this.gestureTimeout = setTimeout(() => { this.gesturing = false; }, GESTURE_STALE);
+    }
+    // isDragging is the only flag that is false when the gesture ends: the controller never resets
+    // isZooming/isPanning after a wheel zoom, so it must be checked first
+    if (ev.isDragging || ev.isRotating) {
       this.isInteracting = true;
-
-      if (this.isInteractingTimeout !== null) {
-        clearTimeout(this.isInteractingTimeout);
-      }
+      clearTimeout(this.isInteractingTimeout);
       this.isInteractingTimeout = setTimeout(() => {
         this.isInteracting = false;
+        this.lastMapPos = [0, 0]; // bring the camera back to the car even if it is not moving
       }, INTERACTION_TIMEOUT);
+    } else if (ev.isZooming) {
+      // zooming moves the view towards the pointer: let it, then bring the car back to the center once
+      this.zooming = true;
+      clearTimeout(this.zoomTimeout);
+      this.zoomTimeout = setTimeout(() => {
+        this.zooming = false;
+        this.lastMapPos = [0, 0];
+      }, ZOOM_SETTLE);
     }
   }
 
-  updateMarkerPos() {
+  updateMarkerPos(now = performance.now()) {
     if (!this.mounted) {
       return;
     }
+    if (document.hidden || now - this.lastFollow < FOLLOW_INTERVAL) {
+      requestAnimationFrame(this.updateMarkerPos);
+      return;
+    }
+    this.lastFollow = now;
 
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
         const pos = this.posAtOffset(currentOffset());
-        if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
+        // while a gesture is on screen every map update is another draw competing with it: catch up afterwards
+        if (!this.gesturing && !this.zooming && pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
             type: 'Point',
             coordinates: pos,
           });
-          if (!this.isInteracting) {
+          if (!this.isInteracting && !this.zooming) {
             this.moveViewportTo(pos);
           }
         }
@@ -120,21 +153,8 @@ class DriveMap extends Component {
   }
 
   moveViewportTo(pos) {
-    const viewport = {
-      longitude: pos[0],
-      latitude: pos[1],
-    };
-    if (this.shouldFlyTo) {
-      viewport.transitionDuration = 200;
-      viewport.transitionInterpolator = new LinearInterpolator();
-      this.shouldFlyTo = false;
-    }
-
     this.setState((prevState) => ({
-      viewport: {
-        ...prevState.viewport,
-        ...viewport,
-      },
+      viewport: { ...prevState.viewport, longitude: pos[0], latitude: pos[1] },
     }));
   }
 
@@ -145,7 +165,16 @@ class DriveMap extends Component {
       return;
     }
 
-    this.setPath(Object.values(currentRoute.driveCoords));
+    const path = Object.values(currentRoute.driveCoords);
+    this.setPath(path);
+    const endpoints = this.map.getMap().getSource('endpoints');
+    if (endpoints && path.length > 1) {
+      const point = (coordinates, color) => ({ type: 'Feature', properties: { color }, geometry: { type: 'Point', coordinates } });
+      endpoints.setData({
+        type: 'FeatureCollection',
+        features: [point(path[0], '#22c55e'), point(path[path.length - 1], '#ef4444')],
+      });
+    }
   }
 
   onRef(el) {
@@ -191,7 +220,12 @@ class DriveMap extends Component {
     ));
 
     if (!currentRoute.driveCoords[coordIdx]) {
-      return null;
+      // no GPS for this second (a gap in the drive's log): keep the car where it was last seen, or will first be
+      // seen. Returning nothing left a map built during the gap (e.g. after rotating a phone) on DEFAULT_LOCATION.
+      let known = coordIdx;
+      while (known > this.state.driveCoordsMin && !currentRoute.driveCoords[known]) known -= 1;
+      while (known < this.state.driveCoordsMax && !currentRoute.driveCoords[known]) known += 1;
+      return currentRoute.driveCoords[known] || null;
     }
 
     const [floorLng, floorLat] = currentRoute.driveCoords[coordIdx];
@@ -238,6 +272,11 @@ class DriveMap extends Component {
         },
       });
 
+      map.addSource('endpoints', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+
       const lineGeoJson = {
         id: 'routeLine',
         type: 'line',
@@ -252,6 +291,19 @@ class DriveMap extends Component {
         },
       };
       map.addLayer(lineGeoJson);
+
+      // start (green) and end (red) of the drive, under the car marker
+      map.addLayer({
+        id: 'endpoints',
+        type: 'circle',
+        source: 'endpoints',
+        paint: {
+          'circle-radius': 9,
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#fff',
+        },
+      });
 
       const markerGeoJson = {
         id: 'marker',
@@ -269,7 +321,6 @@ class DriveMap extends Component {
 
       const { currentRoute } = this.props;
       if (currentRoute?.driveCoords) {
-        this.shouldFlyTo = false;
         const keys = Object.keys(currentRoute.driveCoords);
         this.setState({
           driveCoordsMin: Math.min(...keys),
@@ -283,13 +334,20 @@ class DriveMap extends Component {
   render() {
     const { viewport } = this.state;
     return (
-      <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
+      <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full">
         <ReactMapGL
           width="100%"
           height="100%"
           latitude={viewport.latitude}
           longitude={viewport.longitude}
           zoom={viewport.zoom}
+          minZoom={MIN_ZOOM}
+          maxZoom={MAX_ZOOM}
+          // react-map-gl 5 glides after a pinch and divides by the time since the last event: on an iPhone that
+          // can be 0 ms, giving scale 0, a thrown assertion and a map stuck mid-gesture (see pinch.test.js)
+          touchZoom={{ inertia: 0 }}
+          // let mapbox draw once per frame; by default react-map-gl forces a synchronous draw per touch move
+          asyncRender
           mapStyle={MAPBOX_STYLE}
           maxPitch={0}
           mapboxApiAccessToken={MAPBOX_TOKEN}
