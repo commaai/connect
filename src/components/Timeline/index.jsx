@@ -153,8 +153,6 @@ class Timeline extends Component {
     this.onRulerRef = this.onRulerRef.bind(this);
 
     this.rulerRef = React.createRef();
-    this.dragBar = React.createRef();
-    this.hoverBead = React.createRef();
     this.thumbnailsRef = React.createRef();
 
     const { zoomOverride, zoom } = this.props;
@@ -398,10 +396,10 @@ class Timeline extends Component {
                 onPointerLeave={this.handlePointerLeave}
               >
                 <div className={classes.rulerRemaining} style={{ left: `${playedPercent}%`, width: `${100 - playedPercent}%` }} />
-                { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
+                { draggerStyle && <div className={classes.dragHighlight} style={draggerStyle} /> }
               </div>
               { hoverString && (
-                <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>
+                <div className={classes.hoverBead} style={hoverStyle}>
                   { hoverString }
                 </div>
               ) }
