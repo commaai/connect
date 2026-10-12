@@ -1,14 +1,12 @@
 import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { currentOffset, setVideoClock } from '.';
+import { pause, play, reducer, seek, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
     desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
     offset: 0, // in miliseconds from the start
     startTime: Date.now(), // millisecond timestamp in which play began
-
-    isBuffering: true,
   };
 };
 
@@ -105,29 +103,51 @@ describe('playback', () => {
     expect(state.offset).toEqual(1000);
   });
 
-  it('should buffer video and data', async () => {
-    newNow();
-    let state = makeDefaultStruct();
+  describe('video clock', () => {
+    const route = { fullname: 'a2a0ccea32023010|2023-07-27--13-01-19' };
 
-    state = reducer(state, play());
-    expect(state.desiredPlaySpeed).toEqual(1);
+    afterEach(() => {
+      setVideoClock(null);
+    });
 
-    // claim the video is buffering
-    state = reducer(state, bufferVideo(true));
-    expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBufferingVideo).toEqual(true);
+    it('reads the offset from the video of the current route', () => {
+      newNow();
+      const state = { ...makeDefaultStruct(), currentRoute: route };
+      setVideoClock({ route: route.fullname, getOffset: () => 4321 });
+      expect(currentOffset(state)).toEqual(4321);
+    });
 
-    state = reducer(state, play(0.5));
-    expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBufferingVideo).toEqual(true);
+    it('ignores a video from another route', () => {
+      newNow();
+      const state = { ...makeDefaultStruct(), offset: 1000, currentRoute: route };
+      setVideoClock({ route: 'other|route', getOffset: () => 4321 });
+      expect(currentOffset(state)).toEqual(1000);
+    });
 
-    expect(state.desiredPlaySpeed).toEqual(0.5);
+    it('uses the video position for play and pause', () => {
+      newNow();
+      let state = { ...makeDefaultStruct(), offset: 1000, currentRoute: route };
+      setVideoClock({ route: route.fullname, getOffset: () => 4321 });
+      state = reducer(state, pause());
+      expect(state.offset).toEqual(4321);
+      state = reducer(state, play());
+      expect(state.offset).toEqual(4321);
+    });
 
-    state = reducer(state, play(2));
-    state = reducer(state, bufferVideo(false));
-    expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBufferingVideo).toEqual(false);
+    it('wraps a video that played past the loop end', () => {
+      newNow();
+      let state = { ...makeDefaultStruct(), currentRoute: route };
+      state = reducer(state, selectLoop(1000, 2000));
+      setVideoClock({ route: route.fullname, getOffset: () => 2500 });
+      state = reducer(state, play(2));
+      expect(state.offset).toEqual(1500);
+    });
 
-    expect(state.desiredPlaySpeed).toEqual(2);
+    it('falls back to the wall clock without a video', () => {
+      newNow();
+      const state = { ...makeDefaultStruct(), offset: 1000, desiredPlaySpeed: 0, currentRoute: route };
+      setVideoClock(null);
+      expect(currentOffset(state)).toEqual(1000);
+    });
   });
 });
