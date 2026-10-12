@@ -33,16 +33,16 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
     return dispatch(replace({ pathname: `/${dongleId}/${parsed.logId}`, search }));
   }
   if (page === 'legacy-drive') {
+    let logId;
     try {
       const routes = await api.routes.getRoutesSegments(dongleId, range.start, range.end);
-      const logId = routes?.[0]?.fullname?.split('|')[1];
-      const location = getState().router.location;
-      if (location.pathname !== pathname) return;
-      if (logId) dispatch(replace({ pathname: `/${dongleId}/${logId}`, search: location.search }));
+      logId = routes?.[0]?.fullname?.split('|')[1];
     } catch (err) {
       console.error('Failed to resolve legacy drive URL', err);
     }
-    return;
+    const location = getState().router.location;
+    if (location.pathname !== pathname) return;
+    if (logId) return dispatch(replace({ pathname: `/${dongleId}/${logId}`, search: location.search }));
   }
 
   const deviceChanged = state.dongleId !== dongleId;
