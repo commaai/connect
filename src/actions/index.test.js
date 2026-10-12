@@ -1,6 +1,12 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { api } from '../api/backend';
+import * as Types from './types';
+import { checkRoutesData, primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+
+vi.mock('../api/backend', () => ({
+  api: { routes: { getRoutesSegments: vi.fn() }, auth: { isAuthenticated: () => true } },
+}));
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -49,5 +55,26 @@ describe('timeline actions', () => {
     const dispatch = vi.fn();
     action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
     expect(push).toHaveBeenCalledWith(expected);
+  });
+});
+
+describe('checkRoutesData', () => {
+  const state = {
+    dongleId: 'dongle', limit: 5, filter: { start: 100, end: 200 }, devices: [{}], routes: null,
+    routesMeta: { dongleId: null, start: null, end: null }, selectedRouteId: null,
+  };
+
+  it.each([
+    ['the time range for the drive list', null, 100, 200],
+    // a drive opened by its URL is fetched alone, so the list must still load when going back to it
+    ['nothing for a drive fetched on its own', 'log', null, null],
+  ])('records %s as loaded', async (_name, selectedRouteId, start, end) => {
+    api.routes.getRoutesSegments.mockResolvedValue([{
+      fullname: 'dongle|log', url: 'https://routes.test', segment_numbers: [0],
+      segment_start_times: [0], segment_end_times: [60000], start_time_utc_millis: 0, end_time_utc_millis: 60000,
+    }]);
+    const dispatch = vi.fn();
+    await checkRoutesData()(dispatch, () => ({ ...state, selectedRouteId }));
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: Types.ACTION_ROUTES_METADATA, start, end }));
   });
 });
