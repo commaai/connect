@@ -1,17 +1,14 @@
-import React, { Component } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
-import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
-import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
+import { Forward10, Pause, PlayArrow, Replay10, VolumeUp, VolumeOff } from '../../icons';
+import { useClickOutside } from '../../hooks/useClickOutside';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
-import { getSegmentNumber } from '../../utils';
-import { isIos } from '../../utils/browser.js';
+import { formatElapsed, getSegmentNumber } from '../../utils';
 
 const timerSteps = [
   0.1,
@@ -23,303 +20,130 @@ const timerSteps = [
   8,
 ];
 
-const styles = (theme) => ({
-  base: {
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: theme.palette.grey[999],
-    height: '4em',
-    borderRadius: '2em',
-    padding: '0.5em',
-    width: '25em',
-    maxWidth: '100%',
-    margin: '0 auto',
-    opacity: 0,
-    pointerEvents: 'none',
-    transition: 'opacity 0.1s ease-in-out',
-    '&.isExpanded': {
-      opacity: 1,
-      pointerEvents: 'auto',
-    },
-    '&.isThin': {
-      height: '3.125em',
-      paddingBottom: 0,
-      paddingTop: 0,
-    },
-  },
-  desiredPlaySpeedContainer: {
-    marginRight: '0.5em',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minWidth: '2.5em',
-  },
-  icon: {
-    width: '98%',
-    height: '98%',
-    '&.dim': {
-      color: theme.palette.grey[300],
-    },
-    '&.small': {
-      width: '80%',
-      height: '80%',
-    },
-    '&.circle': {
-      border: `1px solid ${theme.palette.grey[900]}`,
-      borderRadius: '50%',
-    },
-  },
-  iconButton: {
-    fontSize: 'inherit',
-    width: '2.5em',
-    height: '2.5em',
-  },
-  tinyArrowIcon: {
-    fontSize: 'inherit',
-    width: '0.75em',
-    height: '0.75em',
-    color: theme.palette.grey[500],
-    '&[disabled]': {
-      visibility: 'hidden',
-    },
-  },
-  rightBorderBox: {
-    borderRight: `1px solid ${theme.palette.grey[900]}`,
-  },
-  leftBorderBox: {
-    borderLeft: `1px solid ${theme.palette.grey[900]}`,
-  },
-  desiredPlaySpeed: {
-    fontSize: '0.875em',
-  },
-  currentTime: {
-    margin: '0 0.5em',
-    fontSize: '0.9375em',
-    fontWeight: 500,
-    display: 'block',
-    flexGrow: 1,
-  },
-});
+const iconButton = 'relative before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/80 cursor-pointer select-none transition-colors duration-200 hover:bg-white/10 hover:text-white disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent motion-reduce:transition-none';
 
-class TimeDisplay extends Component {
-  static getDerivedStateFromProps(props, state) {
-    if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
-      return {
-        ...state,
-        desiredPlaySpeed: props.desiredPlaySpeed,
-      };
-    }
-    return state;
-  }
+function getDisplayTime(currentRoute, loop) {
+  const offset = currentOffset();
+  const start = loop?.startTime ?? 0;
+  const total = loop?.duration ?? currentRoute.duration;
+  const wallClock = new Date(offset + currentRoute.start_time_utc_millis);
+  return {
+    progress: `${formatElapsed(offset - start)} / ${formatElapsed(total)}`,
+    clock: Number.isNaN(wallClock.getTime()) ? '' : dayjs(wallClock).format('HH:mm:ss'),
+    segment: getSegmentNumber(currentRoute),
+  };
+}
 
-  constructor(props) {
-    super(props);
+function TimeDisplay({ dispatch, currentRoute, loop, zoom, desiredPlaySpeed: videoPlaySpeed, onMuteToggle, isMuted, hasAudio }) {
+  const [display, setDisplay] = useState(() => getDisplayTime(currentRoute, loop));
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const speedRef = useRef(null);
+  const closeSpeed = useCallback(() => setSpeedOpen(false), []);
+  useClickOutside(speedRef, speedOpen, closeSpeed);
+  // the speed to come back to after pausing
+  const lastSpeed = useRef(1);
+  if (videoPlaySpeed !== 0) lastSpeed.current = videoPlaySpeed;
 
-    this.textHolder = React.createRef();
+  useEffect(() => {
+    let frame = requestAnimationFrame(function tick() {
+      const next = getDisplayTime(currentRoute, loop);
+      setDisplay((current) => (current.progress === next.progress && current.clock === next.clock ? current : next));
+      frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [currentRoute, loop]);
 
-    this.updateTime = this.updateTime.bind(this);
-    this.togglePause = this.togglePause.bind(this);
-    this.increaseSpeed = this.increaseSpeed.bind(this);
-    this.decreaseSpeed = this.decreaseSpeed.bind(this);
-    this.jumpBack = this.jumpBack.bind(this);
-    this.jumpForward = this.jumpForward.bind(this);
+  const found = timerSteps.indexOf(lastSpeed.current);
+  const stepIndex = found === -1 ? timerSteps.indexOf(1) : found;
+  const isPaused = videoPlaySpeed === 0;
 
-    this.state = {
-      desiredPlaySpeed: 1,
-      displayTime: this.getDisplayTime(),
-    };
-  }
-
-  componentDidMount() {
-    this.mounted = true;
-    requestAnimationFrame(this.updateTime);
-  }
-
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
-  getDisplayTime() {
-    const offset = currentOffset();
-    const { currentRoute } = this.props;
-    const now = new Date(offset + currentRoute.start_time_utc_millis);
-    if (Number.isNaN(now.getTime())) {
-      return '...';
-    }
-    let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute);
-    if (seg !== null) {
-      dateString = `${dateString} \u2013 ${seg}`;
-    }
-
-    return dateString;
-  }
-
-  jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
-  }
-
-  jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
-  }
-
-  updateTime() {
-    if (!this.mounted || !this.textHolder.current) {
-      return;
-    }
-    const newDisplayTime = this.getDisplayTime();
-    const { displayTime } = this.state;
-    if (newDisplayTime !== displayTime) {
-      this.setState({ displayTime: newDisplayTime });
-    }
-
-    requestAnimationFrame(this.updateTime);
-  }
-
-  decreaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.max(0, curIndex - 1);
-    dispatch(play(timerSteps[curIndex]));
-  }
-
-  canDecreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    return curIndex > 0;
-  }
-
-  increaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    dispatch(play(timerSteps[curIndex]));
-  }
-
-  canIncreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    return curIndex < timerSteps.length - 1;
-  }
-
-  togglePause() {
-    const { desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed === 0) {
-      // eslint-disable-next-line react/destructuring-assignment
-      dispatch(play(this.state.desiredPlaySpeed));
+  const jump = (amount) => dispatch(seek(currentOffset() + amount));
+  const chooseSpeed = (step) => {
+    if (isPaused) {
+      lastSpeed.current = step; // takes effect when playing resumes
     } else {
-      dispatch(pause());
+      dispatch(play(step));
     }
-  }
+    setSpeedOpen(false);
+  };
 
-  render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime, desiredPlaySpeed } = this.state;
-    const isPaused = videoPlaySpeed === 0;
-    const isExpandedCls = zoom ? 'isExpanded' : '';
-    const isThinCls = isThin ? 'isThin' : '';
-    return (
-      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-        <div className={ classes.rightBorderBox }>
-          <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpBack(10000) }
-            aria-label="Jump back 10 seconds"
+  return (
+    <div
+      className={`flex w-full items-center gap-0.5 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6)] transition-opacity duration-200 motion-reduce:transition-none ${zoom ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+    >
+      <button
+        type="button"
+        className={iconButton}
+        onClick={() => dispatch(isPaused ? play(lastSpeed.current) : pause())}
+        aria-label={isPaused ? 'Unpause' : 'Pause'}
+      >
+        {isPaused ? <PlayArrow className="h-8 w-8" /> : <Pause className="h-8 w-8" />}
+      </button>
+      <Tooltip title={!hasAudio ? 'Enable audio recording through the "Record and Upload Microphone Audio" toggle on your device' : ''}>
+        <span>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={onMuteToggle}
+            disabled={!hasAudio}
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
           >
-            <Replay10 className={`${classes.icon} small dim`} />
-          </IconButton>
-        </div>
-        <div className={ classes.rightBorderBox }>
-          <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpForward(10000) }
-            aria-label="Jump forward 10 seconds"
-          >
-            <Forward10 className={`${classes.icon} small dim`} />
-          </IconButton>
-        </div>
-        { !isThin && (
-          <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
-            CURRENT PLAYBACK TIME
-          </Typography>
-        )}
-        <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
-        </Typography>
-        {!isIos() && (
-          <div className={ classes.desiredPlaySpeedContainer }>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
-              aria-label="Increase play speed by 1 step"
-            >
-              <UpArrow className={classes.tinyArrowIcon} />
-            </IconButton>
-            <Typography variant="body2" align="center" className={classes.desiredPlaySpeed}>
-              {desiredPlaySpeed}
-              ×
-            </Typography>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
-              aria-label="Decrease play speed by 1 step"
-            >
-              <DownArrow className={classes.tinyArrowIcon} />
-            </IconButton>
+            {isMuted ? <VolumeOff className="h-6 w-6" /> : <VolumeUp className="h-6 w-6" />}
+          </button>
+        </span>
+      </Tooltip>
+
+      <div className="ml-1 min-w-0 truncate text-sm tabular-nums" title={display.segment !== null ? `Segment ${display.segment}` : undefined}>
+        {display.progress}
+        <span className="ml-2 hidden text-white/60 sm:inline">{display.clock}</span>
+      </div>
+
+      <div className="flex-1" />
+
+      <button type="button" className={iconButton} onClick={() => jump(-10000)} aria-label="Jump back 10 seconds">
+        <Replay10 className="h-6 w-6" />
+      </button>
+      <button type="button" className={iconButton} onClick={() => jump(10000)} aria-label="Jump forward 10 seconds">
+        <Forward10 className="h-6 w-6" />
+      </button>
+
+      <div ref={speedRef} className="relative" onKeyDown={(event) => event.key === 'Escape' && setSpeedOpen(false)}>
+        <button
+          type="button"
+          className="relative before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 h-10 min-w-12 cursor-pointer rounded-full px-3 text-sm font-medium tabular-nums transition-colors duration-200 hover:bg-white/10 motion-reduce:transition-none"
+          aria-label="Playback speed"
+          aria-haspopup="menu"
+          aria-expanded={speedOpen}
+          onClick={() => setSpeedOpen((open) => !open)}
+        >
+          {`${timerSteps[stepIndex]}×`}
+        </button>
+        {speedOpen && (
+          <div role="menu" className="absolute bottom-full right-0 mb-2 flex w-max origin-bottom-right gap-0.5 rounded-full bg-glass-dark p-1 transition-[opacity,scale] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] starting:scale-95 starting:opacity-0 motion-reduce:transition-none">
+            {timerSteps.map((step, index) => (
+              <button
+                key={step}
+                type="button"
+                role="menuitemradio"
+                aria-checked={index === stepIndex}
+                className={`h-9 min-w-9 cursor-pointer rounded-full px-2 text-sm tabular-nums transition-colors duration-150 hover:bg-white/10 motion-reduce:transition-none ${index === stepIndex ? 'bg-white/20 font-medium text-white' : 'text-white/70'}`}
+                onClick={() => chooseSpeed(step)}
+              >
+                {`${step}×`}
+              </button>
+            ))}
           </div>
         )}
-        <div className={ classes.leftBorderBox }>
-          <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
-            <div>
-              <IconButton
-                className={ classes.iconButton }
-                onClick={onMuteToggle}
-                disabled={!hasAudio}
-                aria-label={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted
-                  ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
-                  : (<VolumeUp className={`${classes.icon} small`} />)}
-              </IconButton>
-            </div>
-          </Tooltip>
-        </div>
-        <div className={ classes.leftBorderBox }>
-          <IconButton
-            className={ classes.iconButton }
-            onClick={this.togglePause}
-            aria-label={isPaused ? 'Unpause' : 'Pause'}
-          >
-            {isPaused
-              ? (<PlayArrow className={classes.icon} />)
-              : (<Pause className={classes.icon} />)}
-          </IconButton>
-        </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
 
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
+  loop: state.loop,
   zoom: state.zoom,
   desiredPlaySpeed: state.desiredPlaySpeed,
 });
 
-export default connect(stateToProps)(withStyles(styles)(TimeDisplay));
+export default connect(stateToProps)(TimeDisplay);

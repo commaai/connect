@@ -1,6 +1,15 @@
 import { getSegmentNumber } from '../../utils';
 import { api } from '../../api/backend';
 
+// which image of which segment's sprite shows `offset` (ms from the route start)
+export function thumbnailAt(route, offset) {
+  // 12 per file, 5s each
+  const seconds = Math.floor(offset / 1000);
+  const imageIndex = Math.max(0, Math.min(Math.floor(seconds / 5), 11));
+  const segmentNum = getSegmentNumber(route, offset);
+  return { seconds, imageIndex, segmentNum, url: api.routeAssets.thumbnail(route, segmentNum) };
+}
+
 export default function Thumbnails(props) {
   const { thumbnail } = props;
   const imgStyles = {
@@ -32,11 +41,7 @@ export default function Thumbnails(props) {
       }
       currSegment.length += 1;
     } else {
-      // 12 per file, 5s each
-      const seconds = Math.floor(offset / 1000);
-      const imageIndex = Math.max(0, Math.min(Math.floor(seconds / 5), 11));
-      const segmentNum = getSegmentNumber(route, offset);
-      const url = api.routeAssets.thumbnail(route, segmentNum);
+      const { seconds, imageIndex, segmentNum, url } = thumbnailAt(route, offset);
 
       if (currSegment && (currSegment.blank || currSegment.segmentNum !== segmentNum)) {
         imgArr.push(currSegment);

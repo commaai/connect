@@ -30,7 +30,11 @@ vi.mock('./utils/webrtc', () => ({
   },
 }));
 vi.mock('react-map-gl', () => ({
-  default: React.forwardRef((_props, ref) => <div ref={ref} data-testid="map" />),
+  default: React.forwardRef((_props, ref) => {
+    // the drive page always mounts the map now; it only needs a map that never finishes loading
+    React.useImperativeHandle(ref, () => ({ getMap: () => ({ on: () => {}, getSource: () => undefined }) }));
+    return <div data-testid="map" />;
+  }),
   GeolocateControl: () => null,
   HTMLOverlay: () => null,
   Layer: () => null,
@@ -39,20 +43,7 @@ vi.mock('react-map-gl', () => ({
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
 }));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
-}));
+HTMLMediaElement.prototype.load = vi.fn(); // jsdom does not implement media loading
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
 const FIRST = 'aaaaaaaaaaaaaaaa';
@@ -119,7 +110,8 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.pathname.endsWith('/athena_offline_queue')) return json([]);
+  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: [] });
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -233,6 +225,60 @@ describe('whole-app behavior', () => {
     });
   });
 
+  test('expanding and collapsing the map keeps the same video element', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const video = document.querySelector('video');
+    fireEvent.click(screen.getByRole('button', { name: 'Expand map' }));
+    expect(document.querySelector('video')).toBe(video);
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse map' }));
+    expect(document.querySelector('video')).toBe(video);
+    expect(screen.getByRole('button', { name: 'Expand map' })).toBeVisible();
+  });
+
+  describe('where the map goes', () => {
+    const originalWidth = window.innerWidth;
+    afterEach(() => {
+      window.innerWidth = originalWidth;
+      vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    });
+
+    async function mapIsInsidePlayer({ width, landscape }) {
+      window.innerWidth = width;
+      vi.stubGlobal('matchMedia', vi.fn((query) => ({
+        matches: landscape && query.includes('orientation: landscape'),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })));
+      await renderApp(`/${FIRST}/${LOG}`);
+      await screen.findByRole('slider', { name: 'Drive timeline' });
+      const player = document.querySelector('video').closest('[class*="aspect-"]');
+      return player.contains(screen.getByTestId('map'));
+    }
+
+    test('floats over the video on a wide screen', async () => {
+      expect(await mapIsInsidePlayer({ width: 1024, landscape: true })).toBe(true);
+    });
+
+    test('sits under the video on a phone held upright', async () => {
+      expect(await mapIsInsidePlayer({ width: 390, landscape: false })).toBe(false);
+      expect(screen.queryByRole('button', { name: 'Expand map' })).toBeNull();
+    });
+
+    test('floats over the video when the phone is turned on its side', async () => {
+      expect(await mapIsInsidePlayer({ width: 852, landscape: true })).toBe(true);
+      expect(screen.getByRole('button', { name: 'Expand map' })).toBeVisible();
+    });
+  });
+
+  test('the more menu offers Public and Preserved switches to the owner', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    expect(await screen.findByText('Public access')).toBeVisible();
+    expect(screen.getByText('Preserved')).toBeVisible();
+  });
+
   test.each([
     ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`],
   ])('signed-out %s entry retains its path', async (_name, pathname) => {
@@ -300,7 +346,7 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
-    fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
+    fireEvent.click(within(document.body).getByRole('button', { name: 'Go Back' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
 });
