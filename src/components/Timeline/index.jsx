@@ -396,7 +396,6 @@ class Timeline extends Component {
           <div ref={this.thumbnailsRef} className={`${classes.thumbnails} ${hasRulerCls}`}>
             {thumbnailsVisible && (
               <Thumbnails
-                className={classes.thumbnail}
                 currentRoute={route}
                 percentToOffset={this.percentToOffset}
                 thumbnail={thumbnail}
