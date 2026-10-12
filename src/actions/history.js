@@ -23,7 +23,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   }
 
   if (page === 'not-found') {
-    return dispatch(replace(dongleId ? `/${dongleId}` : '/'));
+    return dispatch(replace({ pathname: dongleId ? `/${dongleId}` : '/', search }));
   }
   if (page === 'root' && dongleId) {
     return dispatch(replace({ pathname: `/${dongleId}`, search }));
