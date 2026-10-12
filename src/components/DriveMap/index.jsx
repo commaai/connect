@@ -24,10 +24,6 @@ class DriveMap extends Component {
     this.onRef = this.onRef.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
     this.initMap = this.initMap.bind(this);
-    this.populateMap = this.populateMap.bind(this);
-    this.posAtOffset = this.posAtOffset.bind(this);
-    this.setPath = this.setPath.bind(this);
-    this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onInteraction = this.onInteraction.bind(this);
 
     this.shouldFlyTo = false;
