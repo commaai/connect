@@ -303,4 +303,16 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('Prime settings opened from a drive shows Prime', async () => {
+    const { history } = await renderApp(`/${SECOND}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'device settings' }))[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${SECOND}/prime`);
+    act(() => history.goBack());
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+  });
 });

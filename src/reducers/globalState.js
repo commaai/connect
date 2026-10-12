@@ -306,7 +306,10 @@ export default function reducer(_state, action) {
         primeNav: action.primeNav,
       };
       if (action.primeNav) {
+        state.selectedRouteId = null;
+        state.currentRoute = null;
         state.zoom = null;
+        state.loop = null;
       }
       break;
     case Types.ACTION_STREAM_NAV:
