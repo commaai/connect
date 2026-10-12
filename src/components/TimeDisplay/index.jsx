@@ -126,7 +126,6 @@ class TimeDisplay extends Component {
           <IconButton
             className={ classes.iconButton }
             onClick={ () => dispatch(seek(offset - 10000)) }
-            disabled={controlsDisabled}
             aria-label="Jump back 10 seconds"
           >
             <Replay10 className={`${classes.icon} small dim`} />
@@ -136,7 +135,6 @@ class TimeDisplay extends Component {
           <IconButton
             className={ classes.iconButton }
             onClick={ () => dispatch(seek(offset + 10000)) }
-            disabled={controlsDisabled}
             aria-label="Jump forward 10 seconds"
           >
             <Forward10 className={`${classes.icon} small dim`} />
@@ -196,7 +194,6 @@ class TimeDisplay extends Component {
           <IconButton
             className={ classes.iconButton }
             onClick={() => dispatch(isPlaying ? pause() : play())}
-            disabled={controlsDisabled}
             aria-label={!isPlaying ? 'Unpause' : 'Pause'}
           >
             {!isPlaying
