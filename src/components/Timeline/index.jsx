@@ -145,14 +145,12 @@ class Timeline extends Component {
   constructor(props) {
     super(props);
 
-    this.handleClick = this.handleClick.bind(this);
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.onRulerRef = this.onRulerRef.bind(this);
-    this.renderRoute = this.renderRoute.bind(this);
 
     this.rulerRef = React.createRef();
     this.dragBar = React.createRef();
