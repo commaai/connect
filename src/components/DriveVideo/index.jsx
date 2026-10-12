@@ -87,6 +87,7 @@ class RouteVideo extends Component {
     this.ready = true;
     this.seekTo(this.props.offset, this.props.seekRequest);
     const video = player.getInternalPlayer();
+    this.clearRecoveredGap(video);
     video.addEventListener('webkitendfullscreen', this.onWebkitEndFullscreen);
     const hls = player.getInternalPlayer('hls');
     if (hls) {
@@ -118,6 +119,7 @@ class RouteVideo extends Component {
   };
 
   updateOffset = (video) => {
+    this.clearRecoveredGap(video);
     const { currentRoute, dispatch, loop, isPlaying, offset, videoStatus } = this.props;
     if (!this.ready || video.seeking || videoStatus === VideoStatus.FAILED) return;
     const nextOffset = Math.round(video.currentTime * 1000) + (currentRoute.videoStartOffset || 0);
@@ -132,7 +134,7 @@ class RouteVideo extends Component {
   onPlayable = () => {
     const { dispatch } = this.props;
     const video = this.player.current.getInternalPlayer();
-    const gapFailed = this.failureEnd != null && !this.failureIsAhead();
+    const gapFailed = !this.clearRecoveredGap(video) && this.failureEnd != null && !this.failureIsAhead();
     if (gapFailed) this.onBuffer();
     else this.clearVideoError();
     this.setState({ canFullscreen: video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0 && !video.error && video.webkitSupportsFullscreen });
@@ -176,20 +178,20 @@ class RouteVideo extends Component {
     const sameGap = status === 404 && this.failureEnd != null && this.failureStart === error.frag?.start;
     if (!(sameGap)) this.cancelSkip();
     const expired = currentRoute.share_exp && Number(currentRoute.share_exp) * 1000 < Date.now();
-    if (status === 404) this.failure = 'This video segment has not uploaded yet or has been deleted.';
+    if (expired) this.failure = EXPIRED;
+    else if (status === 404) this.failure = 'This video segment has not uploaded yet or has been deleted.';
     else if (navigator.onLine === false) this.failure = OFFLINE;
-    else if (expired) this.failure = EXPIRED;
     else if (status === 401 || status === 403) this.failure = 'You don\'t have access to this video';
     else this.failure = 'Unable to load video';
     this.failureStart = error.frag?.start;
-    this.failureEnd = status === 404 && Number.isFinite(error.frag?.start + error.frag?.duration)
+    this.failureEnd = status === 404 && !expired && Number.isFinite(error.frag?.start + error.frag?.duration)
       ? error.frag.start + error.frag.duration : null;
     if (this.state.videoError && !sameGap) this.setState({ videoError: this.failure, canFullscreen: false });
     if (!this.failureIsAhead()) this.onBuffer();
   };
 
   // hls.js can give up on a segment ahead of the playhead, so play what is buffered first.
-  failureIsAhead = () => this.failureStart > this.player.current.getCurrentTime()
+  failureIsAhead = () => this.failureEnd != null && this.failureStart > this.player.current.getCurrentTime()
     && this.player.current.getInternalPlayer().readyState >= 3;
 
   onBuffer = () => {
@@ -206,12 +208,29 @@ class RouteVideo extends Component {
     }
   };
 
+  clearRecoveredGap = (video) => {
+    if (this.failureEnd == null || video.readyState < 3) return false;
+    const buffered = video.buffered;
+    let recovered = video.currentTime > this.failureEnd;
+    for (let i = 0; buffered && !recovered && i < buffered.length; i++) recovered = buffered.start(i) <= this.failureStart && buffered.end(i) >= this.failureEnd;
+    if (!recovered) return false;
+    this.failure = this.failureStart = this.failureEnd = null;
+    this.clearVideoError(); this.props.dispatch(setVideoStatus(VideoStatus.READY));
+    return true;
+  };
+
   getSkipTarget = () => {
-    const { currentRoute } = this.props;
+    const { currentRoute, loop } = this.props;
     if (this.failureEnd == null || !Number.isFinite(currentRoute.duration)) return null;
     const target = Math.min(Math.ceil(this.failureEnd / 60) * 60 * 1000
       + (currentRoute.videoStartOffset || 0), currentRoute.duration);
-    return target < currentRoute.duration ? target : null;
+    if (target >= currentRoute.duration) return null;
+    if (loop?.duration > 0 && (target < loop.startTime || target >= loop.startTime + loop.duration)) {
+      const gapStart = this.failureStart * 1000 + (currentRoute.videoStartOffset || 0);
+      const gapEnd = this.failureEnd * 1000 + (currentRoute.videoStartOffset || 0);
+      return gapStart <= loop.startTime && gapEnd >= loop.startTime + loop.duration ? null : loop.startTime;
+    }
+    return target;
   };
 
   cancelSkip = () => { this.setState({ skipAt: null }); };
@@ -225,6 +244,7 @@ class RouteVideo extends Component {
   };
 
   onPlay = () => {
+    this.clearRecoveredGap(this.player.current.getInternalPlayer());
     if (!this.props.isPlaying) this.props.dispatch(play());
   };
 
