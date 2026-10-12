@@ -212,7 +212,7 @@ class RouteVideo extends Component {
     if (this.failureEnd == null || video.readyState < 3) return false;
     const buffered = video.buffered;
     let recovered = video.currentTime > this.failureEnd;
-    for (let i = 0; buffered && !recovered && i < buffered.length; i++) recovered = buffered.start(i) <= this.failureStart && buffered.end(i) >= this.failureEnd;
+    for (let i = 0; buffered && !recovered && i < buffered.length; i++) recovered = video.currentTime > this.failureStart && buffered.start(i) <= video.currentTime && buffered.end(i) >= video.currentTime;
     if (!recovered) return false;
     this.failure = this.failureStart = this.failureEnd = null;
     this.clearVideoError(); this.props.dispatch(setVideoStatus(VideoStatus.READY)); return true;
