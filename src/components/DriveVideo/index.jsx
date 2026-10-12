@@ -16,6 +16,7 @@ import {
 const EXPIRED = 'This link has expired';
 const OFFLINE = 'You\'re offline';
 const GAP_SECONDS = 5;
+const BUTTON = 'mt-3 rounded-3xl bg-white/10 px-6 py-1.5 text-sm font-medium normal-case text-white hover:bg-white/20';
 
 const VideoOverlay = ({ loading, error, onRetry, onSkip, skipAt, skipTarget }) => (error || loading) && (
   <div className={`z-50 absolute h-full w-full bg-[#16181AAA] ${error ? '' : 'animate-[fadein_0.25s_0.4s_both]'}`}>
@@ -25,10 +26,8 @@ const VideoOverlay = ({ loading, error, onRetry, onSkip, skipAt, skipTarget }) =
         <Typography>{error}</Typography>
         {skipAt != null && <Typography>Skipping in {Math.max(0, Math.ceil((skipAt - Date.now()) / 1000))}…</Typography>}
         <div className="flex gap-2">
-          {error !== EXPIRED && <Button className="mt-3 rounded-3xl bg-white/10 px-6 py-1.5 text-sm font-medium normal-case text-white hover:bg-white/20"
-            onClick={onRetry} disableRipple><RefreshIcon className="mr-2" style={{ fontSize: 20 }} />Retry</Button>}
-          {skipTarget != null && <Button className="mt-3 rounded-3xl bg-white/10 px-6 py-1.5 text-sm font-medium normal-case text-white hover:bg-white/20"
-            onClick={onSkip} disableRipple>Skip now</Button>}
+          {error !== EXPIRED && <Button className={BUTTON} onClick={onRetry} disableRipple><RefreshIcon className="mr-2" style={{ fontSize: 20 }} />Retry</Button>}
+          {skipTarget != null && <Button className={BUTTON} onClick={onSkip} disableRipple>Skip now</Button>}
         </div>
       </> : <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />}
     </div>
@@ -118,11 +117,8 @@ class RouteVideo extends Component {
       frag: { start: this.frameTime, duration: (Math.floor(video.currentTime / 60) + 1) * 60 - this.frameTime } });
     if (skipAt != null && navigator.onLine === false) this.onError(new Error());
     else if (skipAt != null && !this.props.isPlaying) this.cancelSkip();
-    else if (skipAt != null) {
-      const remaining = Math.ceil((skipAt - Date.now()) / 1000);
-      if (remaining !== this.remaining) { this.remaining = remaining; this.forceUpdate(); }
-      if (remaining <= 0) this.onSkip();
-    }
+    else if (skipAt != null && Date.now() >= skipAt) this.onSkip();
+    else if (skipAt != null && this.remaining !== (this.remaining = Math.ceil((skipAt - Date.now()) / 1000))) this.forceUpdate();
     this.updateOffset(video);
     this.frameId = requestAnimationFrame(this.onAnimationFrame);
   };
