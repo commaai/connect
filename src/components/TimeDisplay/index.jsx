@@ -71,10 +71,6 @@ const styles = (theme) => ({
       width: '80%',
       height: '80%',
     },
-    '&.circle': {
-      border: `1px solid ${theme.palette.grey[900]}`,
-      borderRadius: '50%',
-    },
   },
   iconButton: {
     fontSize: 'inherit',
