@@ -47,7 +47,7 @@ export function reducer(_state, action) {
       break;
   }
 
-  // keep the offset inside the selection (a null offset starts at its start)
+  // a null offset goes to the start of the selection
   state.offset = clampToLoop(state.offset, state.loop);
 
   return state;

@@ -353,7 +353,7 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
     if (path === `/v1/devices/${DONGLE_ID}/routes_segments`) return jsonResponse(request, [data.route]);
     if (path === `/v1/devices/${DONGLE_ID}/routes/preserved`) return jsonResponse(request, [data.route]);
     if (path === `/v1/route/${ROUTE_NAME}/files`) return jsonResponse(request, {});
-    // Keep the video and pairing requests pending so the capture shows their loading state.
+    // never answered, so the capture shows them loading
     if (path === `/v1/route/${ROUTE_NAME}/qcamera.m3u8`) return undefined;
     if (path === '/v2/pilotpair') return undefined;
   }
