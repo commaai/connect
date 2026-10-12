@@ -132,9 +132,11 @@ class RouteVideo extends Component {
   onPlayable = () => {
     const { dispatch } = this.props;
     const video = this.player.current.getInternalPlayer();
-    this.clearVideoError();
+    const gapFailed = this.failureEnd != null && !this.failureIsAhead();
+    if (gapFailed) this.onBuffer();
+    else this.clearVideoError();
     this.setState({ canFullscreen: video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0 && !video.error && video.webkitSupportsFullscreen });
-    dispatch(setVideoStatus(VideoStatus.READY));
+    dispatch(setVideoStatus(gapFailed ? VideoStatus.FAILED : VideoStatus.READY));
   };
 
   onSeeking = (event) => {
@@ -161,10 +163,8 @@ class RouteVideo extends Component {
   };
 
   onError = (error, data) => {
-    if (error === 'hlsError') {
-      if (!data?.fatal && ![401, 403, 404].includes(data?.response?.code)) return;
-      error = data;
-    }
+    if (error === 'hlsError' && !data?.fatal && ![401, 403, 404].includes(data?.response?.code)) return;
+    if (error === 'hlsError') error = data;
     if (!error || error.name === 'AbortError') return;
     const { currentRoute, dispatch } = this.props;
     if (error.name === 'NotAllowedError') {
