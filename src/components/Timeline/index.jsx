@@ -331,10 +331,6 @@ class Timeline extends Component {
 
   renderRouteEvents(route) {
     const { classes } = this.props;
-    if (!route.events) {
-      return null;
-    }
-
     return route.events
       .filter((event) => event.data && event.data.end_route_offset_millis)
       .map((event) => {
