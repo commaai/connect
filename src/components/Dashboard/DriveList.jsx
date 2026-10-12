@@ -55,6 +55,10 @@ const DriveList = (props) => {
   }, [dongleId, device?.shared]);
 
   useEffect(() => {
+    dispatch(checkRoutesData());
+  }, [dispatch]);
+
+  useEffect(() => {
     setDeviceStats({});
     fetchDeviceInfo();
   }, [fetchDeviceInfo]);

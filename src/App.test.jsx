@@ -108,6 +108,7 @@ async function mockFetch(input, init = {}) {
     const routeStr = url.searchParams.get('route_str');
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
+    if (options.twoRoutes) return json([makeRoute(dongleId), makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
   }
   if (url.pathname.endsWith('/location')) return json({ error: 'no_segments_uploaded' });
@@ -302,5 +303,14 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('closing a drive opened from a link lists all of the device\'s drives', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`, { twoRoutes: true });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(screen.getByText('Mock route start')).toBeVisible();
   });
 });
