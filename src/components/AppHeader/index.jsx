@@ -11,7 +11,6 @@ import { selectDevice } from '../../actions';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
-import { parseURL } from '../../url';
 
 import AccountMenu from './AccountMenu';
 
@@ -79,7 +78,7 @@ const styles = () => ({
 });
 
 const AppHeader = ({
-  profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
+  profile, classes, dispatch, drawerIsOpen, showDrawerButton,
   forwardRef, handleDrawerStateChanged, dongleId, referralsOpen,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -187,7 +186,6 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   filter: state.filter,
   profile: state.profile,
-  referralsOpen: parseURL(state.router.location).page === 'referrals',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

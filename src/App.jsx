@@ -99,13 +99,13 @@ class App extends Component {
     return url;
   }
 
-  authRoutes() {
+  authRoutes(destination) {
     return (
       <Switch>
         <Route path="/auth/">
           <Redirect to={this.redirectLink()} />
         </Route>
-        <Route path="/" component={Explorer} />
+        <Route path="/" render={(props) => <Explorer {...props} destination={destination} />} />
       </Switch>
     );
   }
@@ -128,9 +128,9 @@ class App extends Component {
     let content = (
       <Suspense fallback={<FullPageLoading />}>
         <Route render={({ location }) => {
-          const { page } = parseURL(location);
-          const isDrive = page === 'drive' || page === 'legacy-drive';
-          return !api.auth.isAuthenticated() && !isDrive ? this.anonymousRoutes() : this.authRoutes();
+          const destination = parseURL(location);
+          const isDrive = destination.page === 'drive' || destination.page === 'legacy-drive';
+          return !api.auth.isAuthenticated() && !isDrive ? this.anonymousRoutes() : this.authRoutes(destination);
         }} />
       </Suspense>
     );

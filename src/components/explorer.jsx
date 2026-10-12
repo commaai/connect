@@ -21,7 +21,6 @@ import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
-import { parseURL } from '../url';
 
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import DriveView from './DriveView';
@@ -188,10 +187,11 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, settingsDongleId, referralsOpen, isDrivePage, profile,
-    } = this.props;
+    const { classes, devices, dispatch, dongleId, destination: { page, settingsDongleId }, profile } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+
+    const bodyTeleopOpen = page === 'stream';
+    const referralsOpen = page === 'referrals';
 
     if (devices === null || (bodyTeleopOpen && !dongleId)) {
       return <FullPageLoading />;
@@ -224,7 +224,7 @@ class ExplorerApp extends Component {
           <>
             <AppHeader
               drawerIsOpen={ drawerIsOpen }
-              viewingRoute={ Boolean(currentRoute) }
+              referralsOpen={ referralsOpen }
               showDrawerButton={ !isLarge }
               handleDrawerStateChanged={this.handleDrawerStateChanged}
               forwardRef={ this.updateHeaderRef }
@@ -241,7 +241,7 @@ class ExplorerApp extends Component {
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : (isDrivePage ? <DriveView /> : <Dashboard />)}
+                : (page === 'drive' ? <DriveView /> : <Dashboard primeNav={page === 'prime'} />)}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -276,20 +276,12 @@ class ExplorerApp extends Component {
   }
 }
 
-const stateToProps = (state) => {
-  const parsedURL = parseURL(state.router.location);
-  return {
-    zoom: state.zoom,
-    pathname: state.router.location.pathname,
-    dongleId: state.dongleId,
-    devices: state.devices,
-    currentRoute: state.currentRoute,
-    settingsDongleId: parsedURL.settingsDongleId,
-    bodyTeleopOpen: parsedURL.page === 'stream',
-    referralsOpen: parsedURL.page === 'referrals',
-    isDrivePage: parsedURL.page === 'drive',
-    profile: state.profile,
-  };
-};
+const stateToProps = (state) => ({
+  zoom: state.zoom,
+  pathname: state.router.location.pathname,
+  dongleId: state.dongleId,
+  devices: state.devices,
+  profile: state.profile,
+});
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
