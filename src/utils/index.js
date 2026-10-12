@@ -25,9 +25,19 @@ export function asyncSleep(ms) {
 }
 
 export function formatDriveDuration(duration) {
-  const hours = Math.floor((duration / (1000 * 60 * 60))) % 24;
+  if (!Number.isFinite(duration)) return '';
+  const hours = Math.floor(duration / (1000 * 60 * 60));
   const minutes = Math.floor((duration / (1000 * 60))) % 60;
   return `${hours > 0 ? `${hours} hr ` : ''}${minutes} min`;
+}
+
+// 75000 => 1:15, 3725000 => 1:02:05
+export function formatElapsed(ms) {
+  const seconds = Number.isFinite(ms) ? Math.max(0, Math.floor(ms / 1000)) : 0;
+  const pad = (value) => String(value).padStart(2, '0');
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor(seconds / 60) % 60;
+  return hours ? `${hours}:${pad(minutes)}:${pad(seconds % 60)}` : `${minutes}:${pad(seconds % 60)}`;
 }
 
 export function timeFromNow(ts) {

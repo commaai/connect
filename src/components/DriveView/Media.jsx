@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
+import { withStyles, Typography, Menu, MenuItem, Button, IconButton, Popper, ListItem, Tooltip } from '@material-ui/core';
 
 import { USERADMIN_URL_ROOT } from '../../api';
 import { api } from '../../api/backend';
@@ -11,12 +11,15 @@ import { deviceSupportsClips } from '../../api/clips';
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import TimeDisplay from '../TimeDisplay';
+import Timeline from '../Timeline';
+import PlayerBox from './PlayerBox';
 import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
+import StepSpinner from '../utils/StepSpinner';
 import Colors from '../../colors';
-import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
+import { CollapseIcon, ContentCopy, DownloadIcon, ExpandIcon, InfoOutline, MoreVert, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
 import { analyticsEvent, updateRoute } from '../../actions';
@@ -24,50 +27,14 @@ import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
 
+const downloadIconButton = 'ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-colors duration-200 hover:bg-white/20 disabled:opacity-40 disabled:hover:bg-white/10 motion-reduce:transition-none';
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
 
+// same highlight the clickable rows get, so every row in the menu answers the pointer
+const rowHover = { transition: 'background-color 200ms', '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' } };
+
 const styles = () => ({
-  mediaOptions: {
-    display: 'flex',
-    width: 'max-content',
-    alignItems: 'center',
-    border: '1px solid rgba(255,255,255,.1)',
-    borderRadius: 50,
-  },
-  mediaOption: {
-    alignItems: 'center',
-    borderRight: '1px solid rgba(255,255,255,.1)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    minHeight: '2em',
-    minWidth: '2.75em',
-    paddingLeft: '0.9375em',
-    paddingRight: '0.9375em',
-    '&.disabled': {
-      cursor: 'default',
-    },
-    '&:last-child': {
-      borderRight: 'none',
-    },
-  },
-  mediaOptionDisabled: {
-    cursor: 'auto',
-  },
-  mediaOptionIcon: {
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    height: 20,
-    margin: '2px 0',
-    width: 30,
-  },
-  mediaOptionText: {
-    fontSize: '0.75em',
-    fontWeight: 500,
-    textAlign: 'center',
-  },
   mediaSource: {
     width: '100%',
   },
@@ -82,8 +49,10 @@ const styles = () => ({
   filesItem: {
     justifyContent: 'space-between',
     opacity: 1,
+    ...rowHover,
   },
   switchListItem: {
+    ...rowHover,
     padding: '12px 16px',
     boxSizing: 'content-box',
     height: 24,
@@ -192,21 +161,15 @@ const styles = () => ({
   },
 });
 
-const MediaType = {
-  VIDEO: 'video',
-  MAP: 'map',
-};
-
 class Media extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      inView: MediaType.VIDEO,
+      expanded: false, // the map covers the video instead of floating in the corner
       windowWidth: window.innerWidth,
-      downloadMenu: null,
+      moreMenu: null,
       clipMenu: null,
-      moreInfoMenu: null,
       uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
@@ -217,7 +180,7 @@ class Media extends Component {
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
-    this.renderMediaOptions = this.renderMediaOptions.bind(this);
+    this.renderActions = this.renderActions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
@@ -233,6 +196,7 @@ class Media extends Component {
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
 
     this.routeViewed = false;
+    this.prefetchedFor = null;
   }
 
   handleMuteToggle() {
@@ -246,44 +210,42 @@ class Media extends Component {
   componentDidMount() {
     this.mounted = true;
     this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
-      this.setState({ windowWidth: width });
+      // the window also reports height changes (iOS toolbars sliding in and out): those must not re-render the page
+      if (width !== this.state.windowWidth) this.setState({ windowWidth: width });
     });
     this.componentDidUpdate({}, {});
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
-    const showMapAlways = windowWidth >= 1536;
+    const { moreMenu } = this.state;
     if (prevProps.dongleId !== this.props.dongleId) {
       this.setState({ clipsSupported: false, clipMenu: null });
       this.checkClipsSupport();
     } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
       this.checkClipsSupport();
     }
-    if (showMapAlways && inView === MediaType.MAP) {
-      this.setState({ inView: MediaType.VIDEO });
-    }
-
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
       this.props.dispatch(fetchEvents(this.props.currentRoute));
     }
 
-    if (prevState.inView && prevState.inView !== this.state.inView) {
-      this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
+    if (prevState.expanded !== this.state.expanded) {
+      this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.expanded ? 'map' : 'video' }));
     }
 
-    if (this.props.currentRoute && ((!prevState.downloadMenu && downloadMenu)
-      || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)
-      || (!prevProps.currentRoute && (downloadMenu || moreInfoMenu)))) {
-      if ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser) {
-        this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
-      }
-      this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
+    // load what the menu lists as soon as the drive opens, so the menu itself opens instantly
+    const { currentRoute, device } = this.props;
+    if (currentRoute && device && this.prefetchedFor !== currentRoute.fullname) {
+      this.prefetchedFor = currentRoute.fullname;
+      this.setState({ routePreserved: null });
+      this.refreshMenuData(false);
     }
-
-    if (routePreserved === null && (this.props.device?.is_owner || this.props.profile?.superuser)
-      && (!prevState.moreInfoMenu && !prevProps.currentRoute) !== (moreInfoMenu && this.props.currentRoute)) {
-      this.fetchRoutePreserved();
+    // `files` is cleared when the zoom range changes: bring it back quietly
+    if (currentRoute && prevProps.files && !this.props.files) {
+      this.props.dispatch(fetchFiles(currentRoute.fullname));
+    }
+    // upload status can change while watching, refresh it on open (the old data stays visible meanwhile)
+    if (currentRoute && !prevState.moreMenu && moreMenu) {
+      this.refreshMenuData(true);
     }
 
     if (!this.routeViewed && this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
@@ -295,6 +257,17 @@ class Media extends Component {
   componentWillUnmount() {
     this.mounted = false;
     this.unsubscribeWindowSize?.();
+  }
+
+  refreshMenuData(withQueue) {
+    const { dispatch, dongleId, currentRoute, device, profile } = this.props;
+    if (withQueue && ((device && !device.shared) || profile?.superuser)) {
+      dispatch(fetchAthenaQueue(dongleId));
+    }
+    dispatch(fetchFiles(currentRoute.fullname));
+    if (device?.is_owner || profile?.superuser) {
+      this.fetchRoutePreserved();
+    }
   }
 
   async checkClipsSupport() {
@@ -314,7 +287,7 @@ class Media extends Component {
     }
 
     await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}`);
-    this.setState({ moreInfoMenu: null });
+    this.setState({ moreMenu: null });
   }
 
   openInUseradmin() {
@@ -531,108 +504,142 @@ class Media extends Component {
   }
 
   render() {
-    const { inView, windowWidth, isMuted, hasAudio } = this.state;
+    const { currentRoute, renderHeader } = this.props;
+    const { expanded, isMuted, hasAudio, windowWidth } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
-    const showMapAlways = windowWidth >= 1536;
+    // The map is a full-size layer that never resizes. Collapsed, it is a small window cut into that layer
+    // (clip-path) and slid into the corner, so expanding is only a clip and a slide: no map resize or
+    // redraw while it moves, and the map's text stays at full size.
+    const mapLayer = expanded
+      ? '[clip-path:inset(0%_0%_0%_0%_round_0px)]'
+      : 'pointer-events-none translate-x-[calc(33%-12px)] translate-y-[calc(-33%+12px)] [clip-path:inset(33%_33%_33%_33%_round_12px)] md:translate-x-[calc(36%-12px)] md:translate-y-[calc(-36%+12px)] md:[clip-path:inset(36%_36%_36%_36%_round_12px)]';
+    const toggle = () => this.setState((state) => ({ expanded: !state.expanded }));
+    // a phone held upright puts the map under the video; on its side it behaves like a desktop, the map floating over the video
+    const stacked = windowWidth < 768 && !window.matchMedia?.('(orientation: landscape)').matches;
+    // the route's coordinates have loaded and there are none (e.g. no GPS fix)
+    const noGps = Boolean(currentRoute?.driveCoords) && Object.keys(currentRoute.driveCoords).length === 0;
 
     return (
-      <div className="flex flex-col gap-4">
-        {this.renderMediaOptions(showMapAlways)}
-        <div className="flex flex-row gap-5">
-          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {inView === MediaType.VIDEO && (
-              <DriveVideo
-                isMuted={isMuted}
-                onAudioStatusChange={this.handleAudioStatusChange}
-              />
+      <div className="mx-auto flex w-full min-w-0 max-w-[1280px] flex-col gap-4">
+        {renderHeader?.(this.renderActions())}
+        <PlayerBox
+          controls={(
+            <div className="pointer-events-none bg-[linear-gradient(to_top,rgba(0,0,0,0.75),rgba(0,0,0,0.35)_55%,transparent)] px-3 pb-2 pt-12">
+              <div className="pointer-events-auto">
+                {currentRoute && <Timeline overlay hasRuler route={currentRoute} />}
+                <TimeDisplay
+                  isMuted={isMuted}
+                  hasAudio={hasAudio}
+                  onMuteToggle={this.handleMuteToggle}
+                />
+              </div>
+            </div>
+          )}
+        >
+          <div className="absolute inset-0 z-0">
+            <DriveVideo
+              isMuted={isMuted}
+              onAudioStatusChange={this.handleAudioStatusChange}
+            />
+          </div>
+          {!stacked && (
+            <>
+            <div className={`absolute inset-0 z-20 bg-black transition-[clip-path,translate] duration-[250ms] ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none ${mapLayer}`}>
+              <DriveMap />
+            </div>
+            {noGps && (
+              <div
+                className={`pointer-events-none flex items-center justify-center bg-black/55 text-center text-white/80 ${expanded
+                  ? 'absolute inset-0 z-[24] text-sm'
+                  : 'absolute right-3 top-3 z-[24] h-[34%] w-[34%] rounded-xl px-1 text-[11px] leading-tight md:h-[28%] md:w-[28%]'}`}
+              >
+                {expanded ? 'No GPS data for this drive' : 'No GPS'}
+              </div>
             )}
-            {(inView === MediaType.MAP && !showMapAlways) && (
-              <div className="w-full">
-                <DriveMap />
+            {expanded ? (
+              <button
+                key="collapse"
+                type="button"
+                aria-label="Collapse map"
+                onClick={toggle}
+                className="absolute right-3 top-3 z-[25] flex h-9 w-9 items-center justify-center rounded-full bg-glass-dark text-white transition-[opacity,background-color] delay-100 duration-200 ease-out hover:bg-black/60 starting:opacity-0 motion-reduce:transition-none before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2"
+              >
+                <CollapseIcon className="h-5 w-5" />
+              </button>
+            ) : (
+              <div
+                key="tile"
+                role="presentation"
+                className="absolute right-3 top-3 z-[25] h-[34%] w-[34%] cursor-pointer rounded-xl shadow-2xl ring-1 ring-white/30 transition-opacity delay-100 duration-200 ease-out starting:opacity-0 motion-reduce:transition-none md:h-[28%] md:w-[28%]"
+                onClick={toggle}
+              >
+                <button
+                  type="button"
+                  aria-label="Expand map"
+                  className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-glass-dark text-white transition-colors duration-200 hover:bg-black/60 motion-reduce:transition-none"
+                >
+                  <ExpandIcon className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            </>
+          )}
+        </PlayerBox>
+        {stacked && (
+          // phones: the map gets the space under the video instead of floating over it
+          <div className="relative aspect-[1.593] w-full overflow-hidden rounded-xl bg-black">
+            <DriveMap />
+            {noGps && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 text-center text-sm text-white/80">
+                No GPS data for this drive
               </div>
             )}
           </div>
-          {(inView === MediaType.VIDEO && showMapAlways) &&
-            <div className="w-[40%]">
-              <DriveMap />
-            </div>
-          }
-        </div>
-        <div className={`${showMapAlways ? 'w-[60%]' : 'w-full'} self-start flex justify-center`}>
-          <TimeDisplay
-            isThin
-            isMuted={isMuted}
-            hasAudio={hasAudio}
-            onMuteToggle={this.handleMuteToggle}
-          />
-        </div>
+        )}
+        {this.renderMenus()}
       </div>
     );
   }
 
-  renderMediaOptions(showMapAlways) {
-    const { classes, device } = this.props;
-    const { inView, clipsSupported } = this.state;
+  renderActions() {
+    const { device } = this.props;
+    const { clipsSupported } = this.state;
+    const online = deviceIsOnline(device);
     return (
-      <>
-        <div className="flex flex-wrap">
-          { !showMapAlways && (
-            <div className={classes.mediaOptions}>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-                onClick={() => this.setState({ inView: MediaType.VIDEO })}
-              >
-                <Typography className={classes.mediaOptionText}>Video</Typography>
-              </div>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                onClick={() => this.setState({ inView: MediaType.MAP })}
-              >
-                <Typography className={classes.mediaOptionText}>Map</Typography>
-              </div>
-            </div>
-          )}
-          <div className={`${classes.mediaOptions} ml-auto`}>
-            {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
-              <div
-                className={classes.mediaOption}
-                style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
+      <div className="flex shrink-0 items-center gap-1">
+        {clipsSupported && (
+          <Tooltip title={online ? '' : 'Device offline'} placement="top">
+            <span>
+              <button
+                type="button"
+                disabled={!online}
                 aria-haspopup="true"
-                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
+                className="h-9 rounded-full bg-white/10 px-4 text-sm font-medium text-white cursor-pointer transition-colors duration-200 hover:bg-white/20 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-white/10 motion-reduce:transition-none"
+                onClick={(ev) => this.setState({ clipMenu: ev.currentTarget })}
               >
-                <Typography className={classes.mediaOptionText}>Clip</Typography>
-              </div>
-            </Tooltip>}
-            <div
-              className={classes.mediaOption}
-              aria-haspopup="true"
-              onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }
-            >
-              <Typography className={classes.mediaOptionText}>Files</Typography>
-            </div>
-            <div
-              className={classes.mediaOption}
-              aria-haspopup="true"
-              onClick={ (ev) => this.setState({ moreInfoMenu: ev.target }) }
-            >
-              <Typography className={classes.mediaOptionText}>More info</Typography>
-            </div>
-          </div>
-        </div>
-        { this.renderMenus() }
-      </>
+                Clip
+              </button>
+            </span>
+          </Tooltip>
+        )}
+        <IconButton
+          aria-label="More options"
+          aria-haspopup="true"
+          onClick={(ev) => this.setState({ moreMenu: ev.currentTarget })}
+        >
+          <MoreVert />
+        </IconButton>
+      </div>
     );
   }
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { moreMenu, clipMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -674,17 +681,19 @@ class Media extends Component {
           deviceOnline={deviceIsOnline(device)}
         />
         <Menu
-          id="menu-download"
-          open={ Boolean(alwaysOpen || downloadMenu) }
-          anchorEl={ downloadMenu }
-          onClose={ () => this.setState({ downloadMenu: null }) }
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          id="menu-more"
+          open={ Boolean(alwaysOpen || moreMenu) }
+          anchorEl={ moreMenu }
+          onClose={ () => this.setState({ moreMenu: null }) }
+          getContentAnchorEl={ null }
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          PaperProps={{ style: { maxHeight: 'calc(100svh - 120px)' } }}
         >
           { !files
           && (
           <div className={ classes.menuLoading }>
-            <CircularProgress size={ 36 } style={{ color: Colors.white }} />
+            <StepSpinner label="Loading files" className="h-9 w-9" />
           </div>
           )}
           { buttons.filter((b) => Boolean(b)).map(this.renderUploadMenuItem)}
@@ -710,7 +719,7 @@ class Media extends Component {
             <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
               { stats.isUploadedRlog
                 ? 'uploaded'
-                : (stats.isUploadingRlog ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } />)}
+                : (stats.isUploadingRlog ? 'pending' : <StepSpinner label="Uploading" className="h-[17px] w-[17px]" />)}
             </div>
             )}
           </MenuItem>
@@ -735,14 +744,14 @@ class Media extends Component {
             <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
               { stats.isUploadedAll
                 ? 'uploaded'
-                : (stats.isUploadingAll ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } />)}
+                : (stats.isUploadingAll ? 'pending' : <StepSpinner label="Uploading" className="h-[17px] w-[17px]" />)}
             </div>
             )}
           </MenuItem>
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+              onClick={ files ? () => this.setState({ uploadModal: true, moreMenu: null }) : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -769,14 +778,7 @@ class Media extends Component {
             <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
           </MenuItem>
           )}
-        </Menu>
-        <Menu
-          id="menu-info"
-          open={ Boolean(alwaysOpen || moreInfoMenu) }
-          anchorEl={ moreInfoMenu }
-          onClose={ () => this.setState({ moreInfoMenu: null }) }
-          transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}
-        >
+          <hr />
           <MenuItem
             className={ classes.copySegment }
             onClick={ this.copySegmentName }
@@ -820,7 +822,7 @@ class Media extends Component {
         <UploadQueue
           open={ uploadModal }
           onClose={ () => this.setState({ uploadModal: false }) }
-          update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
+          update={ Boolean(moreMenu || uploadModal) }
           store={ this.props.store }
           device={ device }
         />
@@ -848,13 +850,15 @@ class Media extends Component {
       button = null;
     } else if (file.url) {
       button = (
-        <Button
-          className={ classes.uploadButton }
-          style={{ minWidth: uploadButtonWidth }}
+        <button
+          type="button"
+          className={ downloadIconButton }
+          aria-label={`Download ${name}`}
+          title={`Download ${name}`}
           onClick={ () => this.downloadFile(file, type) }
         >
-          download
-        </Button>
+          <DownloadIcon className="h-5 w-5" />
+        </button>
       );
     } else if (file.progress !== undefined) {
       button = (
@@ -867,7 +871,7 @@ class Media extends Component {
     } else if (file.requested) {
       button = (
         <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-          <CircularProgress style={{ color: Colors.white }} size={ 17 } />
+          <StepSpinner label="Requested" className="h-[17px] w-[17px]" />
         </div>
       );
     } else if (file.notFound) {
@@ -884,9 +888,9 @@ class Media extends Component {
       );
     } else if (!canUpload) {
       button = (
-        <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }} disabled>
-          download
-        </Button>
+        <button type="button" className={ downloadIconButton } aria-label={`Download ${name}`} disabled>
+          <DownloadIcon className="h-5 w-5" />
+        </button>
       );
     } else {
       button = (
