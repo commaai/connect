@@ -216,19 +216,11 @@ class Media extends Component {
     this.player = React.createRef();
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
-    this.renderMediaOptions = this.renderMediaOptions.bind(this);
-    this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
-    this.uploadFile = this.uploadFile.bind(this);
-    this.uploadFilesAll = this.uploadFilesAll.bind(this);
-    this.getUploadStats = this.getUploadStats.bind(this);
-    this._uploadStats = this._uploadStats.bind(this);
-    this.downloadFile = this.downloadFile.bind(this);
     this.onPublicToggle = this.onPublicToggle.bind(this);
-    this.fetchRoutePreserved = this.fetchRoutePreserved.bind(this);
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
 
     this.routeViewed = false;
