@@ -921,7 +921,6 @@ const stateToProps = (state) => ({
   segment: getSegmentNumber(state.currentRoute, state.offset),
   zoom: state.zoom,
   loop: state.loop,
-  filter: state.filter,
   files: state.files,
   profile: state.profile,
   hasAudio: state.hasAudio,
