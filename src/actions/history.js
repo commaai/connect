@@ -1,6 +1,6 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange, urlForState } from './index';
 import { api } from '../api/backend';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
@@ -30,7 +30,8 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
           const log_id = routesData[0].fullname.split('|')[1]; 
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
 
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
+          dispatch(pushTimelineRange(log_id, 0, duration, false));
+          dispatch(replace(urlForState(pathDongleId, log_id, null, null, false)));
         }
       }).catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);

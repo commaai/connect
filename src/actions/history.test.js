@@ -1,6 +1,6 @@
 /* eslint-disable no-import-assign */
 import { vi } from 'vitest';
-import { LOCATION_CHANGE } from 'connected-react-router';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import { drives as Drives } from '../api';
 import { onHistoryMiddleware } from './history';
@@ -18,6 +18,7 @@ vi.mock('../api', () => ({
 vi.mock('./index', () => ({
   selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
   checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
+  urlForState: vi.fn((dongleId, logId) => `/${dongleId}/${logId}`),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
@@ -90,9 +91,10 @@ describe('history middleware', () => {
 
   it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
-    const { invoke } = create();
+    const { store, invoke } = create();
     invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
+    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, false));
+    expect(store.dispatch).toHaveBeenCalledWith(replace(`/${DONGLE}/${LOG}`));
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 

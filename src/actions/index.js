@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router';
+import { push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -301,8 +301,10 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
 
     if (allowPathChange) {
       const desiredPath = urlForState(dongleId, null, null, null, null);
-      if (currentPathname(state) !== desiredPath) {
-        dispatch(push(desiredPath));
+      const pathname = currentPathname(state);
+      if (pathname !== desiredPath) {
+        // / only redirects to a device, so Back should skip it
+        dispatch((pathname === '/' ? replace : push)(desiredPath));
       }
     }
   };

@@ -169,6 +169,7 @@ describe('whole-app behavior', () => {
     const app = await renderApp('/', { selected: FIRST });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     expect(app.history.location.pathname).toBe(`/${FIRST}`);
+    expect(app.history.length).toBe(1);
     expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
   });
 
@@ -251,6 +252,7 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.length).toBe(1);
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
