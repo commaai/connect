@@ -44,7 +44,6 @@ const styles = () => ({
     display: 'inline-block',
     height: 12,
     width: '100%',
-    '&.active': {},
     '&.engage': {
       background: theme.palette.states.engagedGreen,
     },
