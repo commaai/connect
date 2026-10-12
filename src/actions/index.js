@@ -9,6 +9,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
+import { PRIME_PROMO_DISMISSED_KEY } from '../initialState';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -306,6 +307,11 @@ export function selectDevice(dongleId, allowPathChange = true, fetchRoutes = tru
       }
     }
   };
+}
+
+export function dismissPrimePromo() {
+  window.localStorage.setItem(PRIME_PROMO_DISMISSED_KEY, 'true');
+  return { type: Types.ACTION_PRIME_PROMO_DISMISSED };
 }
 
 export function primeNav(nav, allowPathChange = true) {
