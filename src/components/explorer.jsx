@@ -151,16 +151,14 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom } = this.props;
-
-    if (prevProps.pathname !== pathname) {
+    if (prevProps.location?.pathname !== this.props.location.pathname) {
       this.setState({ drawerIsOpen: false });
     }
 
-    if (!prevProps.zoom && zoom) {
+    if (!prevProps.zoom && this.props.zoom) {
       this.props.dispatch(play());
     }
-    if (prevProps.zoom && !zoom) {
+    if (prevProps.zoom && !this.props.zoom) {
       this.props.dispatch(pause());
     }
   }
@@ -278,7 +276,6 @@ class ExplorerApp extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
-  pathname: state.router.location.pathname,
   dongleId: state.dongleId,
   devices: state.devices,
   profile: state.profile,
