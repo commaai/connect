@@ -63,17 +63,17 @@ describe('history middleware', () => {
   });
 
   it.each([
-    ['dashboard', `/${DONGLE}`, { page: 'dashboard', dongleId: DONGLE }],
+    ['dashboard', `/${DONGLE}`, { dongleId: DONGLE, routeId: null, range: undefined }],
     ['drive', `/${DONGLE}/${LOG}/10/20`, {
-      page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10000, end: 20000 },
+      dongleId: DONGLE, routeId: LOG, range: { start: 10000, end: 20000 },
     }],
-    ['Prime', `/${DONGLE}/prime`, { page: 'prime', dongleId: DONGLE }],
-    ['stream', `/${DONGLE}/stream`, { page: 'stream', dongleId: DONGLE }],
+    ['Prime', `/${DONGLE}/prime`, { dongleId: DONGLE, routeId: null, range: undefined }],
+    ['stream', `/${DONGLE}/stream`, { dongleId: DONGLE, routeId: null, range: undefined }],
   ])('applies the %s destination', async (_name, pathname, destination) => {
     const { store } = create();
     await syncStateFromURL(pathname)(store.dispatch, store.getState);
     expect(store.dispatch).toHaveBeenCalledWith({ type: ACTION_APPLY_DESTINATION, destination });
-    expect(actions.checkRoutesData).toHaveBeenCalledTimes(destination.page === 'drive' ? 1 : 0);
+    expect(actions.checkRoutesData).toHaveBeenCalledTimes(destination.routeId ? 1 : 0);
   });
 
   it('selects a changed device and refreshes routes', async () => {
@@ -81,7 +81,7 @@ describe('history middleware', () => {
     await syncStateFromURL(`/${OTHER}`)(store.dispatch, store.getState);
     expect(store.dispatch).toHaveBeenCalledWith({
       type: ACTION_APPLY_DESTINATION,
-      destination: { page: 'dashboard', dongleId: OTHER },
+      destination: { dongleId: OTHER, routeId: null, range: undefined },
     });
     expect(actions.checkLastRoutesData).toHaveBeenCalledOnce();
   });

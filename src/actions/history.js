@@ -10,11 +10,10 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   const state = getState();
   if (state.devices === null) return;
 
-  const parsed = parseURL({ pathname });
-  const { page, range } = parsed;
+  const { page, dongleId: urlDongleId, logId, range } = parseURL({ pathname });
   const { search } = state.router.location;
 
-  let dongleId = parsed.dongleId ?? state.dongleId;
+  let dongleId = urlDongleId ?? state.dongleId;
   if (!dongleId && state.devices.length) {
     const rememberedDongleId = window.localStorage.getItem('selectedDongleId');
     const selectedDevice = state.devices.find((device) => device.dongle_id === rememberedDongleId)
@@ -29,20 +28,20 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
   if (page === 'root' && dongleId) {
     return dispatch(replace({ pathname: `/${dongleId}`, search }));
   }
-  if (page === 'drive' && !range && pathname !== `/${dongleId}/${parsed.logId}`) {
-    return dispatch(replace({ pathname: `/${dongleId}/${parsed.logId}`, search }));
+  if (page === 'drive' && !range && pathname !== `/${dongleId}/${logId}`) {
+    return dispatch(replace({ pathname: `/${dongleId}/${logId}`, search }));
   }
   if (page === 'legacy-drive') {
-    let logId;
+    let resolvedLogId;
     try {
       const routes = await api.routes.getRoutesSegments(dongleId, range.start, range.end);
-      logId = routes?.[0]?.fullname?.split('|')[1];
+      resolvedLogId = routes?.[0]?.fullname?.split('|')[1];
     } catch (err) {
       console.error('Failed to resolve legacy drive URL', err);
     }
     const location = getState().router.location;
     if (location.pathname !== pathname) return;
-    if (logId) return dispatch(replace({ pathname: `/${dongleId}/${logId}`, search: location.search }));
+    if (resolvedLogId) return dispatch(replace({ pathname: `/${dongleId}/${resolvedLogId}`, search: location.search }));
   }
 
   const deviceChanged = state.dongleId !== dongleId;
@@ -50,7 +49,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
 
   dispatch({
     type: ACTION_APPLY_DESTINATION,
-    destination: { ...parsed, dongleId },
+    destination: { dongleId, routeId: page === 'drive' ? logId : null, range },
   });
 
   const { zoom, selectedRouteId, device } = getState();

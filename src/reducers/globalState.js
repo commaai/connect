@@ -23,7 +23,7 @@ export default function reducer(_state, action) {
   let deviceIndex = null;
   switch (action.type) {
     case Types.ACTION_APPLY_DESTINATION: {
-      const { page, dongleId = null, logId, range } = action.destination;
+      const { dongleId = null, routeId, range } = action.destination;
 
       // device changed
       const deviceChanged = state.dongleId !== dongleId;
@@ -38,7 +38,6 @@ export default function reducer(_state, action) {
       }
 
       // route changed
-      const routeId = page === 'drive' ? logId : null;
       const routeChanged = deviceChanged || state.selectedRouteId !== routeId;
       const currentRoute = routeChanged ? state.routes?.find((route) => route.log_id === routeId) ?? null : state.currentRoute;
 
