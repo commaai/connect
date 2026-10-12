@@ -32,12 +32,12 @@ class DriveView extends Component {
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { dongleId, zoom, currentRoute, routes, routesMeta } = this.props;
 
     if (!currentRoute) {
       return (
         <div className="DriveView p-8">
-          <Typography>{routes === null ? 'Loading...' : 'Route does not exist.'}</Typography>
+          <Typography>{routes === null || routesMeta.start !== null ? 'Loading...' : 'Route does not exist.'}</Typography>
         </div>
       );
     }
@@ -101,6 +101,7 @@ class DriveView extends Component {
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
   routes: state.routes,
+  routesMeta: state.routesMeta,
   zoom: state.zoom,
   currentRoute: state.currentRoute,
 });

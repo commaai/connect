@@ -1,12 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
-
-vi.mock('../timeline/playback', () => ({
-  reducer: (state) => state,
-  resetPlayback: vi.fn(),
-  selectLoop: vi.fn(),
-}));
+import { primeNav, pushTimelineRange, streamNav } from './index';
 
 vi.mock('connected-react-router', async () => {
   const originalModule = await vi.importActual('connected-react-router');
@@ -18,16 +12,6 @@ vi.mock('connected-react-router', async () => {
 });
 
 describe('timeline actions', () => {
-  it.each([
-    ['device', ['dongle', null, null, null, false], '/dongle'],
-    ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
-    ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
-    ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
-  ])('generates a %s URL', (_name, args, expected) => {
-    expect(urlForState(...args)).toBe(expected);
-  });
-
   it('should push history state when editing zoom', () => {
     const dispatch = vi.fn();
     const getState = vi.fn();
@@ -39,7 +23,7 @@ describe('timeline actions', () => {
       zoom: {},
     }));
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+    expect(push).toBeCalledWith('/statedongle/log_id/0/2');
   });
 
   it.each([

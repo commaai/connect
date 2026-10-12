@@ -8,6 +8,7 @@ import { Typography, IconButton, AppBar } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { selectDevice } from '../../actions';
+import { urlForDestination } from '../../url';
 import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
@@ -79,8 +80,9 @@ const styles = () => ({
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId, pathname,
+  forwardRef, handleDrawerStateChanged, dongleId, pathname,
 }) => {
+  const homeUrl = urlForDestination({ dongleId, page: 'dashboard', drive: null });
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
     window.localStorage.getItem(REFERRALS_SEEN_KEY) !== 'true'
@@ -106,8 +108,8 @@ const AppHeader = ({
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(pathname === '/referrals' ? `/${dongleId}` : '/referrals'));
-  }, [dispatch, dongleId, pathname]);
+    dispatch(push(pathname === '/referrals' ? homeUrl : '/referrals'));
+  }, [dispatch, homeUrl, pathname]);
 
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
@@ -133,7 +135,7 @@ const AppHeader = ({
             )
               : (
                 <a
-                  href={`/${dongleId}`}
+                  href={homeUrl}
                   className={classes.logoImgLink}
                   onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
                 >
@@ -141,7 +143,7 @@ const AppHeader = ({
                 </a>
               )}
             <a
-              href={`/${dongleId}`}
+              href={homeUrl}
               onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
             >
               <Typography className={classes.logoText}>connect</Typography>
@@ -150,7 +152,7 @@ const AppHeader = ({
           <div className="flex flex-row gap-2">
             <IconButton
               component="a"
-              href={referralsOpen ? `/${dongleId}` : '/referrals'}
+              href={referralsOpen ? homeUrl : '/referrals'}
               aria-label="referrals"
               className={classes.giftButton}
               onClick={filterRegularClick(toggleReferrals)}
@@ -187,7 +189,6 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   filter: state.filter,
   profile: state.profile,
-  primeNav: state.primeNav,
   pathname: state.router.location.pathname,
 });
 

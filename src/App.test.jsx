@@ -67,6 +67,8 @@ const devices = [
   { alias: 'Alpha', dongle_id: SECOND, device_type: 'threex', is_owner: true, prime: false },
 ];
 
+const SORTED_FIRST = SECOND;
+
 function makeRoute(dongleId, logId = RECENT_LOG) {
   const start = logId === LOG ? START : START + 3_600_000;
   return {
@@ -114,6 +116,7 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/stats')) return json(null);
   if (/^\/v1\.1\/devices\/[a-f0-9]{16}\/$/.test(url.pathname)) {
     const dongleId = url.pathname.split('/')[3];
+    if (dongleId === options.forbidden) return json({}, 403);
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
@@ -130,7 +133,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -182,8 +185,8 @@ describe('whole-app behavior', () => {
   test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects first device with %s', async (_name, selected) => {
     const { history } = await renderApp('/', { selected });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    expect(history.location.pathname).toBe(`/${FIRST}`);
-    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+    expect(history.location.pathname).toBe(`/${SORTED_FIRST}`);
+    expect(localStorage.getItem('selectedDongleId')).toBe(SORTED_FIRST);
   });
 
   test('root with no devices shows pairing', async () => {
@@ -221,7 +224,7 @@ describe('whole-app behavior', () => {
     ['authenticated ranged drive', `/${FIRST}/${LOG}/10/20`, true],
     ['public whole drive', `/${FIRST}/${LOG}`, false],
     ['public ranged drive', `/${FIRST}/${LOG}/10/20`, false],
-  ])('%s opens from a cold entry', async (_name, pathname, authenticated) => {
+  ])('%s opens from a cold entry and closes to its device', async (_name, pathname, authenticated) => {
     const { history, store } = await renderApp(pathname, { authenticated });
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     expect(history.location.pathname).toBe(pathname);
@@ -231,14 +234,20 @@ describe('whole-app behavior', () => {
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText(authenticated ? 'Mock recent route start' : 'Sign in with Google')).toBeVisible();
+    act(() => history.goBack());
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
   });
 
   test.each([
     ['private device', `/${FIRST}`], ['Prime', `/${FIRST}/prime`], ['stream', `/${FIRST}/stream`],
+    ['device settings', `/${FIRST}?settings=${FIRST}`],
   ])('signed-out %s entry retains its path', async (_name, pathname) => {
     const { history } = await renderApp(pathname, { authenticated: false });
     expect(await screen.findByText('Sign in with Google')).toBeVisible();
-    expect(history.location.pathname).toBe(pathname);
+    expect(history.createHref(history.location)).toBe(pathname);
+    expect(sessionStorage.getItem('redirectURL')).toBe(pathname);
   });
 
   test('a missing public route redirects to login with the requested route', async () => {
@@ -253,10 +262,18 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
   });
 
-  test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
-    const pathname = `/${FIRST}/${START}/${START + 60_000}`;
+  test.each([
+    ['an unrecognized URL', `/${FIRST}/not/a/route`, {}, 'Page not found'],
+    ['a legacy timestamp URL after an empty lookup', `/${FIRST}/${START}/${START + 60_000}`, { emptyRoutes: true }, 'Page not found'],
+    ['a legacy timestamp URL after a failed lookup', `/${FIRST}/${START}/${START + 60_000}`, { failedRoutes: true }, 'Page not found'],
+    ['a device without access', `/${SHARED}`, { forbidden: SHARED }, 'Device not found'],
+    ['an unrecognized URL under a device without access', `/${SHARED}/not/a/route`, { forbidden: SHARED }, 'Page not found'],
+  ])('%s shows not found', async (_name, pathname, options, heading) => {
     const { history } = await renderApp(pathname, options);
-    await waitFor(() => expect(history.location.pathname).toBe(pathname));
+    expect(await screen.findByText('Error 404')).toBeVisible();
+    expect(screen.getByRole('heading', { name: heading })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'connect' })).toHaveAttribute('href', `/${pathname.split('/')[1]}`);
+    expect(history.location.pathname).toBe(pathname);
   });
 
   test('Prime close and browser history restore its view', async () => {
@@ -302,5 +319,23 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('timeline back steps out one zoom level at a time', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}/10/50`);
+    act(() => history.push(`/${FIRST}/${LOG}/10/30`));
+    fireEvent.click(await screen.findByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/50`));
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+  });
+
+  test('device settings open by URL and close without a history entry or a refetch', async () => {
+    const { history } = await renderApp(`/${FIRST}?settings=${FIRST}`);
+    expect(await screen.findByDisplayValue('Zulu')).toBeVisible();
+    const requests = mocks.requests.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history).toMatchObject({ index: 0, location: { pathname: `/${FIRST}`, search: '' } }));
+    expect(mocks.requests).toHaveLength(requests);
   });
 });

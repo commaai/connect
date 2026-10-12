@@ -61,7 +61,7 @@ export function reducer(_state, action) {
         startTime: Date.now(),
       };
       break;
-    case Types.ACTION_RESET:
+    case Types.ACTION_APPLY_DESTINATION:
       state = {
         ...state,
         desiredPlaySpeed: 1,
@@ -141,11 +141,5 @@ export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
     buffering,
-  };
-}
-
-export function resetPlayback() {
-  return {
-    type: Types.ACTION_RESET,
   };
 }

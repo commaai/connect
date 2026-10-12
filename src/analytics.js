@@ -4,19 +4,17 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { destinationFromUrl } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+  const destination = destinationFromUrl(pathname);
+  if (destination.dongleId) {
+    pageLocation = pageLocation.replace(destination.dongleId, '<dongleId>');
   }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
+  if (destination.start != null) {
+    pageLocation = pageLocation.replace(/\/\d+\/\d+\/?$/, '/<zoomStart>/<zoomEnd>');
   }
 
   if (pageLocation.endsWith('/')) {
@@ -101,22 +99,13 @@ function logAction(action, prevState, state) {
   // eslint-disable-next-line default-case
   switch (action.type) {
     case LOCATION_CHANGE:
+      if (action.payload.location.pathname === prevState.router.location.pathname
+        && action.payload.location.search !== prevState.router.location.search) {
+        return; // only the query changed, like ?settings opening over the same page
+      }
       gtag('event', 'page_view', {
         page_location: getPageViewEventLocation(action.payload.location.pathname),
       });
-      return;
-
-    case Types.TIMELINE_PUSH_SELECTION:
-      if (!prevState.zoom && state.zoom) {
-        params = {
-          ...params,
-          start: state.zoom.start,
-          end: state.zoom.end,
-        };
-        attachRelTime(params, 'start', true, 'h');
-        attachRelTime(params, 'end', true, 'h');
-        gtag('event', 'select_zoom', params);
-      }
       return;
 
     case Types.ACTION_STARTUP_DATA:
@@ -136,13 +125,27 @@ function logAction(action, prevState, state) {
         },
       });
 
+      if (destinationFromUrl(state.router.location.pathname).kind === 'root' && state.devices.length) {
+        return; // / redirects to a device, which logs the page view
+      }
       gtag('event', 'page_view', {
         ...params,
         page_location: getPageViewEventLocation(window.location.pathname),
       });
       return;
 
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_APPLY_DESTINATION:
+      if (!prevState.zoom && state.zoom) {
+        params = {
+          ...params,
+          start: state.zoom.start,
+          end: state.zoom.end,
+        };
+        attachRelTime(params, 'start', true, 'h');
+        attachRelTime(params, 'end', true, 'h');
+        gtag('event', 'select_zoom', params);
+      }
+      if (!state.dongleId || prevState.dongleId === state.dongleId) return;
       gtag('event', 'select_device', {
         ...params,
         device_prime_type: state.device?.prime_type,
