@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -8,7 +7,7 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
-import { updateDevices } from '../../actions';
+import { updateDevices, settingsNav } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
@@ -96,9 +95,7 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    const params = new URLSearchParams(this.props.search);
-    params.set('settings', dongleId);
-    this.props.dispatch(push({ pathname: this.props.pathname, search: params.toString() }));
+    this.props.dispatch(settingsNav(dongleId));
   }
 
   async onVisible() {
@@ -203,8 +200,6 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
-  pathname: state.router.location.pathname,
-  search: state.router.location.search,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

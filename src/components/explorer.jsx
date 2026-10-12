@@ -15,7 +15,7 @@ import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 import FullPageLoading from './FullPageLoading';
 
-import { analyticsEvent, selectDevice, updateDevices, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, streamNav, settingsNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -189,7 +189,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, search, settingsDongleId, referralsOpen, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, settingsDongleId, referralsOpen, isDrivePage, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -214,12 +214,6 @@ class ExplorerApp extends Component {
     }
     const drawerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
-    };
-
-    const closeSettings = () => {
-      const params = new URLSearchParams(search);
-      params.delete('settings');
-      dispatch(push({ pathname, search: params.toString() }));
     };
 
     return (
@@ -247,7 +241,7 @@ class ExplorerApp extends Component {
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
+                : (isDrivePage ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -274,7 +268,7 @@ class ExplorerApp extends Component {
           <DeviceSettingsModal
             key={settingsDongleId}
             dongleId={settingsDongleId}
-            onClose={closeSettings}
+            onClose={() => dispatch(settingsNav(null))}
           />
         )}
       </div>
@@ -287,14 +281,13 @@ const stateToProps = (state) => {
   return {
     zoom: state.zoom,
     pathname: state.router.location.pathname,
-    search: state.router.location.search,
     dongleId: state.dongleId,
     devices: state.devices,
     currentRoute: state.currentRoute,
-    selectedRouteId: state.selectedRouteId,
     settingsDongleId: parsedURL.settingsDongleId,
     bodyTeleopOpen: parsedURL.page === 'stream',
     referralsOpen: parsedURL.page === 'referrals',
+    isDrivePage: parsedURL.page === 'drive',
     profile: state.profile,
   };
 };

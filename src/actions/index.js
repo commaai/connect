@@ -223,6 +223,14 @@ export const streamNav = (nav) => (dispatch, getState) => {
   if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
 
+export const settingsNav = (dongleId) => (dispatch, getState) => {
+  const { pathname, search } = getState().router.location;
+  const params = new URLSearchParams(search);
+  if (dongleId) params.set('settings', dongleId);
+  else params.delete('settings');
+  dispatch(push({ pathname, search: params.toString() }));
+}
+
 export function fetchSharedDevice(dongleId) {
   return async (dispatch) => {
     try {
