@@ -19,11 +19,13 @@ import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, strea
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
+import { linkedReturnPath } from '../utils/returnPath';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
 import { parse, viewOf } from '../url';
 
 import DriveView from './DriveView';
+import NotFound from './NotFound';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
 
@@ -99,13 +101,8 @@ class ExplorerApp extends Component {
 
     window.scrollTo({ top: 0 }); // for ios header
 
-    const q = new URLSearchParams(window.location.search);
-    if (q.has('r')) {
-      const target = new URL(q.get('r'), window.location.origin);
-      if (target.origin === window.location.origin) {
-        this.props.dispatch(replace(target.pathname + target.search));
-      }
-    }
+    const returnPath = linkedReturnPath();
+    if (returnPath) this.props.dispatch(replace(returnPath));
 
     this.props.dispatch(init());
 
@@ -203,7 +200,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, settings,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, settings, notFound,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -248,7 +245,9 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
+              { notFound
+                ? <NotFound dongleId={dongleId} />
+                : referralsOpen
                 ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
@@ -295,6 +294,7 @@ const stateToProps = (state) => ({
   limit: state.limit,
   bodyTeleopOpen: viewOf(state) === 'stream',
   profile: state.profile,
+  notFound: parse(state.router.location) === null,
   settings: parse(state.router.location)?.settings ?? null,
 });
 

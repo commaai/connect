@@ -16,6 +16,7 @@ import defaultStore, { history as defaultHistory } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
 import FullPageLoading from './components/FullPageLoading';
+import { takeReturnPath } from './utils/returnPath';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
@@ -92,20 +93,11 @@ class App extends Component {
     this.setState({ initialized: true });
   }
 
-  redirectLink() {
-    let url = '/';
-    if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
-      url = sessionStorage.getItem('redirectURL');
-      sessionStorage.removeItem('redirectURL');
-    }
-    return url;
-  }
-
   authRoutes() {
     return (
       <Switch>
         <Route path="/auth/">
-          <Redirect to={this.redirectLink()} />
+          <Redirect to={takeReturnPath() ?? '/'} />
         </Route>
         <Route path="/" component={Explorer} />
       </Switch>

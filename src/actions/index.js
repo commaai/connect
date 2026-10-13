@@ -9,6 +9,7 @@ import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../uti
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
 import { parse, toUrl } from '../url';
+import { signInUrl } from '../utils/returnPath';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -59,7 +60,7 @@ export function checkRoutesData() {
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
         routesRequest = null;
-        hardNavigate(`/?r=${encodeURI(state.router?.location?.pathname || window.location.pathname)}`); // redirect to login
+        hardNavigate(signInUrl(state.router?.location?.pathname || window.location.pathname)); // redirect to login
         return;
       }
 
