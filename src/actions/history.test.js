@@ -73,15 +73,15 @@ describe('history middleware', () => {
       dongleId: DONGLE, routeId: LOG, range: { start: 10000, end: 20000 },
     }],
   ])('applies the %s destination', async (_name, pathname, destination) => {
-    const { store } = create();
-    await syncStateFromURL(pathname)(store.dispatch, store.getState);
+    const { store } = create({ ...baseState, router: { location: { pathname, search: '' } } });
+    await syncStateFromURL()(store.dispatch, store.getState);
     expect(store.dispatch).toHaveBeenCalledWith({ type: ACTION_APPLY_DESTINATION, destination });
     expect(actions.checkRoutesData).toHaveBeenCalledTimes(destination.routeId ? 1 : 0);
   });
 
   it('selects a changed device and refreshes routes', async () => {
-    const { store } = create();
-    await syncStateFromURL(`/${OTHER}`)(store.dispatch, store.getState);
+    const { store } = create({ ...baseState, router: { location: { pathname: `/${OTHER}`, search: '' } } });
+    await syncStateFromURL()(store.dispatch, store.getState);
     expect(store.dispatch).toHaveBeenCalledWith({
       type: ACTION_APPLY_DESTINATION,
       destination: { dongleId: OTHER, routeId: null, range: undefined },
@@ -94,7 +94,7 @@ describe('history middleware', () => {
     const pathname = `/${DONGLE}/1000/2000`;
     const search = `?settings=${DONGLE}`;
     const { store } = create({ ...baseState, router: { location: { pathname, search } } });
-    await syncStateFromURL(pathname)(store.dispatch, store.getState);
+    await syncStateFromURL()(store.dispatch, store.getState);
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
     expect(store.dispatch).toHaveBeenCalledWith(replace({ pathname: `/${DONGLE}/${LOG}`, search }));
   });

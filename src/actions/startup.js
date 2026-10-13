@@ -22,7 +22,7 @@ const loadStartupData = async () => {
 }
 
 export default function init() {
-  return async (dispatch, getState) => {
+  return async (dispatch) => {
     const [profile, devices] = await loadStartupData();
     if (profile) Sentry.setUser({ id: profile.id });
 
@@ -32,6 +32,6 @@ export default function init() {
       devices,
     });
 
-    dispatch(syncStateFromURL(getState().router.location.pathname, devices[0]?.dongle_id));
+    dispatch(syncStateFromURL(devices[0]?.dongle_id));
   }
 }

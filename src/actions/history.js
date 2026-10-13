@@ -6,12 +6,12 @@ import { api } from '../api/backend';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 
-export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, getState) => {
+export const syncStateFromURL = (defaultDongleId) => async (dispatch, getState) => {
   const state = getState();
   if (state.devices === null) return;
 
+  const { pathname, search } = state.router.location;
   const { page, dongleId: urlDongleId, logId, range } = parseURL({ pathname });
-  const { search } = state.router.location;
 
   let dongleId = urlDongleId ?? state.dongleId;
   if (!dongleId && state.devices.length) {
@@ -80,7 +80,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
   const previousPathname = getState().router.location.pathname;
   const result = next(action);
   if (previousPathname !== action.payload.location.pathname) {
-    dispatch(syncStateFromURL(action.payload.location.pathname));
+    dispatch(syncStateFromURL());
   }
   return result;
 };
