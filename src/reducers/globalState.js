@@ -1,4 +1,5 @@
 import * as Types from '../actions/types';
+import { emptyDevice } from '../utils';
 import { getDefaultFilter } from '../utils/filter';
 
 const eventsMap = {};
@@ -354,7 +355,8 @@ export default function reducer(_state, action) {
   // state.device is derived
   const owned = state.devices?.find((d) => d.dongle_id === state.dongleId);
   const shared = state.sharedDevice?.dongle_id === state.dongleId ? state.sharedDevice : null;
-  state.device = owned ?? shared;
+  const fallback = state.dongleId ? { ...emptyDevice, dongle_id: state.dongleId } : null;
+  state.device = owned ?? shared ?? fallback;
 
   return state;
 }

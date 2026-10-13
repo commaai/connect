@@ -64,7 +64,8 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
       dispatch(primeFetchSubscription());
       dispatch(fetchDeviceOnline(dongleId));
     }
-    if (!device && api.auth.isAuthenticated()) {
+    const owned = state.devices.some((d) => d.dongle_id === dongleId);
+    if (!owned && api.auth.isAuthenticated()) {
       dispatch(fetchSharedDevice(dongleId));
     }
     dispatch(checkLastRoutesData());
@@ -77,7 +78,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
   if (!action) return;
   if (action.type !== LOCATION_CHANGE) return next(action);
   const previousPathname = getState().router.location.pathname;
-  const result = next(action); // must be first, otherwise breaks history
+  const result = next(action);
   if (previousPathname !== action.payload.location.pathname) {
     dispatch(syncStateFromURL(action.payload.location.pathname));
   }
