@@ -31,7 +31,7 @@ export function attachNativeSource(video, src, { onAudio, onError }) {
   };
 }
 
-export function attachHlsSource(video, src, { startTime, onAudio, onError }) {
+export function attachHlsSource(video, src, { startTime, hlsConfig, onAudio, onError }) {
   let cancelled = false;
   let hls = null;
   // hls.js reaches an unavailable fragment long before playback does, so the one it stopped at
@@ -65,7 +65,7 @@ export function attachHlsSource(video, src, { startTime, onAudio, onError }) {
       report('media');
       return;
     }
-    hls = new Hls({ maxBufferLength: 40, startPosition: startTime, workerPath: hlsWorker });
+    hls = new Hls({ maxBufferLength: 40, startPosition: startTime, workerPath: hlsWorker, ...hlsConfig });
     hls.on(Hls.Events.BUFFER_CODECS, (_event, data) => onAudio(Boolean(data.audio)));
     hls.on(Hls.Events.ERROR, (_event, { fatal, frag, response, type }) => {
       const networkError = type === Hls.ErrorTypes.NETWORK_ERROR;

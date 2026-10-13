@@ -68,7 +68,8 @@ function DriveVideo({ currentRoute, dispatch, loop }) {
       media.fail(lapsed ? 'expired' : kind);
       if (lapsed) dispatch(renewVideoLink(currentRoute.fullname));
     };
-    const open = (startTime) => attach(video, src, { startTime, onAudio: media.setHasAudio, onError });
+    const hlsConfig = api.video.hlsConfig?.(currentRoute);
+    const open = (startTime) => attach(video, src, { startTime, hlsConfig, onAudio: media.setHasAudio, onError });
     return media.load(video, currentRoute.fullname, loop?.startTime, open);
   }, [src]);
 
