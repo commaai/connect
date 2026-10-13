@@ -64,7 +64,7 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
       dispatch(primeFetchSubscription());
       dispatch(fetchDeviceOnline(dongleId));
     }
-    const owned = state.devices.some((d) => d.dongle_id === dongleId);
+    const owned = state.devices?.some((d) => d.dongle_id === dongleId);
     if (!owned && api.auth.isAuthenticated()) {
       dispatch(fetchSharedDevice(dongleId));
     }
