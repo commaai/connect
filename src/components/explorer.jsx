@@ -99,7 +99,10 @@ class ExplorerApp extends Component {
 
     const q = new URLSearchParams(window.location.search);
     if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
+      const target = new URL(q.get('r'), window.location.origin);
+      if (target.origin === window.location.origin) {
+        this.props.dispatch(replace(target.pathname + target.search));
+      }
     }
 
     this.props.dispatch(init());

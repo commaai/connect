@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { parse } from '../url';
+import { primeFetchSubscription, checkLastRoutesData, applyDevice, navigate, fetchSharedDevice } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -56,12 +57,12 @@ export default function init() {
 
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+        const saved = window.localStorage.getItem('selectedDongleId');
+        const id = devices.find((d) => d.dongle_id === saved) ? saved : devices[0].dongle_id;
+        dispatch(applyDevice(id));
+        const dest = parse(getState().router.location);
+        if (dest?.view === 'dashboard' && !dest.dongleId) {
+          dispatch(navigate({ view: 'dashboard', dongleId: id }, { replace: true }));
         }
       }
       const dongleId = getState().dongleId;
