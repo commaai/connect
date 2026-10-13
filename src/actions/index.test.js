@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, popTimelineRange, streamNav } from './index';
+import { primeNav, pushTimelineRange, streamNav } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -33,24 +33,6 @@ describe('timeline actions', () => {
     });
     pushTimelineRange('log_id', start, end)(vi.fn(), getState);
     expect(push).toHaveBeenCalledWith(expected);
-  });
-
-  it('navigates to the previous zoom range', () => {
-    const getState = () => ({
-      dongleId: 'statedongle',
-      routes: [{ log_id: 'log_id', duration: 40000 }],
-      zoom: {
-        start: 10000,
-        end: 20000,
-        previous: { start: 0, end: 40000 },
-      },
-      router: { location: { pathname: '/statedongle/log_id/10/20' } },
-    });
-    const dispatch = vi.fn((action) => {
-      if (typeof action === 'function') return action(dispatch, getState);
-    });
-    popTimelineRange('log_id')(dispatch, getState);
-    expect(push).toHaveBeenCalledWith('/statedongle/log_id');
   });
 
   it.each([

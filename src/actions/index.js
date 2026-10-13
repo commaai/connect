@@ -140,11 +140,6 @@ export function checkLastRoutesData() {
   };
 }
 
-export const popTimelineRange = (logId) => (dispatch, getState) => {
-  const previous = getState().zoom?.previous;
-  dispatch(pushTimelineRange(logId, previous?.start, previous?.end));
-}
-
 export const pushTimelineRange = (logId, start, end) => (dispatch, getState) => {
   const state = getState();
   const selectedRoute = state.routes?.find((route) => route.log_id === logId);
