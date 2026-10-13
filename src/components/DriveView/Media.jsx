@@ -20,7 +20,7 @@ import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
-import { parse } from '../../url';
+import { dialogOf, settingsOf } from '../../url';
 import { analyticsEvent, closeOverlay, openOverlay, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
@@ -922,12 +922,6 @@ class Media extends Component {
   }
 }
 
-// the drive's upload queue, unless the settings dialog is showing its own
-const uploadsOpen = (location) => {
-  const dest = parse(location);
-  return Boolean(dest?.dialog === 'uploads' && !dest.settings);
-};
-
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
@@ -939,7 +933,8 @@ const stateToProps = (state) => ({
   files: state.files,
   profile: state.profile,
   isBufferingVideo: state.isBufferingVideo,
-  uploads: uploadsOpen(state.router.location),
+  // the drive's upload queue, unless the settings dialog is showing its own
+  uploads: dialogOf(state) === 'uploads' && !settingsOf(state),
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

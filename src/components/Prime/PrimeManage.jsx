@@ -11,7 +11,7 @@ import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
 import { ErrorOutline, InfoOutline, KeyboardBackspaceIcon, PriorityHighIcon } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent, openOverlay, closeOverlay } from '../../actions';
-import { parse } from '../../url';
+import { dialogOf } from '../../url';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 import { otherPrimePlan, primePlanName } from './primePlans';
 
@@ -254,6 +254,11 @@ export class PrimeManage extends Component {
     const { subscription } = this.props;
     const { stripeStatus } = this.state;
 
+    // The dialog also closes from the URL (Back), so the reset follows the prop
+    if (prevProps.planSwitchModal && !this.props.planSwitchModal) {
+      this.setState({ planSwitchStatus: 'confirm', planSwitchMessage: null, planSwitchTarget: null });
+    }
+
     if (!prevProps.stripeSuccess && this.props.stripeSuccess) {
       this.setState({
         stripeStatus: { sessionId: this.props.stripeSuccess, loading: true, paid: null },
@@ -303,7 +308,6 @@ export class PrimeManage extends Component {
 
   closePlanSwitch() {
     this.props.dispatch(closeOverlay({ dialog: null }));
-    this.setState({ planSwitchStatus: 'confirm', planSwitchMessage: null, planSwitchTarget: null });
   }
 
   async switchPlan() {
@@ -588,7 +592,7 @@ export class PrimeManage extends Component {
           </div>
         </div>
         <Modal
-          open={this.props.planSwitchModal}
+          open={this.props.planSwitchModal && Boolean(hasPrimeSub)}
           onClose={() => {
             if (!this.state.switchingPlan) {
               this.closePlanSwitch();
@@ -673,7 +677,7 @@ export class PrimeManage extends Component {
           </Paper>
         </Modal>
         <Modal
-          open={this.props.cancelModal}
+          open={this.props.cancelModal && Boolean(hasPrimeSub)}
           onClose={() => dispatch(closeOverlay({ dialog: null }))}
         >
           <Paper className={classes.modal}>
@@ -736,8 +740,8 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
   subscription: state.subscription,
-  planSwitchModal: parse(state.router.location)?.dialog === 'switch-plan',
-  cancelModal: parse(state.router.location)?.dialog === 'cancel-plan',
+  planSwitchModal: dialogOf(state) === 'switch-plan',
+  cancelModal: dialogOf(state) === 'cancel-plan',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

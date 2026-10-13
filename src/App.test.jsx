@@ -187,6 +187,12 @@ describe('whole-app behavior', () => {
     expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
   });
 
+  test('root keeps the settings dialog and drops unknown params', async () => {
+    const { history } = await renderApp(`/?settings=${FIRST}&pair=x`, { selected: FIRST });
+    expect(await screen.findByRole('button', { name: 'Uploads' })).toBeVisible();
+    expect(history.location.pathname + history.location.search).toBe(`/${FIRST}?settings=${FIRST}`);
+  });
+
   test('root with no devices shows pairing', async () => {
     const { history } = await renderApp('/', { devices: [] });
     expect(await screen.findByRole('heading', { name: 'Pair your device' })).toBeVisible();

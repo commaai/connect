@@ -9,6 +9,7 @@ import FullPageLoading from '../FullPageLoading';
 import { viewOf } from '../../url';
 
 const Prime = lazy(() => import('../Prime'));
+
 const Dashboard = ({ primeNav, device, dongleId }) => {
   if (!device || !dongleId) {
     return <FullPageLoading />;

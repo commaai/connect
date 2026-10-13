@@ -22,7 +22,7 @@ import { play, pause } from '../timeline/playback';
 import { linkedReturnPath } from '../utils/returnPath';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
-import { parse, viewOf } from '../url';
+import { parse, viewOf, dialogOf, settingsOf } from '../url';
 
 import DriveView from './DriveView';
 import NotFound from './NotFound';
@@ -200,12 +200,11 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, settings, notFound,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, profile, settings, notFound, referralsOpen, addDeviceOpen,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -238,7 +237,7 @@ class ExplorerApp extends Component {
               forwardRef={ this.updateHeaderRef }
             />
             <AppDrawer
-              drawerIsOpen={ drawerIsOpen }
+              drawerIsOpen={ drawerIsOpen || addDeviceOpen }
               isPermanent={ isLarge }
               width={ sidebarWidth }
               handleDrawerStateChanged={this.handleDrawerStateChanged}
@@ -294,8 +293,10 @@ const stateToProps = (state) => ({
   limit: state.limit,
   bodyTeleopOpen: viewOf(state) === 'stream',
   profile: state.profile,
+  referralsOpen: viewOf(state) === 'referrals',
+  addDeviceOpen: dialogOf(state) === 'add-device',
   notFound: parse(state.router.location) === null,
-  settings: parse(state.router.location)?.settings ?? null,
+  settings: settingsOf(state),
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

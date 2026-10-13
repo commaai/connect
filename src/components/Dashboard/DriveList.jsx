@@ -6,7 +6,7 @@ import { withStyles, Typography } from '@material-ui/core';
 import { api } from '../../api/backend';
 import { checkRoutesData, checkLastRoutesData, openOverlay, closeOverlay } from '../../actions';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
-import { parse } from '../../url';
+import { dialogOf } from '../../url';
 import { FilterList } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
@@ -161,7 +161,7 @@ const stateToProps = (state) => ({
   routes: state.routes,
   lastRoutes: state.lastRoutes,
   device: state.device,
-  isTimeSelectOpen: parse(state.router.location)?.dialog === 'filter',
+  isTimeSelectOpen: dialogOf(state) === 'filter',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));

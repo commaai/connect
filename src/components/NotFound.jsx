@@ -6,9 +6,9 @@ import { selectDevice } from '../actions';
 import { filterRegularClick } from '../utils';
 
 const NotFound = ({ dongleId, dispatch }) => (
-  <div style={{ padding: 32, textAlign: 'center', color: 'white' }}>
+  <div className="p-8 text-center text-white">
     <Typography variant="title">Page not found</Typography>
-    <a href={dongleId ? `/${dongleId}` : '/'} style={{ color: 'white' }}
+    <a href={dongleId ? `/${dongleId}` : '/'} className="underline"
       onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}>
       Back to dashboard
     </a>

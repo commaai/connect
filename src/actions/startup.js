@@ -62,7 +62,7 @@ export default function init() {
         dispatch(applyDevice(id));
         const dest = parse(getState().router.location);
         if (dest?.view === 'dashboard' && !dest.dongleId) {
-          dispatch(navigate({ view: 'dashboard', dongleId: id }, { replace: true }));
+          dispatch(navigate({ ...dest, dongleId: id, rest: '' }, { replace: true }));
         }
       }
       const dongleId = getState().dongleId;

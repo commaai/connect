@@ -16,7 +16,7 @@ import {
 import { api } from '../../api/backend';
 import { closeOverlay, navigate, openOverlay, updateDevice } from '../../actions';
 import Colors from '../../colors';
-import { parse } from '../../url';
+import { dialogOf } from '../../url';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
@@ -438,8 +438,8 @@ const stateToProps = (state, ownProps) => {
     subscription: state.subscription,
     device,
     profile: state.profile,
-    uploads: parse(state.router.location)?.dialog === 'uploads',
-    unpairConfirm: parse(state.router.location)?.dialog === 'unpair',
+    uploads: dialogOf(state) === 'uploads',
+    unpairConfirm: dialogOf(state) === 'unpair',
   };
 };
 

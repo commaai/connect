@@ -14,7 +14,7 @@
 //   ?settings=:dongle   settings overlay (ignored unless a valid dongle id)
 //   ?uploads | ?add-device | ?filter | ?unpair | ?switch-plan | ?cancel-plan
 //                       dialog: one bare key from DIALOGS (the first present wins)
-//   anything else       kept verbatim as `rest` (e.g. ?stripe_success=1), written last
+//   anything else       kept (re-encoded) as `rest` (e.g. ?stripe_success=1), written last
 //
 // Destination: { view, dongleId, log, start, end, settings, dialog, rest }
 const DIALOGS = ['uploads', 'add-device', 'filter', 'unpair', 'switch-plan', 'cancel-plan'];
@@ -72,6 +72,8 @@ export function toUrl(dest) {
   return toPath(dest) + (query ? `?${query}` : '');
 }
 
-// The current view, read straight from the URL (null for an unknown URL).
+// The current view, dialog and settings overlay, read straight from the URL (null when absent or unknown).
 export const viewOf = (state) => parse(state.router.location)?.view ?? null;
+export const dialogOf = (state) => parse(state.router.location)?.dialog ?? null;
+export const settingsOf = (state) => parse(state.router.location)?.settings ?? null;
 

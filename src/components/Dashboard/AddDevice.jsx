@@ -5,9 +5,9 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { selectDevice, updateDevices, analyticsEvent, openOverlay, closeOverlay } from '../../actions';
+import { navigate, updateDevices, analyticsEvent, openOverlay, closeOverlay } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
-import { parse } from '../../url';
+import { dialogOf } from '../../url';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
 
@@ -163,6 +163,10 @@ class AddDevice extends Component {
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
+        if (!this.props.modalOpen) { // closed while the camera was starting (Back)
+          this.stopCamera();
+          return;
+        }
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
@@ -306,8 +310,10 @@ class AddDevice extends Component {
       return;
     }
 
-    // selectDevice navigates to a URL without the dialog, which closes it as well
-    this.props.dispatch(pairDongleId ? selectDevice(pairDongleId) : closeOverlay({ dialog: null }));
+    // replacing the add-device entry keeps Back from reopening the dialog
+    this.props.dispatch(pairDongleId
+      ? navigate({ view: 'dashboard', dongleId: pairDongleId }, { replace: true })
+      : closeOverlay({ dialog: null }));
   }
 
   async onQrRead({ data: result }) {
@@ -454,7 +460,7 @@ class AddDevice extends Component {
 const stateToProps = (state, ownProps) => ({
   profile: state.profile,
   devices: state.devices,
-  modalOpen: ownProps.modal !== false && parse(state.router.location)?.dialog === 'add-device',
+  modalOpen: ownProps.modal !== false && dialogOf(state) === 'add-device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));
