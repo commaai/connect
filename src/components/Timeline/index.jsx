@@ -8,7 +8,7 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { navigateTo } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
@@ -266,7 +266,7 @@ class Timeline extends Component {
     const startOffset = Math.round(this.percentToOffset(startPercent));
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
-    if (Math.abs(dragging[1] - dragging[0]) > 3) {
+    if (Math.abs(dragging[1] - dragging[0]) > 3 && endOffset - startOffset >= 1000) {
       const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
@@ -275,7 +275,8 @@ class Timeline extends Component {
       const startTime = startOffset;
       const endTime = endOffset;
 
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      const range = startTime <= 0 && endTime >= route.duration ? {} : { start: startTime, end: endTime };
+      dispatch(navigateTo({ page: 'drive', logId: route.log_id, ...range }));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

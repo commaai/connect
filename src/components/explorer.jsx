@@ -14,16 +14,19 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, closeOverlay, selectDevice, updateDevices, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { destinationFromUrl } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import UploadQueue from './Files/UploadQueue';
 
 const styles = (theme) => ({
   app: {
@@ -154,9 +157,9 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { location, zoom } = this.props;
 
-    if (prevProps.pathname !== pathname) {
+    if (prevProps.location?.pathname !== location.pathname) {
       this.setState({ drawerIsOpen: false });
     }
 
@@ -165,13 +168,6 @@ class ExplorerApp extends Component {
     }
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
-    }
-
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
     }
   }
 
@@ -198,12 +194,14 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, device, devices, dispatch, dongleId, location, selectedRouteId, profile,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+    const { page, settings, uploads } = destinationFromUrl(location.pathname, location.search);
+    const uploadsDevice = uploads && (device?.dongle_id === uploads ? device : devices?.find((d) => d.dongle_id === uploads));
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -224,7 +222,7 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
-        { bodyTeleopOpen ? (
+        { page === 'stream' ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
           <>
@@ -250,6 +248,22 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            { settings && devices && (
+              <DeviceSettingsModal
+                key={ `settings-${settings}` }
+                dongleId={ settings }
+                onClose={ () => dispatch(closeOverlay('settings')) }
+              />
+            ) }
+            { uploadsDevice && (!uploadsDevice.shared || profile?.superuser) && (
+              <UploadQueue
+                key={ `uploads-${uploads}` }
+                open
+                update
+                device={ uploadsDevice }
+                onClose={ () => dispatch(closeOverlay('uploads')) }
+              />
+            ) }
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -277,13 +291,12 @@ class ExplorerApp extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
-  pathname: state.router.location.pathname,
+  location: state.router.location,
   dongleId: state.dongleId,
+  device: state.device,
   devices: state.devices,
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
   profile: state.profile,
 });
 

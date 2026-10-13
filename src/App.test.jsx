@@ -119,7 +119,9 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    return json({ jsonrpc: '2.0', id: 0, result: JSON.parse(init.body).method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -130,7 +132,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -169,6 +171,7 @@ describe('whole-app behavior', () => {
     const app = await renderApp('/', { selected: FIRST });
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     expect(app.history.location.pathname).toBe(`/${FIRST}`);
+    expect(app.history.length).toBe(1);
     expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
   });
 
@@ -251,12 +254,64 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.length).toBe(1);
   });
 
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
     const pathname = `/${FIRST}/${START}/${START + 60_000}`;
     const { history } = await renderApp(pathname, options);
     await waitFor(() => expect(history.location.pathname).toBe(pathname));
+  });
+
+  test('closing a drive opened from a link shows the drive list', async () => {
+    await renderApp(`/${FIRST}/${LOG}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('closing a drive that was not in the loaded list shows the list again', async () => {
+    const { history } = await renderApp(`/${FIRST}`);
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}`));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+  });
+
+  test('device settings open over a drive and close back to it', async () => {
+    const { history } = await renderApp(`/${FIRST}/${RECENT_LOG}`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click(within((await screen.findByText(FIRST)).closest('a')).getByRole('button', { name: 'device settings' }));
+    const modal = (await screen.findByText('Device settings')).closest('[role="document"]');
+    expect(history.location).toMatchObject({ pathname: `/${FIRST}/${RECENT_LOG}`, search: `?settings=${FIRST}` });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.index).toBe(0);
+    expect(timeline).toBeInTheDocument();
+
+    act(() => history.goForward());
+    fireEvent.click(await screen.findByRole('button', { name: 'Prime settings' }));
+    expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/prime`);
+  });
+
+  test('a device settings link closes in place', async () => {
+    const { history } = await renderApp(`/${FIRST}?settings=${FIRST}`);
+    const modal = (await screen.findByText('Device settings')).closest('[role="document"]');
+    fireEvent.click(within(modal).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location).toMatchObject({ pathname: `/${FIRST}`, search: '' }));
+    expect(history.length).toBe(1);
+  });
+
+  test('the upload queue opens from settings and closes back to it', async () => {
+    const { history } = await renderApp(`/${FIRST}?settings=${FIRST}`);
+    const settings = (await screen.findByText('Device settings')).closest('[role="document"]');
+    fireEvent.click(within(settings).getByRole('button', { name: 'Uploads' }));
+    const queue = (await screen.findByText('Upload queue')).closest('[role="document"]');
+    expect(history.location.search).toBe(`?settings=${FIRST}&uploads=${FIRST}`);
+    fireEvent.click(within(queue).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(`?settings=${FIRST}`));
+    expect(await screen.findByText('Device settings')).toBeInTheDocument();
   });
 
   test('Prime close and browser history restore its view', async () => {
@@ -290,7 +345,7 @@ describe('whole-app behavior', () => {
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
-    const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    const { history, store } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
@@ -298,8 +353,11 @@ describe('whole-app behavior', () => {
     fireEvent.pointerMove(document, { clientX: 700, pageX: 700 });
     fireEvent.pointerUp(document, { button: 0, clientX: 700, pageX: 700 });
     await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
-    act(() => history.goBack());
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    expect(history.index).toBe(1);
+    act(() => history.goForward());
+    await waitFor(() => expect(store.getState().zoom.start).toBeGreaterThan(0));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
