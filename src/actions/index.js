@@ -204,17 +204,10 @@ export const selectDevice = (dongleId) => (dispatch, getState) => {
   if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
 
-export const primeNav = (nav) => (dispatch, getState) => {
+export const pageNav = (page) => (dispatch, getState) => {
   const state = getState();
   if (!state.dongleId) return;
-  const pathname = nav ? `/${state.dongleId}/prime` : `/${state.dongleId}`;
-  if (currentPathname(state) !== pathname) dispatch(push(pathname));
-}
-
-export const streamNav = (nav) => (dispatch, getState) => {
-  const state = getState();
-  if (!state.dongleId) return;
-  const pathname = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+  const pathname = `/${state.dongleId}${page ? `/${page}` : ''}`;
   if (currentPathname(state) !== pathname) dispatch(push(pathname));
 }
 

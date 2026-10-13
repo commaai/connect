@@ -15,7 +15,7 @@ import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 import FullPageLoading from './FullPageLoading';
 
-import { analyticsEvent, selectDevice, updateDevices, streamNav, settingsNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, pageNav, settingsNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -217,7 +217,7 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.app}>
         { bodyTeleopOpen ? (
-          <BodyTeleop onClose={() => dispatch(streamNav(false)) } />
+          <BodyTeleop onClose={() => dispatch(pageNav()) } />
         ) : (
           <>
             <AppHeader

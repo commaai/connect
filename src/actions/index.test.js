@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav } from './index';
+import { pushTimelineRange, pageNav } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -36,10 +36,11 @@ describe('timeline actions', () => {
   });
 
   it.each([
-    ['Prime', primeNav, '/statedongle/prime'],
-    ['stream', streamNav, '/statedongle/stream'],
-  ])('generates the %s URL while opening', (_name, action, expected) => {
-    action(true)(vi.fn(), () => ({ dongleId: 'statedongle' }));
+    ['Prime', 'prime', '/statedongle/prime'],
+    ['stream', 'stream', '/statedongle/stream'],
+    ['dashboard', undefined, '/statedongle'],
+  ])('generates the %s URL', (_name, page, expected) => {
+    pageNav(page)(vi.fn(), () => ({ dongleId: 'statedongle' }));
     expect(push).toHaveBeenCalledWith(expected);
   });
 });
