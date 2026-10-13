@@ -1,4 +1,5 @@
 import * as Types from '../actions/types';
+import { normalizeRange } from '../timeline/timing';
 import { emptyDevice } from '../utils';
 import { getDefaultFilter } from '../utils/filter';
 
@@ -54,6 +55,7 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_SELECT_DEVICE:
+      state.routesError = null;
       state = {
         ...state,
         filter: getDefaultFilter(),
@@ -84,6 +86,7 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.ACTION_SELECT_TIME_FILTER:
+      state.routesError = null;
       state = {
         ...state,
         lastRoutes: state.routes,
@@ -344,6 +347,7 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
+      state.routesError = null;
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
@@ -409,7 +413,11 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
+    case Types.ACTION_ROUTES_ERROR:
+      if (action.dongleId === state.dongleId && action.selectedRouteId === state.selectedRouteId) state.routesError = action.error;
+      break;
     case Types.ACTION_ROUTES_METADATA:
+      state.routesError = null;
       // merge existing routes' event and location info with new routes
       state.routes = action.routes.map((route) => {
         const existingRoute = state.lastRoutes ?
@@ -423,6 +431,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         start: action.start,
         end: action.end,
+        selectedRouteId: action.selectedRouteId,
       };
       if (!state.currentRoute && state.selectedRouteId) {
         const curr = state.routes?.find((route) => route.log_id === state.selectedRouteId);
@@ -430,19 +439,9 @@ export default function reducer(_state, action) {
           state.currentRoute = {
             ...curr,
           };
-          if (!state.zoom) {
-            state.zoom = {
-              start: 0,
-              end: state.currentRoute.duration,
-            };
-          }
-
-          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
-            state.loop = {
-              startTime: state.zoom.start,
-              duration: state.zoom.end - state.zoom.start,
-            };
-          }
+          const range = normalizeRange(state.zoom?.start, state.zoom?.end, curr.duration);
+          state.zoom = { ...state.zoom, ...(range ?? { start: 0, end: curr.duration }) };
+          state.loop = { startTime: state.zoom.start, duration: state.zoom.end - state.zoom.start };
         }
       }
       break;

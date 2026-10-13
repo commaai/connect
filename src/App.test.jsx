@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { pause } from './timeline/playback';
 
 const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
 
@@ -38,20 +39,6 @@ vi.mock('react-map-gl', () => ({
   Marker: ({ children }) => children,
   Source: ({ children }) => children,
   WebMercatorViewport: class {},
-}));
-vi.mock('react-player/file', () => ({
-  default: React.forwardRef((_props, ref) => {
-    React.useImperativeHandle(ref, () => ({
-      getCurrentTime: () => 0,
-      getDuration: () => 60,
-      getInternalPlayer: () => ({
-        buffered: { end: () => 60, length: 1, start: () => 0 },
-        pause: vi.fn(), paused: true, play: vi.fn(async () => undefined), playbackRate: 1, readyState: 4,
-      }),
-      seekTo: vi.fn(),
-    }));
-    return <div data-testid="video-player" />;
-  }),
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
@@ -106,6 +93,7 @@ async function mockFetch(input, init = {}) {
     if (options.failedRoutes && url.searchParams.has('start')) return json({}, 500);
     if (options.emptyRoutes) return json([]);
     const routeStr = url.searchParams.get('route_str');
+    if (options.failSelectedRoutes && routeStr) return json({}, 503);
     if (routeStr) return json([LOG, RECENT_LOG].some((log) => routeStr.endsWith(`|${log}`)) ? [makeRoute(dongleId, routeStr.split('|')[1])] : []);
     if (window.location.pathname.includes(`/${START}/`) || url.searchParams.get('start') === String(START)) return json([makeRoute(dongleId, LOG)]);
     return json([makeRoute(dongleId)]);
@@ -147,6 +135,10 @@ async function renderApp(pathname, options = {}) {
 
 describe('whole-app behavior', () => {
   beforeAll(() => {
+    // jsdom cannot decode media; player behavior has its own event-driven tests.
+    vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
@@ -302,5 +294,32 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('route metadata failure is visible and Retry loads the selected route', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}`, { failSelectedRoutes: true });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load this route');
+    mocks.options.failSelectedRoutes = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(store.getState().routesError).toBeNull();
+  });
+
+  test('zero-start ranges and keyboard seeking retain pause and pointer cancellation leaves URL unchanged', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/0/20`);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    expect(store.getState().zoom).toMatchObject({ start: 0, end: 20000 });
+    act(() => store.dispatch(pause()));
+    // Direct media commands are covered separately; this verifies the keyboard/navigation state.
+    fireEvent.keyDown(timeline, { key: 'ArrowRight', shiftKey: true });
+    expect(store.getState().offset).toBe(10000);
+    fireEvent.keyDown(timeline, { key: 'Home' });
+    expect(store.getState().offset).toBe(0);
+    expect(store.getState().playRequested).toBe(false);
+    fireEvent.pointerDown(timeline, { button: 0, clientX: 0 });
+    fireEvent.pointerMove(document, { clientX: 300 });
+    fireEvent.pointerCancel(document);
+    fireEvent.pointerUp(document, { button: 0, clientX: 300 });
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/20`);
   });
 });

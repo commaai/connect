@@ -70,9 +70,10 @@ const styles = (theme) => ({
     },
   },
   iconButton: {
-    width: '40px',
-    height: '40px',
+    width: '44px',
+    height: '44px',
   },
+  speedButton: { width: 32, height: 24, padding: 4 },
   tinyArrowIcon: {
     width: 12,
     height: 12,
@@ -97,16 +98,6 @@ const styles = (theme) => ({
 });
 
 class TimeDisplay extends Component {
-  static getDerivedStateFromProps(props, state) {
-    if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
-      return {
-        ...state,
-        desiredPlaySpeed: props.desiredPlaySpeed,
-      };
-    }
-    return state;
-  }
-
   constructor(props) {
     super(props);
 
@@ -120,29 +111,29 @@ class TimeDisplay extends Component {
     this.jumpForward = this.jumpForward.bind(this);
 
     this.state = {
-      desiredPlaySpeed: 1,
       displayTime: this.getDisplayTime(),
     };
   }
 
   componentDidMount() {
     this.mounted = true;
-    requestAnimationFrame(this.updateTime);
+    this.frame = requestAnimationFrame(this.updateTime);
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    cancelAnimationFrame(this.frame);
   }
 
   getDisplayTime() {
-    const offset = currentOffset();
+    const offset = currentOffset(this.props);
     const { currentRoute } = this.props;
     const now = new Date(offset + currentRoute.start_time_utc_millis);
     if (Number.isNaN(now.getTime())) {
       return '...';
     }
     let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute);
+    const seg = getSegmentNumber(currentRoute, offset);
     if (seg !== null) {
       dateString = `${dateString} \u2013 ${seg}`;
     }
@@ -151,11 +142,11 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
+    this.props.dispatch(seek(currentOffset(this.props) - amount));
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
+    this.props.dispatch(seek(currentOffset(this.props) + amount));
   }
 
   updateTime() {
@@ -168,12 +159,12 @@ class TimeDisplay extends Component {
       this.setState({ displayTime: newDisplayTime });
     }
 
-    requestAnimationFrame(this.updateTime);
+    this.frame = requestAnimationFrame(this.updateTime);
   }
 
   decreaseSpeed() {
     const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
+    const desiredPlaySpeed = this.props.playSpeed;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -183,7 +174,7 @@ class TimeDisplay extends Component {
   }
 
   canDecreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
+    const desiredPlaySpeed = this.props.playSpeed;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -193,7 +184,7 @@ class TimeDisplay extends Component {
 
   increaseSpeed() {
     const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
+    const desiredPlaySpeed = this.props.playSpeed;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -203,7 +194,7 @@ class TimeDisplay extends Component {
   }
 
   canIncreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
+    const desiredPlaySpeed = this.props.playSpeed;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -212,19 +203,18 @@ class TimeDisplay extends Component {
   }
 
   togglePause() {
-    const { desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed === 0) {
+    const { isPaused, dispatch } = this.props;
+    if (isPaused) {
       // eslint-disable-next-line react/destructuring-assignment
-      dispatch(play(this.state.desiredPlaySpeed));
+      dispatch(play(this.props.playSpeed));
     } else {
       dispatch(pause());
     }
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime, desiredPlaySpeed } = this.state;
-    const isPaused = videoPlaySpeed === 0;
+    const { classes, zoom, isPaused, playSpeed: desiredPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
+    const { displayTime } = this.state;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (
@@ -258,7 +248,7 @@ class TimeDisplay extends Component {
         {!isIos() && (
           <div className={ classes.desiredPlaySpeedContainer }>
             <IconButton
-              className={classes.tinyArrowIcon}
+              className={classes.speedButton}
               onClick={this.increaseSpeed}
               disabled={!this.canIncreaseSpeed()}
               aria-label="Increase play speed by 1 step"
@@ -270,7 +260,7 @@ class TimeDisplay extends Component {
               ×
             </Typography>
             <IconButton
-              className={classes.tinyArrowIcon}
+              className={classes.speedButton}
               onClick={this.decreaseSpeed}
               disabled={!this.canDecreaseSpeed()}
               aria-label="Decrease play speed by 1 step"
@@ -280,12 +270,12 @@ class TimeDisplay extends Component {
           </div>
         )}
         <div className={ classes.leftBorderBox }>
-          <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
+          <Tooltip title={ this.props.hasAudio === false ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
             <div>
               <IconButton
                 className={ classes.iconButton }
                 onClick={onMuteToggle}
-                disabled={!hasAudio}
+                disabled={hasAudio === false}
                 aria-label={isMuted ? 'Unmute' : 'Mute'}
               >
                 {isMuted
@@ -313,7 +303,10 @@ class TimeDisplay extends Component {
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
-  desiredPlaySpeed: state.desiredPlaySpeed,
+  loop: state.loop,
+  offset: state.offset,
+  isPaused: state.isPaused,
+  playSpeed: state.playSpeed,
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

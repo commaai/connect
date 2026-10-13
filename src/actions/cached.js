@@ -259,86 +259,50 @@ function parseEvents(route, driveEvents) {
   return res;
 }
 
+// Coalesce by route; only complete results enter the existing persistent cache.
+async function fetchSegmentData(route, store, type, parse) {
+  const local = (type === 'events' && USE_LOCAL_EVENTS_DATA) || (type === 'coords' && USE_LOCAL_COORDS_DATA);
+  try {
+    const cached = local ? null : await getCacheItem(store, route.fullname, route.maxqlog);
+    if (cached !== null) return { data: cached, incomplete: false };
+  } catch (error) { console.debug('Route asset cache unavailable', error); }
+  const results = await Promise.allSettled(Array.from({ length: (route.maxqlog ?? -1) + 1 }, async (_, segment) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const url = new URL(api.routeAssets[type](route, segment));
+      if (local) {
+        url.hostname = 'chffrprivate.azureedge.local';
+      }
+      const response = await fetch(url, { signal: controller.signal });
+      if (response.status === 404) return [];
+      if (!response.ok) throw new Error(`Unable to load ${type}: ${response.status}`);
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error(`Invalid ${type} data`);
+      return data;
+    } finally { clearTimeout(timeout); }
+  }));
+  const incomplete = results.some((result) => result.status === 'rejected');
+  const data = parse(results.flatMap((result) => result.status === 'fulfilled' ? result.value : []));
+  if (!incomplete && !local) {
+    setCacheItem(store, route.fullname, Math.floor(Date.now() / 1000) + 86400 * 14, data, route.maxqlog)
+      .catch((error) => console.debug('Unable to cache route assets', error));
+  }
+  return { data, incomplete };
+}
+
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes) {
-      return;
+    const current = getState().routes?.find((r) => r.fullname === route.fullname);
+    if (!current || (current.events && !current.eventsError)) return;
+    if (!eventsRequests[route.fullname]) {
+      eventsRequests[route.fullname] = fetchSegmentData(route, 'events', 'events', (events) => parseEvents(route, events))
+        .catch(() => ({ data: [], incomplete: true }))
+        .finally(() => { delete eventsRequests[route.fullname]; });
     }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.events) {
-          return;
-        }
-        break;
-      }
-    }
-
-    // already requesting
-    if (eventsRequests[route.fullname] !== undefined) {
-      const driveEvents = await eventsRequests[route.fullname];
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-        fullname: route.fullname,
-        events: driveEvents,
-      });
-      return;
-    }
-
-    let resolveEvents;
-    eventsRequests[route.fullname] = new Promise((resolve) => { resolveEvents = resolve; });
-
-    if (!USE_LOCAL_EVENTS_DATA) {
-      // in cache?
-      const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog);
-      if (cacheEvents !== null) {
-        dispatch({
-          type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-          fullname: route.fullname,
-          events: cacheEvents,
-        });
-        resolveEvents(cacheEvents);
-        return;
-      }
-    }
-
-    let driveEvents;
-    const promises = [];
-    for (let i = 0; i <= route.maxqlog; i++) {
-      promises.push((async (j) => {
-        const url = new URL(api.routeAssets.events(route, j));
-        if (USE_LOCAL_EVENTS_DATA) {
-          url.hostname = 'chffrprivate.azureedge.local';
-        }
-        const resp = await fetch(url, { method: 'GET' });
-        if (!resp.ok) {
-          return [];
-        }
-        const events = await resp.json();
-        return events;
-      })(i));
-    }
-
-    try {
-      driveEvents = [].concat(...(await Promise.all(promises)));
-    } catch (err) {
-      console.error(err);
-      return;
-    }
-
-    driveEvents = parseEvents(route, driveEvents);
-
-    dispatch({
-      type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-      fullname: route.fullname,
-      events: driveEvents,
-    });
-    resolveEvents(driveEvents);
-    if (!USE_LOCAL_EVENTS_DATA) {
-      setCacheItem('events', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveEvents, route.maxqlog);
-    }
+    const { data, incomplete } = await eventsRequests[route.fullname];
+    dispatch({ type: Types.ACTION_UPDATE_ROUTE_EVENTS, fullname: route.fullname, events: data });
+    dispatch({ type: Types.ACTION_UPDATE_ROUTE, fullname: route.fullname, route: { eventsError: incomplete } });
   };
 }
 
@@ -417,95 +381,17 @@ export function fetchLocations(route) {
 
 export function fetchDriveCoords(route) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes) {
-      return;
+    const current = getState().routes?.find((r) => r.fullname === route.fullname);
+    if (!current || (current.driveCoords && !current.driveCoordsError)) return;
+    if (!driveCoordsRequests[route.fullname]) {
+      driveCoordsRequests[route.fullname] = fetchSegmentData(route, 'driveCoords', 'coords', (coords) =>
+        Object.fromEntries(coords.filter((c) => Number.isFinite(c.t) && Number.isFinite(c.lng) && Number.isFinite(c.lat))
+          .map((c) => [c.t, [c.lng, c.lat]])))
+        .catch(() => ({ data: {}, incomplete: true }))
+        .finally(() => { delete driveCoordsRequests[route.fullname]; });
     }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.driveCoords) {
-          return;
-        }
-        break;
-      }
-    }
-
-    // already requesting
-    if (driveCoordsRequests[route.fullname] !== undefined) {
-      const driveCoords = await driveCoordsRequests[route.fullname];
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE,
-        fullname: route.fullname,
-        route: {
-          driveCoords,
-        },
-      });
-      return;
-    }
-
-    let resolveDriveCoords;
-    driveCoordsRequests[route.fullname] = new Promise((resolve) => { resolveDriveCoords = resolve; });
-
-    if (!USE_LOCAL_COORDS_DATA) {
-      // in cache?
-      const cacheDriveCoords = await getCacheItem('driveCoords', route.fullname, route.maxqlog);
-      if (cacheDriveCoords !== null) {
-        dispatch({
-          type: Types.ACTION_UPDATE_ROUTE,
-          fullname: route.fullname,
-          route: {
-            driveCoords: cacheDriveCoords,
-          },
-        });
-        resolveDriveCoords(cacheDriveCoords);
-        return;
-      }
-    }
-
-    const promises = [];
-    for (let i = 0; i <= route.maxqlog; i++) {
-      promises.push((async (j) => {
-        const url = new URL(api.routeAssets.coords(route, j));
-        if (USE_LOCAL_COORDS_DATA) {
-          url.hostname = 'chffrprivate.azureedge.local';
-        }
-        const resp = await fetch(url, { method: 'GET' });
-        if (!resp.ok) {
-          return [];
-        }
-        const events = await resp.json();
-        return events;
-      })(i));
-    }
-
-    let driveCoords;
-    try {
-      driveCoords = await Promise.all(promises);
-    } catch (err) {
-      console.error(err);
-      return;
-    }
-
-    driveCoords = driveCoords.reduce((prev, curr) => ({
-      ...prev,
-      ...curr.reduce((p, cs) => {
-        p[cs.t] = [cs.lng, cs.lat];
-        return p;
-      }, {}),
-    }), {});
-
-    dispatch({
-      type: Types.ACTION_UPDATE_ROUTE,
-      fullname: route.fullname,
-      route: {
-        driveCoords,
-      },
-    });
-    resolveDriveCoords(driveCoords);
-    if (!USE_LOCAL_COORDS_DATA) {
-      setCacheItem('driveCoords', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveCoords, route.maxqlog);
-    }
+    const { data, incomplete } = await driveCoordsRequests[route.fullname];
+    dispatch({ type: Types.ACTION_UPDATE_ROUTE, fullname: route.fullname,
+      route: { driveCoords: data, driveCoordsError: incomplete } });
   };
 }

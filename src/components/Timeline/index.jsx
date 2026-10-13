@@ -139,7 +139,7 @@ const AlertStatusCodes = [
 
 function percentFromPointerEvent(ev) {
   const boundingBox = ev.currentTarget.getBoundingClientRect();
-  const x = ev.pageX - boundingBox.left;
+  const x = ev.clientX - boundingBox.left;
   return x / boundingBox.width;
 }
 
@@ -178,7 +178,7 @@ class Timeline extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    requestAnimationFrame(this.getOffset);
+    this.frame = requestAnimationFrame(this.getOffset);
     this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
@@ -203,6 +203,8 @@ class Timeline extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    cancelAnimationFrame(this.frame);
+    this.removePointerListeners();
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
@@ -225,21 +227,24 @@ class Timeline extends Component {
     ev.preventDefault();
     document.addEventListener('pointerup', this.handlePointerUp);
     document.addEventListener('pointermove', this.handlePointerMove);
-    this.setState({ dragging: [ev.pageX, ev.pageX] });
+    document.addEventListener('pointercancel', this.handlePointerCancel);
+    this.pointerDrag = [ev.clientX, ev.clientX];
+    this.setState({ dragging: [ev.clientX, ev.clientX] });
   }
 
   handlePointerMove(ev) {
     ev.preventDefault();
-    const { dragging } = this.state;
+    const dragging = this.pointerDrag;
     if (!this.rulerRef.current) {
       return;
     }
     ev.preventDefault();
 
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
-    const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.pageX));
+    const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.clientX));
     if (dragging) {
-      this.setState({ dragging: [dragging[0], endDrag] });
+      this.pointerDrag = [dragging[0], endDrag];
+      this.setState({ dragging: this.pointerDrag });
     }
     this.setState({ hoverX: endDrag });
   }
@@ -252,9 +257,9 @@ class Timeline extends Component {
       ev.preventDefault();
     }
 
-    document.removeEventListener('pointerup', this.handlePointerUp);
-    document.removeEventListener('pointermove', this.handlePointerMove);
-    const { dragging } = this.state;
+    this.removePointerListeners();
+    const dragging = this.pointerDrag;
+    this.pointerDrag = null;
     if (!dragging) {
       return;
     }
@@ -267,18 +272,39 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
       const { dispatch } = this.props;
       const startTime = startOffset;
       const endTime = endOffset;
 
       dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
-    } else if (ev.currentTarget !== document) {
-      this.handleClick(ev);
+    } else {
+      this.props.dispatch(seek(this.percentToOffset(startPercent)));
     }
+  }
+
+  removePointerListeners() {
+    document.removeEventListener('pointerup', this.handlePointerUp);
+    document.removeEventListener('pointermove', this.handlePointerMove);
+    document.removeEventListener('pointercancel', this.handlePointerCancel);
+  }
+  handlePointerCancel = () => {
+    this.removePointerListeners();
+    this.pointerDrag = null;
+    this.setState({ dragging: null, hoverX: null });
+  };
+  handleKeyDown = (event) => {
+    const { zoom } = this.state;
+    const offset = this.currentOffset();
+    const step = event.shiftKey ? 10000 : 1000;
+    const targets = { ArrowLeft: offset - step, ArrowDown: offset - step,
+      ArrowRight: offset + step, ArrowUp: offset + step, Home: zoom.start, End: zoom.end };
+    if (targets[event.key] == null) return;
+    event.preventDefault();
+    this.props.dispatch(seek(Math.max(zoom.start, Math.min(zoom.end, targets[event.key]))));
+  };
+  currentOffset() {
+    return currentOffset({ currentRoute: this.props.route, offset: this.props.offset,
+      zoom: this.state.zoom, loop: this.props.loop });
   }
 
   handlePointerLeave() {
@@ -296,13 +322,17 @@ class Timeline extends Component {
     if (!this.mounted) {
       return;
     }
-    requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
+    this.frame = requestAnimationFrame(this.getOffset);
+    let offset = this.currentOffset();
     if (this.seekIndex) {
       offset = this.seekIndex;
     }
     offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
+    const percent = Math.max(0, Math.min(1, this.offsetToPercent(offset)));
+    if (this.rulerRef.current) {
+      this.rulerRef.current.setAttribute('aria-valuenow', String(offset / 1000));
+      this.rulerRef.current.setAttribute('aria-valuetext', `${(offset / 1000).toFixed(1)} seconds into the drive`);
+    }
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
       this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
@@ -311,12 +341,12 @@ class Timeline extends Component {
 
   percentToOffset(perc) {
     const { zoom } = this.state;
-    return perc * (zoom.end - zoom.start) + zoom.start;
+    return Math.max(0, Math.min(1, perc)) * (zoom.end - zoom.start) + zoom.start;
   }
 
   offsetToPercent(offset) {
     const { zoom } = this.state;
-    return (offset - zoom.start) / (zoom.end - zoom.start);
+    return (offset - zoom.start) / Math.max(1, zoom.end - zoom.start);
   }
 
   segmentNum(offset) {
@@ -377,7 +407,7 @@ class Timeline extends Component {
 
   render() {
     const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
-    const { thumbnail, hoverX, dragging } = this.state;
+    const { thumbnail, hoverX, dragging, zoom } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
 
@@ -433,6 +463,11 @@ class Timeline extends Component {
               <div
                 aria-label="Drive timeline"
                 role="slider"
+                aria-valuemin={zoom.start / 1000}
+                aria-valuemax={zoom.end / 1000}
+                aria-valuenow={this.currentOffset() / 1000}
+                onKeyDown={this.handleKeyDown}
+                onPointerCancel={this.handlePointerCancel}
                 tabIndex={0}
                 ref={ this.onRulerRef }
                 className={classes.ruler}
@@ -459,6 +494,7 @@ class Timeline extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
+  offset: state.offset,
   loop: state.loop,
 });
 

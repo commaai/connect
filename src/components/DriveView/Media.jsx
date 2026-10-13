@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
 
+import { sendMediaCommand } from '../../timeline/media';
 import { USERADMIN_URL_ROOT } from '../../api';
 import { api } from '../../api/backend';
 import { deviceSupportsClips } from '../../api/clips';
@@ -15,7 +16,6 @@ import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -43,7 +43,9 @@ const styles = () => ({
     flexDirection: 'column',
     justifyContent: 'center',
     cursor: 'pointer',
-    minHeight: 32,
+    minHeight: 44,
+    background: 'transparent',
+    color: Colors.white,
     minWidth: 44,
     paddingLeft: 15,
     paddingRight: 15,
@@ -212,7 +214,7 @@ class Media extends Component {
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
-      hasAudio: false,
+      hasAudio: null,
       clipsSupported: false,
     };
 
@@ -237,7 +239,9 @@ class Media extends Component {
   }
 
   handleMuteToggle() {
-    this.setState(prevState => ({ isMuted: !prevState.isMuted }));
+    const isMuted = !this.state.isMuted;
+    sendMediaCommand(this.props.currentRoute?.fullname, 'setMuted', isMuted);
+    this.setState({ isMuted });
   }
 
   handleAudioStatusChange(hasAudio) {
@@ -253,6 +257,10 @@ class Media extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
+    if (prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname) {
+      this.setState({ hasAudio: null, isMuted: true });
+      this.routeViewed = false;
+    }
     const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (prevProps.dongleId !== this.props.dongleId) {
@@ -265,11 +273,7 @@ class Media extends Component {
       this.setState({ inView: MediaType.VIDEO });
     }
 
-    if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
-    }
-
-    if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
+    if (prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname && this.props.currentRoute) {
       this.props.dispatch(fetchEvents(this.props.currentRoute));
     }
 
@@ -549,12 +553,13 @@ class Media extends Component {
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
           <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
-            {inView === MediaType.VIDEO && (
-              <DriveVideo
-                isMuted={isMuted}
-                onAudioStatusChange={this.handleAudioStatusChange}
-              />
-            )}
+            <DriveVideo
+              isMuted={isMuted}
+              hidden={inView !== MediaType.VIDEO && !showMapAlways}
+              onAudioStatusChange={this.handleAudioStatusChange}
+              onRetryAssets={() => this.props.dispatch(fetchEvents(this.props.currentRoute))}
+              onMuteStatusChange={(muted) => this.state.isMuted !== muted && this.setState({ isMuted: muted })}
+            />
             {(inView === MediaType.MAP && !showMapAlways) && (
               <div className="w-full">
                 <DriveMap />
@@ -587,20 +592,20 @@ class Media extends Component {
         <div className="flex flex-wrap">
           { !showMapAlways && (
             <div className={classes.mediaOptions}>
-              <div
+              <button type="button"
                 className={classes.mediaOption}
                 style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
                 onClick={() => this.setState({ inView: MediaType.VIDEO })}
               >
                 <Typography className={classes.mediaOptionText}>Video</Typography>
-              </div>
-              <div
+              </button>
+              <button type="button"
                 className={classes.mediaOption}
                 style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
                 onClick={() => this.setState({ inView: MediaType.MAP })}
               >
                 <Typography className={classes.mediaOptionText}>Map</Typography>
-              </div>
+              </button>
             </div>
           )}
           <div className={`${classes.mediaOptions} ml-auto`}>
@@ -929,7 +934,6 @@ const stateToProps = (state) => ({
   filter: state.filter,
   files: state.files,
   profile: state.profile,
-  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

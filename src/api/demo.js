@@ -153,7 +153,7 @@ export function createDemoBackend(realBackend) {
             throw new Error('Demo public route not found');
           }
           return publicRoute;
-        });
+        }).catch((error) => { publicRoutePromise = null; throw error; });
     }
     return publicRoutePromise;
   }
@@ -162,7 +162,8 @@ export function createDemoBackend(realBackend) {
   function fetchPublicFiles() {
     if (!publicFilesPromise) {
       publicFilesPromise = realBackend.routes
-        .getRouteFiles(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`);
+        .getRouteFiles(`${PUBLIC_ROUTE_DONGLE_ID}|${PUBLIC_ROUTE_LOG_ID}`)
+        .catch((error) => { publicFilesPromise = null; throw error; });
     }
     return publicFilesPromise;
   }

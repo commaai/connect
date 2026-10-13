@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
+import { readRouteOffsetMs } from './timeline/media';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
@@ -54,10 +55,14 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
 
 function getVideoPercent(state, offset) {
   const { zoom } = state;
-  if (!offset) {
-    offset = state.offset;
+  if (offset === undefined || offset === null) {
+    offset = readRouteOffsetMs(state);
   }
-  return (offset - (zoom.start)) / (zoom.end - zoom.start);
+  const span = zoom.end - zoom.start;
+  if (!span) {
+    return 0;
+  }
+  return (offset - zoom.start) / span;
 }
 
 function logAction(action, prevState, state) {
@@ -190,10 +195,10 @@ function logAction(action, prevState, state) {
 
     case Types.ACTION_SEEK:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, state.offset);
         gtag('event', 'video_seek', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: state.isPaused ? 0 : state.playSpeed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -205,7 +210,7 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_pause', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: 0,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
@@ -217,7 +222,7 @@ function logAction(action, prevState, state) {
         percent = getVideoPercent(state);
         gtag('event', 'video_play', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: action.speed ?? state.playSpeed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });

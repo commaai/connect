@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Button, Typography } from '@material-ui/core';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
@@ -44,7 +45,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute, seekGeneration } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -55,7 +56,7 @@ class DriveMap extends Component {
       }
     }
 
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
+    if (prevProps.seekGeneration !== seekGeneration) {
       this.shouldFlyTo = true;
     }
 
@@ -73,6 +74,8 @@ class DriveMap extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    cancelAnimationFrame(this.frame);
+    clearTimeout(this.isInteractingTimeout);
   }
 
   onInteraction(ev) {
@@ -97,7 +100,7 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        const pos = this.posAtOffset(currentOffset(this.props));
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -116,7 +119,7 @@ class DriveMap extends Component {
       }
     }
 
-    requestAnimationFrame(this.updateMarkerPos);
+    this.frame = requestAnimationFrame(this.updateMarkerPos);
   }
 
   moveViewportTo(pos) {
@@ -282,7 +285,14 @@ class DriveMap extends Component {
 
   render() {
     const { viewport } = this.state;
+    const route = this.props.currentRoute;
     return (
+      <div>
+        {route && (!route.driveCoords || !Object.keys(route.driveCoords).length || route.driveCoordsError) && (
+          <Typography role="status">{route.driveCoordsError ? 'Some map data could not be loaded.' : route.driveCoords ? 'No GPS data is available for this drive.' : 'Loading map data…'}
+            {route.driveCoordsError && <Button onClick={() => this.props.dispatch(fetchDriveCoords(route))}>Retry map</Button>}
+          </Typography>
+        )}
       <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
         <ReactMapGL
           width="100%"
@@ -301,6 +311,7 @@ class DriveMap extends Component {
           onInteractionStateChange={this.onInteraction}
         />
       </div>
+      </div>
     );
   }
 }
@@ -308,7 +319,7 @@ class DriveMap extends Component {
 const stateToProps = (state) => ({
   offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
+  seekGeneration: state.seekGeneration,
 });
 
 export default connect(stateToProps)(DriveMap);
