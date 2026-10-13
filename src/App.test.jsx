@@ -116,6 +116,7 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
+  if (url.pathname.endsWith('/subscription') && options.subscription) return json(options.subscription);
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
@@ -353,6 +354,44 @@ describe('whole-app behavior', () => {
   test('uploads query opens the upload queue', async () => {
     await renderApp(`/${FIRST}?settings=${FIRST}&uploads`);
     expect(await screen.findByText('Upload queue')).toBeVisible();
+  });
+
+  test('cold filter URL opens the time filter and closing replaces the entry', async () => {
+    const { history } = await renderApp(`/${FIRST}?filter`);
+    expect(await screen.findByText('Start date:')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByText('Start date:')).not.toBeInTheDocument());
+    expect(history.location.pathname + history.location.search).toBe(`/${FIRST}`);
+    expect(history.index).toBe(0);
+  });
+
+  test.each([[1200, 'permanent drawer'], [390, 'closed phone drawer']])(
+    'add-device query opens the pairing modal at %ipx (%s)',
+    async (innerWidth) => {
+      const width = window.innerWidth;
+      window.innerWidth = innerWidth;
+      try {
+        await renderApp(`/${FIRST}?add-device`);
+        expect(await screen.findByText('Pair device')).toBeVisible();
+      } finally {
+        window.innerWidth = width;
+      }
+    },
+  );
+
+  test('unpair query opens the unpair confirmation', async () => {
+    await renderApp(`/${FIRST}?settings=${FIRST}&unpair`);
+    expect(await screen.findByText('Unpair device')).toBeVisible();
+  });
+
+  test.each([
+    ['cancel-plan', 'Cancel prime subscription'],
+    ['switch-plan', 'Confirm switch'],
+  ])('Prime %s query opens its dialog', async (dialog, text) => {
+    const prime = [{ ...devices[0], prime: true }, devices[1]];
+    const subscription = { user_id: 'test-user', plan: 'data', subscribed_at: 1, next_charge_at: 2 };
+    await renderApp(`/${FIRST}/prime?${dialog}`, { devices: prime, subscription });
+    expect(await screen.findByText(text)).toBeVisible();
   });
 
   test('pushing a ranged drive URL applies its zoom', async () => {

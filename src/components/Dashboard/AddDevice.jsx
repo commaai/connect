@@ -5,8 +5,9 @@ import { withStyles, Typography, Button, Modal, Paper, CircularProgress } from '
 import * as Sentry from '@sentry/react';
 
 import { api } from '../../api/backend';
-import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
+import { selectDevice, updateDevices, analyticsEvent, openOverlay, closeOverlay } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
+import { parse } from '../../url';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
 
@@ -101,7 +102,6 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -133,8 +133,15 @@ class AddDevice extends Component {
     this.componentDidUpdate({}, {});
   }
 
-  async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
+  async componentDidUpdate(prevProps = {}) {
+    const { modalOpen } = this.props;
+    const { pairLoading, pairError, pairDongleId } = this.state;
+
+    // The modal closes from the URL too (Back), so the cleanup follows the prop
+    if (prevProps.modalOpen && !modalOpen) {
+      this.stopCamera();
+      this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
+    }
     let { hasCamera } = this.state;
 
     // Check for camera availability
@@ -280,26 +287,27 @@ class AddDevice extends Component {
     this.startScanning();
   }
 
-  modalClose() {
-    const { pairDongleId } = this.state;
-
+  stopCamera() {
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
       this.stream = null;
     }
     this.detector = null;
+  }
+
+  modalClose() {
+    const { pairDongleId } = this.state;
 
     if (pairDongleId && this.props.devices.length === 0) {
+      this.stopCamera();
       this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
       window.location = `${window.location.origin}/${pairDongleId}`;
       return;
     }
 
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
-    if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
-    }
+    // selectDevice navigates to a URL without the dialog, which closes it as well
+    this.props.dispatch(pairDongleId ? selectDevice(pairDongleId) : closeOverlay({ dialog: null }));
   }
 
   async onQrRead({ data: result }) {
@@ -370,12 +378,12 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    this.props.dispatch(openOverlay({ dialog: 'add-device' }));
   }
 
   render() {
-    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
+    const { classes, buttonText, buttonStyle, buttonIcon, modalOpen } = this.props;
+    const { hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
@@ -442,9 +450,11 @@ class AddDevice extends Component {
   }
 }
 
-const stateToProps = (state) => ({
+// The URL opens every instance at once, so an instance can opt out with modal={false}
+const stateToProps = (state, ownProps) => ({
   profile: state.profile,
   devices: state.devices,
+  modalOpen: ownProps.modal !== false && parse(state.router.location)?.dialog === 'add-device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));

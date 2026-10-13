@@ -116,7 +116,6 @@ const initialState = {
   loadingDeviceShare: false,
   hasSavedAlias: false,
   shareEmail: '',
-  unpairConfirm: false,
   unpaired: false,
   loadingUnpair: false,
   error: null,
@@ -251,7 +250,7 @@ class DeviceSettingsModal extends Component {
     if (this.state.unpaired) {
       window.location = window.location.origin;
     } else {
-      this.setState({ unpairConfirm: false });
+      this.props.dispatch(closeOverlay({ dialog: null }));
     }
   }
 
@@ -287,7 +286,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.setState({ unpairConfirm: true }) }
+                onClick={ () => this.props.dispatch(openOverlay({ dialog: 'unpair' })) }
               >
                 Unpair
               </Button>
@@ -359,7 +358,7 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.state.unpairConfirm}
+          open={this.props.isOpen && this.props.unpairConfirm}
           onClose={ this.closeUnpair }
         >
           <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
@@ -440,6 +439,7 @@ const stateToProps = (state, ownProps) => {
     device,
     profile: state.profile,
     uploads: parse(state.router.location)?.dialog === 'uploads',
+    unpairConfirm: parse(state.router.location)?.dialog === 'unpair',
   };
 };
 
