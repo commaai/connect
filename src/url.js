@@ -1,7 +1,7 @@
 const dongleIdRegex = /^[a-f0-9]{16}$/;
 const logIdRegex = /^[a-f0-9-]{20}$/;
 
-// Menus and confirmations use the same overlay mechanism as full dialogs.
+// Restrict page-specific dialogs; null allows a dialog on any page.
 const dialogPages = {
   settings: null, uploads: null, unpair: null, pair: null,
   filter: ['home', 'demo', 'device'],

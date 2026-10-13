@@ -1,11 +1,12 @@
 import { push } from 'connected-react-router';
 import { locationWithDialog, parseLocation } from '../url';
 
-// To manage global state management
+// Keep dialog selection in the URL so reloads and browser history restore it.
 
 export const openDialog = (dialog, dongleId, clipFilename) => (dispatch, getState) => {
   const location = getState().router.location;
   const route = parseLocation(location);
+  // Remember the current dialog so closing a child can return to it.
   const parent = route.dialog ? { dialog: route.dialog, dongleId: route.dialogDongleId, clipFilename: route.clipFilename } : null;
   const next = locationWithDialog(location, dialog, dongleId, clipFilename);
   if (next.search !== location.search) {

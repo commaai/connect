@@ -13,6 +13,7 @@ function getPageViewEventLocation(pathname) {
   if (dongleId) {
     pageLocation = pageLocation.replace(dongleId, '<dongleId>');
   }
+  // Parse the original path before its device ID is replaced for analytics.
   const zoom = getZoom(pathname);
   if (zoom) {
     pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
