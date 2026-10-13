@@ -84,6 +84,7 @@ const MISSING_DATA_CASES = [
   {
     title: 'Missing qcamera',
     // No share credentials, so this route's stream cannot resolve.
+    missingVideo: true,
     route(route, affectedSegment) {
       if (affectedSegment === undefined) {
         delete route.share_exp;
@@ -112,6 +113,22 @@ const TEST_CASES = MISSING_DATA_CASES.flatMap((testCase) => [
     affectedSegment: AFFECTED_SEGMENT,
   },
 ]);
+
+// hls.js fragment loader that fails one segment like a missing upload
+function missingVideoLoader(segment) {
+  return function DemoFragmentLoader(config) {
+    const loader = new config.loader(config);
+    const load = loader.load.bind(loader);
+    loader.load = (context, loadConfig, callbacks) => {
+      if (fileSegmentNumber(context.url) === segment) {
+        callbacks.onError({ code: 404, text: 'Not Found' }, context, null);
+      } else {
+        load(context, loadConfig, callbacks);
+      }
+    };
+    return loader;
+  };
+}
 
 function fileSegmentNumber(file) {
   const pathParts = new URL(file).pathname.split('/');
@@ -260,6 +277,11 @@ export function createDemoBackend(realBackend) {
     },
     video: {
       ...realBackend.video,
+      getHlsOptions(route) {
+        const testCase = TEST_CASES[demoRouteIndex(route.fullname)];
+        if (!testCase?.missingVideo || testCase.affectedSegment === undefined) return {};
+        return { fLoader: missingVideoLoader(testCase.affectedSegment) };
+      },
       getQcameraStreamUrl(routeStr, exp, sig) {
         // demo routes keep the public route's share credentials, so stream the
         // underlying public route; the clone missing qcamera has no credentials
