@@ -187,7 +187,7 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
   filter: state.filter,
   profile: state.profile,
-  primeNav: state.primeNav,
+  primeNav: state.navigation.page === 'prime',
   pathname: state.router.location.pathname,
 });
 

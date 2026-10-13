@@ -1,71 +1,78 @@
 import { describe, expect, it } from 'vitest';
-
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { parseLocation, pathFor, locationFor } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
 
-describe('URL pathname helpers', () => {
+describe('navigation URLs', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
+    ['/', 'home'], ['/demo', 'demo'], ['/referrals', 'referrals'], ['/auth/', 'auth'],
+    ['/' + DONGLE, 'device'], ['/' + DONGLE + '/prime', 'prime'],
+    ['/' + DONGLE + '/stream', 'stream'], ['/' + DONGLE + '/' + LOG, 'drive'],
+    ['/' + DONGLE + '/1000/2000', 'legacy'],
+  ])('parses %s as %s', (pathname, page) => {
+    const navigation = parseLocation({ pathname });
+    expect(navigation.page).toBe(page);
+    expect(pathFor(navigation)).toBe(pathname.replace(/\/$/, '') || '/');
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
-  it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
+  it('preserves zero starts and millisecond ranges', () => {
+    const pathname = '/' + DONGLE + '/' + LOG + '/0/20.125';
+    const navigation = parseLocation({ pathname });
+    expect(navigation.range).toEqual({ start: 0, end: 20125 });
+    expect(pathFor(navigation)).toBe(pathname);
   });
 
   it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
+    '/not-a-device', '/x0000aaaa0000aaaa', '/' + DONGLE + 'x',
+    '/' + DONGLE + '/prime/extra', '/' + DONGLE + '//' + LOG,
+    '/' + DONGLE + '/' + LOG + '/-1/20', '/' + DONGLE + '/' + LOG + '/20/10',
+    '/' + DONGLE + '/' + LOG + '/10/10', '/' + DONGLE + '/' + LOG + '/NaN/20',
+    '/' + DONGLE + '/' + LOG + '/0/Infinity', '/' + DONGLE + '/' + LOG + '/1/2/3',
+    '/' + DONGLE + '/garbage' + LOG,
+  ])('rejects malformed locations without retaining a drive: %s', (pathname) => {
+    expect(parseLocation({ pathname })).toMatchObject({ page: 'not-found', logId: null, range: null, dialog: null });
   });
 
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
+  it.each(['settings', 'settings-uploads', 'unpair', 'pair', 'filter', 'clips'])('restores the %s dialog', (dialog) => {
+    expect(parseLocation({ pathname: '/' + DONGLE, search: '?dialog=' + dialog }).dialog).toBe(dialog);
   });
 
-  it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
+  it.each(['files', 'info', 'uploads', 'clips'])('restores %s over a drive', (dialog) => {
+    expect(parseLocation({ pathname: '/' + DONGLE + '/' + LOG, search: '?dialog=' + dialog }).dialog).toBe(dialog);
   });
 
-  it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+  it.each(['switch-prime', 'cancel-prime'])('restores %s only on Prime', (dialog) => {
+    expect(parseLocation({ pathname: '/' + DONGLE + '/prime', search: '?dialog=' + dialog }).dialog).toBe(dialog);
+    expect(parseLocation({ pathname: '/' + DONGLE, search: '?dialog=' + dialog }).dialog).toBeNull();
+  });
+
+  it('keeps a settings target separate from the drive device', () => {
+    expect(parseLocation({ pathname: '/' + DONGLE + '/' + LOG, search: '?dialog=settings&device=1111bbbb1111bbbb' }))
+      .toMatchObject({ dongleId: DONGLE, logId: LOG, dialogDevice: '1111bbbb1111bbbb' });
+  });
+
+  it('preserves unrelated query parameters and the hash when closing a dialog', () => {
+    const location = { pathname: '/' + DONGLE + '/' + LOG, search: '?ci=1&dialog=clip&clip=test.mp4', hash: '#video' };
+    const navigation = parseLocation(location);
+    expect(navigation.clip).toBe('test.mp4');
+    expect(locationFor({ ...navigation, dialog: null }, location))
+      .toEqual({ pathname: location.pathname, search: '?ci=1', hash: '#video' });
+  });
+
+  it('writes dialog and unrelated query parameters without URLSearchParams.size', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(URLSearchParams.prototype, 'size');
+    delete URLSearchParams.prototype.size;
+    try {
+      const location = { pathname: '/' + DONGLE, search: '?ci=1', hash: '#device' };
+      expect(locationFor({ ...parseLocation(location), dialog: 'settings' }, location))
+        .toEqual({ ...location, search: '?ci=1&dialog=settings' });
+    } finally {
+      if (descriptor) Object.defineProperty(URLSearchParams.prototype, 'size', descriptor);
+    }
+  });
+
+  it.each(['?dialog=unknown', '?dialog=clip', '?dialog=clip&clip=../bad.mp4', '?dialog=files'])('ignores invalid dialog arguments: %s', (search) => {
+    expect(parseLocation({ pathname: '/' + DONGLE, search }).dialog).toBeNull();
   });
 });

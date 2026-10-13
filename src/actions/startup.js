@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { navigate } from '.';
+import { syncLocation } from './history';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -42,41 +43,17 @@ async function initDevices() {
 
 export default function init() {
   return async (dispatch, getState) => {
-    let state = getState();
-    if (state.dongleId && !state.routes) {
-      dispatch(checkLastRoutesData());
-    }
-
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    state = getState();
-
-    if (profile) {
-      Sentry.setUser({ id: profile.id });
+    if (profile) Sentry.setUser({ id: profile.id });
+    const selected = window.localStorage.getItem('selectedDongleId');
+    const defaultDongleId = devices.find((device) => device.dongle_id === selected)?.dongle_id
+      || devices[0]?.dongle_id || null;
+    dispatch({ type: ACTION_STARTUP_DATA, profile, devices, defaultDongleId });
+    const { navigation } = getState();
+    if (['home', 'demo'].includes(navigation.page) && defaultDongleId) {
+      dispatch(navigate({ ...navigation, page: 'device', dongleId: defaultDongleId }, true));
+      window.localStorage.setItem('selectedDongleId', defaultDongleId);
     }
-
-    if (devices.length > 0) {
-      if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
-        }
-      }
-      const dongleId = getState().dongleId;
-      const device = devices.find((dev) => dev.dongle_id === dongleId);
-      if (device) {
-        dispatch(primeFetchSubscription(dongleId, device, profile));
-      } else if (dongleId) {
-        dispatch(fetchSharedDevice(dongleId));
-      }
-    }
-
-    dispatch({
-      type: ACTION_STARTUP_DATA,
-      profile,
-      devices,
-    });
+    dispatch(syncLocation(getState().router.location, true));
   };
 }

@@ -19,6 +19,12 @@ const driveCoordsRequests = {};
 let hasExpired = false;
 let cacheDB = null;
 
+function routeFromState(state, route) {
+  return state.routes?.find((candidate) => candidate.fullname === route.fullname)
+    || (state.currentRoute?.fullname === route.fullname ? state.currentRoute : null)
+    || Object.values(state.routeCache || {}).find((candidate) => candidate.fullname === route.fullname);
+}
+
 async function getCacheDB() {
   if (cacheDB !== null) {
     return Promise.resolve(cacheDB);
@@ -261,20 +267,7 @@ function parseEvents(route, driveEvents) {
 
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes) {
-      return;
-    }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.events) {
-          return;
-        }
-        break;
-      }
-    }
+    if (routeFromState(getState(), route)?.events) return;
 
     // already requesting
     if (eventsRequests[route.fullname] !== undefined) {
@@ -344,20 +337,7 @@ export function fetchEvents(route) {
 
 export function fetchCoord(route, coord, locationKey) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes || (!coord[0] && !coord[1])) {
-      return;
-    }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r[locationKey]) {
-          return;
-        }
-        break;
-      }
-    }
+    if ((!coord[0] && !coord[1]) || routeFromState(getState(), route)?.[locationKey]) return;
 
     // round for better caching
     coord[0] = Math.round(coord[0] * 1000) / 1000;
@@ -417,20 +397,7 @@ export function fetchLocations(route) {
 
 export function fetchDriveCoords(route) {
   return async (dispatch, getState) => {
-    const state = getState();
-    if (!state.routes) {
-      return;
-    }
-
-    // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.driveCoords) {
-          return;
-        }
-        break;
-      }
-    }
+    if (routeFromState(getState(), route)?.driveCoords) return;
 
     // already requesting
     if (driveCoordsRequests[route.fullname] !== undefined) {

@@ -5,8 +5,9 @@ import { createMemoryHistory } from 'history';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
+import { openDialog } from './actions';
 
-const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ authenticated: true, options: {}, requests: [], hardNavigate: vi.fn(), detect: vi.fn(async () => []) }));
 
 vi.mock('@commaai/my-comma-auth', () => ({
   default: {
@@ -53,7 +54,7 @@ vi.mock('react-player/file', () => ({
     return <div data-testid="video-player" />;
   }),
 }));
-vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
+vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return mocks.detect(); } } }));
 
 const FIRST = 'aaaaaaaaaaaaaaaa';
 const SECOND = 'bbbbbbbbbbbbbbbb';
@@ -91,6 +92,7 @@ async function mockFetch(input, init = {}) {
   if (url.pathname === '/v1/me/turn') return json(null);
   if (url.pathname === '/v1/me/') return json({ id: 'test-user', superuser: false });
   if (url.pathname === '/v1/me/devices/') return json(deviceList);
+  if (url.pathname === '/v2/pilotpair/' && options.pairedDevice) return json({ dongle_id: options.pairedDevice });
   if (url.pathname === '/v1/referrals') return json(options.referrals ?? {
     code: 'ABC1234',
     cash: { available: 50, claimed: 50, pending: 50 },
@@ -116,10 +118,13 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(await options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') return json({
+    jsonrpc: '2.0', id: 0, result: JSON.parse(init.body || '{}').method === 'listUploadQueue' ? [] : {},
+  });
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -130,7 +135,7 @@ async function renderApp(pathname, options = {}) {
   window.history.replaceState({}, '', pathname);
   if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState(history.location));
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -227,7 +232,7 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
     const ranged = pathname.endsWith('/10/20');
     expect(store.getState()).toMatchObject({
-      selectedRouteId: LOG,
+      navigation: { page: 'drive', logId: LOG },
       zoom: { start: ranged ? 10000 : 0, end: ranged ? 20000 : 60000 },
       loop: { startTime: ranged ? 10000 : 0, duration: ranged ? 10000 : 60000 },
     });
@@ -244,7 +249,7 @@ describe('whole-app behavior', () => {
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
-    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${pathname}`));
+    await waitFor(() => expect(mocks.hardNavigate).toHaveBeenCalledWith(`/?r=${encodeURIComponent(pathname)}`));
   });
 
   test('legacy timestamp URL converts after a successful lookup', async () => {
@@ -303,4 +308,212 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('root dialog survives default-device replacement', async () => {
+    const { history, store } = await renderApp('/?dialog=filter', { selected: FIRST });
+    expect(await screen.findByRole('button', { name: 'Cancel' })).toBeVisible();
+    expect(history.location.pathname).toBe('/' + FIRST);
+    expect(history.location.search).toBe('?dialog=filter');
+    expect(store.getState().navigation.dialog).toBe('filter');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+  });
+
+  test('the drive Go Back button restores each nested timeline selection', async () => {
+    const path = '/' + FIRST + '/' + LOG;
+    const { history } = await renderApp(path);
+    const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
+    const zoom = (from, to) => {
+      fireEvent.pointerDown(timeline, { button: 0, clientX: from, pageX: from });
+      fireEvent.pointerMove(document, { clientX: to, pageX: to });
+      fireEvent.pointerUp(document, { button: 0, clientX: to, pageX: to });
+    };
+    zoom(200, 700);
+    const firstRange = history.location.pathname;
+    expect(firstRange).not.toBe(path);
+    zoom(300, 600);
+    expect(history.location.pathname).not.toBe(firstRange);
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    expect(history.location.pathname).toBe(firstRange);
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    expect(history.location.pathname).toBe(path);
+  });
+
+  test('settings opens from a cold mobile drive link with the drawer closed', async () => {
+    const width = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 });
+    try {
+      const { history, store } = await renderApp('/' + FIRST + '/' + LOG + '?ci=1&dialog=settings#video');
+      expect(await screen.findByText('Device settings')).toBeVisible();
+      expect(screen.getByDisplayValue('Zulu')).toBeVisible();
+      await waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+      const route = store.getState().currentRoute;
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      await waitFor(() => expect(history.location.search).toBe('?ci=1'));
+      expect(history.location.hash).toBe('#video');
+      expect(store.getState().currentRoute).toBe(route);
+      expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+    }
+  });
+
+  test('settings can target another device without replacing the drive', async () => {
+    const { history, store } = await renderApp('/' + FIRST + '/' + LOG + '?dialog=settings&device=' + SECOND);
+    expect(await screen.findByText('Device settings')).toBeVisible();
+    expect(screen.getByDisplayValue('Alpha')).toBeVisible();
+    expect(store.getState().dongleId).toBe(FIRST);
+    fireEvent.click(screen.getByRole('button', { name: 'Prime settings' }));
+    await waitFor(() => expect(history.location.pathname).toBe('/' + SECOND + '/prime'));
+    expect(store.getState().currentRoute).toBeNull();
+    expect(store.getState().zoom).toBeNull();
+  });
+
+  test('settings links enforce account permissions and remain closeable', async () => {
+    const { history } = await renderApp('/' + SHARED + '?dialog=settings');
+    expect(await screen.findByText('This dialog is unavailable for this account.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Unpair' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+  });
+
+  test('nested settings history restores accessible controls and unsaved inputs', async () => {
+    const { history } = await renderApp('/' + FIRST + '?dialog=settings');
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Device name' }), { target: { value: 'Unsaved alias' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Unpair', exact: true }));
+    expect(history.location.search).toBe('?dialog=unpair');
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel', exact: true }));
+    expect(await screen.findByRole('textbox', { name: 'Device name' })).toHaveValue('Unsaved alias');
+    act(() => history.goForward());
+    expect(await screen.findByRole('button', { name: 'Confirm', exact: true })).toBeVisible();
+    act(() => history.goBack());
+    fireEvent.click(await screen.findByRole('button', { name: 'Uploads', exact: true }));
+    expect(history.location.search).toBe('?dialog=settings-uploads');
+    expect(await screen.findByRole('heading', { name: 'Upload queue' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+    expect(await screen.findByRole('textbox', { name: 'Device name' })).toHaveValue('Unsaved alias');
+    fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+    expect(history.location.search).toBe('');
+    expect(await screen.findByRole('button', { name: 'Filter' })).toBeVisible();
+    expect(mocks.requests.some(({ method }) => method === 'DELETE')).toBe(false);
+  });
+
+  test.each([['clip', 'Close video'], ['delete-clip', 'Cancel']])('closing %s restores accessible clip inputs through history', async (dialog, closeLabel) => {
+    const { history, store } = await renderApp('/' + FIRST + '/' + LOG + '?dialog=clips');
+    const input = within(await screen.findByRole('menu')).getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'unsaved-clip-name' } });
+    act(() => store.dispatch(openDialog(dialog, { clip: 'test.mp4' })));
+    fireEvent.click(await screen.findByRole('button', { name: closeLabel, exact: true }));
+    expect(within(await screen.findByRole('menu')).getByRole('textbox')).toHaveValue('unsaved-clip-name');
+    act(() => history.goForward());
+    expect(await screen.findByRole('button', { name: closeLabel, exact: true })).toBeVisible();
+    act(() => history.goBack());
+    expect(within(await screen.findByRole('menu')).getByRole('textbox')).toHaveValue('unsaved-clip-name');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    fireEvent.keyDown(document, { key: 'Escape', keyCode: 27 });
+    expect(history.location.search).toBe('');
+  });
+
+  test('filter follows browser Back and Forward', async () => {
+    const { history } = await renderApp('/' + FIRST);
+    fireEvent.click(await screen.findByRole('button', { name: 'Filter' }));
+    expect(history.location.search).toBe('?dialog=filter');
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument());
+    act(() => history.goForward());
+    expect(await screen.findByRole('button', { name: 'Cancel' })).toBeVisible();
+  });
+
+  test('a signed-out dialog link retains its query and hash for sign-in', async () => {
+    const location = '/' + FIRST + '?dialog=settings#device';
+    await renderApp(location, { authenticated: false });
+    expect(sessionStorage.getItem('redirectURL')).toBe(location);
+  });
+
+  test('cold pairing mounts one dialog even with the no-devices upsell', async () => {
+    await renderApp('/?dialog=pair', { devices: [] });
+    expect(await screen.findByRole('heading', { name: 'Pair device', exact: true })).toBeVisible();
+    expect(screen.getAllByRole('heading', { name: 'Pair device', exact: true })).toHaveLength(1);
+    expect(mocks.requests.some(({ method }) => method !== 'GET')).toBe(false);
+  });
+
+  test('a cold Prime switch dialog waits for the current plan before choosing its target', async () => {
+    let resolveSubscription;
+    const subscription = new Promise((resolve) => { resolveSubscription = resolve; });
+    await renderApp('/' + FIRST + '/prime?dialog=switch-prime', {
+      devices: [{ ...devices[0], prime: true }], subscription,
+    });
+    await act(async () => resolveSubscription({ user_id: 'test-user', plan: 'data', amount: 2400 }));
+    expect(await screen.findByRole('heading', { name: 'Switch to Lite plan' })).toBeVisible();
+    expect(mocks.requests.some(({ method }) => method !== 'GET')).toBe(false);
+  });
+
+  test('successful pairing replaces the dialog without queuing browser Back', async () => {
+    const mediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+    const stream = { getTracks: () => [{ stop: vi.fn() }] };
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: vi.fn(async () => [{ kind: 'videoinput' }]), getUserMedia: vi.fn(async () => stream),
+    } });
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    const canvas = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((context) => context === '2d' ? {
+      clearRect: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(),
+    } : null);
+    const token = 'e30.' + btoa(JSON.stringify({ identity: SECOND })) + '.signature';
+    mocks.detect.mockResolvedValueOnce([{ rawValue: 'https://connect.comma.ai/?pair=' + token }]);
+    try {
+      const { history, store } = await renderApp('/' + FIRST, { pairedDevice: SECOND });
+      // Browser traversal is asynchronous; preserve its target until the queued step runs.
+      const traversals = [];
+      const back = vi.spyOn(history, 'goBack').mockImplementation(() => {
+        const target = history.index - 1;
+        traversals.push(() => history.go(target - history.index));
+      });
+      act(() => store.dispatch(openDialog('pair')));
+      expect(await screen.findByText(/Successfully paired device/)).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: 'close', exact: true }));
+      act(() => traversals.forEach((traverse) => traverse()));
+      expect(history.location.pathname).toBe('/' + SECOND);
+      expect(history.location.search).toBe('');
+      expect(back).not.toHaveBeenCalled();
+      expect(history.index).toBe(1);
+      back.mockRestore();
+    } finally {
+      play.mockRestore();
+      pause.mockRestore();
+      canvas.mockRestore();
+      if (mediaDevices) Object.defineProperty(navigator, 'mediaDevices', mediaDevices);
+      else delete navigator.mediaDevices;
+    }
+  });
+
+  test.each(['permission', 'playback'])('pairing Back stops the camera while %s is pending', async (pending) => {
+    let finish;
+    const response = new Promise((resolve) => { finish = resolve; });
+    const stop = vi.fn();
+    const stream = { getTracks: () => [{ stop }] };
+    const mediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+    const getUserMedia = vi.fn(() => pending === 'permission' ? response : Promise.resolve(stream));
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+      enumerateDevices: vi.fn(async () => [{ kind: 'videoinput' }]), getUserMedia,
+    } });
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => response);
+    mocks.detect.mockClear();
+    try {
+      const { history } = await renderApp('/' + FIRST);
+      act(() => history.push('/' + FIRST + '?dialog=pair'));
+      await waitFor(() => expect(pending === 'permission' ? getUserMedia : play).toHaveBeenCalled());
+      act(() => history.goBack());
+      const scansBeforeCompletion = mocks.detect.mock.calls.length;
+      await act(async () => finish(pending === 'permission' ? stream : undefined));
+      expect(stop).toHaveBeenCalledTimes(1);
+      expect(mocks.detect).toHaveBeenCalledTimes(scansBeforeCompletion);
+      expect(screen.queryByRole('heading', { name: 'Pair device', exact: true })).not.toBeInTheDocument();
+    } finally {
+      play.mockRestore();
+      if (mediaDevices) Object.defineProperty(navigator, 'mediaDevices', mediaDevices);
+      else delete navigator.mediaDevices;
+    }
+  });
+
 });

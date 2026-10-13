@@ -47,11 +47,11 @@ const styles = () => ({
   },
 });
 
-const AnonymousLanding = ({ classes, pathname }) => {
+const AnonymousLanding = ({ classes, location }) => {
   useEffect(() => {
     if (typeof window.sessionStorage !== 'undefined') {
-      const q = new URLSearchParams(window.location.search);
-      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? pathname;
+      const q = new URLSearchParams(location.search);
+      const redirectURL = q.get('r') ?? sessionStorage.getItem('redirectURL') ?? (location.pathname + location.search + location.hash);
       sessionStorage.setItem('redirectURL', redirectURL);
     }
 
@@ -128,7 +128,7 @@ const AnonymousLanding = ({ classes, pathname }) => {
 };
 
 const stateToProps = (state) => ({
-  pathname: state.router.location.pathname,
+  location: state.router.location,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));
