@@ -261,11 +261,7 @@ class Timeline extends Component {
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime));
+      this.props.dispatch(pushTimelineRange(route.log_id, startOffset, endOffset));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

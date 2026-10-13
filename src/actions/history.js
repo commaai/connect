@@ -75,11 +75,11 @@ export const syncStateFromURL = (pathname, defaultDongleId) => async (dispatch, 
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (!action) return;
+  if (action.type !== LOCATION_CHANGE) return next(action);
   const previousPathname = getState().router.location.pathname;
-
-  next(action); // must be first, otherwise breaks history
-
-  if (action.type === LOCATION_CHANGE && previousPathname !== action.payload.location.pathname) {
+  const result = next(action); // must be first, otherwise breaks history
+  if (previousPathname !== action.payload.location.pathname) {
     dispatch(syncStateFromURL(action.payload.location.pathname));
   }
+  return result;
 };

@@ -248,13 +248,10 @@ class PrimeCheckout extends Component {
   }
 
   componentDidMount() {
-    const { dispatch, dongleId } = this.props;
     this.unsubscribeWindowSize = subscribeWindowSize(({ width, height }) => {
       this.setState({ windowWidth: width, windowHeight: height });
     });
-    if (dongleId) {
-      dispatch(primeFetchSubscription());
-    }
+    this.props.dispatch(primeFetchSubscription());
     this.componentDidUpdate({});
   }
 

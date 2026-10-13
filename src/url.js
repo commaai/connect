@@ -19,18 +19,15 @@ const devicePages = ['prime', 'stream'];
 
 const parsePathname = (pathname) => {
   const parts = pathname.split('/').filter(Boolean);
-
   if (!parts.length) return { page: 'root' };
   if (parts.length === 1 && rootPages.includes(parts[0])) return { page: parts[0] };
 
-  const [dongleId, branch, start, end, ...rest] = parts;
-  if (!dongleIdRegex.test(dongleId) || rest.length) return { page: 'not-found' };
+  const [dongleId, branch, start, end, extra] = parts;
+  if (!dongleIdRegex.test(dongleId) || extra) return { page: 'not-found' };
   if (!branch) return { page: 'dashboard', dongleId };
   if (!start && devicePages.includes(branch)) return { page: branch, dongleId };
-
   if (logIdRegex.test(branch) && (!start || end)) {
-    const range = end ? parseDriveRange(start, end) : null;
-    return { page: 'drive', dongleId, logId: branch, range };
+    return { page: 'drive', dongleId, logId: branch, range: end ? parseDriveRange(start, end) : null };
   }
   if (start && !end) {
     const range = parseDriveRange(branch, start, true);
