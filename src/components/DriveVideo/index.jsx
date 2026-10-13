@@ -61,7 +61,7 @@ export class DriveVideo extends Component {
     const { hidden, dispatch, playSpeed } = this.props;
     const { error, spinner, tapToPlay } = this.state;
     return (
-      <div className={hidden ? 'relative' : 'min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]'}>
+      <div className={hidden ? 'relative' : 'w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]'}>
         {(error || tapToPlay || spinner) && (
           <div className={`${hidden ? 'relative mb-3' : 'absolute inset-0 z-50'} flex items-center justify-center bg-[#16181AAA] text-center p-4`}>
             <div role={error ? 'alert' : 'status'}>
