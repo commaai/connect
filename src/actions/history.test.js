@@ -1,131 +1,110 @@
-/* eslint-disable no-import-assign */
 import { vi } from 'vitest';
 import { LOCATION_CHANGE } from 'connected-react-router';
+import { createMemoryHistory } from 'history';
 
-import { drives as Drives } from '../api';
-import { onHistoryMiddleware } from './history';
+import { api } from '../api/backend';
+import { createAppStore } from '../store';
+import { createInitialState } from '../initialState';
+import { webrtcConnectionManager } from '../utils/webrtc';
+import { applyUrl, onHistoryMiddleware } from './history';
 import * as actions from './index';
 
-vi.mock('../api', () => ({
-  account: {},
-  auth: {},
-  billing: {},
-  devices: { fetchDeviceStats: vi.fn() },
-  drives: { getRoutesSegments: vi.fn() },
-  raw: {},
-  video: {},
-}));
-vi.mock('./index', () => ({
-  selectDevice: vi.fn(), pushTimelineRange: vi.fn(),
-  checkRoutesData: vi.fn(), primeNav: vi.fn(), streamNav: vi.fn(),
+vi.mock('../api/backend', () => ({ api: { routes: { getRoutesSegments: vi.fn() } } }));
+vi.mock('../utils/webrtc', () => ({ webrtcConnectionManager: { disconnect: vi.fn() } }));
+vi.mock('./index', async (importOriginal) => ({
+  ...(await importOriginal()),
+  checkLastRoutesData: vi.fn(() => ({ type: 'TEST_ROUTES' })),
+  checkRoutesData: vi.fn(() => ({ type: 'TEST_ROUTES' })),
+  fetchDeviceOnline: vi.fn(() => ({ type: 'TEST_ONLINE' })),
+  primeFetchSubscription: vi.fn(() => ({ type: 'TEST_PRIME' })),
 }));
 
 const DONGLE = '0000aaaa0000aaaa';
 const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
-const baseState = {
-  dongleId: DONGLE, zoom: null, selectedRouteId: null, primeNav: false, streamNav: false,
-};
 
-function create(state = baseState) {
-  const store = { getState: vi.fn(() => state), dispatch: vi.fn() };
-  const next = vi.fn();
-  const invoke = (action) => onHistoryMiddleware(store)(next)(action);
-  return { store, next, invoke };
+function create(pathname) {
+  const history = createMemoryHistory({ initialEntries: [pathname] });
+  const store = createAppStore(history, createInitialState(pathname));
+  const urls = () => history.entries.map((entry) => entry.pathname);
+  return { store, urls };
 }
 
-function location(pathname, action = 'POP') {
-  return { type: LOCATION_CHANGE, payload: { action, location: { pathname } } };
-}
+beforeEach(() => vi.clearAllMocks());
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  for (const name of ['selectDevice', 'pushTimelineRange', 'checkRoutesData', 'primeNav', 'streamNav']) {
-    actions[name].mockImplementation((...args) => ({ action: name, args }));
-  }
-});
-
-describe('history middleware', () => {
-  it('ignores an absent action', () => {
-    const { next, invoke } = create();
-    invoke();
-    expect(next).not.toHaveBeenCalled();
+describe('url handling', () => {
+  it('applies every location change', () => {
+    const dispatch = vi.fn();
+    const next = vi.fn(() => 'next result');
+    const action = { type: LOCATION_CHANGE, payload: { action: 'PUSH', location: { pathname: `/${DONGLE}` } } };
+    expect(onHistoryMiddleware({ dispatch })(next)(action)).toBe('next result');
+    expect(next).toHaveBeenCalledWith(action);
+    expect(dispatch).toHaveBeenCalledOnce();
   });
 
-  it.each(['PUSH', undefined])('passes through a non-history %s action', (historyAction) => {
-    const { next, invoke } = create();
-    const action = historyAction ? location(`/${DONGLE}`, historyAction) : { type: 'TEST' };
-    invoke(action);
-    expect(next).toHaveBeenCalledWith(action);
-    expect(actions.selectDevice).not.toHaveBeenCalled();
-  });
-
-  it.each(['POP', 'REPLACE'])('selects a changed device for %s and refreshes routes', (historyAction) => {
-    const { store, next, invoke } = create(baseState);
-    const action = location(`/${OTHER}`, historyAction);
-    invoke(action);
-    expect(next).toHaveBeenCalledWith(action);
-    expect(actions.selectDevice).toHaveBeenCalledWith(OTHER, false, false);
+  it('keeps the device data until another device is opened', () => {
+    const { store } = create(`/${DONGLE}`);
+    store.dispatch(applyUrl(`/${DONGLE}/prime`));
+    expect(store.getState()).toMatchObject({ dongleId: DONGLE, page: 'prime' });
+    expect(actions.checkLastRoutesData).not.toHaveBeenCalled();
     expect(actions.checkRoutesData).toHaveBeenCalledOnce();
-    expect(store.dispatch).toHaveBeenCalledWith({ action: 'selectDevice', args: [OTHER, false, false] });
+
+    store.dispatch(applyUrl(`/${OTHER}/settings`));
+    expect(store.getState()).toMatchObject({ dongleId: OTHER, page: 'settings' });
+    expect(webrtcConnectionManager.disconnect).toHaveBeenCalledOnce();
+    expect(actions.checkLastRoutesData).toHaveBeenCalledOnce();
   });
 
-  it('does nothing when the pathname already matches state', () => {
-    const { store, invoke } = create();
-    invoke(location(`/${DONGLE}`));
-    expect(store.dispatch).not.toHaveBeenCalled();
+  it('loops over a zoomed drive', () => {
+    const { store } = create(`/${DONGLE}`);
+    store.dispatch(applyUrl(`/${DONGLE}/${LOG}/10/20`));
+    expect(store.getState()).toMatchObject({
+      page: 'drive',
+      selectedRouteId: LOG,
+      zoom: { start: 10000, end: 20000 },
+      loop: { startTime: 10000, duration: 10000 },
+    });
   });
 
-  it('enters a log range', () => {
-    const { invoke } = create();
-    invoke(location(`/${DONGLE}/${LOG}/10/20`));
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 10000, 20000, false);
+  it('navigates by changing the URL only', () => {
+    const { store, urls } = create(`/${DONGLE}`);
+    store.dispatch(actions.selectDevice(DONGLE));
+    store.dispatch(actions.streamNav(true));
+    store.dispatch(actions.pushTimelineRange(LOG, 10000, 20000));
+    expect(urls()).toEqual([`/${DONGLE}`, `/${DONGLE}/stream`, `/${DONGLE}/${LOG}/10/20`]);
+    expect(store.getState().page).toBe('dashboard');
+
+    store.dispatch(actions.navigateTo({ page: 'drive', logId: LOG }, { replace: true }));
+    expect(urls()).toEqual([`/${DONGLE}`, `/${DONGLE}/stream`, `/${DONGLE}/${LOG}`]);
   });
 
-  it('leaves a log range', () => {
-    const { invoke } = create({ ...baseState, selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
-    invoke(location(`/${DONGLE}`));
-    expect(actions.pushTimelineRange).toHaveBeenCalledWith(null, null, null, false);
+  it('zooming in remembers the outer range until going back to it', () => {
+    const { store } = create(`/${DONGLE}`);
+    store.dispatch(applyUrl(`/${DONGLE}/${LOG}/10/60`));
+    store.dispatch(applyUrl(`/${DONGLE}/${LOG}/20/30`));
+    expect(store.getState().zoom).toEqual({ start: 20000, end: 30000, previous: { start: 10000, end: 60000 } });
+
+    store.dispatch(applyUrl(`/${DONGLE}/${LOG}/10/60`));
+    expect(store.getState().zoom).toEqual({ start: 10000, end: 60000 });
   });
 
-  it('converts a legacy timestamp range to a route', async () => {
-    Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}`, start_time_utc_millis: 1000, end_time_utc_millis: 61000 }]);
-    const { invoke } = create();
-    invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(actions.pushTimelineRange).toHaveBeenCalledWith(LOG, 0, 60000, true));
-    expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
+  it('replaces a legacy range with its drive', async () => {
+    api.routes.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}` }]);
+    const { store, urls } = create(`/${DONGLE}/1000/2000`);
+    store.dispatch(applyUrl(`/${DONGLE}/1000/2000`));
+    await vi.waitFor(() => expect(urls()).toEqual([`/${DONGLE}/${LOG}`]));
+    expect(api.routes.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
   });
 
-  it.each([null, []])('keeps a legacy range unchanged for an empty lookup (%j)', async (routes) => {
-    Drives.getRoutesSegments.mockResolvedValue(routes);
-    const { invoke } = create();
-    invoke(location(`/${DONGLE}/1000/2000`));
-    await vi.waitFor(() => expect(Drives.getRoutesSegments).toHaveBeenCalled());
-    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
-  });
-
-  it('keeps a legacy range unchanged when lookup rejects', async () => {
+  it('keeps a legacy range when the lookup fails', async () => {
     const error = new Error('lookup failed');
-    Drives.getRoutesSegments.mockRejectedValue(error);
+    api.routes.getRoutesSegments.mockRejectedValue(error);
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { invoke } = create();
-    invoke(location(`/${DONGLE}/1000/2000`));
+    const { store, urls } = create(`/${DONGLE}/1000/2000`);
+    store.dispatch(applyUrl(`/${DONGLE}/1000/2000`));
     await vi.waitFor(() => expect(consoleError).toHaveBeenCalledWith('Error fetching routes data for log ID conversion', error));
-    expect(actions.pushTimelineRange).not.toHaveBeenCalled();
+    expect(urls()).toEqual([`/${DONGLE}/1000/2000`]);
+    expect(store.getState().page).toBe('dashboard');
     consoleError.mockRestore();
-  });
-
-  it.each([
-    ['Prime', 'prime', 'primeNav'],
-    ['stream', 'stream', 'streamNav'],
-  ])('activates and deactivates %s through history', (_name, suffix, actionName) => {
-    const entering = create();
-    entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(actions[actionName]).toHaveBeenCalledWith(true, ...(actionName === 'streamNav' ? [false] : []));
-
-    vi.clearAllMocks();
-    const leaving = create({ ...baseState, [`${suffix}Nav`]: true });
-    leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(actions[actionName]).toHaveBeenCalledWith(false, ...(actionName === 'streamNav' ? [false] : []));
   });
 });
