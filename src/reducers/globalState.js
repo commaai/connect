@@ -63,7 +63,6 @@ export default function reducer(_state, action) {
         state.zoom = restored ? prevZoom.previous : zoom ? { ...zoom, previous: prevZoom } : null;
       }
 
-      // apply selected drive and page
       state.selectedRouteId = routeId;
       state.currentRoute = currentRoute;
       state.dongleId = dongleId;
