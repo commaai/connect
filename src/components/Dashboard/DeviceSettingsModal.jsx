@@ -110,22 +110,26 @@ const styles = (theme) => ({
   },
 });
 
+const initialState = {
+  deviceAlias: '',
+  loadingDeviceAlias: false,
+  loadingDeviceShare: false,
+  hasSavedAlias: false,
+  shareEmail: '',
+  unpairConfirm: false,
+  unpaired: false,
+  loadingUnpair: false,
+  error: null,
+  unpairError: null,
+  uploadModal: false,
+};
+
 class DeviceSettingsModal extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      deviceAlias: props.device?.alias || '',
-      loadingDeviceAlias: false,
-      loadingDeviceShare: false,
-      hasSavedAlias: false,
-      shareEmail: '',
-      unpairConfirm: false,
-      unpaired: false,
-      loadingUnpair: false,
-      error: null,
-      unpairError: null,
-      uploadModal: false,
+      ...initialState,
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
