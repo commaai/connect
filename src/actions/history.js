@@ -1,7 +1,7 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { parseURL } from '../url';
 import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice } from './index';
-import { ACTION_APPLY_DESTINATION } from './types';
+import { ACTION_APPLY_DESTINATION, ACTION_STARTUP_DATA } from './types';
 import { api } from '../api/backend';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { resetPlayback, selectLoop } from '../timeline/playback';
@@ -76,11 +76,11 @@ export const syncStateFromURL = (defaultDongleId) => async (dispatch, getState) 
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (!action) return;
-  if (action.type !== LOCATION_CHANGE) return next(action);
+  if (action.type !== LOCATION_CHANGE && action.type !== ACTION_STARTUP_DATA) return next(action);
   const previousPathname = getState().router.location.pathname;
   const result = next(action);
-  if (previousPathname !== action.payload.location.pathname) {
-    dispatch(syncStateFromURL());
+  if (action.type === ACTION_STARTUP_DATA || previousPathname !== action.payload.location.pathname) {
+    dispatch(syncStateFromURL(action.devices?.[0]?.dongle_id));
   }
   return result;
 };

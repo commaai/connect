@@ -3,7 +3,7 @@ import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import { drives as Drives } from '../api';
 import { onHistoryMiddleware, syncStateFromURL } from './history';
-import { ACTION_APPLY_DESTINATION } from './types';
+import { ACTION_APPLY_DESTINATION, ACTION_STARTUP_DATA } from './types';
 import * as actions from './index';
 
 vi.mock('../api', () => ({
@@ -56,12 +56,11 @@ describe('history middleware', () => {
     expect(store.dispatch).not.toHaveBeenCalled();
   });
 
-  it('syncs navigation', () => {
+  it.each([
+    ['URL change', { type: LOCATION_CHANGE, payload: { action: 'PUSH', location: { pathname: `/${DONGLE}` } } }],
+    ['startup', { type: ACTION_STARTUP_DATA, devices: [{ dongle_id: DONGLE }] }],
+  ])('syncs navigation on %s', (_name, action) => {
     const { store, next, invoke } = create();
-    const action = {
-      type: LOCATION_CHANGE,
-      payload: { action: 'PUSH', location: { pathname: `/${DONGLE}` } },
-    };
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
     expect(store.dispatch).toHaveBeenCalledWith(expect.any(Function));

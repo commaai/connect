@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { syncStateFromURL } from './history';
 
 const loadStartupData = async () => {
   const { auth, account, devices } = api;
@@ -31,7 +30,5 @@ export default function init() {
       profile,
       devices,
     });
-
-    dispatch(syncStateFromURL(devices[0]?.dongle_id));
   }
 }
