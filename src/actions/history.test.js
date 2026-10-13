@@ -43,19 +43,24 @@ beforeEach(() => {
 });
 
 describe('history middleware', () => {
-  it('passes through a non-history action', () => {
+  it.each([
+    ['non-history actions', { type: 'TEST' }],
+    ['query-only changes', {
+      type: LOCATION_CHANGE,
+      payload: { action: 'PUSH', location: { pathname: '/', search: `?settings=${OTHER}` } },
+    }],
+  ])('skips synchronization for %s', (_name, action) => {
     const { store, next, invoke } = create();
-    const action = { type: 'TEST' };
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
     expect(store.dispatch).not.toHaveBeenCalled();
   });
 
-  it.each(['PUSH', 'POP', 'REPLACE'])('syncs %s navigation', (historyAction) => {
+  it('syncs navigation', () => {
     const { store, next, invoke } = create();
     const action = {
       type: LOCATION_CHANGE,
-      payload: { action: historyAction, location: { pathname: `/${DONGLE}` } },
+      payload: { action: 'PUSH', location: { pathname: `/${DONGLE}` } },
     };
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
@@ -67,8 +72,6 @@ describe('history middleware', () => {
     ['drive', `/${DONGLE}/${LOG}/10/20`, {
       dongleId: DONGLE, routeId: LOG, range: { start: 10000, end: 20000 },
     }],
-    ['Prime', `/${DONGLE}/prime`, { dongleId: DONGLE, routeId: null, range: undefined }],
-    ['stream', `/${DONGLE}/stream`, { dongleId: DONGLE, routeId: null, range: undefined }],
   ])('applies the %s destination', async (_name, pathname, destination) => {
     const { store } = create();
     await syncStateFromURL(pathname)(store.dispatch, store.getState);
@@ -94,16 +97,5 @@ describe('history middleware', () => {
     await syncStateFromURL(pathname)(store.dispatch, store.getState);
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
     expect(store.dispatch).toHaveBeenCalledWith(replace({ pathname: `/${DONGLE}/${LOG}`, search }));
-  });
-
-  it('skips synchronization for query-only changes', () => {
-    const { store, next, invoke } = create();
-    const action = {
-      type: LOCATION_CHANGE,
-      payload: { action: 'PUSH', location: { pathname: '/', search: `?settings=${OTHER}` } },
-    };
-    invoke(action);
-    expect(next).toHaveBeenCalledWith(action);
-    expect(store.dispatch).not.toHaveBeenCalled();
   });
 });

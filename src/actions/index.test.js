@@ -39,8 +39,7 @@ describe('timeline actions', () => {
     ['Prime', primeNav, '/statedongle/prime'],
     ['stream', streamNav, '/statedongle/stream'],
   ])('generates the %s URL while opening', (_name, action, expected) => {
-    const dispatch = vi.fn();
-    action(true)(dispatch, () => ({ dongleId: 'statedongle' }));
+    action(true)(vi.fn(), () => ({ dongleId: 'statedongle' }));
     expect(push).toHaveBeenCalledWith(expected);
   });
 });
