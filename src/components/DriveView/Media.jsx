@@ -749,7 +749,7 @@ class Media extends Component {
             <MenuItem
               onClick={ files ? () => {
                 this.setState({ downloadMenu: null });
-                this.props.dispatch(openOverlay({ uploads: true }));
+                this.props.dispatch(openOverlay({ dialog: 'uploads' }));
               } : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
@@ -827,7 +827,7 @@ class Media extends Component {
         </Menu>
         <UploadQueue
           open={ uploads }
-          onClose={ () => this.props.dispatch(closeOverlay({ uploads: false })) }
+          onClose={ () => this.props.dispatch(closeOverlay({ dialog: null })) }
           update={ Boolean(moreInfoMenu || uploads || downloadMenu) }
           store={ this.props.store }
           device={ device }
@@ -925,7 +925,7 @@ class Media extends Component {
 // the drive's upload queue, unless the settings dialog is showing its own
 const uploadsOpen = (location) => {
   const dest = parse(location);
-  return Boolean(dest?.uploads && !dest.settings);
+  return Boolean(dest?.dialog === 'uploads' && !dest.settings);
 };
 
 const stateToProps = (state) => ({

@@ -24,8 +24,6 @@ export function createInitialState(location = window.location) {
     profile: null,
     devices: null,
 
-    primeNav: dest.view === 'prime',
-    streamNav: dest.view === 'stream',
     subscription: null,
     subscribeInfo: null,
 

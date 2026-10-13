@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
-import { push } from 'connected-react-router';
-import { navigate, primeNav, pushTimelineRange, selectDevice, streamNav } from './index';
+import { goBack, push } from 'connected-react-router';
+import { navigate, popTimelineRange, primeNav, pushTimelineRange, selectDevice, streamNav } from './index';
 
 vi.mock('connected-react-router', async () => {
   const originalModule = await vi.importActual('connected-react-router');
@@ -8,6 +8,7 @@ vi.mock('connected-react-router', async () => {
     __esModule: true,
     ...originalModule,
     push: vi.fn((url) => ({ pushed: url })),
+    goBack: vi.fn(() => ({ back: true })),
   };
 });
 
@@ -30,6 +31,34 @@ describe('navigation actions', () => {
     const routes = [{ log_id: 'log_id', duration: 1234 }];
     run(pushTimelineRange('log_id', 0, 1234), state({ routes }));
     expect(push).toHaveBeenCalledWith('/statedongle/log_id', undefined);
+  });
+
+  it('marks a zoom within the open drive so Back undoes it', () => {
+    run(pushTimelineRange('log_id', 123, 1234), state({ selectedRouteId: 'log_id' }));
+    expect(push).toHaveBeenCalledWith('/statedongle/log_id/0/2', { zoomOut: true });
+    run(pushTimelineRange('log_id', 123, 1234), state({ selectedRouteId: 'other' }));
+    expect(push).toHaveBeenLastCalledWith('/statedongle/log_id/0/2', undefined);
+  });
+
+  describe('zooming out', () => {
+    const at = (extra, locState) => state({ router: { location: { pathname: '/statedongle/log_id/0/2', search: '', state: locState } }, ...extra });
+
+    it('goes back when the zoom-in entry is the previous one', () => {
+      run(popTimelineRange('log_id'), at({ zoom: { start: 0, end: 2000 } }, { zoomOut: true }));
+      expect(goBack).toHaveBeenCalled();
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it('navigates to the previous range', () => {
+      run(popTimelineRange('log_id'), at({ zoom: { start: 0, end: 2000, previous: { start: 0, end: 9000 } } }));
+      expect(push).toHaveBeenCalledWith('/statedongle/log_id/0/9', undefined);
+    });
+
+    it('falls back to the whole drive after a reload', () => {
+      run(popTimelineRange('log_id'), at({ zoom: { start: 0, end: 2000 } }));
+      expect(push).toHaveBeenCalledWith('/statedongle/log_id', undefined);
+      expect(goBack).not.toHaveBeenCalled();
+    });
   });
 
   it.each([

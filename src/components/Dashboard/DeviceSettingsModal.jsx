@@ -296,7 +296,7 @@ class DeviceSettingsModal extends Component {
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
-                onClick={ () => this.props.dispatch(openOverlay({ uploads: true })) }
+                onClick={ () => this.props.dispatch(openOverlay({ dialog: 'uploads' })) }
               >
                 Uploads
               </Button>
@@ -424,7 +424,7 @@ class DeviceSettingsModal extends Component {
         <UploadQueue
           open={ this.props.isOpen && this.props.uploads }
           update={ this.props.isOpen && this.props.uploads }
-          onClose={ () => this.props.dispatch(closeOverlay({ uploads: false })) }
+          onClose={ () => this.props.dispatch(closeOverlay({ dialog: null })) }
           device={ device }
         />
       </>
@@ -439,7 +439,7 @@ const stateToProps = (state, ownProps) => {
     subscription: state.subscription,
     device,
     profile: state.profile,
-    uploads: parse(state.router.location)?.uploads ?? false,
+    uploads: parse(state.router.location)?.dialog === 'uploads',
   };
 };
 

@@ -28,7 +28,7 @@ const OTHER = '1111bbbb1111bbbb';
 const LOG = '2026-08-06--12-00-00';
 const DURATION = 60000;
 const baseState = {
-  dongleId: DONGLE, zoom: null, selectedRouteId: null, primeNav: false, streamNav: false,
+  dongleId: DONGLE, zoom: null, selectedRouteId: null,
   router: { location: { pathname: `/${DONGLE}`, search: '' } },
 };
 
@@ -169,16 +169,20 @@ describe('history middleware', () => {
     consoleError.mockRestore();
   });
 
-  it.each([
-    ['Prime', 'prime', 'primeNav', Types.ACTION_PRIME_NAV],
-    ['stream', 'stream', 'streamNav', Types.ACTION_STREAM_NAV],
-  ])('activates and deactivates %s through history', (_name, suffix, key, type) => {
-    const entering = create();
-    entering.invoke(location(`/${DONGLE}/${suffix}`, 'REPLACE'));
-    expect(dispatched(entering.store)).toContainEqual({ type, [key]: true });
+  it.each(['prime', 'stream'])('clears the drive selection when %s opens', (suffix) => {
+    const { store, invoke } = create({ ...baseState, selectedRouteId: LOG, zoom: { start: 10000, end: 20000 } });
+    invoke(location(`/${DONGLE}/${suffix}`));
+    expect(dispatched(store)).toContainEqual({ type: Types.TIMELINE_PUSH_SELECTION, log_id: null, start: null, end: null });
+  });
 
-    const leaving = create({ ...baseState, [key]: true });
-    leaving.invoke(location(`/${DONGLE}`, 'POP'));
-    expect(dispatched(leaving.store)).toContainEqual({ type, [key]: false });
+  it('clamps a range end that rounds past the drive, idempotently', () => {
+    const over = { ...baseState, currentRoute: { duration: 20500 } };
+    const entering = create(over);
+    entering.invoke(location(`/${DONGLE}/${LOG}/10/21`));
+    expect(dispatched(entering.store)).toContainEqual({ type: Types.TIMELINE_PUSH_SELECTION, log_id: LOG, start: 10000, end: 20500 });
+
+    const showing = create({ ...over, selectedRouteId: LOG, zoom: { start: 10000, end: 20500 } });
+    showing.invoke(location(`/${DONGLE}/${LOG}/10/21`));
+    expect(dispatched(showing.store)).toEqual([]);
   });
 });

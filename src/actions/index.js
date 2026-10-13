@@ -183,16 +183,22 @@ function driveDest(state, log_id, start, end) {
 export function popTimelineRange(log_id) {
   return (dispatch, getState) => {
     const state = getState();
-    if (state.zoom?.previous) {
-      const { start, end } = state.zoom.previous;
-      dispatch(navigate(driveDest(state, log_id, start, end)));
-    }
+    const log = log_id ?? state.selectedRouteId;
+    if (!log) return;
+    const { start, end } = state.zoom?.previous ?? {}; // none: out to the whole drive
+    // a zoom-in entry (kept by history across reloads) is undone by going back to it
+    if (state.router.location.state?.zoomOut) dispatch(goBack());
+    else dispatch(navigate(driveDest(state, log, start, end)));
   };
 }
 
 export function pushTimelineRange(log_id, start, end) {
   return (dispatch, getState) => {
-    dispatch(navigate(driveDest(getState(), log_id, start, end)));
+    const state = getState();
+    const dest = driveDest(state, log_id, start, end);
+    // zooming within the open drive: Back returns to the enclosing view, even after a reload
+    const zoomOut = log_id === state.selectedRouteId && dest.start != null;
+    dispatch(navigate(dest, zoomOut ? { state: { zoomOut } } : undefined));
   };
 }
 

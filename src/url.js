@@ -12,7 +12,12 @@
 //   anything else                 null
 //
 //   ?settings=:dongle   settings overlay (ignored unless a valid dongle id)
-//   ?uploads            uploads overlay (flag, no value)
+//   ?uploads | ?add-device | ?filter | ?unpair | ?switch-plan | ?cancel-plan
+//                       dialog: one bare key from DIALOGS (the first present wins)
+//   anything else       kept verbatim as `rest` (e.g. ?stripe_success=1), written last
+//
+// Destination: { view, dongleId, log, start, end, settings, dialog, rest }
+const DIALOGS = ['uploads', 'add-device', 'filter', 'unpair', 'switch-plan', 'cancel-plan'];
 const DONGLE = /^[a-f0-9]{16}$/;
 const LOG = /^[a-f0-9-]{20}$/;
 const INT = /^\d+$/;
@@ -40,11 +45,14 @@ export function parse({ pathname, search = '' }) {
   if (!path) return null;
   const params = new URLSearchParams(search);
   const settings = params.get('settings');
+  const dialog = DIALOGS.find((name) => params.has(name)) ?? null;
+  ['settings', ...DIALOGS].forEach((key) => params.delete(key));
   return {
     dongleId: null, log: null, start: null, end: null,
     ...path,
     settings: DONGLE.test(settings) ? settings : null,
-    uploads: params.has('uploads'),
+    dialog,
+    rest: params.toString(),
   };
 }
 
@@ -59,7 +67,11 @@ function toPath({ view, dongleId, log, start, end }) {
 }
 
 export function toUrl(dest) {
-  const query = [dest.settings && `settings=${dest.settings}`, dest.uploads && 'uploads'].filter(Boolean).join('&');
+  const query = [dest.settings && `settings=${dest.settings}`, dest.dialog, dest.rest]
+    .filter(Boolean).join('&');
   return toPath(dest) + (query ? `?${query}` : '');
 }
+
+// The current view, read straight from the URL (null for an unknown URL).
+export const viewOf = (state) => parse(state.router.location)?.view ?? null;
 

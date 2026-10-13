@@ -12,7 +12,7 @@ describe('url grammar', () => {
     return { pathname, search: query === undefined ? '' : `?${query}` };
   };
   const dest = (fields) => ({
-    view: 'dashboard', dongleId: null, log: null, start: null, end: null, settings: null, uploads: false, ...fields,
+    view: 'dashboard', dongleId: null, log: null, start: null, end: null, settings: null, dialog: null, rest: '', ...fields,
   });
   const drive = dest({ view: 'drive', dongleId: DONGLE, log: LOG });
 
@@ -26,8 +26,11 @@ describe('url grammar', () => {
     [`/${DONGLE}/${LOG}/10/20`, { ...drive, start: 10000, end: 20000 }],
     [`/${DONGLE}/${LOG}/0/20`, { ...drive, start: 0, end: 20000 }],
     [`/${DONGLE}/1000/2000`, dest({ view: 'legacy', dongleId: DONGLE, start: 1000, end: 2000 })],
-    [`/${DONGLE}/${LOG}?settings=${D2}&uploads`, { ...drive, settings: D2, uploads: true }],
-    [`/${DONGLE}?uploads`, dest({ dongleId: DONGLE, uploads: true })],
+    [`/${DONGLE}/${LOG}?settings=${D2}&uploads`, { ...drive, settings: D2, dialog: 'uploads' }],
+    ...['uploads', 'add-device', 'filter', 'unpair', 'switch-plan', 'cancel-plan']
+      .map((dialog) => [`/${DONGLE}?${dialog}`, dest({ dongleId: DONGLE, dialog })]),
+    [`/${DONGLE}/${LOG}?settings=${D2}&filter&a=b`, { ...drive, settings: D2, dialog: 'filter', rest: 'a=b' }],
+    [`/${DONGLE}/prime?stripe_success=1`, dest({ view: 'prime', dongleId: DONGLE, rest: 'stripe_success=1' })],
   ])('round trips %s', (url, expected) => {
     expect(parse(location(url))).toEqual(expected);
     expect(toUrl(expected)).toBe(url);
@@ -65,5 +68,10 @@ describe('url grammar', () => {
 
   it('drops a bogus settings overlay', () => {
     expect(parse(location(`/${DONGLE}?settings=bogus`))).toEqual(dest({ dongleId: DONGLE }));
+  });
+
+  it('keeps dialog-like keys it does not know, and takes the first known dialog', () => {
+    expect(parse(location(`/${DONGLE}?uploads-x&unpair&filter`)).dialog).toBe('filter');
+    expect(parse(location(`/${DONGLE}?uploads-x`)).rest).toBe('uploads-x=');
   });
 });

@@ -25,8 +25,8 @@ function resolveLegacy(dest, location) {
 // The one place redux follows the URL (it never pushes). What each kind of change reuses:
 //   device change     -> resets device-scoped state and refetches routes
 //   drive/zoom change -> only the selection; routes are reused, files kept when narrowing
-//   prime/stream      -> a flag
-//   settings/uploads  -> no redux at all, components read them from the URL
+//   prime/stream      -> read from the URL, no redux
+//   settings/dialog   -> no redux at all, components read them from the URL
 export function syncUrl() {
   return (dispatch, getState) => {
     const { location } = getState().router;
@@ -43,6 +43,8 @@ export function syncUrl() {
 
     const state = getState();
     const duration = state.currentRoute?.duration;
+    // URL seconds round the end up, so it may overshoot the drive by < 1 s
+    if (dest.end != null && duration != null) dest.end = Math.min(dest.end, duration);
     const driveSame = dest.log === state.selectedRouteId && showsRange(state.zoom, dest, duration);
     if (!driveSame) {
       if (dest.log === state.selectedRouteId && state.zoom?.previous && showsRange(state.zoom.previous, dest, duration)) {
@@ -60,11 +62,6 @@ export function syncUrl() {
         dispatch(selectLoop(start, end));
       }
     }
-
-    const prime = dest.view === 'prime';
-    if (prime !== getState().primeNav) dispatch({ type: Types.ACTION_PRIME_NAV, primeNav: prime });
-    const stream = dest.view === 'stream';
-    if (stream !== getState().streamNav) dispatch({ type: Types.ACTION_STREAM_NAV, streamNav: stream });
 
     // last, so a drive opened by URL is fetched even when it is not in the device's list
     if (deviceChanged) dispatch(checkLastRoutesData());

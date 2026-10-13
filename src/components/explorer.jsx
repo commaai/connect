@@ -21,7 +21,7 @@ import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
-import { parse } from '../url';
+import { parse, viewOf } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -258,7 +258,7 @@ class ExplorerApp extends Component {
             <DeviceSettingsModal
               isOpen={ Boolean(settings) }
               dongleId={ settings }
-              onClose={ () => dispatch(closeOverlay({ settings: null, uploads: false })) }
+              onClose={ () => dispatch(closeOverlay({ settings: null, dialog: null })) }
             />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
@@ -293,7 +293,7 @@ const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   selectedRouteId: state.selectedRouteId,
   limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
+  bodyTeleopOpen: viewOf(state) === 'stream',
   profile: state.profile,
   settings: parse(state.router.location)?.settings ?? null,
 });
