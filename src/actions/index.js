@@ -161,7 +161,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
-    dispatch(resetPlayback());
+    dispatch(resetPlayback(start ?? 0));
     dispatch(selectLoop(start, end));
   }
 
@@ -514,5 +514,15 @@ export function updateRoute(fullname, route) {
     type: Types.ACTION_UPDATE_ROUTE,
     fullname,
     route,
+  };
+}
+
+// signed video links lapse, a fresh copy of the route carries a new signature
+export function renewVideoLink(fullname) {
+  return (dispatch) => {
+    const [dongleId] = fullname.split('|');
+    api.routes.getRoutesSegments(dongleId, undefined, undefined, undefined, fullname).then(([route]) => {
+      if (route) dispatch(updateRoute(fullname, { share_exp: route.share_exp, share_sig: route.share_sig }));
+    }).catch((err) => console.error(err));
   };
 }
