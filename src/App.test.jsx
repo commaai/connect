@@ -119,7 +119,7 @@ async function mockFetch(input, init = {}) {
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: [] });
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -253,6 +253,12 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
   });
 
+  test('legacy conversion replaces the entry', async () => {
+    const { history } = await renderApp(`/${FIRST}/${START}/${START + 60_000}`);
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`));
+    expect(history.index).toBe(0);
+  });
+
   test.each([['empty', { emptyRoutes: true }], ['failed', { failedRoutes: true }]])('legacy timestamp remains after an %s lookup', async (_name, options) => {
     const pathname = `/${FIRST}/${START}/${START + 60_000}`;
     const { history } = await renderApp(pathname, options);
@@ -302,5 +308,57 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('entering a whole drive loops the full route', async () => {
+    const { store } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    fireEvent.click(await screen.findByText('Mock recent route start'));
+    await waitFor(() => expect(store.getState().selectedRouteId).toBe(RECENT_LOG));
+    const { currentRoute, loop } = store.getState();
+    expect(loop).toEqual({ startTime: 0, duration: currentRoute.duration });
+  });
+
+  test('cold settings URL opens device settings and closing replaces the entry', async () => {
+    const { history } = await renderApp(`/${FIRST}?settings=${FIRST}`);
+    expect(await screen.findByDisplayValue('Zulu')).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Uploads' })).toBeVisible();
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Uploads' }), { key: 'Escape', keyCode: 27 });
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Uploads' })).not.toBeInTheDocument());
+    expect(history.location.pathname + history.location.search).toBe(`/${FIRST}`);
+    expect(history.index).toBe(0);
+  });
+
+  test('settings URL for a device the user cannot manage opens nothing', async () => {
+    await renderApp(`/${SHARED}?settings=${SHARED}`);
+    expect(screen.queryByRole('button', { name: 'Uploads' })).not.toBeInTheDocument();
+  });
+
+  test('device settings opened in-app push an entry and closing goes back', async () => {
+    const width = window.innerWidth;
+    window.innerWidth = 1200; // wide enough for the permanent device drawer
+    try {
+      const { history } = await renderApp(`/${FIRST}`);
+      fireEvent.click(within((await screen.findByText(FIRST)).closest('a')).getByRole('button', { name: 'device settings' }));
+      expect(await screen.findByRole('button', { name: 'Uploads' })).toBeVisible();
+      expect(history.location.search).toBe(`?settings=${FIRST}`);
+      expect(history.index).toBe(1);
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Uploads' }), { key: 'Escape', keyCode: 27 });
+      await waitFor(() => expect(history.location.search).toBe(''));
+      expect(history.index).toBe(0);
+    } finally {
+      window.innerWidth = width;
+    }
+  });
+
+  test('uploads query opens the upload queue', async () => {
+    await renderApp(`/${FIRST}?settings=${FIRST}&uploads`);
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+  });
+
+  test('pushing a ranged drive URL applies its zoom', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${FIRST}/${LOG}/10/20`));
+    await waitFor(() => expect(store.getState().zoom).toMatchObject({ start: 10000, end: 20000 }));
   });
 });

@@ -23,13 +23,13 @@ describe('navigation actions', () => {
 
   it('pushes the drive range URL when editing zoom', () => {
     run(pushTimelineRange('log_id', 123, 1234));
-    expect(push).toHaveBeenCalledWith('/statedongle/log_id/0/2');
+    expect(push).toHaveBeenCalledWith('/statedongle/log_id/0/2', undefined);
   });
 
   it('pushes the whole drive URL for a full-length range', () => {
     const routes = [{ log_id: 'log_id', duration: 1234 }];
     run(pushTimelineRange('log_id', 0, 1234), state({ routes }));
-    expect(push).toHaveBeenCalledWith('/statedongle/log_id');
+    expect(push).toHaveBeenCalledWith('/statedongle/log_id', undefined);
   });
 
   it.each([
@@ -37,9 +37,9 @@ describe('navigation actions', () => {
     ['stream', streamNav, '/statedongle/stream'],
   ])('pushes the %s URL while opening and the dashboard while closing', (_name, action, expected) => {
     run(action(true));
-    expect(push).toHaveBeenLastCalledWith(expected);
+    expect(push).toHaveBeenLastCalledWith(expected, undefined);
     run(action(false));
-    expect(push).toHaveBeenLastCalledWith('/statedongle');
+    expect(push).toHaveBeenLastCalledWith('/statedongle', undefined);
   });
 
   it('does nothing without a selected device', () => {
@@ -49,7 +49,7 @@ describe('navigation actions', () => {
 
   it('pushes the device URL when selecting a device', () => {
     run(selectDevice(DONGLE));
-    expect(push).toHaveBeenCalledWith(`/${DONGLE}`);
+    expect(push).toHaveBeenCalledWith(`/${DONGLE}`, undefined);
   });
 
   it('does nothing when the URL is already current', () => {

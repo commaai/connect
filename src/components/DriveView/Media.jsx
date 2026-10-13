@@ -20,7 +20,8 @@ import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { stringifyQuery } from '../../utils/query';
-import { analyticsEvent, updateRoute } from '../../actions';
+import { parse } from '../../url';
+import { analyticsEvent, closeOverlay, openOverlay, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
@@ -208,7 +209,6 @@ class Media extends Component {
       downloadMenu: null,
       clipMenu: null,
       moreInfoMenu: null,
-      uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
@@ -636,8 +636,8 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { currentRoute, device, classes, files, profile, uploads } = this.props;
+    const { downloadMenu, clipMenu, moreInfoMenu, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -747,7 +747,10 @@ class Media extends Component {
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
-              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+              onClick={ files ? () => {
+                this.setState({ downloadMenu: null });
+                this.props.dispatch(openOverlay({ uploads: true }));
+              } : null }
               style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
               className={ classes.filesItem }
               disabled={ !files }
@@ -823,9 +826,9 @@ class Media extends Component {
           ] }
         </Menu>
         <UploadQueue
-          open={ uploadModal }
-          onClose={ () => this.setState({ uploadModal: false }) }
-          update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
+          open={ uploads }
+          onClose={ () => this.props.dispatch(closeOverlay({ uploads: false })) }
+          update={ Boolean(moreInfoMenu || uploads || downloadMenu) }
           store={ this.props.store }
           device={ device }
         />
@@ -919,6 +922,12 @@ class Media extends Component {
   }
 }
 
+// the drive's upload queue, unless the settings dialog is showing its own
+const uploadsOpen = (location) => {
+  const dest = parse(location);
+  return Boolean(dest?.uploads && !dest.settings);
+};
+
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
   device: state.device,
@@ -930,6 +939,7 @@ const stateToProps = (state) => ({
   files: state.files,
   profile: state.profile,
   isBufferingVideo: state.isBufferingVideo,
+  uploads: uploadsOpen(state.router.location),
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

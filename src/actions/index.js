@@ -1,4 +1,4 @@
-import { push, replace } from 'connected-react-router';
+import { goBack, push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -8,7 +8,7 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { hardNavigate } from '../utils/navigation';
-import { toUrl } from '../url';
+import { parse, toUrl } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -141,11 +141,29 @@ export function checkLastRoutesData() {
   };
 }
 
-export function navigate(dest, { replace: replaceEntry = false } = {}) {
+export function navigate(dest, { replace: replaceEntry = false, state } = {}) {
   return (dispatch, getState) => {
     const url = toUrl(dest);
     const { pathname, search } = getState().router?.location ?? window.location;
-    if (url !== pathname + search) dispatch((replaceEntry ? replace : push)(url));
+    if (url !== pathname + search) dispatch((replaceEntry ? replace : push)(url, state));
+  };
+}
+
+// Overlays (dialogs) live in the query. Opening pushes, so Back closes them; closing goes back
+// when we opened it, and otherwise replaces, so closing never leaves the site.
+export function openOverlay(overlay) {
+  return (dispatch, getState) => {
+    const dest = parse(getState().router.location);
+    if (dest) dispatch(navigate({ ...dest, ...overlay }, { state: { overlay: true } }));
+  };
+}
+
+export function closeOverlay(overlay) {
+  return (dispatch, getState) => {
+    const { location } = getState().router;
+    const dest = parse(location);
+    if (location.state?.overlay) dispatch(goBack());
+    else if (dest) dispatch(navigate({ ...dest, ...overlay }, { replace: true }));
   };
 }
 

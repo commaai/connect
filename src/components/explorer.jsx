@@ -10,16 +10,18 @@ import { api } from '../api/backend';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav, closeOverlay } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { subscribeWindowSize } from '../hooks/window';
+import { parse } from '../url';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -201,7 +203,7 @@ class ExplorerApp extends Component {
 
   render() {
     const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
+      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile, settings,
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
@@ -253,6 +255,11 @@ class ExplorerApp extends Component {
                 : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
             </div>
             <IosPwaPopup />
+            <DeviceSettingsModal
+              isOpen={ Boolean(settings) }
+              dongleId={ settings }
+              onClose={ () => dispatch(closeOverlay({ settings: null, uploads: false })) }
+            />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
                 <Typography variant="title">Pairing device</Typography>
@@ -288,6 +295,7 @@ const stateToProps = (state) => ({
   limit: state.limit,
   bodyTeleopOpen: state.streamNav,
   profile: state.profile,
+  settings: parse(state.router.location)?.settings ?? null,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
