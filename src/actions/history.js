@@ -18,26 +18,13 @@ export const applyDestination = (destination) => ({
   destination,
 });
 
-// Route tree:
-// /  (and /demo, on the demo backend)
-// ├── referrals
-// └── :dongleId
-//     ├── dashboard
-//     ├── :route
-//     │   └── :start/:end
-//     ├── :legacyStart/:legacyEnd
-//     ├── stream
-//     └── prime
-// ?settings=:dongleId opens device settings over any of them
-const stateMatches = (state, destination) => {
-  if (state.dongleId !== destination.dongleId || state.page !== destination.page) return false;
-  if (!destination.drive) return true;
-  const { start, end } = destination.drive;
+const stateMatches = (state, { dongleId, page, drive }) => {
+  if (state.dongleId !== dongleId || state.page !== page) return false;
+  if (!drive) return true;
+  if (state.selectedRouteId !== drive.logId) return false;
   const { zoom } = state;
-  return state.selectedRouteId === destination.drive.logId
-    && (start == null
-      ? !zoom || (zoom.start === 0 && zoom.end === state.currentRoute?.duration)
-      : zoom?.start === start && zoom?.end === end);
+  if (drive.start == null) return !zoom || (zoom.start === 0 && zoom.end === state.currentRoute?.duration);
+  return zoom?.start === drive.start && zoom?.end === drive.end;
 };
 
 let startupRequest = null;
@@ -65,12 +52,12 @@ const loadStartupData = () => async (dispatch, getState) => {
 };
 
 // device branch: select the dongle, fetching it directly if not in the owned list.
-const loadDevice = (dongleId) => async (dispatch, getState) => {
+const loadDevice = (dongleId, previousDongleId) => async (dispatch, getState) => {
   await dispatch(loadStartupData());
   if (getState().dongleId !== dongleId) return;
   let device = getState().devices.find((candidate) => candidate.dongle_id === dongleId);
   if (device) {
-    dispatch(fetchDeviceOnline(dongleId));
+    if (previousDongleId) dispatch(fetchDeviceOnline(dongleId)); // the list's online state is from the page load
   } else {
     // try to fetch, maybe its a shared device!
     device = await api.devices.fetchDevice(dongleId).catch((err) => {
@@ -87,10 +74,23 @@ const loadDevice = (dongleId) => async (dispatch, getState) => {
   dispatch(primeFetchSubscription(dongleId, device, getState().profile));
 };
 
+// Route tree:
+// /  (and /demo, on the demo backend)
+// ├── referrals
+// └── :dongleId  (the dashboard)
+//     ├── :route
+//     │   └── :start/:end
+//     ├── :legacyStart/:legacyEnd
+//     ├── stream
+//     └── prime
+// ?settings=:dongleId opens device settings over any of them
 export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   const route = destinationFromUrl(pathname);
   const isCurrent = () => getState().router.location.pathname === pathname;
   const redirect = (to) => replace(urlForSettings({ pathname: to }, settingsFromUrl(getState().router.location.search)));
+  const show = (destination) => {
+    if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
+  };
 
   const authenticated = api.auth.isAuthenticated();
   const startupData = dispatch(loadStartupData());
@@ -102,17 +102,14 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
     const { devices } = getState();
     const remembered = window.localStorage.getItem('selectedDongleId');
     const device = devices.find((candidate) => candidate.dongle_id === remembered) || devices[0];
-    if (!device) {
-      dispatch(applyDestination({ dongleId: null, page: 'dashboard', drive: null }));
-      return;
-    }
-    dispatch(redirect(`/${device.dongle_id}`));
+    if (device) dispatch(redirect(`/${device.dongle_id}`));
+    else show({ dongleId: null, page: 'dashboard', drive: null });
     return;
   }
 
   // 404 for unrecognized paths outside a device
   if (route.kind === 'not-found' && !route.dongleId) {
-    dispatch(applyDestination({ dongleId: null, page: 'not-found', drive: null }));
+    show({ dongleId: null, page: 'not-found', drive: null });
     return;
   }
 
@@ -120,52 +117,44 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
   if (route.kind === 'referrals') return;
 
   const { dongleId } = route;
-  if (getState().dongleId !== dongleId) {
+  const previousDongleId = getState().dongleId;
+  if (previousDongleId !== dongleId) {
     window.localStorage.setItem('selectedDongleId', dongleId);
     // TODO: write better redux and move this out
-    if (getState().dongleId) webrtcConnectionManager.disconnect();
-    if (authenticated) dispatch(loadDevice(dongleId));
+    if (webrtcConnectionManager.dongleId !== dongleId) webrtcConnectionManager.disconnect();
+    if (authenticated) dispatch(loadDevice(dongleId, previousDongleId));
   }
 
   // route branch: /:dongleId/:logId[/:start/:end]
   if (route.kind === 'drive') {
-    const drive = { logId: route.logId, start: route.start, end: route.end };
-    const destination = { dongleId, page: 'drive', drive };
-    if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
+    show({ dongleId, page: 'drive', drive: { logId: route.logId, start: route.start, end: route.end } });
     dispatch(checkRoutesData());
     return;
   }
 
   // legacy range branch: /:dongleId/:legacyStart/:legacyEnd → resolve to canonical route URL
   if (route.kind === 'legacy') {
-    // the device's dashboard while the drive is looked up
-    const destination = { dongleId, page: 'dashboard', drive: null };
-    if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
+    show({ dongleId, page: 'dashboard', drive: null }); // while the drive is looked up
     const routesData = await api.routes.getRoutesSegments(dongleId, route.start, route.end)
       .catch((err) => console.error('Error fetching routes data for log ID conversion', err));
     if (!isCurrent()) return;
     const logId = routesData?.[0]?.fullname?.split('|')[1];
-    if (logId) {
-      // resolve to new url
-      dispatch(redirect(`/${dongleId}/${logId}`));
-      return;
-    }
-    dispatch(applyDestination({ dongleId, page: 'not-found', drive: null }));
+    if (logId) dispatch(redirect(`/${dongleId}/${logId}`));
+    else show({ dongleId, page: 'not-found', drive: null });
     return;
   }
 
   if (!authenticated) return;
 
   // device page branch: /:dongleId, /:dongleId/prime, /:dongleId/stream, or a 404 under the device
-  const destination = { dongleId, page: route.kind, drive: null };
-  if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
+  show({ dongleId, page: route.kind, drive: null });
   if (route.kind === 'dashboard') {
     // the first page of drives, or the list again after a linked drive replaced it
     dispatch(getState().limit ? checkRoutesData() : checkLastRoutesData());
   }
 };
 
-export function onHistoryMiddleware({ dispatch, getState }) {
+export function onHistoryMiddleware({ dispatch }) {
   return (next) => (action) => {
     if (!action) return undefined;
     const result = next(action);

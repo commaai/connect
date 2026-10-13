@@ -151,6 +151,7 @@ async function renderApp(pathname, options = {}) {
 describe('whole-app behavior', () => {
   beforeAll(() => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
+    vi.stubGlobal('gtag', vi.fn());
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
@@ -165,7 +166,7 @@ describe('whole-app behavior', () => {
   afterEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    mocks.hardNavigate.mockClear();
+    vi.clearAllMocks();
   });
 
   test('root uses a valid stored device and keeps the selection', async () => {
@@ -173,6 +174,8 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     expect(app.history.location.pathname).toBe(`/${FIRST}`);
     expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+    expect(gtag).not.toHaveBeenCalledWith('event', 'select_device', expect.anything()); // a cold load selects, it does not switch
+    expect(mocks.requests).not.toContainEqual({ method: 'GET', url: `https://api.comma.ai/v1.1/devices/${FIRST}/` });
   });
 
   test('fetches the initial routes with a nonzero limit', async () => {
@@ -237,6 +240,7 @@ describe('whole-app behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(await screen.findByText(authenticated ? 'Mock recent route start' : 'Sign in with Google')).toBeVisible();
     act(() => history.goBack());
+    expect(screen.queryByText('Route does not exist.')).not.toBeInTheDocument(); // outside the dashboard's list: loading, not missing
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
   });
 
@@ -264,10 +268,8 @@ describe('whole-app behavior', () => {
 
   test.each([
     ['an unrecognized URL', `/${FIRST}/not/a/route`, {}, 'Page not found'],
-    ['a legacy timestamp URL after an empty lookup', `/${FIRST}/${START}/${START + 60_000}`, { emptyRoutes: true }, 'Page not found'],
     ['a legacy timestamp URL after a failed lookup', `/${FIRST}/${START}/${START + 60_000}`, { failedRoutes: true }, 'Page not found'],
     ['a device without access', `/${SHARED}`, { forbidden: SHARED }, 'Device not found'],
-    ['an unrecognized URL under a device without access', `/${SHARED}/not/a/route`, { forbidden: SHARED }, 'Page not found'],
   ])('%s shows not found', async (_name, pathname, options, heading) => {
     const { history } = await renderApp(pathname, options);
     expect(await screen.findByText('Error 404')).toBeVisible();

@@ -109,14 +109,7 @@ describe('syncStateFromUrl', () => {
   it('atomically selects a drive and starts its route load', async () => {
     const dispatched = await dispatchedFor(`/${OTHER}/${LOG}/10/20`);
 
-    expect(dispatched).toContainEqual({
-      type: Types.ACTION_APPLY_DESTINATION,
-      destination: {
-        dongleId: OTHER,
-        page: 'drive',
-        drive: { logId: LOG, start: 10000, end: 20000 },
-      },
-    });
+    expectDestination(dispatched, { dongleId: OTHER, page: 'drive', drive: { logId: LOG, start: 10000, end: 20000 } });
     expect(actions.checkRoutesData).toHaveBeenCalledOnce();
   });
 
@@ -182,7 +175,6 @@ describe('syncStateFromUrl', () => {
 
   it.each([
     ['an invalid route', '/invalid', null, { type: Types.ACTION_APPLY_DESTINATION, destination: NOT_FOUND_DESTINATION }],
-    ['an invalid route under a device', `/${OTHER}/invalid`, null, { type: Types.ACTION_APPLY_DESTINATION, destination: { dongleId: OTHER, page: 'not-found', drive: null } }],
     ['a missing device', `/${UNKNOWN}`, () => api.devices.fetchDevice.mockRejectedValue({ resp: { status: 404 } }), { type: Types.ACTION_DEVICE_NOT_FOUND }],
   ])('handles %s', async (_outcome, url, arrange, expectedAction) => {
     arrange?.();

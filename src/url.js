@@ -2,18 +2,9 @@ const exactDongleIdRegex = /^[a-f0-9]{16}$/;
 const exactLogIdRegex = /^[a-f0-9-]{20}$/;
 const secondsRegex = /^\d+$/;
 
-const driveRange = (start, end) => {
-  const startMillis = Number(start) * 1000;
-  const endMillis = Number(end) * 1000;
-  if (!Number.isSafeInteger(startMillis) || !Number.isSafeInteger(endMillis) || endMillis <= startMillis) return null;
-  return { start: startMillis, end: endMillis };
-};
-
-const legacyRange = (start, end) => {
-  const startMillis = Number(start);
-  const endMillis = Number(end);
-  if (!Number.isSafeInteger(startMillis) || !Number.isSafeInteger(endMillis) || endMillis <= startMillis) return null;
-  return { start: startMillis, end: endMillis };
+const validRange = (start, end) => {
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || end <= start) return null;
+  return { start, end };
 };
 
 export function destinationFromUrl(pathname) {
@@ -32,25 +23,25 @@ export function destinationFromUrl(pathname) {
   }
   if (parts.length === 4 && exactLogIdRegex.test(branch)
       && secondsRegex.test(start) && secondsRegex.test(end)) {
-    const range = driveRange(start, end);
+    const range = validRange(Number(start) * 1000, Number(end) * 1000);
     return { kind: 'drive', dongleId, logId: branch, start: range?.start ?? null, end: range?.end ?? null };
   }
   if (parts.length === 3 && secondsRegex.test(branch) && secondsRegex.test(start)) {
-    const range = legacyRange(branch, start);
+    const range = validRange(Number(branch), Number(start));
     if (range) return { kind: 'legacy', dongleId, ...range };
   }
   return { kind: 'not-found', dongleId };
 }
 
-export function urlForDestination(destination) {
-  if (!destination?.dongleId) return '/';
-  const path = [destination.dongleId];
-  if (destination.page === 'prime' || destination.page === 'stream') path.push(destination.page);
-  if (destination.drive?.logId) {
-    path.push(destination.drive.logId);
-    if (destination.drive.start != null && destination.drive.end != null) {
+export function urlForDestination({ dongleId, page, drive }) {
+  if (!dongleId) return '/';
+  const path = [dongleId];
+  if (page === 'prime' || page === 'stream') path.push(page);
+  if (drive) {
+    path.push(drive.logId);
+    if (drive.start != null && drive.end != null) {
       // whole seconds, rounded outwards so a short range never collapses
-      path.push(Math.floor(destination.drive.start / 1000), Math.ceil(destination.drive.end / 1000));
+      path.push(Math.floor(drive.start / 1000), Math.ceil(drive.end / 1000));
     }
   }
   return `/${path.join('/')}`;

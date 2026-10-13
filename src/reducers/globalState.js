@@ -31,8 +31,9 @@ export default function reducer(_state, action) {
   switch (action.type) {
     case Types.ACTION_APPLY_DESTINATION: {
       const { dongleId, page, drive } = action.destination;
+      const logId = drive?.logId ?? null;
       const deviceChanged = state.dongleId !== dongleId;
-      const driveChanged = deviceChanged || state.selectedRouteId !== (drive?.logId ?? null);
+      const driveChanged = deviceChanged || state.selectedRouteId !== logId;
       state.dongleId = dongleId;
       state.page = page;
       if (deviceChanged) {
@@ -48,8 +49,8 @@ export default function reducer(_state, action) {
       }
       if (driveChanged) state.files = null;
 
-      state.selectedRouteId = drive?.logId ?? null;
-      const route = drive && state.routes?.find((candidate) => candidate.log_id === drive.logId);
+      state.selectedRouteId = logId;
+      const route = logId && state.routes?.find((candidate) => candidate.log_id === logId);
       state.currentRoute = route || null;
       if (drive?.start != null && drive?.end != null) {
         // the back arrow steps out to the zooms around this one in the same drive

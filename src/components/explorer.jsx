@@ -195,7 +195,7 @@ class ExplorerApp extends Component {
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
-    const noDevicesUpsell = (devices?.length === 0 && !dongleId && api.auth.isAuthenticated());
+    const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const referralsOpen = pathname === '/referrals';
     const settingsDongleId = settingsFromUrl(location.search);
     const isLarge = noDevicesUpsell || windowWidth > 1080;

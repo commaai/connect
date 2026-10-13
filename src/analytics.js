@@ -103,6 +103,11 @@ function logAction(action, prevState, state) {
         && action.payload.location.search !== prevState.router.location.search) {
         return; // only the query changed, like ?settings opening over the same page
       }
+      if (action.payload.action === 'REPLACE'
+        && destinationFromUrl(prevState.router.location.pathname).kind === 'legacy'
+        && destinationFromUrl(action.payload.location.pathname).kind === 'drive') {
+        return; // a legacy url replaced by its drive is still one page view
+      }
       gtag('event', 'page_view', {
         page_location: getPageViewEventLocation(action.payload.location.pathname),
       });
@@ -146,16 +151,18 @@ function logAction(action, prevState, state) {
         gtag('event', 'select_zoom', params);
       }
       if (!state.dongleId || prevState.dongleId === state.dongleId) return;
-      gtag('event', 'select_device', {
-        ...params,
-        device_prime_type: state.device?.prime_type,
-        device_type: state.device?.device_type,
-        device_version: state.device?.openpilot_version,
-        device_owner: state.device?.is_owner,
-        device_online: state.device ? deviceIsOnline(state.device) : undefined,
-        device_sim_type: state.device?.sim_type,
-        device_trial_claimed: state.device?.trial_claimed,
-      });
+      if (prevState.dongleId || state.router.action === 'PUSH') { // picked, not a page load or / redirecting
+        gtag('event', 'select_device', {
+          ...params,
+          device_prime_type: state.device?.prime_type,
+          device_type: state.device?.device_type,
+          device_version: state.device?.openpilot_version,
+          device_owner: state.device?.is_owner,
+          device_online: state.device ? deviceIsOnline(state.device) : undefined,
+          device_sim_type: state.device?.sim_type,
+          device_trial_claimed: state.device?.trial_claimed,
+        });
+      }
 
       gtag('set', {
         user_properties: {
