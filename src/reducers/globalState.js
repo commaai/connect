@@ -42,12 +42,11 @@ export default function reducer(_state, action) {
 
       // route changed
       const routeChanged = deviceChanged || state.selectedRouteId !== routeId;
-      const currentRoute = routeChanged ? state.routes?.find((route) => route.log_id === routeId) ?? null : state.currentRoute;
+      if (routeChanged) state.currentRoute = state.routes?.find((route) => route.log_id === routeId) ?? null;
 
       // zoom changed
-      const start = routeId ? range?.start ?? 0 : null;
-      const end = routeId ? range?.end ?? currentRoute?.duration ?? null : null;
-      const zoom = end !== null ? { start, end } : null;
+      const end = routeId ? range?.end ?? state.currentRoute?.duration ?? null : null;
+      const zoom = end !== null ? { start: range?.start ?? 0, end } : null;
       const zoomChanged = state.zoom?.start !== zoom?.start || state.zoom?.end !== zoom?.end;
 
       if (routeChanged) {
@@ -56,15 +55,14 @@ export default function reducer(_state, action) {
         state.loop = null;
       } else if (zoomChanged) {
         const prevZoom = state.zoom;
-        const restored = zoom && prevZoom?.previous?.start === start && prevZoom?.previous?.end === end;
-        const incomplete = !prevZoom || !zoom || start === 0 || start < prevZoom.start || end > prevZoom.end;
-        if (incomplete) state.files = null;
+        const restored = zoom && prevZoom?.previous?.start === zoom.start && prevZoom?.previous?.end === zoom.end;
+        const invalidateFiles = !prevZoom || !zoom || zoom.start === 0 || zoom.start < prevZoom.start || zoom.end > prevZoom.end;
+        if (invalidateFiles) state.files = null;
         if (!range) state.loop = null;
         state.zoom = restored ? prevZoom.previous : zoom ? { ...zoom, previous: prevZoom } : null;
       }
 
       state.selectedRouteId = routeId;
-      state.currentRoute = currentRoute;
       state.dongleId = dongleId;
       break;
     }
