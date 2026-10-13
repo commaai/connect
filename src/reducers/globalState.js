@@ -58,7 +58,10 @@ export default function reducer(_state, action) {
       return applyNavigation(state, action.navigation);
     case Types.ACTION_ROUTE_METADATA:
       if (action.dongleId !== state.dongleId) break;
-      state.routeCache = { ...state.routeCache, [action.route.log_id]: action.route };
+      state.routeCache = {
+        ...state.routeCache,
+        [action.route.log_id]: { ...state.routeCache[action.route.log_id], ...action.route },
+      };
       return applyNavigation(state, state.navigation);
     case Types.ACTION_ROUTE_ERROR:
       if (action.dongleId === state.dongleId && action.logId === state.navigation.logId) {

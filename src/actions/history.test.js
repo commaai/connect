@@ -3,7 +3,7 @@ import { LOCATION_CHANGE } from 'connected-react-router';
 import { createAppStore } from '../store';
 import { createInitialState } from '../initialState';
 import { api } from '../api/backend';
-import { openDialog, closeDialog } from './index';
+import { openDialog, closeDialog, fetchRoute } from './index';
 import * as Types from './types';
 
 vi.mock('../api/backend', () => ({
@@ -103,6 +103,33 @@ describe('history to navigation state', () => {
     store.dispatch({ type: Types.ACTION_UPDATE_ROUTE_LOCATION, fullname: route().fullname, locationKey: 'endLocation', location: { place: 'Route end' } });
     store.dispatch({ type: Types.ACTION_ROUTES_METADATA, dongleId: DONGLE, routes: [route()] });
     expect(store.getState().currentRoute.endLocation).toEqual({ place: 'Route end' });
+  });
+
+  it('retains dashboard enrichment when an earlier single-drive request finishes last', async () => {
+    const dashboard = deferred();
+    const drive = deferred();
+    api.routes.getRoutesSegments.mockImplementation((_dongle, _start, _end, _limit, fullname) => (
+      fullname ? drive.promise : dashboard.promise
+    ));
+    const { store, history } = create('/' + DONGLE);
+    history.push(drivePath);
+    const pendingDrive = store.dispatch(fetchRoute(DONGLE, LOG));
+    await vi.waitFor(() => expect(api.routes.getRoutesSegments).toHaveBeenCalledTimes(2));
+    dashboard.resolve([route()]);
+    await vi.waitFor(() => expect(store.getState().currentRoute?.log_id).toBe(LOG));
+    const events = [{ type: 'event', route_offset_millis: 1250, data: { event_type: 'first_road_camera_frame' } }];
+    const driveCoords = { 1: [-122, 37] };
+    store.dispatch({ type: Types.ACTION_UPDATE_ROUTE_EVENTS, fullname: route().fullname, events });
+    store.dispatch({ type: Types.ACTION_UPDATE_ROUTE, fullname: route().fullname, route: { driveCoords } });
+    const list = store.getState().routes;
+    drive.resolve([{ ...route(), preserved: true }]);
+    await pendingDrive;
+    const state = store.getState();
+    expect(state.currentRoute).toMatchObject({ preserved: true, events, videoStartOffset: 1250, driveCoords });
+    expect(state.routeCache[LOG]).toBe(state.currentRoute);
+    expect(state.routes).toBe(list);
+    expect(state.currentRoute.events).toBe(list[0].events);
+    expect(state.currentRoute.driveCoords).toBe(list[0].driveCoords);
   });
 
   it('keeps whole-drive and explicit full-range playback equivalent', async () => {
