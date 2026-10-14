@@ -348,6 +348,7 @@ export default function reducer(_state, action) {
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
       state.routesError = null;
+      if (state.selectedRouteId !== action.log_id) state.zoom = null;
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }

@@ -301,7 +301,9 @@ export function fetchEvents(route) {
         .finally(() => { delete eventsRequests[route.fullname]; });
     }
     const { data, incomplete } = await eventsRequests[route.fullname];
-    dispatch({ type: Types.ACTION_UPDATE_ROUTE_EVENTS, fullname: route.fullname, events: data });
+    if (!incomplete || data.length || !current.events) {
+      dispatch({ type: Types.ACTION_UPDATE_ROUTE_EVENTS, fullname: route.fullname, events: data });
+    }
     dispatch({ type: Types.ACTION_UPDATE_ROUTE, fullname: route.fullname, route: { eventsError: incomplete } });
   };
 }
@@ -392,6 +394,7 @@ export function fetchDriveCoords(route) {
     }
     const { data, incomplete } = await driveCoordsRequests[route.fullname];
     dispatch({ type: Types.ACTION_UPDATE_ROUTE, fullname: route.fullname,
-      route: { driveCoords: data, driveCoordsError: incomplete } });
+      route: { driveCoords: incomplete ? { ...current.driveCoords, ...data } : data,
+        driveCoordsError: incomplete } });
   };
 }

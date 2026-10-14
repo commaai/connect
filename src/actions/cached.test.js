@@ -10,6 +10,19 @@ let route;
 let dispatch;
 let routeNumber = 0;
 const getState = () => ({ routes: [route] });
+const staleEngageEvents = [{ type: 'engage', route_offset_millis: 0, data: { state: 1 } }];
+
+function prepareRouteForEventsRetry() {
+  route.events = staleEngageEvents;
+  route.eventsError = true;
+}
+
+function stubFetch(mockImplementation) {
+  const fetch = vi.fn().mockImplementation(mockImplementation);
+  vi.stubGlobal('fetch', fetch);
+  return fetch;
+}
+
 beforeEach(() => {
   routeNumber += 1;
   route = { fullname: `route|${routeNumber}`, url: 'https://assets.test/route', maxqlog: 1, duration: 120000 };
@@ -29,7 +42,7 @@ it('retains successful coordinates and allows retry after a transient segment er
   expect(route.driveCoords).toEqual({ 1000: [1, 2] });
   expect(route.driveCoordsError).toBe(true);
   fetch.mockResolvedValueOnce(response([{ t: 1000, lng: 1, lat: 2 }]))
-    .mockResolvedValueOnce(response([{ t: 2000, lng: 3, lat: 4 }, { t: NaN, lng: 3, lat: 4 }]));
+    .mockResolvedValueOnce(response([{ t: 2000, lng: 3, lat: 4 }, { t: Number.NaN, lng: 3, lat: 4 }]));
   await fetchDriveCoords(route)(dispatch, getState);
   expect(route.driveCoords).toEqual({ 1000: [1, 2], 2000: [3, 4] });
   expect(route.driveCoordsError).toBe(false);
@@ -59,6 +72,32 @@ it('coalesces concurrent requests and retries malformed event payloads', async (
   expect(fetch).toHaveBeenCalledTimes(4);
 });
 
+it.each([
+  {
+    title: 'keeps loaded events when an incomplete retry returns no data',
+    respond: () => response({}, 503),
+    expect: (fetch) => {
+      expect(fetch).toHaveBeenCalled();
+      expect(route.events).toHaveLength(1);
+      expect(route.eventsError).toBe(true);
+    },
+  },
+  {
+    title: 'still replaces events when a complete retry returns an empty route',
+    respond: () => response([]),
+    expect: (fetch) => {
+      expect(fetch).toHaveBeenCalled();
+      expect(route.events).toEqual([]);
+      expect(route.eventsError).toBe(false);
+    },
+  },
+])('$title', async ({ respond, expect: expectOutcome }) => {
+  prepareRouteForEventsRetry();
+  const fetch = stubFetch(async () => respond());
+  await fetchEvents(route)(dispatch, getState);
+  expectOutcome(fetch);
+});
+
 it('persists complete results but keeps transient failures out of IndexedDB', async () => {
   const records = new Map();
   const puts = vi.fn();
@@ -83,7 +122,7 @@ it('persists complete results but keeps transient failures out of IndexedDB', as
   await fetchEvents(route)(dispatch, getState);
   await Promise.resolve();
   expect(puts).toHaveBeenCalledOnce();
-  delete route.events;
+  route.events = undefined;
   await fetchEvents(route)(dispatch, getState);
   expect(route.eventsError).toBe(false);
   expect(fetch).toHaveBeenCalledTimes(4);
