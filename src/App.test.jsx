@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { createMemoryHistory } from 'history';
 
 import App from './App';
+import { pageNav, pushTimelineRange } from './actions';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
@@ -285,6 +286,16 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
   });
 
+  test.each([
+    ['Prime', 'prime', `/${FIRST}/prime`],
+    ['stream', 'stream', `/${FIRST}/stream`],
+    ['dashboard', undefined, `/${FIRST}`],
+  ])('navigates to %s', async (_name, page, expected) => {
+    const { history, store } = await renderApp(page ? `/${FIRST}` : `/${FIRST}/prime`);
+    act(() => store.dispatch(pageNav(page)));
+    expect(history.location.pathname).toBe(expected);
+  });
+
   test('device browser history restores exact dashboards', async () => {
     const { history } = await renderApp(`/${FIRST}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
@@ -313,5 +324,19 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('timeline navigation generates drive URLs', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => store.dispatch(pushTimelineRange(LOG, 10000, 20000)));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`);
+    act(() => store.dispatch(pushTimelineRange(LOG, 0, 20000)));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/20`);
+    act(() => store.dispatch(pushTimelineRange(LOG, 0, 60000)));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    act(() => store.dispatch(pushTimelineRange(LOG, 10000, 20000)));
+    act(() => store.dispatch(pushTimelineRange(LOG)));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
   });
 });

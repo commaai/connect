@@ -20,8 +20,8 @@ const parsePathname = (pathname) => {
   const [dongleId, branch, start, end] = parts;
 
   if (parts.length === 0) return { page: 'root' };
-  if (parts.length === 1 && rootPages.includes(dongleId)) return { page: dongleId };
-  if (!dongleIdRegex.test(dongleId) || parts.length > 4) return { page: 'not-found' };
+  if (parts.length === 1 && rootPages.includes(parts[0])) return { page: parts[0] };
+  if (parts.length > 4 || !dongleIdRegex.test(dongleId)) return { page: 'not-found' };
   if (parts.length === 1) return { page: 'dashboard', dongleId };
   if (parts.length === 2 && branch === 'prime') return { page: 'prime', dongleId };
   if (parts.length === 2 && branch === 'stream') return { page: 'stream', dongleId };

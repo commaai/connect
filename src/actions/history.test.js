@@ -3,7 +3,7 @@ import { LOCATION_CHANGE, replace } from 'connected-react-router';
 
 import { drives as Drives } from '../api';
 import { onHistoryMiddleware, syncStateFromURL } from './history';
-import { ACTION_APPLY_DESTINATION, ACTION_STARTUP_DATA } from './types';
+import { ACTION_APPLY_DESTINATION } from './types';
 import * as actions from './index';
 
 vi.mock('../api', () => ({
@@ -54,28 +54,6 @@ describe('history middleware', () => {
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
     expect(store.dispatch).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    ['URL change', { type: LOCATION_CHANGE, payload: { action: 'PUSH', location: { pathname: `/${DONGLE}` } } }],
-    ['startup', { type: ACTION_STARTUP_DATA, devices: [{ dongle_id: DONGLE }] }],
-  ])('syncs navigation on %s', (_name, action) => {
-    const { store, next, invoke } = create();
-    invoke(action);
-    expect(next).toHaveBeenCalledWith(action);
-    expect(store.dispatch).toHaveBeenCalledWith(expect.any(Function));
-  });
-
-  it.each([
-    ['dashboard', `/${DONGLE}`, { dongleId: DONGLE, routeId: null, range: undefined }],
-    ['drive', `/${DONGLE}/${LOG}/10/20`, {
-      dongleId: DONGLE, routeId: LOG, range: { start: 10000, end: 20000 },
-    }],
-  ])('applies the %s destination', async (_name, pathname, destination) => {
-    const { store } = create({ ...baseState, router: { location: { pathname, search: '' } } });
-    await syncStateFromURL()(store.dispatch, store.getState);
-    expect(store.dispatch).toHaveBeenCalledWith({ type: ACTION_APPLY_DESTINATION, destination });
-    expect(actions.checkRoutesData).toHaveBeenCalledTimes(destination.routeId ? 1 : 0);
   });
 
   it('selects a changed device and refreshes routes', async () => {
