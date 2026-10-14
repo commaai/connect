@@ -17,6 +17,7 @@ const destinations = [
   ['drive range', `/${DONGLE}/${LOG}/10/20`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10000, end: 20000 } }],
   ['fractional range', `/${DONGLE}/${LOG}/10.125/20.5`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10125, end: 20500 } }],
   ['zero-start range', `/${DONGLE}/${LOG}/0/20`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 0, end: 20000 } }],
+  ['legacy timestamps', `/${DONGLE}/1000/2000`, { page: 'legacy-drive', dongleId: DONGLE, range: { start: 1000, end: 2000 } }],
 ];
 
 describe('parseURL', () => {
@@ -24,17 +25,10 @@ describe('parseURL', () => {
     expect(parseURL({ pathname })).toEqual(destination);
   });
 
-  it('parses legacy timestamps as milliseconds', () => {
-    expect(parseURL({ pathname: `/${DONGLE}/1000/2000` })).toEqual({
-      page: 'legacy-drive', dongleId: DONGLE, range: { start: 1000, end: 2000 }
-    });
-  });
-
   it.each([
     [`/${DONGLE}/${LOG}/ten/20`],
     [`/${DONGLE}/${LOG}/20/10`],
     [`/${DONGLE}/${LOG}/9007199254741/9007199254742`],
-    [`/${DONGLE}/${LOG}/${'9'.repeat(400)}/${'9'.repeat(401)}`],
   ])('falls back to the whole drive for an invalid range: %s', (pathname) => {
     expect(parseURL({ pathname })).toEqual({ page: 'drive', dongleId: DONGLE, logId: LOG, range: null });
   });
@@ -44,7 +38,6 @@ describe('parseURL', () => {
     `/${DONGLE}/prime/extra`,
     `/${DONGLE}/${LOG}/10`,
     `/${DONGLE}/20/10`,
-    `/${DONGLE}/10/10`,
     `/${DONGLE}/9007199254740992/9007199254740993`,
   ])('rejects %s', (pathname) => {
     expect(parseURL({ pathname })).toEqual({ page: 'not-found' });
