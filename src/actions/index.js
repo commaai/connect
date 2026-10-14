@@ -11,7 +11,6 @@ import { hardNavigate } from '../utils/navigation';
 let routesRequest = null;
 let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
-const currentPathname = (state) => state.router?.location?.pathname || window.location.pathname;
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -58,7 +57,7 @@ export function checkRoutesData() {
       if (routesData && routesData.length === 0
         && !api.auth.isAuthenticated()) {
         routesRequest = null;
-        hardNavigate(`/?r=${encodeURI(currentPathname(state))}`); // redirect to login
+        hardNavigate(`/?r=${encodeURI(state.router.location.pathname)}`); // redirect to login
         return;
       }
 
@@ -145,8 +144,8 @@ export const pushTimelineRange = (logId, start, end) => (dispatch, getState) => 
   const selectedRoute = state.routes?.find((route) => route.log_id === logId);
   const wholeDrive = start == null || end == null || (start === 0 && end === selectedRoute?.duration);
   const range = wholeDrive ? '' : `/${start / 1000}/${end / 1000}`;
-  const pathname = `/${state.dongleId}/${logId}${range}`;
-  if (currentPathname(state) !== pathname) dispatch(push(pathname));
+  const target = `/${state.dongleId}/${logId}${range}`;
+  if (state.router.location.pathname !== target) dispatch(push(target));
 }
 
 export function primeGetSubscription(dongleId, subscription) {
@@ -199,16 +198,15 @@ export function fetchDeviceOnline(dongleId) {
 }
 
 export const selectDevice = (dongleId) => (dispatch, getState) => {
-  const state = getState();
-  const pathname = dongleId ? `/${dongleId}` : '/';
-  if (currentPathname(state) !== pathname) dispatch(push(pathname));
+  const target = dongleId ? `/${dongleId}` : '/';
+  if (getState().router.location.pathname !== target) dispatch(push(target));
 }
 
 export const pageNav = (page) => (dispatch, getState) => {
   const state = getState();
   if (!state.dongleId) return;
-  const pathname = `/${state.dongleId}${page ? `/${page}` : ''}`;
-  if (currentPathname(state) !== pathname) dispatch(push(pathname));
+  const target = `/${state.dongleId}${page ? `/${page}` : ''}`;
+  if (state.router.location.pathname !== target) dispatch(push(target));
 }
 
 export const settingsNav = (dongleId) => (dispatch, getState) => {

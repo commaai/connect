@@ -40,7 +40,7 @@ describe('timeline actions', () => {
     ['stream', 'stream', '/statedongle/stream'],
     ['dashboard', undefined, '/statedongle'],
   ])('generates the %s URL', (_name, page, expected) => {
-    pageNav(page)(vi.fn(), () => ({ dongleId: 'statedongle' }));
+    pageNav(page)(vi.fn(), () => ({ dongleId: 'statedongle', router: { location: { pathname: '/' } } }));
     expect(push).toHaveBeenCalledWith(expected);
   });
 });

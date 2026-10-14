@@ -110,7 +110,7 @@ function logAction(action, prevState, state) {
 
       gtag('event', 'page_view', {
         ...params,
-        page_location: getPageViewEventLocation(window.location.pathname),
+        page_location: getPageViewEventLocation(state.router.location.pathname),
       });
       return;
 
