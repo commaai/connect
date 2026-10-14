@@ -43,7 +43,7 @@ const VideoOverlay = ({ loading, error, onRetry }) => {
 };
 
 function errorMessage(httpCode) {
-  if (!navigator.onLine) {
+  if (!navigator.onLine || httpCode === 0) {
     return 'Unable to load video. Check network connection.';
   }
   if (httpCode === 404) {
@@ -52,7 +52,7 @@ function errorMessage(httpCode) {
   return 'Unable to load video';
 }
 
-const initialState = { buffering: true, videoError: null, noVideo: null };
+const initialState = { buffering: true, networkError: false, videoError: null, noVideo: null };
 
 class DriveVideo extends Component {
   videoPlayer = React.createRef();
@@ -172,6 +172,12 @@ class DriveVideo extends Component {
         // hls.js stops loading after giving up on a fragment
         this.hls.startLoad(this.videoPlayer.current.currentTime);
       }
+    } else if (data.frag && data.type === 'networkError' && !data.response?.code) {
+      // hls.js gives up after about 30 s, keep it trying until the network is back
+      if (data.fatal) {
+        this.hls.startLoad();
+      }
+      this.setState({ networkError: true });
     } else if (data.fatal) {
       this.setState({ videoError: errorMessage(data.response?.code) });
     }
@@ -245,7 +251,7 @@ class DriveVideo extends Component {
     const needed = video.paused ? video.HAVE_CURRENT_DATA : video.HAVE_FUTURE_DATA;
     const buffering = video.seeking || video.readyState < needed;
     if (buffering !== this.state.buffering) {
-      this.setState({ buffering });
+      this.setState({ buffering, networkError: false });
     }
   };
 
@@ -341,8 +347,9 @@ class DriveVideo extends Component {
 
   render() {
     const { isMuted } = this.props;
-    const { buffering, videoError, noVideo } = this.state;
-    const error = videoError || (noVideo && errorMessage(404));
+    const { buffering, networkError, videoError, noVideo } = this.state;
+    const error = videoError || (noVideo && errorMessage(404))
+      || (buffering && (networkError || !navigator.onLine) && errorMessage(0));
 
     return (
       <div className="w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]">

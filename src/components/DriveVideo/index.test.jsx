@@ -127,4 +127,25 @@ describe('drive video', () => {
     act(() => hls.hlsError('hlsError', { details: 'fragLoadError', response: { code: 404 }, frag: { start: 240, end: 300 } }));
     expect(video.currentTime).toEqual(300.3);
   });
+
+  it('shows the network error and keeps hls.js retrying until playback resumes', async () => {
+    vi.stubGlobal('MediaSource', class {});
+    const { video } = renderVideo();
+    await act(async () => {});
+    set(video, { readyState: video.HAVE_METADATA });
+    fireEvent.waiting(video);
+    act(() => hls.hlsError('hlsError', { type: 'networkError', details: 'fragLoadError', response: { code: 0 }, frag: { start: 0, end: 60 } }));
+    expect(screen.getByText(/Check network connection/)).toBeInTheDocument();
+    act(() => hls.hlsError('hlsError', { type: 'networkError', details: 'fragLoadError', response: { code: 0 }, frag: { start: 0, end: 60 }, fatal: true }));
+    expect(hls.startLoad).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/Check network connection/)).toBeInTheDocument();
+    set(video, { readyState: video.HAVE_ENOUGH_DATA });
+    fireEvent.playing(video);
+    expect(screen.queryByText(/Check network connection/)).toBeNull();
+    // an HTTP error is not a network drop, so it is not retried
+    act(() => hls.hlsError('hlsError', { type: 'networkError', details: 'fragLoadError', response: { code: 403 }, frag: { start: 0, end: 60 }, fatal: true }));
+    expect(hls.startLoad).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Unable to load video')).toBeInTheDocument();
+  });
+
 });
