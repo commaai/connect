@@ -56,23 +56,10 @@ const styles = () => ({
       borderRight: 'none',
     },
   },
-  mediaOptionDisabled: {
-    cursor: 'auto',
-  },
-  mediaOptionIcon: {
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    height: 20,
-    margin: '2px 0',
-    width: 30,
-  },
   mediaOptionText: {
     fontSize: '0.75em',
     fontWeight: 500,
     textAlign: 'center',
-  },
-  mediaSource: {
-    width: '100%',
   },
   menuLoading: {
     position: 'absolute',
@@ -153,45 +140,6 @@ const styles = () => ({
     backgroundColor: Colors.grey800,
     color: Colors.white,
     '& p': { fontSize: '0.8rem' },
-  },
-  noPrimePopover: {
-    borderRadius: 16,
-    padding: 16,
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    marginTop: 12,
-    zIndex: 5,
-    '& p': {
-      fontSize: '0.9rem',
-      color: Colors.white,
-      margin: 0,
-    },
-  },
-  noPrimeHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    '& p': {
-      fontSize: '1rem',
-      fontWeight: 500,
-    },
-  },
-  noPrimeButton: {
-    padding: '6px 24px',
-    borderRadius: 15,
-    textTransform: 'none',
-    minHeight: 'unset',
-    color: Colors.white,
-    backgroundColor: Colors.primeBlue50,
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:hover': {
-      color: Colors.white,
-      backgroundColor: Colors.primeBlue200,
-    },
   },
 });
 
@@ -592,20 +540,13 @@ class Media extends Component {
         <div className="flex flex-wrap">
           { !showMapAlways && (
             <div className={classes.mediaOptions}>
-              <button type="button"
-                className={classes.mediaOption}
-                style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-                onClick={() => this.setState({ inView: MediaType.VIDEO })}
-              >
-                <Typography className={classes.mediaOptionText}>Video</Typography>
-              </button>
-              <button type="button"
-                className={classes.mediaOption}
-                style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                onClick={() => this.setState({ inView: MediaType.MAP })}
-              >
-                <Typography className={classes.mediaOptionText}>Map</Typography>
-              </button>
+              {[[MediaType.VIDEO, 'Video'], [MediaType.MAP, 'Map']].map(([type, label]) => (
+                <button key={type} type="button" className={classes.mediaOption}
+                  style={inView !== type ? { opacity: 0.6 } : {}}
+                  onClick={() => this.setState({ inView: type })}>
+                  <Typography className={classes.mediaOptionText}>{label}</Typography>
+                </button>
+              ))}
             </div>
           )}
           <div className={`${classes.mediaOptions} ml-auto`}>
@@ -658,8 +599,6 @@ class Media extends Component {
       rlog = files[`${seg}/logs`] || {};
     }
 
-    const canUpload = device.is_owner || (profile && profile.superuser);
-    const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
     const buttons = [
       [fcam, 'Road camera', 'cameras'],
       [ecam, 'Wide road camera', 'ecameras'],
@@ -668,8 +607,6 @@ class Media extends Component {
     ];
 
     const stats = this.getUploadStats();
-    const rlogUploadDisabled = !stats || stats.isUploadedRlog || stats.isUploadingRlog || !stats.canRequestRlog;
-    const allUploadDisabled = !stats || stats.isUploadedAll || stats.isUploadingAll || !stats.canRequestAll;
 
     return (
       <>
@@ -699,56 +636,8 @@ class Media extends Component {
           )}
           { buttons.filter((b) => Boolean(b)).map(this.renderUploadMenuItem)}
           <hr />
-          <MenuItem
-            className={ classes.filesItem }
-            disabled
-            style={ files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
-          >
-            All logs
-            { Boolean(files && canUpload && !rlogUploadDisabled)
-            && (
-            <Button
-              className={ classes.uploadButton }
-              style={{ minWidth: uploadButtonWidth }}
-              onClick={ () => this.uploadFilesAll(['logs']) }
-            >
-              {`upload ${stats.canRequestRlog} logs`}
-            </Button>
-            )}
-            { Boolean(canUpload && rlogUploadDisabled && stats)
-            && (
-            <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-              { stats.isUploadedRlog
-                ? 'uploaded'
-                : (stats.isUploadingRlog ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } />)}
-            </div>
-            )}
-          </MenuItem>
-          <MenuItem
-            className={ classes.filesItem }
-            disabled
-            style={ files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
-          >
-            All files
-            { Boolean(files && canUpload && !allUploadDisabled)
-            && (
-            <Button
-              className={ classes.uploadButton }
-              style={{ minWidth: uploadButtonWidth }}
-              onClick={ () => this.uploadFilesAll() }
-            >
-              {`upload ${stats.canRequestAll} files`}
-            </Button>
-            )}
-            { Boolean(canUpload && allUploadDisabled && stats)
-            && (
-            <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-              { stats.isUploadedAll
-                ? 'uploaded'
-                : (stats.isUploadingAll ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } />)}
-            </div>
-            )}
-          </MenuItem>
+          {this.renderAggregateUpload('logs', 'Rlog', ['logs'], stats)}
+          {this.renderAggregateUpload('files', 'All', undefined, stats)}
           <hr />
           { deviceIsOnline(device) || !files ? (
             <MenuItem
@@ -846,82 +735,67 @@ class Media extends Component {
     );
   }
 
-  renderUploadMenuItem([file, name, type]) {
-    const { device, classes, files, profile } = this.props;
-    const { windowWidth } = this.state;
+  uploadButtonWidth() { return this.state.windowWidth < 425 ? 80 : 120; }
 
-    const canUpload = device.is_owner || (profile && profile.superuser);
-    const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
-
-    let button;
-    if (!files) {
-      button = null;
-    } else if (file.url) {
-      button = (
-        <Button
-          className={ classes.uploadButton }
-          style={{ minWidth: uploadButtonWidth }}
-          onClick={ () => this.downloadFile(file, type) }
-        >
-          download
-        </Button>
-      );
-    } else if (file.progress !== undefined) {
-      button = (
-        <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-          { file.current
-            ? `${Math.floor(file.progress * 100)}%`
-            : (file.paused ? 'paused' : 'pending') }
-        </div>
-      );
-    } else if (file.requested) {
-      button = (
-        <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-          <CircularProgress style={{ color: Colors.white }} size={ 17 } />
-        </div>
-      );
-    } else if (file.notFound) {
-      button = (
-        <div
-          className={ classes.fakeUploadButton }
-          style={{ minWidth: (uploadButtonWidth - 24) }}
-          onMouseEnter={ type === 'dcameras' ? (ev) => this.setState({ dcamUploadInfo: ev.target }) : null }
-          onMouseLeave={ type === 'dcameras' ? () => this.setState({ dcamUploadInfo: null }) : null }
-        >
-          not found
-          { type === 'dcameras' && <InfoOutline className={ classes.dcameraUploadIcon } /> }
-        </div>
-      );
-    } else if (!canUpload) {
-      button = (
-        <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }} disabled>
-          download
-        </Button>
-      );
-    } else {
-      button = (
-        <Button
-          className={ classes.uploadButton }
-          style={{ minWidth: uploadButtonWidth }}
-          onClick={ () => this.uploadFile(type) }
-        >
-          { windowWidth < 425 ? 'upload' : 'request upload' }
-        </Button>
-      );
-    }
-
+  renderFileButton(label, onClick, disabled = false) {
     return (
-      <MenuItem
-        key={ type }
-        disabled
-        className={ classes.filesItem }
-        style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
-      >
-        { name }
-        { button }
+      <Button className={this.props.classes.uploadButton} style={{ minWidth: this.uploadButtonWidth() }}
+        onClick={onClick} disabled={disabled}>
+        {label}
+      </Button>
+    );
+  }
+
+  renderFileStatus(content, props = {}) {
+    return (
+      <div className={this.props.classes.fakeUploadButton}
+        style={{ minWidth: this.uploadButtonWidth() - 24 }} {...props}>
+        {content}
+      </div>
+    );
+  }
+
+  renderAggregateUpload(label, suffix, types, stats) {
+    const { classes, files, device, profile } = this.props;
+    const canUpload = device.is_owner || profile?.superuser;
+    const disabled = !stats || stats[`isUploaded${suffix}`] || stats[`isUploading${suffix}`] || !stats[`canRequest${suffix}`];
+    const status = stats?.[`isUploaded${suffix}`] ? 'uploaded'
+      : stats?.[`isUploading${suffix}`] ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={17} />;
+    return (
+      <MenuItem className={classes.filesItem} disabled
+        style={files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
+        All {label}
+        {canUpload && stats && (disabled ? this.renderFileStatus(status)
+          : this.renderFileButton(`upload ${stats[`canRequest${suffix}`]} ${label}`, () => this.uploadFilesAll(types)))}
       </MenuItem>
     );
   }
+
+  renderUploadMenuItem([file, name, type]) {
+    const { device, classes, files, profile } = this.props;
+    const canUpload = device.is_owner || profile?.superuser;
+    let button = null;
+    if (files) {
+      if (file.url) button = this.renderFileButton('download', () => this.downloadFile(file, type));
+      else if (file.progress !== undefined) {
+        button = this.renderFileStatus(file.current ? `${Math.floor(file.progress * 100)}%` : file.paused ? 'paused' : 'pending');
+      } else if (file.requested) button = this.renderFileStatus(<CircularProgress style={{ color: Colors.white }} size={17} />);
+      else if (file.notFound) {
+        button = this.renderFileStatus(<>not found {type === 'dcameras' && <InfoOutline className={classes.dcameraUploadIcon} />}</>, {
+          onMouseEnter: type === 'dcameras' ? (ev) => this.setState({ dcamUploadInfo: ev.target }) : null,
+          onMouseLeave: type === 'dcameras' ? () => this.setState({ dcamUploadInfo: null }) : null,
+        });
+      } else button = this.renderFileButton(canUpload ? this.state.windowWidth < 425 ? 'upload' : 'request upload' : 'download',
+        canUpload ? () => this.uploadFile(type) : undefined, !canUpload);
+    }
+    return (
+      <MenuItem key={type} disabled className={classes.filesItem}
+        style={files ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
+        {name}{button}
+      </MenuItem>
+    );
+  }
+
 }
 
 const stateToProps = (state) => ({
