@@ -26,7 +26,6 @@ export default function reducer(_state, action) {
     case Types.ACTION_APPLY_DESTINATION: {
       const { dongleId = null, routeId, range } = action.destination;
 
-      // device changed
       const deviceChanged = state.dongleId !== dongleId;
       if (deviceChanged) {
         const fallback = dongleId ? { ...emptyDevice, dongle_id: dongleId } : null;
@@ -40,26 +39,24 @@ export default function reducer(_state, action) {
         state.limit = 0;
       }
 
-      // route changed
       const routeChanged = deviceChanged || state.selectedRouteId !== routeId;
       if (routeChanged) state.currentRoute = state.routes?.find((route) => route.log_id === routeId) ?? null;
-
-      // zoom changed
       const end = routeId ? range?.end ?? state.currentRoute?.duration ?? null : null;
-      const zoom = end !== null ? { start: range?.start ?? 0, end } : null;
-      const zoomChanged = state.zoom?.start !== zoom?.start || state.zoom?.end !== zoom?.end;
+      const targetZoom = end !== null ? { start: range?.start ?? 0, end } : null;
+      const zoomChanged = state.zoom?.start !== targetZoom?.start || state.zoom?.end !== targetZoom?.end;
 
       if (routeChanged) {
-        state.zoom = zoom ? { ...zoom, previous: null } : null;
+        state.zoom = targetZoom ? { ...targetZoom, previous: null } : null;
         state.files = null;
         state.loop = null;
       } else if (zoomChanged) {
         const prevZoom = state.zoom;
-        const restored = zoom && prevZoom?.previous?.start === zoom.start && prevZoom?.previous?.end === zoom.end;
-        const invalidateFiles = !prevZoom || !zoom || zoom.start === 0 || zoom.start < prevZoom.start || zoom.end > prevZoom.end;
+        const goingBack = targetZoom && prevZoom?.previous?.start === targetZoom.start && prevZoom?.previous?.end === targetZoom.end;
+        // reuse cached files when zooming into an already loaded range
+        const invalidateFiles = !prevZoom || !targetZoom || targetZoom.start === 0 || targetZoom.start < prevZoom.start || targetZoom.end > prevZoom.end;
         if (invalidateFiles) state.files = null;
         if (!range) state.loop = null;
-        state.zoom = restored ? prevZoom.previous : zoom ? { ...zoom, previous: prevZoom } : null;
+        state.zoom = goingBack ? prevZoom.previous : targetZoom ? { ...targetZoom, previous: prevZoom } : null;
       }
 
       state.selectedRouteId = routeId;
