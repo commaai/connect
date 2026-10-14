@@ -85,6 +85,7 @@ const AppHeader = ({
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
     window.localStorage.getItem(REFERRALS_SEEN_KEY) !== 'true'
   ));
+  const dashboardPath = dongleId ? `/${dongleId}` : '/';
 
   const handleClickedAccount = useCallback(() => {
     if (MyCommaAuth.isAuthenticated()) {
@@ -106,8 +107,8 @@ const AppHeader = ({
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(referralsOpen ? `/${dongleId}` : '/referrals'));
-  }, [dispatch, dongleId, referralsOpen]);
+    dispatch(push(referralsOpen ? dashboardPath : '/referrals'));
+  }, [dispatch, dashboardPath, referralsOpen]);
 
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
@@ -132,7 +133,7 @@ const AppHeader = ({
             )
               : (
                 <a
-                  href={`/${dongleId}`}
+                  href={dashboardPath}
                   className={classes.logoImgLink}
                   onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
                 >
@@ -140,7 +141,7 @@ const AppHeader = ({
                 </a>
               )}
             <a
-              href={`/${dongleId}`}
+              href={dashboardPath}
               onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
             >
               <Typography className={classes.logoText}>connect</Typography>
@@ -149,7 +150,7 @@ const AppHeader = ({
           <div className="flex flex-row gap-2">
             <IconButton
               component="a"
-              href={referralsOpen ? `/${dongleId}` : '/referrals'}
+              href={referralsOpen ? dashboardPath : '/referrals'}
               aria-label="referrals"
               className={classes.giftButton}
               onClick={filterRegularClick(toggleReferrals)}
@@ -184,7 +185,6 @@ const AppHeader = ({
 
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
-  filter: state.filter,
   profile: state.profile,
 });
 

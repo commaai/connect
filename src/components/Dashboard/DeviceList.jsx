@@ -149,11 +149,7 @@ class DeviceList extends Component {
 
   render() {
     const { classes, device, selectedDevice: dongleId } = this.props;
-
     let { devices } = this.props;
-    if (devices === null) {
-      return null;
-    }
 
     const found = devices.some((d) => d.dongle_id === dongleId);
     if (!found && device && dongleId === device.dongle_id) {

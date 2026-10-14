@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -142,15 +142,13 @@ class ExplorerApp extends Component {
         this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${msg}, please try again` });
       }
     }
-
-    this.componentDidUpdate({});
   }
 
   componentWillUnmount() {
     this.unsubscribeWindowSize?.();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (prevProps.location?.pathname !== this.props.location.pathname) {
       this.setState({ drawerIsOpen: false });
     }
@@ -235,7 +233,7 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(selectDevice(dongleId))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : (page === 'drive' ? <DriveView /> : <Dashboard primeNav={page === 'prime'} />)}
