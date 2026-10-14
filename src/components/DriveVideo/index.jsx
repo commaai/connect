@@ -173,7 +173,7 @@ class DriveVideo extends Component {
         this.hls.startLoad(this.videoPlayer.current.currentTime);
       }
     } else if (data.frag && data.type === 'networkError' && !data.response?.code) {
-      // hls.js gives up after about 30 s, keep it trying until the network is back
+      // hls.js gives up after ~30 s, keep loading until the network is back
       if (data.fatal) {
         this.hls.startLoad();
       }
@@ -348,8 +348,7 @@ class DriveVideo extends Component {
   render() {
     const { isMuted } = this.props;
     const { buffering, networkError, videoError, noVideo } = this.state;
-    const error = videoError || (noVideo && errorMessage(404))
-      || (buffering && (networkError || !navigator.onLine) && errorMessage(0));
+    const error = videoError || (noVideo && errorMessage(404)) || (buffering && networkError && errorMessage(0));
 
     return (
       <div className="w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]">
