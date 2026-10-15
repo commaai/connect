@@ -7,21 +7,20 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 
 function previewBranding() {
+  let outDir = 'dist';
   return {
-    esbuild: {
-      loader: 'jsx',
-      include: /src\/.*\.js$/,
-    },
     name: 'preview-branding',
     apply: 'build',
     enforce: 'post',
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
     closeBundle() {
-      const srcDir = resolve(process.cwd(), 'public/preview-icons');
-      const outDir = resolve(process.cwd(), 'dist');
+      const srcDir = resolve(process.cwd(), 'preview-icons');
       for (const file of readdirSync(srcDir)) {
-        copyFileSync(resolve(srcDir, file), resolve(outDir, file));
+        copyFileSync(resolve(srcDir, file), resolve(process.cwd(), outDir, file));
       }
-      console.log('[preview-branding] swapped in preview icons');
+      console.log(`[preview-branding] swapped in preview icons to ${outDir}`);
     },
   };
 }
