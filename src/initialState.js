@@ -7,8 +7,8 @@ export function createInitialState(pathname = window.location.pathname) {
 
     desiredPlaySpeed: 1,    // speed set by user
     isBufferingVideo: true, // if we're currently buffering for more data
-    offset: null,           // in miliseconds, relative to state.zoom.start
-    startTime: Date.now(),  // millisecond timestamp in which play began
+    offset: null,           // actual video position in milliseconds from route start
+    seekVersion: 0,         // explicit seeks, separate from media progress reports
 
     routes: null,
     routesMeta: {

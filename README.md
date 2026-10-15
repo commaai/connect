@@ -16,6 +16,21 @@ API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
 `VITE_USERADMIN_URL_ROOT`. Docker Compose accepts the same variables.
 
+### Playback validation
+
+Run `bun test` and `bun run build:development`, then open `/demo`. Check play/pause,
+seeking while paused and playing, speed changes, timeline selections starting at
+zero and later in the route, and switching between video and map. The video is
+the playback clock; buffering or a browser pause should stop the map and timeline.
+The missing-qcamera demo should show an error with a working Retry button.
+
+Before releasing player changes, repeat these checks on desktop Chrome, Firefox,
+and Safari, Android Chrome and its installed PWA, and iOS Safari and its installed
+PWA. Include a route recorded with microphone audio: test unmuting, resuming after
+backgrounding, blocked autoplay, native fullscreen controls, and seeking across
+segment boundaries. The unit tests mock media APIs and do not validate decoding
+or browser autoplay policies on those devices.
+
 ## Contributing
 
 * Use best practices

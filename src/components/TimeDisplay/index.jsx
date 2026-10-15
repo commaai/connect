@@ -8,7 +8,7 @@ import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
-import { currentOffset } from '../../timeline';
+import { currentOffset, requestVideoPlay } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
@@ -184,6 +184,7 @@ class TimeDisplay extends Component {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.max(0, curIndex - 1);
+    requestVideoPlay(timerSteps[curIndex]);
     dispatch(play(timerSteps[curIndex]));
   }
 
@@ -204,6 +205,7 @@ class TimeDisplay extends Component {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
+    requestVideoPlay(timerSteps[curIndex]);
     dispatch(play(timerSteps[curIndex]));
   }
 
@@ -219,6 +221,7 @@ class TimeDisplay extends Component {
   togglePause() {
     const { desiredPlaySpeed, dispatch } = this.props;
     if (desiredPlaySpeed === 0) {
+      requestVideoPlay(this.state.desiredPlaySpeed);
       // eslint-disable-next-line react/destructuring-assignment
       dispatch(play(this.state.desiredPlaySpeed));
     } else {
