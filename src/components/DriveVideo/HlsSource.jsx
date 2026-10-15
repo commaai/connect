@@ -54,20 +54,25 @@ function subscribeErrors(hls, video, onError) {
   const reportMissingIfStalled = () => {
     const isStarved = video.readyState < video.HAVE_FUTURE_DATA;
     if (!isStarved || !isMissingAtPlayhead()) return;
-    onError?.({ kind: 'not-found' });
+    report({ kind: 'not-found' });
+  };
+  const trackMissingFragment = (fragment) => {
+    missingFragments.set(fragment.sn, fragment);
+    reportMissingIfStalled();
   };
 
   const handleHlsError = (_, data) => {
     const kind = hlsErrorKind(data);
+    const isMissingFragment = kind === 'not-found' && data.frag;
+    if (isMissingFragment) return trackMissingFragment(data.frag);
     if (data.fatal) return recoverOrReport({ kind, cause: data });
     if (data.details === Hls.ErrorDetails.MEDIA_SOURCE_REQUIRES_RESET) return reportRepeatedReset({ kind, cause: data });
-    const isMissingFragment = kind === 'not-found' && data.frag;
-    if (!isMissingFragment) return;
-    missingFragments.set(data.frag.sn, data.frag);
-    reportMissingIfStalled();
   };
   const handleFragLoaded = (_, data) => missingFragments.delete(data.frag.sn);
-  const handleSeeking = () => missingFragments.clear();
+  const handleSeeking = () => {
+    if (hls.loadingEnabled) return;
+    hls.startLoad(video.currentTime);
+  };
   const handleMediaError = () => recoverOrReport({ kind: mediaErrorKind(video.error), cause: video.error });
 
   hls.on(Hls.Events.ERROR, handleHlsError);

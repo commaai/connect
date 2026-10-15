@@ -325,6 +325,12 @@ export function fetchEvents(route) {
       driveEvents = [].concat(...(await Promise.all(promises)));
     } catch (err) {
       console.error(err);
+      dispatch({
+        type: Types.ACTION_UPDATE_ROUTE_EVENTS,
+        fullname: route.fullname,
+        events: [],
+      });
+      resolveEvents([]);
       return;
     }
 

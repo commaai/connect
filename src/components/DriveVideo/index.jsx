@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button, CircularProgress, Typography } from '@material-ui/core';
 
 import Colors from '../../colors';
@@ -115,21 +115,9 @@ function useLoopBounds(videoStartOffset, loopStart, loopDuration) {
   useVideoEvent('ended', handleEnded);
 }
 
-function useStartPosition(startPosition) {
-  const previousStartRef = useRef(startPosition);
-
-  useEffect(() => {
-    const previousStart = previousStartRef.current;
-    previousStartRef.current = startPosition;
-    const video = getDriveVideo();
-    const isStillAtPreviousStart = video?.currentTime === previousStart;
-    if (!isStillAtPreviousStart) return;
-    video.currentTime = startPosition;
-  }, [startPosition]);
-}
-
 export default function DriveVideo({ src, route, loop, ...props }) {
   const videoStartOffset = route?.videoStartOffset;
+  const hasRouteEvents = Boolean(route?.events);
   const loopStart = loop?.startTime;
   const loopDuration = loop?.duration;
   const startPosition = routeMsToVideoSeconds(videoStartOffset, loopStart ?? 0);
@@ -137,14 +125,13 @@ export default function DriveVideo({ src, route, loop, ...props }) {
   const buffering = useVideoBuffering();
   const { error, retry, handleError } = usePlaybackError(src);
   useLoopBounds(videoStartOffset, loopStart, loopDuration);
-  useStartPosition(startPosition);
 
   return (
     <div className="w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-      <VideoOverlay loading={buffering} error={error} onRetry={retry} />
+      <VideoOverlay loading={buffering || !hasRouteEvents} error={error} onRetry={retry} />
       <div className="w-full h-full">
         <Video
-          src={src}
+          src={hasRouteEvents ? src : null}
           startPosition={startPosition}
           onError={handleError}
           autoPlay
