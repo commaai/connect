@@ -4,7 +4,7 @@ import { Button, CircularProgress, Typography } from '@material-ui/core';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { getVideo, playIgnoringInterruptions } from '../../timeline/video';
-import { loopTarget, seekToRouteMs, toRouteMs, toVideoSeconds } from '../../timeline/routeTime';
+import { toClampedTimestamp, seekToRouteMs, toRouteMs, toVideoSeconds } from '../../timeline/routeTime';
 import { useVideoBuffering, useVideoEvent, useVideoFrame } from '../../hooks/video';
 import Video from './Video';
 
@@ -97,7 +97,7 @@ function useLoopBounds(videoStartOffset, loopStart, loopDuration) {
     if (video.readyState < video.HAVE_FUTURE_DATA) return;
 
     const routeMs = toRouteMs(videoStartOffset, videoSeconds);
-    const target = loopTarget(routeMs, loopStart, loopStart + loopDuration, video.paused);
+    const target = toClampedTimestamp(routeMs, loopStart, loopStart + loopDuration, video.paused);
     if (target === null) return;
 
     seekToRouteMs(video, videoStartOffset, target);

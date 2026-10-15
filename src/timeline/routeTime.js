@@ -22,7 +22,7 @@ export function clampToLoop(routeMs, loop) {
   return Math.min(Math.max(routeMs, loop.startTime), loopEnd);
 }
 
-export function loopTarget(routeMs, loopStart, loopEnd, isPaused) {
+export function toClampedTimestamp(routeMs, loopStart, loopEnd, isPaused) {
   if (routeMs < loopStart - SEEK_PRECISION_MS) return loopStart;
   if (routeMs < loopEnd) return null;
   if (!isPaused) return loopStart;
