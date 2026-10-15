@@ -10,7 +10,7 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { getCurrentRouteMs, seekToRouteMs } from '../../timeline/routeTime';
+import { clampToLoop, getCurrentRouteMs, toVideoSeconds } from '../../timeline/routeTime';
 import { videoSeeked } from '../../timeline/playback';
 import { getPlaybackSpeed, getVideo } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
@@ -215,7 +215,8 @@ class Timeline extends Component {
     const video = getVideo();
     if (!video) return;
     const { dispatch, route, loop } = this.props;
-    const targetMs = seekToRouteMs(video, route?.videoStartOffset, routeMs, loop);
+    const targetMs = clampToLoop(routeMs, loop);
+    video.currentTime = toVideoSeconds(route?.videoStartOffset, targetMs);
     dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
   }
 

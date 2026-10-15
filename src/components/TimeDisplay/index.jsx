@@ -9,7 +9,7 @@ import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { useVideo, useVideoMuted, useVideoPaused, useVideoPlaybackRate, useVideoTime } from '../../hooks/video';
-import { getCurrentRouteMs, seekToRouteMs, toRouteMs } from '../../timeline/routeTime';
+import { clampToLoop, getCurrentRouteMs, toRouteMs, toVideoSeconds } from '../../timeline/routeTime';
 import { videoPaused, videoPlayed, videoSeeked } from '../../timeline/playback';
 import { getPlaybackSpeed, playIgnoringInterruptions, setPlaybackRate } from '../../timeline/video';
 import { segmentAtRouteMs } from '../../utils';
@@ -202,7 +202,8 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
 
   const handleJump = (amount) => {
     if (!video) return;
-    const targetMs = seekToRouteMs(video, videoStartOffset, getCurrentRouteMs(videoStartOffset) + amount, loop);
+    const targetMs = clampToLoop(getCurrentRouteMs(videoStartOffset) + amount, loop);
+    video.currentTime = toVideoSeconds(videoStartOffset, targetMs);
     dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
   };
 

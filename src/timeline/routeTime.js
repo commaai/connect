@@ -29,9 +29,3 @@ export function toClampedTimestamp(routeMs, loopStart, loopEnd, isPaused) {
   if (routeMs <= loopEnd + SEEK_PRECISION_MS) return null;
   return loopEnd;
 }
-
-export function seekToRouteMs(video, videoStartOffset, routeMs, loop) {
-  const targetMs = clampToLoop(routeMs, loop);
-  video.currentTime = toVideoSeconds(videoStartOffset, targetMs);
-  return targetMs;
-}
