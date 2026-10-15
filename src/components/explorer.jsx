@@ -264,7 +264,7 @@ class ExplorerApp extends Component {
                 </Button>
               </Paper>
             </Modal>
-            { page === 'settings' && (
+            { page === 'settings' && dongleId && (
               <DeviceSettingsModal key={ dongleId } dongleId={ dongleId } onClose={ this.goToDashboard } />
             )}
           </>

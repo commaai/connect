@@ -143,6 +143,14 @@ class DeviceSettingsModal extends Component {
     this.closeUnpair = this.closeUnpair.bind(this);
   }
 
+  componentDidUpdate(prevProps) {
+    // follow device data that arrives or changes later, unless the alias was edited
+    const prevAlias = prevProps.device?.alias || '';
+    if (this.props.device?.alias !== prevProps.device?.alias && this.state.deviceAlias === prevAlias) {
+      this.setState({ deviceAlias: this.props.device?.alias || '' });
+    }
+  }
+
   handleAliasChange(e) {
     this.setState((state, props) => ({
       deviceAlias: e.target.value,

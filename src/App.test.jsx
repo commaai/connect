@@ -317,6 +317,12 @@ describe('whole-app behavior', () => {
     expect(await screen.findByText('Device settings')).toBeVisible();
   });
 
+  test('device settings open from a cold entry with the device alias', async () => {
+    const { history } = await renderApp(`/${FIRST}/settings`);
+    expect(await screen.findByDisplayValue('Zulu')).toBeVisible();
+    expect(history.location.pathname).toBe(`/${FIRST}/settings`);
+  });
+
   test('moving between a drive and its dashboard reuses loaded routes', async () => {
     const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
     fireEvent.click(await screen.findByText('Mock recent route start'));
