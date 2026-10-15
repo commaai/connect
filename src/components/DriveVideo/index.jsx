@@ -11,6 +11,7 @@ import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
 import { isIos, isFirefox } from '../../utils/browser.js';
+import { resolveSync, clampPlaybackRate } from '../../utils/videoSync';
 
 // Leading-edge debounce: run immediately, then ignore calls until `wait` ms after the last one.
 function debounceLeading(func, wait) {
@@ -236,23 +237,28 @@ class DriveVideo extends Component {
       return;
     }
 
-    let { desiredPlaySpeed: newPlaybackRate } = this.props;
     const desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
-    const timeDiff = desiredVideoTime - curVideoTime;
-    
-    if (Math.abs(timeDiff) <= Math.max(0.1, 0.5 * newPlaybackRate)) { // newPlaybackRate = 0 when paused, set minimum 0.1 to prevent seeking when paused
-      if (!isIos()) {
-        newPlaybackRate = Math.max(0, newPlaybackRate + Math.round(timeDiff * 10) / 10);
-      }
-    } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
-      // logs start earlier than video, so skip to video ts 0
+    const duration = videoPlayer.getDuration();
+
+    const { action, playbackRate } = resolveSync({
+      desiredPlaySpeed: this.props.desiredPlaySpeed,
+      desiredVideoTime,
+      currentVideoTime: curVideoTime,
+      duration,
+      isIos: isIos(),
+    });
+
+    if (action === 'skip-to-zero') {
+      // logs start earlier than video, so advance the timeline to video ts 0
+      const timeDiff = desiredVideoTime - curVideoTime;
       dispatch(seek(currentOffset() - (timeDiff * 1000)));
-    } else {
+    } else if (action === 'seek') {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
+
     // most browsers don't support more than 16x playback rate, firefox mutes audio above 8x causing audio to cut in and out with timeDiff rate shifts
-    newPlaybackRate = Math.max(0, Math.min((isFirefox() && !isMuted) ? 8 : 16, newPlaybackRate));
+    let newPlaybackRate = clampPlaybackRate(playbackRate, isFirefox(), isMuted);
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
