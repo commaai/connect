@@ -212,6 +212,7 @@ function logAction(action, prevState, state) {
       }
       return;
 
+    case Types.ACTION_PLAYBACK_SPEED:
     case Types.ACTION_PLAY:
       if (state.zoom) {
         percent = getVideoPercent(state);

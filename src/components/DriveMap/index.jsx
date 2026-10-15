@@ -1,13 +1,17 @@
-import React, { Component } from 'react';
+import React, { Component, useEffect } from 'react';
 import { connect } from 'react-redux';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
-import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
+
+const PlaybackPosition = connect((state) => ({ offset: state.offset }))(({ offset, onChange }) => {
+  useEffect(() => onChange(offset), [offset, onChange]);
+  return null;
+});
 
 class DriveMap extends Component {
   constructor(props) {
@@ -38,13 +42,11 @@ class DriveMap extends Component {
   }
 
   componentDidMount() {
-    this.mounted = true;
     this.componentDidUpdate({}, {});
-    this.updateMarkerPos();
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute, seekRequest } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -55,7 +57,7 @@ class DriveMap extends Component {
       }
     }
 
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
+    if (prevProps.seekRequest !== seekRequest) {
       this.shouldFlyTo = true;
     }
 
@@ -69,10 +71,8 @@ class DriveMap extends Component {
       });
       this.populateMap();
     }
-  }
 
-  componentWillUnmount() {
-    this.mounted = false;
+    this.updateMarkerPos();
   }
 
   onInteraction(ev) {
@@ -89,15 +89,12 @@ class DriveMap extends Component {
     }
   }
 
-  updateMarkerPos() {
-    if (!this.mounted) {
-      return;
-    }
-
+  updateMarkerPos(offset = this.offset) {
+    this.offset = offset;
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        const pos = this.posAtOffset(offset);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -115,8 +112,6 @@ class DriveMap extends Component {
         });
       }
     }
-
-    requestAnimationFrame(this.updateMarkerPos);
   }
 
   moveViewportTo(pos) {
@@ -300,15 +295,15 @@ class DriveMap extends Component {
           attributionControl={false}
           onInteractionStateChange={this.onInteraction}
         />
+        <PlaybackPosition onChange={this.updateMarkerPos} />
       </div>
     );
   }
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
+  seekRequest: state.seekRequest,
 });
 
 export default connect(stateToProps)(DriveMap);

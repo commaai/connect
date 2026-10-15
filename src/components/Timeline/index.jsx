@@ -10,7 +10,6 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
@@ -127,11 +126,15 @@ function percentFromPointerEvent(ev) {
   return x / boundingBox.width;
 }
 
+const Playhead = connect((state) => ({ offset: state.offset }))(({ className, offset, zoom }) => {
+  const percent = Math.max(0, Math.min(100, (100 * (offset - zoom.start)) / (zoom.end - zoom.start)));
+  return <div className={className} style={{ left: `${percent}%`, width: `${100 - percent}%` }} />;
+});
+
 class Timeline extends Component {
   constructor(props) {
     super(props);
 
-    this.getOffset = this.getOffset.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -142,7 +145,6 @@ class Timeline extends Component {
     this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
 
-    this.rulerRemaining = React.createRef();
     this.rulerRef = React.createRef();
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
@@ -161,8 +163,6 @@ class Timeline extends Component {
   }
 
   componentDidMount() {
-    this.mounted = true;
-    requestAnimationFrame(this.getOffset);
     this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
@@ -186,7 +186,6 @@ class Timeline extends Component {
   }
 
   componentWillUnmount() {
-    this.mounted = false;
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
@@ -251,10 +250,6 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
       const { dispatch } = this.props;
       const startTime = startOffset;
       const endTime = endOffset;
@@ -276,31 +271,9 @@ class Timeline extends Component {
     }
   }
 
-  getOffset() {
-    if (!this.mounted) {
-      return;
-    }
-    requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
-    if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
-      this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
-      this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
-    }
-  }
-
   percentToOffset(perc) {
     const { zoom } = this.state;
     return perc * (zoom.end - zoom.start) + zoom.start;
-  }
-
-  offsetToPercent(offset) {
-    const { zoom } = this.state;
-    return (offset - zoom.start) / (zoom.end - zoom.start);
   }
 
   segmentNum(offset) {
@@ -361,7 +334,7 @@ class Timeline extends Component {
 
   render() {
     const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
-    const { thumbnail, hoverX, dragging } = this.state;
+    const { thumbnail, hoverX, dragging, zoom } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
 
@@ -425,7 +398,7 @@ class Timeline extends Component {
                 onPointerMove={this.handlePointerMove}
                 onPointerLeave={this.handlePointerLeave}
               >
-                <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                <Playhead className={classes.rulerRemaining} zoom={zoom} />
                 { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
               </div>
               { hoverString && (
@@ -443,7 +416,6 @@ class Timeline extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
-  loop: state.loop,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));
