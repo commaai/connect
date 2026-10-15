@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -15,7 +14,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { updateDevice } from '../../actions';
+import { updateDevice, pageNav } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -216,7 +215,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    this.props.dispatch(push(`/${this.props.dongleId}/prime`));
+    this.props.dispatch(pageNav('prime', this.props.dongleId));
   }
 
   async unpairDevice() {
