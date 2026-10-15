@@ -10,10 +10,19 @@ export function reducer(_state, action) {
     loopOffset = state.loop.startTime;
   }
   switch (action.type) {
+    case Types.ACTION_VIDEO_TIME:
+      state = {
+        ...state,
+        offset: action.offset ?? currentOffset(state),
+        videoTime: action.offset,
+        startTime: Date.now(),
+      };
+      break;
     case Types.ACTION_SEEK:
       state = {
         ...state,
         offset: action.offset,
+        seekRevision: (state.seekRevision || 0) + 1,
         startTime: Date.now(),
       };
 
@@ -24,6 +33,8 @@ export function reducer(_state, action) {
           state.offset = loopOffset + state.loop.duration;
         }
       }
+      // Keep the media clock frozen at the requested position until seeked.
+      if (state.videoTime != null) state.videoTime = state.offset;
       break;
     case Types.ACTION_PAUSE:
       state = {
@@ -67,6 +78,8 @@ export function reducer(_state, action) {
         desiredPlaySpeed: 1,
         isBufferingVideo: true,
         offset: 0,
+        videoTime: null,
+        seekRevision: (state.seekRevision || 0) + 1,
         startTime: Date.now(),
       };
       break;
@@ -86,7 +99,7 @@ export function reducer(_state, action) {
   }
 
   // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
+  if (state.videoTime == null && state.offset !== null && state.loop?.startTime != null && state.loop.duration > 0) {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
     const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
     loopOffset = state.loop.startTime;
@@ -148,4 +161,9 @@ export function resetPlayback() {
   return {
     type: Types.ACTION_RESET,
   };
+}
+
+// null releases the media clock when returning to the map-only view.
+export function videoTime(offset) {
+  return { type: Types.ACTION_VIDEO_TIME, offset };
 }
