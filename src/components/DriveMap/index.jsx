@@ -4,10 +4,12 @@ import { connect } from 'react-redux';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
-import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
+// a marker move larger than this (in degrees) is a user-initiated jump, which
+// should pan smoothly rather than snap to the new position
+const LARGE_MOVE_DEGREES = 0.01;
 
 class DriveMap extends Component {
   constructor(props) {
@@ -44,7 +46,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -53,10 +55,6 @@ class DriveMap extends Component {
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
-    }
-
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
-      this.shouldFlyTo = true;
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
@@ -97,14 +95,21 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        // state.offset mirrors the <video> element's position, published on
+        // its timeupdate -- read it directly, no clock math needed here
+        const pos = this.posAtOffset(this.props.offset);
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
+          const jumpDistance = Math.hypot(pos[0] - this.lastMapPos[0], pos[1] - this.lastMapPos[1]);
           this.lastMapPos = pos;
           markerSource.setData({
             type: 'Point',
             coordinates: pos,
           });
           if (!this.isInteracting) {
+            if (jumpDistance > LARGE_MOVE_DEGREES) {
+              // a user-initiated jump (seek): pan smoothly to the new position
+              this.shouldFlyTo = true;
+            }
             this.moveViewportTo(pos);
           }
         }
@@ -308,7 +313,6 @@ class DriveMap extends Component {
 const stateToProps = (state) => ({
   offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
 });
 
 export default connect(stateToProps)(DriveMap);

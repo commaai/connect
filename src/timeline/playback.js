@@ -1,7 +1,34 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
 import * as Types from '../actions/types';
-import { currentOffset } from '.';
+
+/**
+ * Constrain an offset to the active loop range.
+ *
+ * The published video position wraps around instead of running past the end of
+ * the loop, which is what makes the video element loop without any timer math.
+ *
+ * Defined here rather than imported from '../timeline' on purpose: that module
+ * imports the store, which imports the reducers, which import this one.
+ *
+ * @param {number} offset - offset in milliseconds
+ * @param {object} loop - `{ startTime, duration }` or null
+ * @returns {number} the normalized offset
+ */
+export function normalizeLoopOffset(offset, loop) {
+  if (offset === null || !loop?.startTime) {
+    return offset;
+  }
+
+  const loopStart = loop.startTime;
+  if (offset < loopStart) {
+    return loopStart;
+  }
+  if (offset >= loopStart + loop.duration) {
+    return ((offset - loopStart) % loop.duration) + loopStart;
+  }
+  return offset;
+}
 
 export function reducer(_state, action) {
   let state = { ..._state };
@@ -11,10 +38,11 @@ export function reducer(_state, action) {
   }
   switch (action.type) {
     case Types.ACTION_SEEK:
+      // the offset is applied immediately, DriveVideo signals the <video>
+      // element to catch up
       state = {
         ...state,
         offset: action.offset,
-        startTime: Date.now(),
       };
 
       if (loopOffset !== null) {
@@ -28,8 +56,6 @@ export function reducer(_state, action) {
     case Types.ACTION_PAUSE:
       state = {
         ...state,
-        offset: currentOffset(state),
-        startTime: Date.now(),
         desiredPlaySpeed: 0,
       };
       break;
@@ -37,9 +63,7 @@ export function reducer(_state, action) {
       if (action.speed !== state.desiredPlaySpeed) {
         state = {
           ...state,
-          offset: currentOffset(state),
           desiredPlaySpeed: action.speed,
-          startTime: Date.now(),
         };
       }
       break;
@@ -57,8 +81,13 @@ export function reducer(_state, action) {
       state = {
         ...state,
         isBufferingVideo: action.buffering,
-        offset: currentOffset(state),
-        startTime: Date.now(),
+      };
+      break;
+    case Types.ACTION_VIDEO_PROGRESS:
+      // the video element is the authority on where we are; mirror it
+      state = {
+        ...state,
+        offset: action.offset,
       };
       break;
     case Types.ACTION_RESET:
@@ -67,7 +96,6 @@ export function reducer(_state, action) {
         desiredPlaySpeed: 1,
         isBufferingVideo: true,
         offset: 0,
-        startTime: Date.now(),
       };
       break;
     default:
@@ -85,19 +113,12 @@ export function reducer(_state, action) {
     }
   }
 
-  // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime;
-    // has loop, trap offset within the loop
-    if (offset < loopOffset) {
-      state.startTime = Date.now();
-      state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-      state.startTime = Date.now();
-    }
+  // the video element wraps around at the loop end, so a position it publishes
+  // past the end comes back around to the start. A user-requested seek has
+  // already been clamped above and must never wrap -- it would jump the user
+  // back to the loop start instead of holding at the end.
+  if (action.type !== Types.ACTION_SEEK) {
+    state.offset = normalizeLoopOffset(state.offset, state.loop);
   }
 
   state.isBufferingVideo = Boolean(state.isBufferingVideo);
@@ -125,6 +146,14 @@ export function play(speed = 1) {
   return {
     type: Types.ACTION_PLAY,
     speed,
+  };
+}
+
+// the <video> element reporting its own position (in milliseconds)
+export function videoProgress(offset) {
+  return {
+    type: Types.ACTION_VIDEO_PROGRESS,
+    offset,
   };
 }
 
