@@ -202,19 +202,12 @@ export const selectDevice = (dongleId) => (dispatch, getState) => {
   if (getState().router.location.pathname !== target) dispatch(push(target));
 }
 
-export const pageNav = (page) => (dispatch, getState) => {
+export const pageNav = (page, dongleId) => (dispatch, getState) => {
   const state = getState();
-  if (!state.dongleId) return;
-  const target = `/${state.dongleId}${page ? `/${page}` : ''}`;
-  if (state.router.location.pathname !== target) dispatch(push(target));
-}
-
-export const settingsNav = (dongleId) => (dispatch, getState) => {
-  const { pathname, search } = getState().router.location;
-  const params = new URLSearchParams(search);
-  if (dongleId) params.set('settings', dongleId);
-  else params.delete('settings');
-  dispatch(push({ pathname, search: params.toString() }));
+  const targetDongleId = dongleId || state.dongleId;
+  if (!targetDongleId) return;
+  const targetPath = `/${targetDongleId}${page ? `/${page}` : ''}`;
+  if (state.router.location.pathname !== targetPath) dispatch(push(targetPath));
 }
 
 export function fetchSharedDevice(dongleId) {

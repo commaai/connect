@@ -289,11 +289,20 @@ describe('whole-app behavior', () => {
   test.each([
     ['Prime', 'prime', `/${FIRST}/prime`],
     ['stream', 'stream', `/${FIRST}/stream`],
+    ['settings', 'settings', `/${FIRST}/settings`],
     ['dashboard', undefined, `/${FIRST}`],
   ])('navigates to %s', async (_name, page, expected) => {
     const { history, store } = await renderApp(page ? `/${FIRST}` : `/${FIRST}/prime`);
     act(() => store.dispatch(pageNav(page)));
     expect(history.location.pathname).toBe(expected);
+  });
+
+  test('navigates to another device settings', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    act(() => store.dispatch(pageNav('settings', SECOND)));
+    expect(history.location.pathname).toBe(`/${SECOND}/settings`);
+    await waitFor(() => expect(store.getState().dongleId).toBe(SECOND));
+    expect(await screen.findByText('Device settings')).toBeVisible();
   });
 
   test('device browser history restores exact dashboards', async () => {

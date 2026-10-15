@@ -11,6 +11,7 @@ const destinations = [
   ['demo', '/demo', { page: 'demo' }],
   ['referrals', '/referrals', { page: 'referrals' }],
   ['dashboard', `/${DONGLE}`, { page: 'dashboard', dongleId: DONGLE }],
+  ['settings', `/${DONGLE}/settings`, { page: 'settings', dongleId: DONGLE }],
   ['Prime', `/${DONGLE}/prime`, { page: 'prime', dongleId: DONGLE }],
   ['stream', `/${DONGLE}/stream`, { page: 'stream', dongleId: DONGLE }],
   ['whole drive', `/${DONGLE}/${LOG}`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: null }],
@@ -41,12 +42,5 @@ describe('parseURL', () => {
     `/${DONGLE}/9007199254740992/9007199254740993`,
   ])('rejects %s', (pathname) => {
     expect(parseURL({ pathname })).toEqual({ page: 'not-found' });
-  });
-
-  it('parses settings independently of the background device', () => {
-    const settingsDongleId = '1111bbbb1111bbbb';
-    expect(parseURL({ pathname: `/${DONGLE}/${LOG}/10/20`, search: `?settings=${settingsDongleId}`})).toEqual({
-      page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10000, end: 20000 }, settingsDongleId
-    });
   });
 });

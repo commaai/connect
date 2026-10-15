@@ -15,7 +15,7 @@ import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 import FullPageLoading from './FullPageLoading';
 
-import { analyticsEvent, selectDevice, updateDevices, pageNav, settingsNav } from '../actions';
+import { analyticsEvent, selectDevice, updateDevices, pageNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -183,7 +183,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, devices, dispatch, dongleId, destination: { page, settingsDongleId }, profile } = this.props;
+    const { classes, devices, dispatch, dongleId, page, profile } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const bodyTeleopOpen = page === 'stream';
@@ -259,11 +259,11 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
-        {settingsDongleId && (
+        {page === 'settings' && (
           <DeviceSettingsModal
-            key={settingsDongleId}
-            dongleId={settingsDongleId}
-            onClose={() => dispatch(settingsNav(null))}
+            key={dongleId}
+            dongleId={dongleId}
+            onClose={() => dispatch(pageNav())}
           />
         )}
       </div>

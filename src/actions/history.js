@@ -22,7 +22,7 @@ export const syncStateFromURL = (defaultDongleId) => async (dispatch, getState) 
   if (state.devices === null) return;
 
   const { pathname, search } = state.router.location;
-  const route = parseURL({ pathname });
+  const route = parseURL(state.router.location);
   const dongleId = resolveDongleId(route, state, defaultDongleId);
 
   // normalize URLs

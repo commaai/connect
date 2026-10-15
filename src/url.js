@@ -3,6 +3,7 @@ const logIdRegex = /^[a-f0-9-]{20}$/;
 const digitsRegex = /^\d+$/;
 const secondsRegex = /^\d+(?:\.\d{1,3})?$/;
 const rootPages = ['auth', 'demo', 'referrals'];
+const devicePages = ['prime', 'stream', 'settings'];
 
 const parseDriveRange = (start, end, legacy = false) => {
   const regex = legacy ? digitsRegex : secondsRegex;
@@ -15,16 +16,15 @@ const parseDriveRange = (start, end, legacy = false) => {
   return { start: startMillis, end: endMillis };
 };
 
-const parsePathname = (pathname) => {
-  const parts = pathname.split('/').filter(Boolean);
+export const parseURL = (location) => {
+  const parts = location.pathname.split('/').filter(Boolean);
   const [dongleId, branch, start, end] = parts;
 
   if (parts.length === 0) return { page: 'root' };
   if (parts.length === 1 && rootPages.includes(parts[0])) return { page: parts[0] };
   if (parts.length > 4 || !dongleIdRegex.test(dongleId)) return { page: 'not-found' };
   if (parts.length === 1) return { page: 'dashboard', dongleId };
-  if (parts.length === 2 && branch === 'prime') return { page: 'prime', dongleId };
-  if (parts.length === 2 && branch === 'stream') return { page: 'stream', dongleId };
+  if (parts.length === 2 && devicePages.includes(branch)) return { page: branch, dongleId };
   if (parts.length === 2 && logIdRegex.test(branch)) return { page: 'drive', dongleId, logId: branch, range: null };
   if (parts.length === 4 && logIdRegex.test(branch)) return { page: 'drive', dongleId, logId: branch, range: parseDriveRange(start, end) };
   if (parts.length === 3) {
@@ -32,12 +32,4 @@ const parsePathname = (pathname) => {
     if (range) return { page: 'legacy-drive', dongleId, range };
   }
   return { page: 'not-found' };
-};
-
-export const parseURL = ({ pathname, search = '' }) => {
-  const destination = parsePathname(pathname);
-  const settingsDongleId = new URLSearchParams(search).get('settings');
-  if (settingsDongleId) destination.settingsDongleId = settingsDongleId;
-
-  return destination;
 };
