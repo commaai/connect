@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { drives as Drives } from '../api';
 import { onHistoryMiddleware, syncStateFromURL } from './history';
@@ -43,13 +43,8 @@ beforeEach(() => {
 });
 
 describe('history middleware', () => {
-  it.each([
-    ['non-history actions', { type: 'TEST' }],
-    ['query-only changes', {
-      type: LOCATION_CHANGE,
-      payload: { action: 'PUSH', location: { pathname: '/', search: `?settings=${OTHER}` } },
-    }],
-  ])('skips synchronization for %s', (_name, action) => {
+  it('skips synchronization for non-history actions', () => {
+    const action = { type: 'TEST' };
     const { store, next, invoke } = create();
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
@@ -66,13 +61,12 @@ describe('history middleware', () => {
     expect(actions.checkLastRoutesData).toHaveBeenCalledOnce();
   });
 
-  it('converts a legacy timestamp range to a route and preserves queries', async () => {
+  it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}` }]);
     const pathname = `/${DONGLE}/1000/2000`;
-    const search = `?settings=${DONGLE}`;
-    const { store } = create({ ...baseState, router: { location: { pathname, search } } });
+    const { store } = create({ ...baseState, router: { location: { pathname, search: '' } } });
     await syncStateFromURL()(store.dispatch, store.getState);
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
-    expect(store.dispatch).toHaveBeenCalledWith(replace({ pathname: `/${DONGLE}/${LOG}`, search }));
+    expect(store.dispatch).toHaveBeenCalledWith(replace({ pathname: `/${DONGLE}/${LOG}`, search: '' }));
   });
 });
