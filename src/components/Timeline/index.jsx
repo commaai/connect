@@ -10,7 +10,6 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
@@ -127,11 +126,17 @@ function percentFromPointerEvent(ev) {
   return x / boundingBox.width;
 }
 
+// connected on its own so only this bar re-renders on progress
+const RulerRemaining = connect((state, { zoom }) => ({
+  playedPercent: Math.floor((10000 * (state.offset - zoom.start)) / (zoom.end - zoom.start)) / 100,
+}))(function RulerRemaining({ playedPercent, className }) {
+  return <div className={className} style={{ left: `${playedPercent}%`, width: `${100 - playedPercent}%` }} />;
+});
+
 class Timeline extends Component {
   constructor(props) {
     super(props);
 
-    this.getOffset = this.getOffset.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -142,7 +147,6 @@ class Timeline extends Component {
     this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
 
-    this.rulerRemaining = React.createRef();
     this.rulerRef = React.createRef();
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
@@ -161,8 +165,6 @@ class Timeline extends Component {
   }
 
   componentDidMount() {
-    this.mounted = true;
-    requestAnimationFrame(this.getOffset);
     this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
@@ -186,7 +188,6 @@ class Timeline extends Component {
   }
 
   componentWillUnmount() {
-    this.mounted = false;
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
@@ -251,7 +252,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
+      const offset = this.props.dispatch((_, getState) => getState().offset);
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
@@ -276,31 +277,9 @@ class Timeline extends Component {
     }
   }
 
-  getOffset() {
-    if (!this.mounted) {
-      return;
-    }
-    requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
-    if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
-      this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
-      this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
-    }
-  }
-
   percentToOffset(perc) {
     const { zoom } = this.state;
     return perc * (zoom.end - zoom.start) + zoom.start;
-  }
-
-  offsetToPercent(offset) {
-    const { zoom } = this.state;
-    return (offset - zoom.start) / (zoom.end - zoom.start);
   }
 
   segmentNum(offset) {
@@ -425,7 +404,7 @@ class Timeline extends Component {
                 onPointerMove={this.handlePointerMove}
                 onPointerLeave={this.handlePointerLeave}
               >
-                <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                <RulerRemaining className={classes.rulerRemaining} zoom={this.state.zoom} />
                 { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
               </div>
               { hoverString && (
