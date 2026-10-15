@@ -24,6 +24,12 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import { parseLocation } from '../url';
+import { closeDialog } from '../actions/dialogs';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
+import AddDevice from './Dashboard/AddDevice';
+import UploadQueue from './Files/UploadQueue';
+import TimeSelect from './TimeSelect';
 
 const styles = (theme) => ({
   app: {
@@ -202,6 +208,11 @@ class ExplorerApp extends Component {
     } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
+    // Render shared dialogs from the URL, including direct links and reloads.
+    const route = parseLocation(this.props.location);
+    const dialogDevice = devices?.find((device) => device.dongle_id === route.dialogDongleId);
+    const canManage = dialogDevice && (dialogDevice.is_owner || profile?.superuser);
+    const onCloseDialog = () => dispatch(closeDialog());
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const referralsOpen = pathname === '/referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
@@ -224,6 +235,17 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
+        <DeviceSettingsModal
+          dongleId={route.dialogDongleId}
+          isOpen={Boolean(canManage && ['settings', 'unpair'].includes(route.dialog))}
+          unpairOpen={Boolean(canManage && route.dialog === 'unpair')}
+          onClose={onCloseDialog}
+        />
+        {canManage && ['uploads', 'files', 'info'].includes(route.dialog) && (
+          <UploadQueue open={route.dialog === 'uploads'} update device={dialogDevice} onClose={onCloseDialog} />
+        )}
+        {profile && route.dialog === 'pair' && <AddDevice dialogOnly />}
+        {dongleId && route.dialog === 'filter' && <TimeSelect onClose={onCloseDialog} />}
         { bodyTeleopOpen ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
@@ -278,6 +300,7 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   pathname: state.router.location.pathname,
+  location: state.router.location,
   dongleId: state.dongleId,
   devices: state.devices,
   currentRoute: state.currentRoute,

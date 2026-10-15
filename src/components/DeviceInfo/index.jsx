@@ -16,6 +16,8 @@ import { subscribeWindowSize } from '../../hooks/window';
 import CommacareBadge from '../CommacareBadge';
 import ClipMenu from '../DriveView/ClipMenu';
 import { LivestreamIcon, CarBatteryIcon, CameraIcon, ContentCut, GamepadIcon } from '../../icons';
+import { openDialog, closeDialog } from '../../actions/dialogs';
+import { parseLocation } from '../../url';
 
 const styles = (theme) => ({
   container: {
@@ -153,11 +155,12 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
-      clipMenu: null,
+
       clipsSupported: false,
     };
 
     this.snapshotButtonRef = React.createRef();
+    this.clipButtonRef = React.createRef();
 
     this.onVisible = this.onVisible.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
@@ -190,7 +193,7 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
-        clipMenu: null,
+
         clipsSupported: false,
       });
       this.checkClipsSupport();
@@ -311,7 +314,7 @@ class DeviceInfo extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, dispatch, dongleId, dialog, clipFilename } = this.props;
     const { snapshot, windowWidth } = this.state;
     const commacare = device?.commacare;
 
@@ -319,50 +322,56 @@ class DeviceInfo extends Component {
 
     return (
       <>
-        <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
+        <VisibilityHandler onVisible={this.onVisible} onInit onDongleId minInterval={60} />
         <div className={`${classes.container} px-4`}>
           <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1 flex-wrap`}>
             <div className={`flex flex-row gap-4 items-center shrink-0`}>
               {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
               <Typography variant="title">{truncateName(deviceNamePretty(device))}</Typography>
             </div>
-            { this.renderButtons() }
+            {this.renderButtons()}
           </div>
         </div>
         <ClipMenu
-          open={Boolean(this.state.clipMenu)}
-          dongleId={this.props.dongleId}
-          anchorEl={this.state.clipMenu}
-          onClose={() => this.setState({ clipMenu: null })}
+          open={['clips', 'clip', 'delete-clip'].includes(dialog)}
+          dongleId={dongleId}
+          anchorEl={this.clipButtonRef.current}
+          onClose={() => dispatch(closeDialog())}
+          dialog={dialog}
+          clipFilename={clipFilename}
+          onOpenDialog={(nextDialog, clip) =>
+            dispatch(openDialog(nextDialog, dongleId, clip))
+          }
+          onCloseDialog={() => dispatch(closeDialog())}
           routes={this.props.routes}
           deviceOnline={deviceIsOnline(device)}
           inventoryOnly
         />
-        { snapshot.result && (
-          <div className={ classes.snapshotContainer }>
-            { windowWidth >= 640
+        {snapshot.result && (
+          <div className={classes.snapshotContainer}>
+            {windowWidth >= 640
               ? (
-                <div className={ classes.snapshotContainerLarge } style={{ padding: largeSnapshotPadding }}>
-                  <div className={ classes.snapshotImageContainerLarge }>
-                    { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
+                <div className={classes.snapshotContainerLarge} style={{ padding: largeSnapshotPadding }}>
+                  <div className={classes.snapshotImageContainerLarge}>
+                    {this.renderSnapshotImage(snapshot.result.jpegBack, false)}
                   </div>
-                  <div className={ classes.snapshotImageContainerLarge }>
-                    { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
+                  <div className={classes.snapshotImageContainerLarge}>
+                    {this.renderSnapshotImage(snapshot.result.jpegFront, true)}
                   </div>
                 </div>
               )
               : (
-                <div className={ classes.scrollSnapContainer }>
-                  <div className={ classes.scrollSnapItem }>
-                    { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
+                <div className={classes.scrollSnapContainer}>
+                  <div className={classes.scrollSnapItem}>
+                    {this.renderSnapshotImage(snapshot.result.jpegBack, false)}
                   </div>
-                  <div className={ classes.scrollSnapItem }>
-                    { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
+                  <div className={classes.scrollSnapItem}>
+                    {this.renderSnapshotImage(snapshot.result.jpegFront, true)}
                   </div>
                 </div>
               )}
           </div>
-          )}
+        )}
       </>
     );
   }
@@ -411,9 +420,10 @@ class DeviceInfo extends Component {
         >
           <span className="inline-flex">
             <button
+              ref={this.clipButtonRef}
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              onClick={() => this.props.dispatch(openDialog('clips', this.props.dongleId))}
               disabled={offline}
             >
               <ContentCut />
@@ -423,16 +433,16 @@ class DeviceInfo extends Component {
         {livestreamEnabled && (
           <Tooltip
             classes={{ tooltip: classes.popover }}
-            title={ bodyTeleopEnabled ? 'Teleop' : 'Livestream' }
+            title={bodyTeleopEnabled ? 'Teleop' : 'Livestream'}
             placement="bottom"
           >
             <button
-              aria-label={ bodyTeleopEnabled ? 'Teleop' : 'Livestream' }
+              aria-label={bodyTeleopEnabled ? 'Teleop' : 'Livestream'}
               className={`${classes.button} ${classes.carBattery}`}
-              onClick={ this.openBodyTeleop }
-              disabled={ offline }
+              onClick={this.openBodyTeleop}
+              disabled={offline}
             >
-              { bodyTeleopEnabled
+              {bodyTeleopEnabled
                 ? <GamepadIcon />
                 : <LivestreamIcon />}
             </button>
@@ -445,27 +455,27 @@ class DeviceInfo extends Component {
             placement="bottom"
           >
             <button
-              ref={ this.snapshotButtonRef }
+              ref={this.snapshotButtonRef}
               className={`${classes.button} ${classes.carBattery}`}
-              onClick={ this.takeSnapshot }
-              disabled={ Boolean(snapshot.fetching) || offline }
+              onClick={this.takeSnapshot}
+              disabled={Boolean(snapshot.fetching) || offline}
             >
-              { snapshot.fetching
-                ? <CircularProgress size={ 19 } />
+              {snapshot.fetching
+                ? <CircularProgress size={19} />
                 : <CameraIcon />}
             </button>
           </Tooltip>
         )}
         <div
-          className={ classes.carBattery }
-          style={ offline
+          className={classes.carBattery}
+          style={offline
             ? { background: Colors.grey400, color: Colors.lightGrey600 }
-            : { backgroundColor: batteryBackground } }
+            : { backgroundColor: batteryBackground }}
         >
-          { !offline ? (
+          {!offline ? (
             <>
               <CarBatteryIcon className="text-[20px] mr-1" />
-              <Typography className='w-[45px]'>{ batteryText }</Typography>
+              <Typography className='w-[45px]'>{batteryText}</Typography>
             </>
           ) : (
             <Tooltip
@@ -478,12 +488,12 @@ class DeviceInfo extends Component {
           )}
         </div>
         <Popper
-          className={ classes.popover }
-          open={ Boolean(error) }
+          className={classes.popover}
+          open={Boolean(error)}
           placement="bottom"
-          anchorEl={ this.snapshotButtonRef.current }
+          anchorEl={this.snapshotButtonRef.current}
         >
-          <Typography>{ error }</Typography>
+          <Typography>{error}</Typography>
         </Popper>
       </div>
     );
@@ -493,30 +503,37 @@ class DeviceInfo extends Component {
     const { classes } = this.props;
     if (!src) {
       return (
-        <div className={ classes.snapshotImageError }>
+        <div className={classes.snapshotImageError}>
           <Typography>
-            { isFront && 'Interior' }
+            {isFront && 'Interior'}
             {' '}
             snapshot not available
           </Typography>
-          { isFront
+          {isFront
             && (
-            <Typography>
-              Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots
-            </Typography>
+              <Typography>
+                Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots
+              </Typography>
             )}
         </div>
       );
     }
 
-    return (<img src={ `data:image/jpeg;base64,${src}` } className={ classes.snapshotImage } />);
+    return (<img src={`data:image/jpeg;base64,${src}`} className={classes.snapshotImage} />);
   }
 }
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
-  device: state.device,
-  routes: state.routes,
-});
+const stateToProps = (state) => {
+  const route = parseLocation(state.router.location);
+
+  return {
+    dongleId: state.dongleId,
+    device: state.device,
+    routes: state.routes,
+    dialog: route.dialogDongleId === state.dongleId
+      ? route.dialog : null,
+    clipFilename: route.clipFilename,
+  };
+};
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));

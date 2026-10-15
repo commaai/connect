@@ -6,6 +6,8 @@ export function hasRoutesData(state) {
     // new users without devices won't have segment metadata
     return true;
   }
+  // A single-drive lookup does not cover the dashboard's requested range.
+  if (state.routesMeta?.routeOnly) return false;
   if (!state.routesMeta || !state.routesMeta.dongleId || state.routesMeta.start === null
     || state.routesMeta.end === null) {
     console.debug('No routes data at all');

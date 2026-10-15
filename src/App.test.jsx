@@ -1,7 +1,8 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
-
+import { clipDevice } from './api/clips';
+import { ACTION_UPDATE_DEVICE_ONLINE } from './actions/types';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
@@ -34,10 +35,10 @@ vi.mock('react-map-gl', () => ({
   GeolocateControl: () => null,
   HTMLOverlay: () => null,
   Layer: () => null,
-  LinearInterpolator: class {},
+  LinearInterpolator: class { },
   Marker: ({ children }) => children,
   Source: ({ children }) => children,
-  WebMercatorViewport: class {},
+  WebMercatorViewport: class { },
 }));
 vi.mock('react-player/file', () => ({
   default: React.forwardRef((_props, ref) => {
@@ -55,12 +56,30 @@ vi.mock('react-player/file', () => ({
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
+vi.mock('./api/clips', () => ({
+  deviceSupportsClips: vi.fn(async () => Boolean(mocks.options.clips)),
+  clipDevice: {
+    getClipState: vi.fn(async () => ({
+      clips: mocks.options.clips || [],
+      cameras: {},
+    })),
+    hasClipBlob: vi.fn(async () => false),
+    getClipUrl: vi.fn(async () => 'blob:clip-preview'),
+    deleteClip: vi.fn(async () => ({})),
+  },
+}));
+
 const FIRST = 'aaaaaaaaaaaaaaaa';
 const SECOND = 'bbbbbbbbbbbbbbbb';
 const SHARED = 'cccccccccccccccc';
 const LOG = '2026-08-06--12-00-00';
 const RECENT_LOG = '2026-08-06--13-00-00';
 const START = Date.UTC(2026, 7, 6, 12);
+const DASHBOARD_CLIP = {
+  filename: 'example.mp4', requested_at: 1, status: 'ready',
+  camera: 'fcamera.hevc', route: LOG, source_start_time: 0,
+  source_end_time: 20, speedup: 1, size: 100,
+};
 
 const devices = [
   { alias: 'Zulu', dongle_id: FIRST, device_type: 'threex', is_owner: true, prime: false },
@@ -116,10 +135,14 @@ async function mockFetch(input, init = {}) {
     const dongleId = url.pathname.split('/')[3];
     return json({ alias: 'Shared device', dongle_id: dongleId, device_type: 'threex', is_owner: false, prime: false });
   }
-  if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
+  if (url.pathname.endsWith('/subscription')) return json(options.subscription ?? null);
+  if (url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const request = typeof init.body === 'string' ? JSON.parse(init.body) : {};
+    return json({ jsonrpc: '2.0', id: 0, result: request.method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -145,15 +168,34 @@ async function renderApp(pathname, options = {}) {
   return { ...view, history, store };
 }
 
+async function renderOnlineClipDashboard(pathname) {
+  const app = await renderApp(pathname, { clips: [DASHBOARD_CLIP] });
+  const now = Math.floor(Date.now() / 1000);
+  await act(async () => {
+    app.store.dispatch({
+      type: ACTION_UPDATE_DEVICE_ONLINE,
+      dongleId: FIRST,
+      last_athena_ping: now,
+      fetched_at: now,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  return app;
+}
+
 describe('whole-app behavior', () => {
   beforeAll(() => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
-    vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
+    vi.stubGlobal('IntersectionObserver', class { observe() { } disconnect() { } unobserve() { } });
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
     Object.defineProperty(window, 'visualViewport', { value: { height: 800 }, configurable: true });
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, value: vi.fn(() => null) });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
     Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
@@ -214,6 +256,103 @@ describe('whole-app behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(mocks.requests.some(({ url }) => url.includes('routes_segments'))).toBe(true);
+  });
+
+  test('dashboard clips open a viewer and return to the list', async () => {
+    const clip = DASHBOARD_CLIP;
+
+    const { history } = await renderOnlineClipDashboard(`/${FIRST}`);
+
+    const button = await screen.findByRole('button', { name: 'Clips' });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+
+    expect(new URLSearchParams(history.location.search).get('dialog'))
+      .toBe('clips');
+
+    const download = await screen.findByRole('button', {
+      name: 'Download clip',
+    });
+    fireEvent.click(download);
+
+    await waitFor(() => {
+      expect(document.querySelector('video'))
+        .toHaveAttribute('src', 'blob:clip-preview');
+    });
+
+    expect(clipDevice.getClipUrl).toHaveBeenCalledWith(
+      FIRST,
+      clip.filename,
+      clip.requested_at,
+      expect.any(Function),
+    );
+
+    const params = new URLSearchParams(history.location.search);
+    expect(params.get('dialog')).toBe('clip');
+    expect(params.get('clip')).toBe(clip.filename);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+
+    await waitFor(() => {
+      expect(new URLSearchParams(history.location.search).get('dialog'))
+        .toBe('clips');
+    });
+
+    expect(await screen.findByRole('button', { name: 'Play clip' }))
+      .toBeVisible();
+
+    await act(async () => history.goBack());
+
+    expect(await screen.findByRole('button', { name: 'Close video' }))
+      .toBeVisible();
+  });
+
+  test('dashboard clip opens from a direct URL and restores with Back', async () => {
+    const { history } = await renderOnlineClipDashboard(
+      `/${FIRST}?dialog=clip&clip=${DASHBOARD_CLIP.filename}`,
+    );
+    await waitFor(() => expect(document.querySelector('video'))
+      .toHaveAttribute('src', 'blob:clip-preview'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+
+    await act(async () => history.goBack());
+    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
+  });
+
+  test('dashboard deletion URL opens only a confirmation and restores with Back', async () => {
+    clipDevice.deleteClip.mockClear();
+    const { history } = await renderOnlineClipDashboard(
+      `/${FIRST}?dialog=delete-clip&clip=${DASHBOARD_CLIP.filename}`,
+    );
+    expect(await screen.findByRole('heading', { name: 'Delete clip?' })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete', exact: true })).toBeEnabled());
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+
+    await act(async () => history.goBack());
+    expect(await screen.findByRole('heading', { name: 'Delete clip?' })).toBeVisible();
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+  });
+
+  test('canceling dashboard clip deletion restores the list without deleting', async () => {
+    clipDevice.deleteClip.mockClear();
+    const { history } = await renderOnlineClipDashboard(`/${FIRST}`);
+    const button = await screen.findByRole('button', { name: 'Clips' });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete clip', exact: true }));
+
+    expect(await screen.findByRole('heading', { name: 'Delete clip?' })).toBeVisible();
+    expect(new URLSearchParams(history.location.search).get('dialog')).toBe('delete-clip');
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+
+    await waitFor(() => expect(new URLSearchParams(history.location.search).get('dialog')).toBe('clips'));
+    expect(await screen.findByRole('button', { name: 'Delete clip', exact: true })).toBeVisible();
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -303,4 +442,120 @@ describe('whole-app behavior', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
   });
+
+  test('a direct settings URL loads the device name and leaves its drive intact', async () => {
+    const { store } = await renderApp(`/${FIRST}/${LOG}/0/20?dialog=settings`);
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+    expect(screen.getByLabelText('Device name')).toHaveValue('Zulu');
+    expect(store.getState()).toMatchObject({ selectedRouteId: LOG, zoom: { start: 0, end: 20000 } });
+  });
+
+  test('settings for another device preserve the drive, cached data, and playback across history', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/0/20`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    const before = store.getState();
+    const routeRequests = mocks.requests.filter(({ url }) => url.includes('routes_segments')).length;
+    fireEvent.click(screen.getByRole('button', { name: 'menu' }));
+    fireEvent.click(await screen.findAllByRole('button', { name: 'device settings' }).then((buttons) => buttons[0]));
+    await screen.findByRole('heading', { name: 'Device settings' });
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/20`);
+    expect(history.location.search).toBe(`?dialog=settings&device=${SECOND}`);
+    expect(screen.getByLabelText('Device name')).toHaveValue('Alpha');
+    for (const key of ['routes', 'currentRoute', 'zoom', 'loop', 'offset', 'startTime', 'dongleId']) {
+      expect(store.getState()[key]).toBe(before[key]);
+    }
+    expect(mocks.requests.filter(({ url }) => url.includes('routes_segments'))).toHaveLength(routeRequests);
+    act(() => history.goBack());
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument());
+    act(() => history.goForward());
+    expect(await screen.findByRole('heading', { name: 'Device settings' })).toBeVisible();
+  });
+
+  test('unpair deep links open a confirmation without performing the operation', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=unpair`);
+    expect(await screen.findByRole('heading', { name: 'Unpair device' })).toBeVisible();
+    expect(mocks.requests.some(({ method }) => method !== 'GET')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+  });
+
+  test('nested confirmation returns to settings, including when restored with Back', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=settings`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Unpair' }));
+    expect(await screen.findByRole('heading', { name: 'Unpair device' })).toBeVisible();
+    expect(history.location.search).toBe('?dialog=unpair');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(history.location.search).toBe('?dialog=settings');
+    act(() => history.goBack());
+    expect(await screen.findByRole('heading', { name: 'Unpair device' })).toBeVisible();
+  });
+
+  test('filter and pairing dialogs are accessible from direct URLs', async () => {
+    const { history } = await renderApp(`/${FIRST}?dialog=filter`);
+    expect(await screen.findByRole('button', { name: 'Cancel' })).toBeVisible();
+    act(() => history.push(`/${FIRST}?dialog=pair`));
+    expect(await screen.findByRole('heading', { name: 'Pair device' })).toBeVisible();
+    expect(screen.getAllByRole('heading', { name: 'Pair device' })).toHaveLength(1);
+    act(() => history.goBack());
+    expect(await screen.findByRole('button', { name: 'Cancel' })).toBeVisible();
+  });
+
+  test('a settings URL cannot expose controls for a shared device', async () => {
+    await renderApp(`/${SHARED}?dialog=unpair`);
+    await screen.findByText('Mock recent route start');
+    expect(screen.queryByRole('button', { name: 'Confirm' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Device settings' })).not.toBeInTheDocument();
+  });
+
+  test('PUSH applies a different device to state as well as to the address', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    await screen.findByText('Mock recent route start');
+    act(() => history.push(`/${SECOND}/${LOG}/0/20`));
+    await waitFor(() => expect(store.getState().currentRoute?.fullname).toBe(`${SECOND}|${LOG}`));
+    expect(store.getState()).toMatchObject({ dongleId: SECOND, selectedRouteId: LOG, zoom: { start: 0, end: 20000 } });
+  });
+
+
+  test('uploads can open from a direct URL and close without changing its drive', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}/0/20?dialog=uploads`);
+    expect(await screen.findByText('Upload queue')).toBeVisible();
+    const before = store.getState().currentRoute;
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(history.location.search).toBe('');
+    expect(store.getState().currentRoute).toBe(before);
+  });
+
+  test.each([
+    ['prime-cancel', 'Cancel prime subscription'],
+    ['prime-switch', 'Switch to Lite plan'],
+  ])('%s deep link opens only a confirmation', async (dialog, title) => {
+    const { history } = await renderApp(`/${FIRST}/prime?dialog=${dialog}`, {
+      devices: devices.map((device) => ({ ...device, prime: true })),
+      subscription: { user_id: 'test-user', plan: 'data', amount: 2400, next_charge_at: 1800000000 },
+    });
+    expect(await screen.findByRole('heading', { name: title })).toBeVisible();
+    expect(mocks.requests.some(({ method }) => method !== 'GET')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: dialog === 'prime-cancel' ? 'Close' : 'Cancel', exact: true }));
+    expect(history.location.search).toBe('');
+    act(() => history.goBack());
+    expect(await screen.findByRole('heading', { name: title })).toBeVisible();
+  });
+
+
+  test('closing a cold drive loads dashboard data instead of mistaking a single route for the full list', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => history.push(`/${FIRST}`));
+    expect(await screen.findByText('Mock recent route start')).toBeVisible();
+    expect(store.getState().routesMeta.routeOnly).toBe(false);
+  });
+
+  test('a malformed range does not leave the previous drive visible', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    await screen.findByRole('slider', { name: 'Drive timeline' });
+    act(() => history.push(`/${FIRST}/${LOG}/NaN/20`));
+    expect(store.getState().selectedRouteId).toBeNull();
+    expect(store.getState().zoom).toBeNull();
+  });
+
 });

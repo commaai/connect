@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, parseLocation, pathFor, locationWithDialog } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -15,18 +15,10 @@ describe('URL pathname helpers', () => {
     expect(getDongleID(pathname)).toBe(expected);
   });
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
   it.each([
     [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
+    [`/${DONGLE}/0/20/ignored`, null],
+    [`/${DONGLE}/${LOG}/10/20`, null],
     [`/${DONGLE}/10`, null],
     ['/auth/code/provider', null],
   ])('getZoom(%s)', (pathname, expected) => {
@@ -68,4 +60,71 @@ describe('URL pathname helpers', () => {
   ])('getStreamNav(%s)', (pathname, expected) => {
     expect(getStreamNav(pathname)).toBe(expected);
   });
+});
+
+
+describe('route grammar', () => {
+  it.each([
+    '/', '/demo', '/referrals', `/${DONGLE}`, `/${DONGLE}/prime`, `/${DONGLE}/stream`,
+    `/${DONGLE}/${LOG}`, `/${DONGLE}/${LOG}/0/20`, `/${DONGLE}/${LOG}/0.123/1.234`,
+    `/${DONGLE}/1000/2000`,
+  ])('round-trips %s without losing zero or subsecond bounds', (pathname) => {
+    expect(pathFor(parseLocation(pathname))).toBe(pathname);
+  });
+
+  it.each([
+    `/prefix${DONGLE}`, `/${DONGLE}suffix/prime`, `/invalid/${LOG}`,
+    `/${DONGLE}/${LOG}/NaN/20`, `/${DONGLE}/${LOG}/-1/20`,
+    `/${DONGLE}/${LOG}/20/10`, `/${DONGLE}/${LOG}/10/10`,
+    `/${DONGLE}/${LOG}/1/Infinity`, `/${DONGLE}/${LOG}/1/2/extra`,
+    `/${DONGLE}/${LOG}/1e3/2000`, `/${DONGLE}/1000/`,
+  ])('rejects malformed routes rather than putting invalid bounds into state (%s)', (pathname) => {
+    expect(parseLocation(pathname)).toMatchObject({ page: 'unknown', dongleId: null, routeId: null, zoom: null });
+  });
+
+  it('keeps page context, hash, and unrelated arguments when opening and closing dialogs', () => {
+    const location = { pathname: `/${DONGLE}/${LOG}/0/20`, search: '?ci=1', hash: '#video' };
+    const settings = locationWithDialog(location, 'settings', '1111bbbb1111bbbb');
+    expect(parseLocation(settings)).toMatchObject({ page: 'drive', dialog: 'settings', dialogDongleId: '1111bbbb1111bbbb', zoom: { start: 0, end: 20000 } });
+    expect(locationWithDialog(settings, null)).toEqual(location);
+  });
+
+  it('does not recognize arbitrary dialogs or invalid device targets', () => {
+    expect(parseLocation({ pathname: `/${DONGLE}`, search: '?dialog=unknown' }).dialog).toBeNull();
+    expect(parseLocation({ pathname: '/', search: '?dialog=settings&device=bad' }).dialogDongleId).toBeNull();
+  });
+});
+
+describe('clip dialog URLs', () => {
+  it.each(['clips', 'clip', 'delete-clip'])(
+    'allows %s on dashboard and drive pages',
+    (dialog) => {
+      const paths = ['/', '/demo', `/${DONGLE}`, `/${DONGLE}/${LOG}`];
+
+      for (const pathname of paths) {
+        const route = parseLocation({
+          pathname,
+          search: `?dialog=${dialog}&device=${DONGLE}&clip=example.mp4`,
+        });
+
+        expect(route).toMatchObject({
+          dialog,
+          dialogDongleId: DONGLE,
+          clipFilename: 'example.mp4',
+        });
+      }
+    },
+  );
+
+  it.each(['clips', 'clip', 'delete-clip'])(
+    'rejects %s on Prime and stream pages',
+    (dialog) => {
+      for (const page of ['prime', 'stream']) {
+        expect(parseLocation({
+          pathname: `/${DONGLE}/${page}`,
+          search: `?dialog=${dialog}`,
+        }).dialog).toBeNull();
+      }
+    },
+  );
 });

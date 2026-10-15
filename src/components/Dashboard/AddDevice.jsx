@@ -9,6 +9,7 @@ import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
+import { openDialog, closeDialog } from '../../actions/dialogs';
 
 const styles = (theme) => ({
   titleContainer: {
@@ -101,7 +102,7 @@ class AddDevice extends Component {
     super(props);
 
     this.state = {
-      modalOpen: false,
+      modalOpen: Boolean(props.dialogOnly),
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -111,6 +112,7 @@ class AddDevice extends Component {
       canvasHeight: null,
     };
 
+    this.mounted = false;
     this.videoRef = null;
     this.detector = null;
     this.stream = null;
@@ -130,10 +132,12 @@ class AddDevice extends Component {
   }
 
   async componentDidMount() {
-    this.componentDidUpdate({}, {});
+    this.mounted = true;
+    if (this.props.dialogOnly) this.componentDidUpdate({}, {});
   }
 
   async componentDidUpdate() {
+    if (!this.props.dialogOnly || !this.mounted) return;
     const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
     let { hasCamera } = this.state;
 
@@ -141,9 +145,11 @@ class AddDevice extends Component {
     if (hasCamera === null) {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
+        if (!this.mounted) return;
         hasCamera = devices.some((d) => d.kind === 'videoinput');
         this.setState({ hasCamera });
       } catch {
+        if (!this.mounted) return;
         hasCamera = false;
         this.setState({ hasCamera });
       }
@@ -156,11 +162,18 @@ class AddDevice extends Component {
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
+        // A pending camera request may finish after navigation closes the dialog.
+        if (!this.mounted || !this.videoRef || !this.state.modalOpen) {
+          this.stream.getTracks().forEach((track) => track.stop());
+          this.stream = null;
+          return;
+        }
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
         this.startScanning();
       } catch (err) {
+        if (!this.mounted) return;
         let cameraError = 'Unable to access camera.';
         if (err.name === 'NotAllowedError') {
           cameraError = 'Camera access denied. Please allow camera access in your browser settings and try again.';
@@ -255,6 +268,7 @@ class AddDevice extends Component {
   }
 
   async componentWillUnmount() {
+    this.mounted = false;
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
@@ -299,6 +313,8 @@ class AddDevice extends Component {
     this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
+    } else {
+      this.props.dispatch(closeDialog());
     }
   }
 
@@ -370,7 +386,7 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    this.props.dispatch(openDialog('pair'));
   }
 
   render() {
@@ -379,12 +395,14 @@ class AddDevice extends Component {
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
-    return (
-      <>
+    const button = (
         <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
           { buttonText }
           { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
         </Button>
+    );
+    if (!this.props.dialogOnly) return button;
+    return (
         <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
@@ -437,7 +455,6 @@ class AddDevice extends Component {
               )}
           </Paper>
         </Modal>
-      </>
     );
   }
 }
