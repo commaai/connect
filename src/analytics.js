@@ -4,25 +4,16 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url';
+import { destinationFromUrl, urlForDestination } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
-  let pageLocation = pathname;
-  const dongleId = getDongleID(pageLocation);
-  if (dongleId) {
-    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
+  const destination = destinationFromUrl(pathname);
+  if (!destination.dongleId) {
+    return pathname.replace(/\/$/, '');
   }
-  const zoom = getZoom(pageLocation);
-  if (zoom) {
-    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
-    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
-  }
-
-  if (pageLocation.endsWith('/')) {
-    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
-  }
-  return pageLocation;
+  const pageLocation = urlForDestination({ ...destination, dongleId: '<dongleId>', range: null });
+  return destination.range ? `${pageLocation}/<zoomStart>/<zoomEnd>` : pageLocation;
 }
 
 const clusterMap = {
@@ -106,19 +97,6 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.TIMELINE_PUSH_SELECTION:
-      if (!prevState.zoom && state.zoom) {
-        params = {
-          ...params,
-          start: state.zoom.start,
-          end: state.zoom.end,
-        };
-        attachRelTime(params, 'start', true, 'h');
-        attachRelTime(params, 'end', true, 'h');
-        gtag('event', 'select_zoom', params);
-      }
-      return;
-
     case Types.ACTION_STARTUP_DATA:
       gtag('set', {
         user_id: state.profile?.user_id,
@@ -142,7 +120,21 @@ function logAction(action, prevState, state) {
       });
       return;
 
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_APPLY_DESTINATION:
+      if (!prevState.zoom && state.zoom) {
+        const zoomParams = {
+          ...params,
+          start: state.zoom.start,
+          end: state.zoom.end,
+        };
+        attachRelTime(zoomParams, 'start', true, 'h');
+        attachRelTime(zoomParams, 'end', true, 'h');
+        gtag('event', 'select_zoom', zoomParams);
+      }
+      if (prevState.dongleId === state.dongleId) {
+        return;
+      }
+
       gtag('event', 'select_device', {
         ...params,
         device_prime_type: state.device?.prime_type,

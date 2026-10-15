@@ -29,60 +29,46 @@ export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
-    case Types.ACTION_STARTUP_DATA: {
-      const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
-
-      if (!state.dongleId && devices.length > 0) {
-        state = {
-          ...state,
-          device: devices[0],
-        };
-      } else {
-        state = {
-          ...state,
-          device: devices.find((device) => device.dongle_id === state.dongleId),
-        };
-        if (!state.device) {
-          state.device = {
-            ...emptyDevice,
-            dongle_id: state.dongleId,
-          };
-        }
-      }
-      state.devices = devices;
+    case Types.ACTION_STARTUP_DATA:
+      state.devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
       state.profile = action.profile;
       break;
-    }
-    case Types.ACTION_SELECT_DEVICE:
-      state = {
-        ...state,
-        filter: getDefaultFilter(),
-        dongleId: action.dongleId,
-        primeNav: false,
-        streamNav: false,
-        subscription: null,
-        subscribeInfo: null,
-        files: null,
-        limit: 0,
-      };
-      window.localStorage.setItem('selectedDongleId', action.dongleId);
-      if (state.devices) {
-        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
-        if (!state.device || state.device.dongle_id !== action.dongleId) {
-          state.device = newDevice;
-        }
-      }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
-        state.routesMeta = {
-          dongleId: null,
-          start: null,
-          end: null,
+    case Types.ACTION_APPLY_DESTINATION: {
+      const { dongleId, routeId, range } = action;
+      if (dongleId !== state.dongleId) {
+        state = {
+          ...state,
+          dongleId,
+          device: state.devices.find((d) => d.dongle_id === dongleId) || (dongleId && { ...emptyDevice, dongle_id: dongleId }),
+          filter: getDefaultFilter(),
+          subscription: null,
+          subscribeInfo: null,
+          files: null,
+          limit: 0,
+          routes: null,
+          lastRoutes: null,
+          routesMeta: { dongleId: null, start: null, end: null },
         };
-        state.routes = null;
-        state.lastRoutes = null;
-        state.currentRoute = null;
       }
+
+      const currentRoute = (routeId && state.routes?.find((route) => route.log_id === routeId)) || null;
+      const target = routeId ? range || (currentRoute && { start: 0, end: currentRoute.duration }) : null;
+      const { zoom } = state;
+      if (routeId !== state.selectedRouteId) {
+        state.files = null;
+        state.zoom = target ? { ...target, previous: null } : null;
+      } else if (target?.start !== zoom?.start || target?.end !== zoom?.end) {
+        // keep loaded files when zooming into the current range
+        if (!target || !zoom || target.start < zoom.start || target.end > zoom.end) {
+          state.files = null;
+        }
+        const back = zoom?.previous?.start === target?.start && zoom?.previous?.end === target?.end;
+        state.zoom = back ? zoom.previous : target && { ...target, previous: zoom };
+      }
+      state.selectedRouteId = routeId;
+      state.currentRoute = currentRoute;
       break;
+    }
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
@@ -300,21 +286,6 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_PRIME_NAV:
-      state = {
-        ...state,
-        primeNav: action.primeNav,
-      };
-      if (action.primeNav) {
-        state.zoom = null;
-      }
-      break;
-    case Types.ACTION_STREAM_NAV:
-      state = {
-        ...state,
-        streamNav: action.streamNav,
-      };
-      break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
@@ -335,42 +306,6 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case Types.TIMELINE_POP_SELECTION:
-      if (state.zoom.previous) {
-        state.zoom = state.zoom.previous;
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
-        state.files = null;
-      }
-
-      state.selectedRouteId = action.log_id;
-      state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id) || null;
-      if (action.log_id) {
-        if (action.start != null && action.end != null) {
-          state.zoom = {
-            start: action.start,
-            end: action.end,
-            previous: state.zoom,
-          };
-        } else {
-          state.zoom = state.currentRoute ? {
-            start: 0,
-            end: state.currentRoute.duration,
-            previous: state.zoom,
-          } : null;
-          state.loop = null;
-        }
-      } else {
-        state.zoom = null;
-        state.loop = null;
-      }
-      break;
-    }
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),

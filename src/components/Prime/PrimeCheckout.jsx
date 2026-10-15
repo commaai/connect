@@ -8,7 +8,8 @@ import { deviceNamePretty } from '../../utils';
 import { billing as Billing } from '../../api';
 import Colors from '../../colors';
 import { subscribeWindowSize } from '../../hooks/window';
-import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions';
+import { analyticsEvent, primeFetchSubscription } from '../../actions';
+import { navigateTo } from '../../actions/history';
 import { CheckIcon, ErrorOutline, InfoOutline, KeyboardBackspaceIcon } from '../../icons';
 import CommacareIcon from '../../icons/commacare.png';
 import { COMMACARE_URL } from '../CommacareBadge';
@@ -248,13 +249,10 @@ class PrimeCheckout extends Component {
   }
 
   componentDidMount() {
-    const { dispatch, dongleId, device } = this.props;
     this.unsubscribeWindowSize = subscribeWindowSize(({ width, height }) => {
       this.setState({ windowWidth: width, windowHeight: height });
     });
-    if (dongleId) {
-      dispatch(primeFetchSubscription(dongleId, device));
-    }
+    this.props.dispatch(primeFetchSubscription());
     this.componentDidUpdate({});
   }
 
@@ -375,7 +373,7 @@ class PrimeCheckout extends Component {
     return (
       <div className={ classes.primeBox } style={ containerPadding }>
         <div className={ classes.primeHeader }>
-          <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false)) }>
+          <IconButton aria-label="Go Back" onClick={() => dispatch(navigateTo({})) }>
             <KeyboardBackspaceIcon />
           </IconButton>
           <div className={ classes.headerDevice }>

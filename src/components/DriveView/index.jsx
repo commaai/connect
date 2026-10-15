@@ -4,9 +4,10 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { navigateTo } from '../../actions/history';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
+import { urlForDestination } from '../../url';
 
 import Media from './Media';
 import Timeline from '../Timeline';
@@ -18,17 +19,11 @@ class DriveView extends Component {
   }
 
   onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
-    }
+    this.props.dispatch(navigateTo({ logId: currentRoute.log_id, range: zoom.previous }));
   }
 
   close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(navigateTo({}));
   }
 
   render() {
@@ -42,8 +37,7 @@ class DriveView extends Component {
       );
     }
 
-    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const backButtonDisabled = zoom.start === 0 && zoom.end === currentRoute.duration;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -80,7 +74,7 @@ class DriveView extends Component {
                 className="text-[1.5em] w-[2em] h-[2em]"
                 onClick={ filterRegularClick(this.close) }
                 aria-label="Close"
-                href={ `/${dongleId}` }
+                href={ urlForDestination({ dongleId }) }
               >
                 <CloseBold fontSize="inherit" />
               </IconButton>

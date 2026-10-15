@@ -4,12 +4,13 @@ import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
-import { pushTimelineRange } from '../../actions';
+import { navigateTo } from '../../actions/history';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
 import { RightArrow } from '../../icons';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
+import { urlForDestination } from '../../url';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Timeline from '../Timeline';
 
@@ -83,9 +84,7 @@ const DriveListItem = (props) => {
     };
   }, [drive, dispatch, isVisible, el]);
 
-  const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
-  );
+  const onClick = filterRegularClick(() => dispatch(navigateTo({ logId: drive.log_id })));
 
   const small = windowWidth < 580;
   const dateFormat = small ? 'ddd, MMM D' : 'dddd, MMM D';
@@ -119,7 +118,7 @@ const DriveListItem = (props) => {
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
+      href={urlForDestination({ page: 'drive', dongleId: drive.dongle_id, logId: drive.log_id })}
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
