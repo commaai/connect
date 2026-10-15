@@ -7,7 +7,7 @@ import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
-import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
+import { DownArrow, Forward10, Fullscreen, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
@@ -227,7 +227,7 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
+    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio, onFullscreenToggle } = this.props;
     const { displayTime, desiredPlaySpeed } = this.state;
     const isPaused = videoPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
@@ -309,6 +309,15 @@ class TimeDisplay extends Component {
             {isPaused
               ? (<PlayArrow className={classes.icon} />)
               : (<Pause className={classes.icon} />)}
+          </IconButton>
+        </div>
+        <div className={ classes.leftBorderBox }>
+          <IconButton
+            className={ classes.iconButton }
+            onClick={onFullscreenToggle}
+            aria-label="Fullscreen"
+          >
+            <Fullscreen className={`${classes.icon} small`} />
           </IconButton>
         </div>
       </div>
