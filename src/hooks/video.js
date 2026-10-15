@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
-import { getVideo, subscribeVideo } from '../timeline/video';
+import { getDriveVideo, subscribeDriveVideo } from '../timeline/video';
 
 const PAUSE_EVENTS = ['play', 'pause', 'emptied'];
 const RATE_EVENTS = ['ratechange', 'emptied'];
@@ -20,7 +20,7 @@ function isBuffering(video) {
   return hasSource && !canPlayAhead && !isPausedWithMetadata;
 }
 
-export const useVideo = () => useSyncExternalStore(subscribeVideo, getVideo);
+export const useVideo = () => useSyncExternalStore(subscribeDriveVideo, getDriveVideo);
 
 function useVideoValue(events, read, fallback) {
   const video = useVideo();

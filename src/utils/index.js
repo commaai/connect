@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import decodeJwt, { InvalidTokenError } from 'jwt-decode';
 
-import { getCurrentRouteMs } from '../timeline/routeTime';
+import { getPlayheadRouteMs } from '../timeline/routeTime';
 
 dayjs.extend(relativeTime);
 
@@ -176,7 +176,7 @@ export function segmentAtRouteMs(routeMs) {
   return Math.floor(routeMs / (60*1000));
 }
 
-export function getSegmentNumber(route, offset = getCurrentRouteMs(route?.videoStartOffset)) {
+export function getSegmentNumber(route, offset = getPlayheadRouteMs(route?.videoStartOffset)) {
   if (!route) {
     return null;
   }

@@ -10,9 +10,9 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { clampToLoop, getCurrentRouteMs, toVideoSeconds } from '../../timeline/routeTime';
+import { clampRouteMsToLoop, getPlayheadRouteMs, routeMsToVideoSeconds } from '../../timeline/routeTime';
 import { videoSeeked } from '../../timeline/playback';
-import { getPlaybackSpeed, getVideo } from '../../timeline/video';
+import { getEffectivePlaybackRate, getDriveVideo } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -212,12 +212,12 @@ class Timeline extends Component {
   }
 
   seekTo(routeMs) {
-    const video = getVideo();
+    const video = getDriveVideo();
     if (!video) return;
     const { dispatch, route, loop } = this.props;
-    const targetMs = clampToLoop(routeMs, loop);
-    video.currentTime = toVideoSeconds(route?.videoStartOffset, targetMs);
-    dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
+    const targetMs = clampRouteMsToLoop(routeMs, loop);
+    video.currentTime = routeMsToVideoSeconds(route?.videoStartOffset, targetMs);
+    dispatch(videoSeeked(targetMs, getEffectivePlaybackRate(video)));
   }
 
   handleClick(ev) {
@@ -278,7 +278,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const playheadMs = getCurrentRouteMs(route?.videoStartOffset);
+      const playheadMs = getPlayheadRouteMs(route?.videoStartOffset);
       const isPlayheadOutsideSelection = playheadMs < startOffset || playheadMs > endOffset;
       if (isPlayheadOutsideSelection) this.seekTo(startOffset);
       const { dispatch } = this.props;
@@ -307,7 +307,7 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    const routeMs = Math.floor(getCurrentRouteMs(this.props.route?.videoStartOffset));
+    const routeMs = Math.floor(getPlayheadRouteMs(this.props.route?.videoStartOffset));
     const percent = this.offsetToPercent(routeMs);
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;

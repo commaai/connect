@@ -9,9 +9,9 @@ import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { useVideo, useVideoMuted, useVideoPaused, useVideoPlaybackRate, useVideoTime } from '../../hooks/video';
-import { clampToLoop, getCurrentRouteMs, toRouteMs, toVideoSeconds } from '../../timeline/routeTime';
+import { clampRouteMsToLoop, getPlayheadRouteMs, videoSecondsToRouteMs, routeMsToVideoSeconds } from '../../timeline/routeTime';
 import { videoPaused, videoPlayed, videoSeeked } from '../../timeline/playback';
-import { getPlaybackSpeed, playIgnoringInterruptions, setPlaybackRate } from '../../timeline/video';
+import { getEffectivePlaybackRate, playIgnoringInterruptions, setPlaybackRate } from '../../timeline/video';
 import { segmentAtRouteMs } from '../../utils';
 import { playsHlsNatively } from '../../utils/browser.js';
 
@@ -117,7 +117,7 @@ function speedStepIndex(playbackRate) {
 }
 
 function usePlaybackTimeText(routeStartMs, videoStartOffset) {
-  const format = (videoSeconds) => formatPlaybackTime(routeStartMs, toRouteMs(videoStartOffset, videoSeconds));
+  const format = (videoSeconds) => formatPlaybackTime(routeStartMs, videoSecondsToRouteMs(videoStartOffset, videoSeconds));
   return useVideoTime(format, format(0));
 }
 
@@ -202,14 +202,14 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
 
   const handleJump = (amount) => {
     if (!video) return;
-    const targetMs = clampToLoop(getCurrentRouteMs(videoStartOffset) + amount, loop);
-    video.currentTime = toVideoSeconds(videoStartOffset, targetMs);
-    dispatch(videoSeeked(targetMs, getPlaybackSpeed(video)));
+    const targetMs = clampRouteMsToLoop(getPlayheadRouteMs(videoStartOffset) + amount, loop);
+    video.currentTime = routeMsToVideoSeconds(videoStartOffset, targetMs);
+    dispatch(videoSeeked(targetMs, getEffectivePlaybackRate(video)));
   };
 
   const play = () => {
     playIgnoringInterruptions(video);
-    dispatch(videoPlayed(getCurrentRouteMs(videoStartOffset), getPlaybackSpeed(video)));
+    dispatch(videoPlayed(getPlayheadRouteMs(videoStartOffset), getEffectivePlaybackRate(video)));
   };
 
   const makeHandleSpeedChange = (steps) => () => {
@@ -224,7 +224,7 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     if (!video) return;
     if (video.paused) return play();
     video.pause();
-    dispatch(videoPaused(getCurrentRouteMs(videoStartOffset), getPlaybackSpeed(video)));
+    dispatch(videoPaused(getPlayheadRouteMs(videoStartOffset), getEffectivePlaybackRate(video)));
   };
 
   const handleMuteToggle = () => {

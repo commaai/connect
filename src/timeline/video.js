@@ -1,16 +1,16 @@
 let video = null;
 const listeners = new Set();
 
-export function setVideo(element) {
+export function setDriveVideo(element) {
   video = element;
   for (const listener of listeners) {
     listener();
   }
 }
 
-export const getVideo = () => video;
+export const getDriveVideo = () => video;
 
-export function getPlaybackSpeed(element) {
+export function getEffectivePlaybackRate(element) {
   if (element.paused) return 0;
   return element.playbackRate;
 }
@@ -27,7 +27,7 @@ export function playIgnoringInterruptions(element) {
   });
 }
 
-export function subscribeVideo(listener) {
+export function subscribeDriveVideo(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }

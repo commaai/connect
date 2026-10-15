@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
-import { getCurrentRouteMs } from '../../timeline/routeTime';
+import { getPlayheadRouteMs } from '../../timeline/routeTime';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
@@ -95,7 +95,7 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const routeMs = getCurrentRouteMs(this.props.currentRoute.videoStartOffset);
+        const routeMs = getPlayheadRouteMs(this.props.currentRoute.videoStartOffset);
         const hasJumped = this.lastRouteMs !== null && Math.abs(routeMs - this.lastRouteMs) > SEEK_JUMP_MS;
         if (hasJumped) this.shouldFlyTo = true;
         this.lastRouteMs = routeMs;

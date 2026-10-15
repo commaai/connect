@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect } from 'react';
 
-import { setPlaybackRate, setVideo } from '../../timeline/video';
+import { setPlaybackRate, setDriveVideo } from '../../timeline/video';
 import { useVideo, useVideoEvent } from '../../hooks/video';
 import { playsHlsNatively } from '../../utils/browser.js';
 import { mediaErrorKind } from '../../utils/media';
@@ -89,7 +89,7 @@ export default function Video({ src, startPosition, onError, onHasAudioChange, .
   return (
     <>
       <video
-        ref={setVideo}
+        ref={setDriveVideo}
         preload="auto"
         playsInline
         webkit-playsinline=""

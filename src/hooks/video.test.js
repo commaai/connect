@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 
-import { setVideo } from '../timeline/video';
+import { setDriveVideo } from '../timeline/video';
 import { useVideoBuffering, useVideoFrame, useVideoMuted, useVideoPaused, useVideoPlaybackRate } from './video';
 
 function createVideo(values) {
@@ -19,7 +19,7 @@ function dispatch(video, type) {
 }
 
 afterEach(() => {
-  act(() => setVideo(null));
+  act(() => setDriveVideo(null));
   vi.restoreAllMocks();
 });
 
@@ -31,7 +31,7 @@ describe('video hooks', () => {
 
   it('follows only the events of the value it reads', () => {
     const video = createVideo({ paused: true, playbackRate: 1, muted: true });
-    act(() => setVideo(video));
+    act(() => setDriveVideo(video));
     let renders = 0;
     const { result } = renderHook(() => {
       renders += 1;
@@ -50,7 +50,7 @@ describe('video hooks', () => {
 
   it('only buffers while playing once metadata has loaded', () => {
     const video = createVideo({ paused: true, networkState: 2, readyState: 1 });
-    act(() => setVideo(video));
+    act(() => setDriveVideo(video));
     const { result } = renderHook(() => useVideoBuffering());
     expect(result.current).toBe(false);
 
@@ -64,7 +64,7 @@ describe('video hooks', () => {
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((frame) => frames.push(frame));
     const cancel = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
     const video = createVideo({ currentTime: 12 });
-    act(() => setVideo(video));
+    act(() => setDriveVideo(video));
     const callback = vi.fn();
 
     const { unmount } = renderHook(() => useVideoFrame(callback));

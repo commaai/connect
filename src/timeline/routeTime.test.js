@@ -1,29 +1,29 @@
-import { clampToLoop, toRouteMs, toVideoSeconds } from './routeTime';
+import { clampRouteMsToLoop, videoSecondsToRouteMs, routeMsToVideoSeconds } from './routeTime';
 
 const videoStartOffset = 2000;
 const loop = { startTime: 10000, duration: 5000 };
 
 describe('route time', () => {
   it('converts between video seconds and route milliseconds', () => {
-    expect(toRouteMs(videoStartOffset, 3)).toBe(5000);
-    expect(toVideoSeconds(videoStartOffset, 5000)).toBe(3);
+    expect(videoSecondsToRouteMs(videoStartOffset, 3)).toBe(5000);
+    expect(routeMsToVideoSeconds(videoStartOffset, 5000)).toBe(3);
   });
 
   it('maps times before the first video frame to the start of the video', () => {
-    expect(toVideoSeconds(videoStartOffset, 1000)).toBe(0);
+    expect(routeMsToVideoSeconds(videoStartOffset, 1000)).toBe(0);
   });
 
   it('treats a missing video start offset as zero', () => {
-    expect(toRouteMs(undefined, 3)).toBe(3000);
+    expect(videoSecondsToRouteMs(undefined, 3)).toBe(3000);
   });
 
   it('clamps times into the loop', () => {
-    expect(clampToLoop(5000, loop)).toBe(10000);
-    expect(clampToLoop(12000, loop)).toBe(12000);
-    expect(clampToLoop(20000, loop)).toBe(15000);
+    expect(clampRouteMsToLoop(5000, loop)).toBe(10000);
+    expect(clampRouteMsToLoop(12000, loop)).toBe(12000);
+    expect(clampRouteMsToLoop(20000, loop)).toBe(15000);
   });
 
   it('leaves times untouched without a loop', () => {
-    expect(clampToLoop(20000, null)).toBe(20000);
+    expect(clampRouteMsToLoop(20000, null)).toBe(20000);
   });
 });

@@ -3,8 +3,8 @@ import { Button, CircularProgress, Typography } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { getVideo, playIgnoringInterruptions } from '../../timeline/video';
-import { toClampedTimestamp, toRouteMs, toVideoSeconds } from '../../timeline/routeTime';
+import { getDriveVideo, playIgnoringInterruptions } from '../../timeline/video';
+import { findLoopSeekTarget, videoSecondsToRouteMs, routeMsToVideoSeconds } from '../../timeline/routeTime';
 import { useVideoBuffering, useVideoEvent, useVideoFrame } from '../../hooks/video';
 import Video from './Video';
 
@@ -85,29 +85,29 @@ function loopContainsVideo(video, videoStartOffset, loopStart, loopDuration) {
   if (!video) return false;
   if (!loopDuration) return false;
   const loopEnd = loopStart + loopDuration;
-  const videoStartMs = toRouteMs(videoStartOffset, 0);
-  const videoEndMs = toRouteMs(videoStartOffset, video.duration);
+  const videoStartMs = videoSecondsToRouteMs(videoStartOffset, 0);
+  const videoEndMs = videoSecondsToRouteMs(videoStartOffset, video.duration);
   return loopEnd > videoStartMs && loopStart < videoEndMs;
 }
 
 function useLoopBounds(videoStartOffset, loopStart, loopDuration) {
   const handleFrame = useCallback((videoSeconds) => {
-    const video = getVideo();
+    const video = getDriveVideo();
     if (!loopContainsVideo(video, videoStartOffset, loopStart, loopDuration)) return;
     if (video.readyState < video.HAVE_FUTURE_DATA) return;
 
-    const routeMs = toRouteMs(videoStartOffset, videoSeconds);
-    const target = toClampedTimestamp(routeMs, loopStart, loopStart + loopDuration, video.paused);
+    const routeMs = videoSecondsToRouteMs(videoStartOffset, videoSeconds);
+    const target = findLoopSeekTarget(routeMs, loopStart, loopStart + loopDuration, video.paused);
     if (target === null) return;
 
-    video.currentTime = toVideoSeconds(videoStartOffset, target);
+    video.currentTime = routeMsToVideoSeconds(videoStartOffset, target);
   }, [videoStartOffset, loopStart, loopDuration]);
 
   const handleEnded = useCallback(() => {
-    const video = getVideo();
+    const video = getDriveVideo();
     if (!loopContainsVideo(video, videoStartOffset, loopStart, loopDuration)) return;
 
-    video.currentTime = toVideoSeconds(videoStartOffset, loopStart);
+    video.currentTime = routeMsToVideoSeconds(videoStartOffset, loopStart);
     playIgnoringInterruptions(video);
   }, [videoStartOffset, loopStart, loopDuration]);
 
@@ -121,7 +121,7 @@ function useStartPosition(startPosition) {
   useEffect(() => {
     const previousStart = previousStartRef.current;
     previousStartRef.current = startPosition;
-    const video = getVideo();
+    const video = getDriveVideo();
     const isStillAtPreviousStart = video?.currentTime === previousStart;
     if (!isStillAtPreviousStart) return;
     video.currentTime = startPosition;
@@ -132,7 +132,7 @@ export default function DriveVideo({ src, route, loop, ...props }) {
   const videoStartOffset = route?.videoStartOffset;
   const loopStart = loop?.startTime;
   const loopDuration = loop?.duration;
-  const startPosition = toVideoSeconds(videoStartOffset, loopStart ?? 0);
+  const startPosition = routeMsToVideoSeconds(videoStartOffset, loopStart ?? 0);
 
   const buffering = useVideoBuffering();
   const { error, retry, handleError } = usePlaybackError(src);
