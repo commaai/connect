@@ -197,17 +197,14 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export const selectDevice = (dongleId) => (dispatch, getState) => {
-  const target = dongleId ? `/${dongleId}` : '/';
-  if (getState().router.location.pathname !== target) dispatch(push(target));
-}
-
-export const pageNav = (page, dongleId) => (dispatch, getState) => {
+export const navigateTo = (page, dongleId) => (dispatch, getState) => {
   const state = getState();
-  const targetDongleId = dongleId || state.dongleId;
-  if (!targetDongleId) return;
-  const targetPath = `/${targetDongleId}${page ? `/${page}` : ''}`;
-  if (state.router.location.pathname !== targetPath) dispatch(push(targetPath));
+  const deviceId = dongleId || state.dongleId;
+  if (!deviceId && page !== 'dashboard') return;
+
+  const dashboardPath = deviceId ? `/${deviceId}` : '/';
+  const target = page === 'dashboard' ? dashboardPath : `${dashboardPath}/${page}`;
+  if (state.router.location.pathname !== target) dispatch(push(target));
 }
 
 export function fetchSharedDevice(dongleId) {

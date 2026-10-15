@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { pushTimelineRange, selectDevice } from '../../actions';
+import { pushTimelineRange, navigateTo } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -58,7 +58,7 @@ class DriveView extends Component {
               </div>
               <IconButton
                 className="text-[1.5em] w-[2em] h-[2em]"
-                onClick={ filterRegularClick(() => dispatch(selectDevice(dongleId))) }
+                onClick={ filterRegularClick(() => dispatch(navigateTo('dashboard', dongleId))) }
                 aria-label="Close"
                 href={ `/${dongleId}` }
               >

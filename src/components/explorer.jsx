@@ -15,7 +15,7 @@ import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
 import FullPageLoading from './FullPageLoading';
 
-import { analyticsEvent, selectDevice, updateDevices, pageNav } from '../actions';
+import { analyticsEvent, updateDevices, navigateTo } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -165,7 +165,7 @@ class ExplorerApp extends Component {
     const { pairDongleId } = this.state;
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      this.props.dispatch(navigateTo('dashboard', pairDongleId));
     }
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
@@ -214,7 +214,7 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.app}>
         { bodyTeleopOpen ? (
-          <BodyTeleop onClose={() => dispatch(pageNav()) } />
+          <BodyTeleop onClose={() => dispatch(navigateTo('dashboard')) } />
         ) : (
           <>
             <AppHeader
@@ -233,7 +233,7 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(selectDevice(dongleId))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(navigateTo('dashboard', dongleId))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : (page === 'drive' ? <DriveView /> : <Dashboard primeNav={page === 'prime'} />)}
@@ -263,7 +263,7 @@ class ExplorerApp extends Component {
           <DeviceSettingsModal
             key={dongleId}
             dongleId={dongleId}
-            onClose={() => dispatch(pageNav())}
+            onClose={() => dispatch(navigateTo('dashboard'))}
           />
         )}
       </div>

@@ -14,7 +14,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { updateDevice, pageNav } from '../../actions';
+import { updateDevice, navigateTo } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -216,7 +216,7 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    this.props.dispatch(pageNav('prime', this.props.dongleId));
+    this.props.dispatch(navigateTo('prime', this.props.dongleId));
   }
 
   async unpairDevice() {

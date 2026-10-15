@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { connect } from 'react-redux';
 import { push } from 'connected-react-router';
 
-import { pageNav } from '../../actions';
+import { navigateTo } from '../../actions';
 import Notification from '../Notification';
 
 // Change the campaign ID to make a new referral promotion appear again.
@@ -41,7 +41,7 @@ const Promotions = ({ device, dispatch }) => {
             : 'Put your car on the internet with comma prime'}
           buttonText="sign up"
           buttonClassName="primeSignUp"
-          onButtonClick={() => dispatch(pageNav('prime'))}
+          onButtonClick={() => dispatch(navigateTo('prime'))}
           dismissLabel="Dismiss prime promotion"
           onDismiss={() => setPrimeDismissed(true)}
         />

@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { createMemoryHistory } from 'history';
 
 import App from './App';
-import { pageNav, pushTimelineRange } from './actions';
+import { navigateTo, pushTimelineRange } from './actions';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
@@ -290,16 +290,16 @@ describe('whole-app behavior', () => {
     ['Prime', 'prime', `/${FIRST}/prime`],
     ['stream', 'stream', `/${FIRST}/stream`],
     ['settings', 'settings', `/${FIRST}/settings`],
-    ['dashboard', undefined, `/${FIRST}`],
+    ['dashboard', 'dashboard', `/${FIRST}`],
   ])('navigates to %s', async (_name, page, expected) => {
-    const { history, store } = await renderApp(page ? `/${FIRST}` : `/${FIRST}/prime`);
-    act(() => store.dispatch(pageNav(page)));
+    const { history, store } = await renderApp(page === 'dashboard' ? `/${FIRST}/prime` : `/${FIRST}`);
+    act(() => store.dispatch(navigateTo(page)));
     expect(history.location.pathname).toBe(expected);
   });
 
   test('navigates to another device settings', async () => {
     const { history, store } = await renderApp(`/${FIRST}`);
-    act(() => store.dispatch(pageNav('settings', SECOND)));
+    act(() => store.dispatch(navigateTo('settings', SECOND)));
     expect(history.location.pathname).toBe(`/${SECOND}/settings`);
     await waitFor(() => expect(store.getState().dongleId).toBe(SECOND));
     expect(await screen.findByText('Device settings')).toBeVisible();

@@ -7,7 +7,7 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
-import { updateDevices, pageNav } from '../../actions';
+import { updateDevices, navigateTo } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
@@ -95,7 +95,7 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.props.dispatch(pageNav('settings', dongleId));
+    this.props.dispatch(navigateTo('settings', dongleId));
   }
 
   async onVisible() {
