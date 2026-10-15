@@ -129,6 +129,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -421,12 +422,8 @@ class DeviceSettingsModal extends Component {
   }
 }
 
-const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
-    || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
-  return {
-    device: device?.is_owner || state.profile?.superuser ? device : null,
-  };
-};
+const stateToProps = (state) => ({
+  device: state.device?.is_owner || state.profile?.superuser ? state.device : null,
+});
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));
