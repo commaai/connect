@@ -1,7 +1,8 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
-
+import { clipDevice } from './api/clips';
+import { ACTION_UPDATE_DEVICE_ONLINE } from './actions/types';
 import App from './App';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
@@ -34,10 +35,10 @@ vi.mock('react-map-gl', () => ({
   GeolocateControl: () => null,
   HTMLOverlay: () => null,
   Layer: () => null,
-  LinearInterpolator: class {},
+  LinearInterpolator: class { },
   Marker: ({ children }) => children,
   Source: ({ children }) => children,
-  WebMercatorViewport: class {},
+  WebMercatorViewport: class { },
 }));
 vi.mock('react-player/file', () => ({
   default: React.forwardRef((_props, ref) => {
@@ -55,12 +56,30 @@ vi.mock('react-player/file', () => ({
 }));
 vi.mock('barcode-detector/ponyfill', () => ({ BarcodeDetector: class { detect() { return []; } } }));
 
+vi.mock('./api/clips', () => ({
+  deviceSupportsClips: vi.fn(async () => Boolean(mocks.options.clips)),
+  clipDevice: {
+    getClipState: vi.fn(async () => ({
+      clips: mocks.options.clips || [],
+      cameras: {},
+    })),
+    hasClipBlob: vi.fn(async () => false),
+    getClipUrl: vi.fn(async () => 'blob:clip-preview'),
+    deleteClip: vi.fn(async () => ({})),
+  },
+}));
+
 const FIRST = 'aaaaaaaaaaaaaaaa';
 const SECOND = 'bbbbbbbbbbbbbbbb';
 const SHARED = 'cccccccccccccccc';
 const LOG = '2026-08-06--12-00-00';
 const RECENT_LOG = '2026-08-06--13-00-00';
 const START = Date.UTC(2026, 7, 6, 12);
+const DASHBOARD_CLIP = {
+  filename: 'example.mp4', requested_at: 1, status: 'ready',
+  camera: 'fcamera.hevc', route: LOG, source_start_time: 0,
+  source_end_time: 20, speedup: 1, size: 100,
+};
 
 const devices = [
   { alias: 'Zulu', dongle_id: FIRST, device_type: 'threex', is_owner: true, prime: false },
@@ -149,15 +168,34 @@ async function renderApp(pathname, options = {}) {
   return { ...view, history, store };
 }
 
+async function renderOnlineClipDashboard(pathname) {
+  const app = await renderApp(pathname, { clips: [DASHBOARD_CLIP] });
+  const now = Math.floor(Date.now() / 1000);
+  await act(async () => {
+    app.store.dispatch({
+      type: ACTION_UPDATE_DEVICE_ONLINE,
+      dongleId: FIRST,
+      last_athena_ping: now,
+      fetched_at: now,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  return app;
+}
+
 describe('whole-app behavior', () => {
   beforeAll(() => {
     vi.stubGlobal('fetch', vi.fn(mockFetch));
     vi.stubGlobal('PointerEvent', MouseEvent);
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
-    vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} });
+    vi.stubGlobal('IntersectionObserver', class { observe() { } disconnect() { } unobserve() { } });
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
     Object.defineProperty(window, 'visualViewport', { value: { height: 800 }, configurable: true });
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, value: vi.fn(() => null) });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
     Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
       configurable: true,
       value: () => ({ bottom: 100, height: 100, left: 0, right: 1000, top: 0, width: 1000, x: 0, y: 0 }),
@@ -218,6 +256,103 @@ describe('whole-app behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(mocks.requests.some(({ url }) => url.includes('routes_segments'))).toBe(true);
+  });
+
+  test('dashboard clips open a viewer and return to the list', async () => {
+    const clip = DASHBOARD_CLIP;
+
+    const { history } = await renderOnlineClipDashboard(`/${FIRST}`);
+
+    const button = await screen.findByRole('button', { name: 'Clips' });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+
+    expect(new URLSearchParams(history.location.search).get('dialog'))
+      .toBe('clips');
+
+    const download = await screen.findByRole('button', {
+      name: 'Download clip',
+    });
+    fireEvent.click(download);
+
+    await waitFor(() => {
+      expect(document.querySelector('video'))
+        .toHaveAttribute('src', 'blob:clip-preview');
+    });
+
+    expect(clipDevice.getClipUrl).toHaveBeenCalledWith(
+      FIRST,
+      clip.filename,
+      clip.requested_at,
+      expect.any(Function),
+    );
+
+    const params = new URLSearchParams(history.location.search);
+    expect(params.get('dialog')).toBe('clip');
+    expect(params.get('clip')).toBe(clip.filename);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+
+    await waitFor(() => {
+      expect(new URLSearchParams(history.location.search).get('dialog'))
+        .toBe('clips');
+    });
+
+    expect(await screen.findByRole('button', { name: 'Play clip' }))
+      .toBeVisible();
+
+    await act(async () => history.goBack());
+
+    expect(await screen.findByRole('button', { name: 'Close video' }))
+      .toBeVisible();
+  });
+
+  test('dashboard clip opens from a direct URL and restores with Back', async () => {
+    const { history } = await renderOnlineClipDashboard(
+      `/${FIRST}?dialog=clip&clip=${DASHBOARD_CLIP.filename}`,
+    );
+    await waitFor(() => expect(document.querySelector('video'))
+      .toHaveAttribute('src', 'blob:clip-preview'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close video' }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+
+    await act(async () => history.goBack());
+    expect(await screen.findByRole('button', { name: 'Close video' })).toBeVisible();
+  });
+
+  test('dashboard deletion URL opens only a confirmation and restores with Back', async () => {
+    clipDevice.deleteClip.mockClear();
+    const { history } = await renderOnlineClipDashboard(
+      `/${FIRST}?dialog=delete-clip&clip=${DASHBOARD_CLIP.filename}`,
+    );
+    expect(await screen.findByRole('heading', { name: 'Delete clip?' })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete', exact: true })).toBeEnabled());
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+
+    await act(async () => history.goBack());
+    expect(await screen.findByRole('heading', { name: 'Delete clip?' })).toBeVisible();
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+  });
+
+  test('canceling dashboard clip deletion restores the list without deleting', async () => {
+    clipDevice.deleteClip.mockClear();
+    const { history } = await renderOnlineClipDashboard(`/${FIRST}`);
+    const button = await screen.findByRole('button', { name: 'Clips' });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete clip', exact: true }));
+
+    expect(await screen.findByRole('heading', { name: 'Delete clip?' })).toBeVisible();
+    expect(new URLSearchParams(history.location.search).get('dialog')).toBe('delete-clip');
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+
+    await waitFor(() => expect(new URLSearchParams(history.location.search).get('dialog')).toBe('clips'));
+    expect(await screen.findByRole('button', { name: 'Delete clip', exact: true })).toBeVisible();
+    expect(clipDevice.deleteClip).not.toHaveBeenCalled();
   });
 
   test.each([

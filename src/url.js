@@ -5,7 +5,10 @@ const logIdRegex = /^[a-f0-9-]{20}$/;
 const dialogPages = {
   settings: null, uploads: null, unpair: null, pair: null,
   filter: ['home', 'demo', 'device'],
-  files: ['drive'], info: ['drive'], clips: ['drive'], clip: ['drive'], 'delete-clip': ['drive'],
+  files: ['drive'], info: ['drive'],
+  clips: ['home', 'demo', 'device', 'drive'],
+  clip: ['home', 'demo', 'device', 'drive'],
+  'delete-clip': ['home', 'demo', 'device', 'drive'],
   'prime-cancel': ['prime'], 'prime-switch': ['prime'],
 };
 

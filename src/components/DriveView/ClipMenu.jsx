@@ -563,8 +563,9 @@ class ClipMenu extends Component {
 
     return (
       <>
-        <Menu
-          open={open && !['clip', 'delete-clip'].includes(this.props.dialog)}
+        {/* Mount only the active overlay so stale modal state cannot hide the next one. */}
+        {open && !['clip', 'delete-clip'].includes(this.props.dialog) && <Menu
+          open
           anchorEl={anchorEl}
           onClose={onClose}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -652,9 +653,9 @@ class ClipMenu extends Component {
             {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Device offline'}</Typography>}
             {!loading && clips.map(clip => this.renderClip(clip))}
           </div>
-        </Menu>
-        {this.renderViewer()}
-        {this.renderDeleteConfirmation()}
+        </Menu>}
+        {open && this.props.dialog === 'clip' && this.renderViewer()}
+        {open && this.props.dialog === 'delete-clip' && this.renderDeleteConfirmation()}
       </>
     );
   }

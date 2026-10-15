@@ -94,3 +94,37 @@ describe('route grammar', () => {
     expect(parseLocation({ pathname: '/', search: '?dialog=settings&device=bad' }).dialogDongleId).toBeNull();
   });
 });
+
+describe('clip dialog URLs', () => {
+  it.each(['clips', 'clip', 'delete-clip'])(
+    'allows %s on dashboard and drive pages',
+    (dialog) => {
+      const paths = ['/', '/demo', `/${DONGLE}`, `/${DONGLE}/${LOG}`];
+
+      for (const pathname of paths) {
+        const route = parseLocation({
+          pathname,
+          search: `?dialog=${dialog}&device=${DONGLE}&clip=example.mp4`,
+        });
+
+        expect(route).toMatchObject({
+          dialog,
+          dialogDongleId: DONGLE,
+          clipFilename: 'example.mp4',
+        });
+      }
+    },
+  );
+
+  it.each(['clips', 'clip', 'delete-clip'])(
+    'rejects %s on Prime and stream pages',
+    (dialog) => {
+      for (const page of ['prime', 'stream']) {
+        expect(parseLocation({
+          pathname: `/${DONGLE}/${page}`,
+          search: `?dialog=${dialog}`,
+        }).dialog).toBeNull();
+      }
+    },
+  );
+});
