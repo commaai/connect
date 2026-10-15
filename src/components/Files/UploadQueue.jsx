@@ -138,8 +138,6 @@ class UploadQueue extends Component {
       this.uploadQueue(this.props.update);
     } else if (this.props.update && prevProps.device.dongle_id !== this.props.device.dongle_id) {
       this.uploadQueue(true);
-    } else if (this.props.update && prevProps.filesUploading !== this.props.filesUploading) {
-      this.uploadQueue(Boolean(Object.keys(this.props.filesUploading).length));
     }
   }
 
