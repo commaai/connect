@@ -1,5 +1,7 @@
 import { getVideo } from './video';
 
+const SEEK_PRECISION_MS = 1;
+
 export function toRouteMs(videoStartOffset, videoSeconds) {
   return videoSeconds * 1000 + (videoStartOffset ?? 0);
 }
@@ -18,6 +20,14 @@ export function clampToLoop(routeMs, loop) {
   if (!loop?.duration) return routeMs;
   const loopEnd = loop.startTime + loop.duration;
   return Math.min(Math.max(routeMs, loop.startTime), loopEnd);
+}
+
+export function loopTarget(routeMs, loopStart, loopEnd, isPaused) {
+  if (routeMs < loopStart - SEEK_PRECISION_MS) return loopStart;
+  if (routeMs < loopEnd) return null;
+  if (!isPaused) return loopStart;
+  if (routeMs <= loopEnd + SEEK_PRECISION_MS) return null;
+  return loopEnd;
 }
 
 export function seekToRouteMs(video, videoStartOffset, routeMs, loop) {

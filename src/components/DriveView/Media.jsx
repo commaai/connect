@@ -215,8 +215,6 @@ class Media extends Component {
       clipsSupported: false,
     };
 
-    this.playerRef = React.createRef();
-    this.restartPlayback = this.restartPlayback.bind(this);
     this.handleHasAudioChange = this.handleHasAudioChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
@@ -234,10 +232,6 @@ class Media extends Component {
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
 
     this.routeViewed = false;
-  }
-
-  restartPlayback() {
-    this.playerRef.current?.restart();
   }
 
   handleHasAudioChange(hasAudio) {
@@ -266,9 +260,6 @@ class Media extends Component {
     }
 
     const hasRouteChanged = prevProps.currentRoute?.fullname !== this.props.currentRoute?.fullname;
-    const hasZoomChanged = prevProps.zoom?.start !== this.props.zoom?.start || prevProps.zoom?.end !== this.props.zoom?.end;
-    const isZoomWithinRoute = hasZoomChanged && !hasRouteChanged;
-    if (isZoomWithinRoute) this.restartPlayback();
     const isLeavingPreviousRoute = hasRouteChanged && Boolean(prevProps.currentRoute);
     if (isLeavingPreviousRoute) this.setState({ hasAudio: false });
 
@@ -557,7 +548,6 @@ class Media extends Component {
             <div className="relative isolate">
               <div className={isMapReplacingVideo ? 'absolute inset-0 -z-10 overflow-hidden' : ''}>
                 <DriveVideo
-                  ref={this.playerRef}
                   src={getRouteVideoUrl(currentRoute)}
                   route={currentRoute}
                   loop={loop}

@@ -1,15 +1,14 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, CircularProgress, Typography } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { getVideo, playIgnoringInterruptions, setPlaybackRate } from '../../timeline/video';
-import { seekToRouteMs, toRouteMs, toVideoSeconds } from '../../timeline/routeTime';
+import { getVideo, playIgnoringInterruptions } from '../../timeline/video';
+import { loopTarget, seekToRouteMs, toRouteMs, toVideoSeconds } from '../../timeline/routeTime';
 import { useVideoBuffering, useVideoEvent, useVideoFrame } from '../../hooks/video';
 import Video from './Video';
 
 const SPINNER_STYLE = { color: Colors.white };
-const SEEK_PRECISION_MS = 1;
 
 const ERROR_MESSAGES = {
   'not-found': 'This video segment has not uploaded yet or has been deleted.',
@@ -98,11 +97,10 @@ function useLoopBounds(videoStartOffset, loopStart, loopDuration) {
     if (video.readyState < video.HAVE_FUTURE_DATA) return;
 
     const routeMs = toRouteMs(videoStartOffset, videoSeconds);
-    const loopEnd = loopStart + loopDuration;
-    const isOutsideLoop = routeMs < loopStart - SEEK_PRECISION_MS || routeMs >= loopEnd;
-    if (!isOutsideLoop) return;
+    const target = loopTarget(routeMs, loopStart, loopStart + loopDuration, video.paused);
+    if (target === null) return;
 
-    seekToRouteMs(video, videoStartOffset, loopStart);
+    seekToRouteMs(video, videoStartOffset, target);
   }, [videoStartOffset, loopStart, loopDuration]);
 
   const handleEnded = useCallback(() => {
@@ -130,7 +128,7 @@ function useStartPosition(startPosition) {
   }, [startPosition]);
 }
 
-const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }, ref) {
+export default function DriveVideo({ src, route, loop, ...props }) {
   const videoStartOffset = route?.videoStartOffset;
   const loopStart = loop?.startTime;
   const loopDuration = loop?.duration;
@@ -140,16 +138,6 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
   const { error, retry, handleError } = usePlaybackError(src);
   useLoopBounds(videoStartOffset, loopStart, loopDuration);
   useStartPosition(startPosition);
-
-  useImperativeHandle(ref, () => ({
-    restart() {
-      const video = getVideo();
-      if (!video) return;
-      seekToRouteMs(video, videoStartOffset, loopStart ?? 0);
-      setPlaybackRate(video, 1);
-      playIgnoringInterruptions(video);
-    },
-  }), [videoStartOffset, loopStart]);
 
   return (
     <div className="w-full relative max-w-[964px] m-[0_auto] aspect-[1.593]">
@@ -167,6 +155,4 @@ const DriveVideo = forwardRef(function DriveVideo({ src, route, loop, ...props }
       </div>
     </div>
   );
-});
-
-export default DriveVideo;
+}
