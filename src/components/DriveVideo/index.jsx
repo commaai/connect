@@ -11,6 +11,7 @@ import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
 import { isIos, isFirefox } from '../../utils/browser.js';
+import { hlsErrorMessage, videoErrorMessage } from '../../utils/videoError';
 
 // Leading-edge debounce: run immediately, then ignore calls until `wait` ms after the last one.
 function debounceLeading(func, wait) {
@@ -152,15 +153,9 @@ class DriveVideo extends Component {
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
 
-    if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
-      // buffer but no error
-      return;
-    }
-
-    if (e.type === 'networkError' && (e.response?.code === 404)) {
-      this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
-    } else {
-      this.setState({ videoError: 'Unable to load video' });
+    const message = hlsErrorMessage(e);
+    if (message !== null) {
+      this.setState({ videoError: message });
     }
   }
 
@@ -179,16 +174,9 @@ class DriveVideo extends Component {
       return;
     }
 
-    if (e.name === 'AbortError') {
-      // ignore
-      return;
-    }
-
-    if (e.target?.src?.startsWith(window.location.origin) && e.target.src.endsWith('undefined')) {
-      // TODO: figure out why the src isn't set properly
-      // Sometimes an error will be thrown because we try to play
-      // src: "https://connect.comma.ai/.../undefined"
-      console.warn('Video error with undefined src, ignoring', { e, data });
+    const message = videoErrorMessage(e, window.location.origin);
+    if (message === null) {
+      // AbortError, or the ".../undefined" src bug — not a real failure.
       return;
     }
 
@@ -197,14 +185,9 @@ class DriveVideo extends Component {
 
     if (e.type === 'networkError') {
       console.error('Network error', { e, data });
-      this.setState({ videoError: 'Unable to load video. Check network connection.' });
-      return;
     }
 
-    const videoError = e.response?.code === 404
-      ? 'This video segment has not uploaded yet or has been deleted.'
-      : (e.response?.text || 'Unable to load video');
-    this.setState({ videoError });
+    this.setState({ videoError: message });
   }
 
   onVideoResume() {
