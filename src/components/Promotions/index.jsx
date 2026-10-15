@@ -2,17 +2,16 @@ import { useState } from 'react';
 import { connect } from 'react-redux';
 import { push } from 'connected-react-router';
 
-import { primeNav } from '../../actions';
+import { dismissPrimePromo, primeNav } from '../../actions';
 import Notification from '../Notification';
 
 // Change the campaign ID to make a new referral promotion appear again.
 const REFERRAL_DISMISSAL_KEY = 'referrals-09-02-2026';
 
-const Promotions = ({ device, dispatch }) => {
+const Promotions = ({ device, primePromoDismissed, dispatch }) => {
   const [showReferral, setShowReferral] = useState(
     () => window.localStorage.getItem(REFERRAL_DISMISSAL_KEY) !== 'true',
   );
-  const [primeDismissed, setPrimeDismissed] = useState(false);
 
   if (!device.is_owner) return null;
 
@@ -20,7 +19,7 @@ const Promotions = ({ device, dispatch }) => {
     setShowReferral(false);
     window.localStorage.setItem(REFERRAL_DISMISSAL_KEY, 'true');
   };
-  const showPrime = !device.prime && !primeDismissed;
+  const showPrime = !device.prime && !primePromoDismissed;
 
   return (
     <div className="absolute right-2.5 top-2 z-[4] flex flex-row gap-2.5 max-[599px]:left-2 max-[599px]:flex-col">
@@ -43,11 +42,14 @@ const Promotions = ({ device, dispatch }) => {
           buttonClassName="primeSignUp"
           onButtonClick={() => dispatch(primeNav(true))}
           dismissLabel="Dismiss prime promotion"
-          onDismiss={() => setPrimeDismissed(true)}
+          onDismiss={() => dispatch(dismissPrimePromo())}
         />
       ) : null}
     </div>
   );
 };
 
-export default connect((state) => ({ device: state.device }))(Promotions);
+export default connect((state) => ({
+  device: state.device,
+  primePromoDismissed: state.primePromoDismissed,
+}))(Promotions);

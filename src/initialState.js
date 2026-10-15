@@ -1,6 +1,8 @@
 import { getDongleID, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
 import { getDefaultFilter } from './utils/filter';
 
+export const PRIME_PROMO_DISMISSED_KEY = 'primePromoDismissed';
+
 export function createInitialState(pathname = window.location.pathname) {
   return {
     dongleId: getDongleID(pathname),
@@ -23,6 +25,7 @@ export function createInitialState(pathname = window.location.pathname) {
     devices: null,
 
     primeNav: getPrimeNav(pathname),
+    primePromoDismissed: window.localStorage.getItem(PRIME_PROMO_DISMISSED_KEY) === 'true',
     streamNav: getStreamNav(pathname),
     subscription: null,
     subscribeInfo: null,

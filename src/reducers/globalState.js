@@ -309,6 +309,12 @@ export default function reducer(_state, action) {
         state.zoom = null;
       }
       break;
+    case Types.ACTION_PRIME_PROMO_DISMISSED:
+      state = {
+        ...state,
+        primePromoDismissed: true,
+      };
+      break;
     case Types.ACTION_STREAM_NAV:
       state = {
         ...state,
