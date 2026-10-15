@@ -12,7 +12,12 @@ function getPageViewEventLocation(pathname) {
   if (!destination.dongleId) {
     return pathname.replace(/\/$/, '');
   }
-  const pageLocation = urlForDestination({ ...destination, dongleId: '<dongleId>', range: null });
+  const pageLocation = urlForDestination({
+    ...destination,
+    dongleId: '<dongleId>',
+    logId: destination.logId && '<logId>',
+    range: null,
+  });
   return destination.range ? `${pageLocation}/<zoomStart>/<zoomEnd>` : pageLocation;
 }
 
