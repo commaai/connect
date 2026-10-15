@@ -1,71 +1,50 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { destinationFromUrl, urlForDestination } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
+const drive = (range) => ({ page: 'drive', dongleId: DONGLE, logId: LOG, range });
+const NOT_FOUND = { page: 'not-found' };
 
-describe('URL pathname helpers', () => {
+describe('destinationFromUrl', () => {
   it.each([
-    [`/${DONGLE}`, DONGLE],
-    [`/${DONGLE}/${LOG}`, DONGLE],
-    ['/', null],
-    ['/prime', null],
-  ])('getDongleID(%s)', (pathname, expected) => {
-    expect(getDongleID(pathname)).toBe(expected);
+    ['/', { page: 'root' }],
+    ['/demo/', { page: 'demo' }],
+    [`/${DONGLE}/settings`, { page: 'settings', dongleId: DONGLE }],
+    [`/${DONGLE}/${LOG}/0/20`, drive({ start: 0, end: 20000 })],
+    [`/${DONGLE}/${LOG}/20/10`, drive(null)],
+    [`/${DONGLE}/${LOG}/1.5/20`, drive(null)],
+    [`/${DONGLE}/10/20`, { page: 'legacy-drive', dongleId: DONGLE, range: { start: 10, end: 20 } }],
+    [`/${DONGLE}/20/10`, NOT_FOUND],
+    [`/x${DONGLE}`, NOT_FOUND],
+    [`/${DONGLE}/x${LOG}`, NOT_FOUND],
+    [`/${DONGLE}/prime/extra`, NOT_FOUND],
+    [`/${DONGLE}/${LOG}/10`, NOT_FOUND],
+    ['/auth/code/provider', NOT_FOUND],
+  ])('%s', (pathname, expected) => {
+    expect(destinationFromUrl(pathname)).toEqual(expected);
   });
+});
 
-  it('returns null if a pathname segment disappears while it is read', () => {
-    let reads = 0;
-    const parts = [];
-    Object.defineProperty(parts, 0, { get: () => ((reads += 1) === 1 ? DONGLE : '') });
-    const pathname = { split: () => ({ filter: () => parts }) };
-    expect(getDongleID(pathname)).toBeNull();
-  });
-
+describe('urlForDestination', () => {
   it.each([
-    [`/${DONGLE}/10/20`, { start: 10, end: 20 }],
-    [`/${DONGLE}/0/20/ignored`, { start: 0, end: 20 }],
-    [`/${DONGLE}/${LOG}/10/20`, { start: Number(LOG), end: 10 }],
-    [`/${DONGLE}/10`, null],
-    ['/auth/code/provider', null],
-  ])('getZoom(%s)', (pathname, expected) => {
-    expect(getZoom(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, LOG],
-    [`/${DONGLE}/${LOG}/10/20`, LOG],
-    [`/${DONGLE}/prime`, null],
-    [`/${DONGLE}`, null],
-  ])('getRouteId(%s)', (pathname, expected) => {
-    expect(getRouteId(pathname)).toEqual(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/${LOG}`, null],
-    [`/${DONGLE}/${LOG}/556/610`, { start: 556000, end: 610000 }],
-    [`/${DONGLE}/${LOG}/0/20`, { start: 0, end: 20000 }],
-    [`/${DONGLE}/10/20`, null],
-  ])('getRouteZoom(%s)', (pathname, expected) => {
-    expect(getRouteZoom(pathname)).toEqual(expected);
+    { page: 'root' },
+    { page: 'referrals' },
+    { page: 'dashboard', dongleId: DONGLE },
+    { page: 'prime', dongleId: DONGLE },
+    { page: 'stream', dongleId: DONGLE },
+    { page: 'settings', dongleId: DONGLE },
+    drive(null),
+    drive({ start: 0, end: 20000 }),
+  ])('round-trips %o', (destination) => {
+    expect(destinationFromUrl(urlForDestination(destination))).toEqual(destination);
   });
 
   it.each([
-    [`/${DONGLE}/prime`, true],
-    [`/${DONGLE}/prime/extra`, false],
-    ['/not-a-device/prime', false],
-    [`/${DONGLE}/stream`, false],
-  ])('getPrimeNav(%s)', (pathname, expected) => {
-    expect(getPrimeNav(pathname)).toBe(expected);
-  });
-
-  it.each([
-    [`/${DONGLE}/stream`, true],
-    [`/${DONGLE}/stream/extra`, false],
-    ['/not-a-device/stream', false],
-    [`/${DONGLE}/prime`, false],
-  ])('getStreamNav(%s)', (pathname, expected) => {
-    expect(getStreamNav(pathname)).toBe(expected);
+    [drive({ start: 1200, end: 1700 }), `/${DONGLE}/${LOG}/1/2`],
+    [{ page: 'dashboard', dongleId: null }, '/'],
+  ])('builds %o as %s', (destination, url) => {
+    expect(urlForDestination(destination)).toBe(url);
   });
 });
