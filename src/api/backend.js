@@ -26,7 +26,7 @@ export function createRealBackend() {
       coords: (route, segment) => `${route.url}/${segment}/coords.json`,
     },
     stats: { fetchDeviceStats },
-    video: { ...commaApi.video },
+    video: { ...commaApi.video, getHlsConfig: () => ({}) },
   };
 }
 
