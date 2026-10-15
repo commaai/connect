@@ -255,11 +255,7 @@ class Timeline extends Component {
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(navigateTo({ logId: route.log_id, range: { start: startTime, end: endTime } }));
+      this.props.dispatch(navigateTo({ logId: route.log_id, range: { start: startOffset, end: endOffset } }));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
