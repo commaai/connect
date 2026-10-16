@@ -152,15 +152,10 @@ class DeviceList extends Component {
     let { devices } = this.props;
 
     const found = devices.some((d) => d.dongle_id === dongleId);
-    if (!found && device && dongleId === device.dongle_id) {
+    if (!found && device) {
       devices = [{
         ...device,
         alias: emptyDevice.alias,
-      }].concat(devices);
-    } else if (!found && dongleId) {
-      devices = [{
-        ...emptyDevice,
-        dongle_id: dongleId,
       }].concat(devices);
     }
 
