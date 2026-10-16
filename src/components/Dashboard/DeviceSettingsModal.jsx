@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -15,7 +16,7 @@ import {
 
 import { api } from '../../api/backend';
 import { updateDevice } from '../../actions';
-import { navigateTo } from '../../actions/history';
+import { urlForDestination } from '../../url';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -130,6 +131,7 @@ class DeviceSettingsModal extends Component {
 
     this.state = {
       ...initialState,
+      deviceAlias: props.device?.alias || '',
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -226,8 +228,8 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    this.props.dispatch(navigateTo({ dongleId: this.props.dongleId, page: 'prime' }));
-    this.props.onClose();
+    // replace the settings entry, so back doesn't reopen it
+    this.props.dispatch(replace(urlForDestination({ dongleId: this.props.dongleId, page: 'prime' })));
   }
 
   async unpairDevice() {

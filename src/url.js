@@ -53,3 +53,6 @@ export function urlForDestination(destination) {
   }
   return `/${path.join('/')}`;
 }
+
+// dialogs are query params so they open over any page: ?settings=:dongleId, ?add-device, ?filter
+export const dialogFromUrl = (search, name) => new URLSearchParams(search).get(name);

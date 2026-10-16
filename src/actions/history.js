@@ -1,7 +1,7 @@
-import { LOCATION_CHANGE, push, replace } from 'connected-react-router';
+import { LOCATION_CHANGE, goBack, push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
-import { destinationFromUrl, urlForDestination } from '../url';
+import { destinationFromUrl } from '../url';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import * as Types from './types';
 import {
@@ -11,7 +11,30 @@ import {
   primeFetchSubscription,
 } from './index';
 
-export const navigateTo = (destination) => push(urlForDestination(destination));
+// ?filter instead of ?filter=
+const toSearch = (params) => {
+  const query = [...params].map(([key, value]) => (value ? `${key}=${encodeURIComponent(value)}` : key)).join('&');
+  return query ? `?${query}` : '';
+};
+
+export const openDialog = (name, value = '') => (dispatch, getState) => {
+  const { pathname, search } = getState().router.location;
+  const params = new URLSearchParams(search);
+  params.set(name, value);
+  dispatch(push({ pathname, search: toSearch(params), state: { dialog: true } }));
+};
+
+// closing a dialog opened in the app goes back, so close and the back button do the same thing
+export const closeDialog = (name) => (dispatch, getState) => {
+  const { pathname, search, state } = getState().router.location;
+  if (state?.dialog) {
+    dispatch(goBack());
+    return;
+  }
+  const params = new URLSearchParams(search);
+  params.delete(name);
+  dispatch(replace({ pathname, search: toSearch(params) }));
+};
 
 export const applyDestination = (destination) => ({
   type: Types.ACTION_APPLY_DESTINATION,
@@ -196,8 +219,10 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
 export function onHistoryMiddleware({ dispatch, getState }) {
   return (next) => (action) => {
     if (!action) return undefined;
+    const previousPathname = getState().router?.location?.pathname;
     const result = next(action);
-    if (action.type === LOCATION_CHANGE) {
+    // a dialog only changes the query, the page stays as it is
+    if (action.type === LOCATION_CHANGE && action.payload.location.pathname !== previousPathname) {
       dispatch(syncStateFromUrl(action.payload.location.pathname));
     }
     return result;
