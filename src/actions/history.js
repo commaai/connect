@@ -42,7 +42,8 @@ export const applyDestination = (destination) => ({
 });
 
 // Route tree:
-// /
+// /                    (and /demo)
+// ├── referrals
 // └── :dongleId
 //     ├── dashboard
 //     ├── :route
@@ -50,6 +51,7 @@ export const applyDestination = (destination) => ({
 //     ├── :legacyStart/:legacyEnd
 //     ├── stream
 //     └── prime
+// Dialogs open over any of these: ?settings=:dongleId, ?add-device, ?filter
 const stateMatches = (state, destination) => {
   if (state.dongleId !== destination.dongleId) return false;
   if (destination.page === 'prime') return state.primeNav && !state.streamNav;
