@@ -55,6 +55,7 @@ describe('urlForDestination', () => {
     ['whole drive', { dongleId: DONGLE, page: 'drive', drive: { logId: LOG, start: null, end: null } }, `/${DONGLE}/${LOG}`],
     ['drive range', { dongleId: DONGLE, page: 'drive', drive: { logId: LOG, start: 10000, end: 20000 } }, `/${DONGLE}/${LOG}/10/20`],
     ['zero-start range', { dongleId: DONGLE, page: 'drive', drive: { logId: LOG, start: 0, end: 20000 } }, `/${DONGLE}/${LOG}/0/20`],
+    ['sub-second range', { dongleId: DONGLE, page: 'drive', drive: { logId: LOG, start: 10600, end: 10900 } }, `/${DONGLE}/${LOG}/10/11`],
   ])('serializes a %s destination', (_name, destination, expected) => {
     expect(urlForDestination(destination)).toBe(expected);
   });

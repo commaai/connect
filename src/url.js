@@ -48,7 +48,8 @@ export function urlForDestination(destination) {
   if (destination.drive?.logId) {
     path.push(destination.drive.logId);
     if (destination.drive.start != null && destination.drive.end != null) {
-      path.push(Math.floor(destination.drive.start / 1000), Math.floor(destination.drive.end / 1000));
+      // round outwards, so a selection inside one second doesn't become empty
+      path.push(Math.floor(destination.drive.start / 1000), Math.ceil(destination.drive.end / 1000));
     }
   }
   return `/${path.join('/')}`;
