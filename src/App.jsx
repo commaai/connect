@@ -9,8 +9,7 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, billing as Billing, request as Request } from './api';
 import { api, initBackend } from './api/backend';
 
-import { getZoom, getRouteId, getDongleID, getStreamNav } from './url';
-import { webrtcConnectionManager } from './utils/webrtc';
+import { destinationFromUrl } from './url';
 import { fetchTurnCredentials } from './utils/turn';
 import defaultStore, { history as defaultHistory } from './store';
 
@@ -76,14 +75,6 @@ class App extends Component {
       Billing.configure(token, this.apiErrorResponseCallback);
       Athena.configure(token, this.apiErrorResponseCallback);
 
-      // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
-      // with the lazy explorer chunk load and redux/device init instead of behind them.
-      const { pathname } = window.location;
-      const teleopDongleId = getDongleID(pathname);
-      if (teleopDongleId && getStreamNav(pathname)) {
-        webrtcConnectionManager.reconnect(teleopDongleId);
-      }
-
       fetchTurnCredentials().catch((err) => {
         console.error('Failed to fetch TURN credentials', err);
         Sentry.captureException(err, { fingerprint: 'app_fetch_turn_credentials' });
@@ -131,7 +122,9 @@ class App extends Component {
 
     const { store = defaultStore, history = defaultHistory } = this.props;
     const pathname = history.location.pathname;
-    const showLogin = !api.auth.isAuthenticated() && !getZoom(pathname) && !getRouteId(pathname);
+    const destination = destinationFromUrl(pathname);
+    const publicDrive = destination.kind === 'drive' || destination.kind === 'legacy';
+    const showLogin = !api.auth.isAuthenticated() && !publicDrive;
     let content = (
       <Suspense fallback={<FullPageLoading />}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }
