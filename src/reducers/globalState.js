@@ -31,7 +31,8 @@ export default function reducer(_state, action) {
       state.primeNav = page === 'prime';
       state.streamNav = page === 'stream';
       if (deviceChanged) {
-        state.device = state.devices?.find((device) => device.dongle_id === dongleId) || null;
+        state.device = state.devices?.find((device) => device.dongle_id === dongleId)
+          || (state.device?.dongle_id === dongleId ? state.device : null);
         state.filter = getDefaultFilter();
         state.subscription = null;
         state.subscribeInfo = null;
@@ -139,11 +140,10 @@ export default function reducer(_state, action) {
 
       if (deviceIndex !== -1) {
         state.devices[deviceIndex] = updatedDevice;
-      } else {
-        state.devices.unshift(updatedDevice);
       }
 
-      if (isSelected) {
+      // a device that isn't in your list (shared with you) is only the one being opened
+      if (isSelected || deviceIndex === -1) {
         state.device = updatedDevice;
       }
 
