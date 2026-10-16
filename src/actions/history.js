@@ -74,7 +74,8 @@ const loadStartupData = () => {
         else Sentry.captureException(err, { fingerprint: 'init_api_get_profile' });
         return null;
       }),
-      api.devices.listDevices().catch((err) => {
+      // logged in, a failed request returns null instead of throwing
+      api.devices.listDevices().then((devices) => devices ?? []).catch((err) => {
         if (err?.resp?.status !== 401) Sentry.captureException(err, { fingerprint: 'init_api_list_devices' });
         return [];
       }),
