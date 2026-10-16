@@ -1,66 +1,59 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+const exactDongleIdRegex = /^[a-f0-9]{16}$/;
+const exactLogIdRegex = /^[a-f0-9-]{20}$/;
+const secondsRegex = /^\d+$/;
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const driveRange = (start, end) => {
+  const startMillis = Number(start) * 1000;
+  const endMillis = Number(end) * 1000;
+  if (!Number.isSafeInteger(startMillis) || !Number.isSafeInteger(endMillis) || endMillis <= startMillis) return null;
+  return { start: startMillis, end: endMillis };
+};
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
-  }
+const legacyRange = (start, end) => {
+  const startMillis = Number(start);
+  const endMillis = Number(end);
+  if (!Number.isSafeInteger(startMillis) || !Number.isSafeInteger(endMillis) || endMillis <= startMillis) return null;
+  return { start: startMillis, end: endMillis };
+};
 
-  return parts[0] || null;
-}
-
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+export function destinationFromUrl(pathname) {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+  const [dongleId, branch, start, end] = parts;
+
+  if (parts.length === 0 || (parts.length === 1 && dongleId === 'demo')) return { kind: 'root' };
+  if (parts.length === 1 && dongleId === 'referrals') return { kind: 'referrals' };
+  if (!exactDongleIdRegex.test(dongleId)) return { kind: 'not-found' };
+  if (parts.length === 1) return { kind: 'dashboard', dongleId };
+  if (parts.length === 2 && branch === 'prime') return { kind: 'prime', dongleId };
+  if (parts.length === 2 && branch === 'stream') return { kind: 'stream', dongleId };
+  if (parts.length === 2 && exactLogIdRegex.test(branch)) {
+    return { kind: 'drive', dongleId, logId: branch, start: null, end: null };
   }
-  return null;
+  if (parts.length === 4 && exactLogIdRegex.test(branch)
+      && secondsRegex.test(start) && secondsRegex.test(end)) {
+    const range = driveRange(start, end);
+    return { kind: 'drive', dongleId, logId: branch, start: range?.start ?? null, end: range?.end ?? null };
+  }
+  if (parts.length === 3 && secondsRegex.test(branch) && secondsRegex.test(start)) {
+    const range = legacyRange(branch, start);
+    if (range) return { kind: 'legacy', dongleId, ...range };
+  }
+  return { kind: 'not-found' };
 }
 
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+export function urlForDestination(destination) {
+  if (!destination?.dongleId) return '/';
+  const path = [destination.dongleId];
+  if (destination.page === 'prime' || destination.page === 'stream') path.push(destination.page);
+  if (destination.drive?.logId) {
+    path.push(destination.drive.logId);
+    if (destination.drive.start != null && destination.drive.end != null) {
+      // round outwards, so a selection inside one second doesn't become empty
+      path.push(Math.floor(destination.drive.start / 1000), Math.ceil(destination.drive.end / 1000));
+    }
   }
-  return false;
+  return `/${path.join('/')}`;
 }
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
-}
+// dialogs are query params so they open over any page: ?settings=:dongleId, ?add-device, ?filter
+export const dialogFromUrl = (search, name) => new URLSearchParams(search).get(name);
