@@ -207,7 +207,8 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
     window.localStorage.setItem('selectedDongleId', dongleId);
     const destination = { dongleId, page: 'dashboard', drive: null };
     if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));
-    dispatch(primeFetchSubscription(dongleId, device, profile));
+    const { subscription, subscribeInfo } = getState();
+    if (deviceChanged || (!subscription && !subscribeInfo)) dispatch(primeFetchSubscription(dongleId, device, profile));
     if (deviceChanged || getState().routes == null) dispatch(checkLastRoutesData());
     return;
   }
