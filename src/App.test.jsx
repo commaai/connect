@@ -118,8 +118,12 @@ async function mockFetch(input, init = {}) {
   }
   if (url.pathname.endsWith('/subscription') || url.pathname.endsWith('/subscribe_info')) return json(null);
   if (url.pathname.endsWith('/events.json') || url.pathname.endsWith('/coords.json')) return json([]);
+  if (url.pathname.endsWith('/athena_offline_queue')) return json([]);
   if (url.pathname.endsWith('/files') || url.pathname.endsWith('/preserved')) return json(url.pathname.endsWith('/files') ? {} : []);
-  if (url.hostname === 'athena.comma.ai') return json({ jsonrpc: '2.0', id: 0, result: {} });
+  if (url.hostname === 'athena.comma.ai') {
+    const payload = JSON.parse(init.body);
+    return json({ jsonrpc: '2.0', id: payload.id, result: payload.method === 'listUploadQueue' ? [] : {} });
+  }
   throw new Error(`Unhandled request: ${init.method || 'GET'} ${url.href}`);
 }
 
@@ -217,7 +221,7 @@ describe('whole-app behavior', () => {
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     expect(history.location.pathname).toBe(`/${SHARED}/${LOG}`);
 
-    fireEvent.click(screen.getByText('More info'));
+    await act(async () => fireEvent.click(screen.getByText('More info')));
     expect(await screen.findByText('View in useradmin')).toBeVisible();
     expect(screen.queryByText('Public access')).not.toBeInTheDocument();
     expect(screen.queryByText('Preserved')).not.toBeInTheDocument();
