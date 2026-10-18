@@ -7,6 +7,7 @@ import { withStyles } from '@material-ui/core/styles';
 import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
+import TimelineLegend from './legend';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
@@ -436,6 +437,7 @@ class Timeline extends Component {
             </>
           ) }
         </div>
+        { hasRuler && <TimelineLegend /> }
       </div>
     );
   }
