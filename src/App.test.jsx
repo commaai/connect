@@ -190,6 +190,7 @@ describe('whole-app behavior', () => {
     const { history } = await renderApp('/', { devices: [] });
     expect(await screen.findByRole('heading', { name: 'Pair your device' })).toBeVisible();
     expect(history.location.pathname).toBe('/');
+    expect(screen.queryByText('Read-only access')).not.toBeInTheDocument();
   });
 
   test('referrals URL opens the referrals page', async () => {
@@ -202,10 +203,32 @@ describe('whole-app behavior', () => {
     expect(mocks.requests).toContainEqual({ method: 'GET', url: 'https://billing.comma.ai/v1/referrals' });
   });
 
-  test.each([['owned', FIRST], ['shared', SHARED]])('direct entry opens %s device dashboard', async (_name, dongleId) => {
+  test.each([['owned', FIRST, 0], ['shared', SHARED, 1]])('direct entry opens %s device dashboard', async (_name, dongleId, noticeCount) => {
     const { history } = await renderApp(`/${dongleId}`);
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     expect(history.location.pathname).toBe(`/${dongleId}`);
+    await waitFor(() => expect(screen.queryAllByText('Read-only access')).toHaveLength(noticeCount));
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeEnabled();
+  });
+
+  test('a shared cold-entry route explains access while keeping route viewing available', async () => {
+    const { history } = await renderApp(`/${SHARED}/${LOG}`);
+    expect(await screen.findByText('Read-only access')).toBeVisible();
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    expect(history.location.pathname).toBe(`/${SHARED}/${LOG}`);
+
+    fireEvent.click(screen.getByText('More info'));
+    expect(await screen.findByText('View in useradmin')).toBeVisible();
+    expect(screen.queryByText('Public access')).not.toBeInTheDocument();
+    expect(screen.queryByText('Preserved')).not.toBeInTheDocument();
+  });
+
+  test('referrals omits the device access notice even with a shared device selected', async () => {
+    const sharedDevice = { alias: 'Shared device', dongle_id: SHARED, device_type: 'threex', is_owner: false, prime: false };
+    const { store } = await renderApp('/referrals', { selected: SHARED, devices: [sharedDevice] });
+    expect(await screen.findByRole('heading', { name: /Refer a friend/ })).toBeVisible();
+    expect(store.getState().device).toMatchObject({ dongle_id: SHARED, is_owner: false });
+    expect(screen.queryByText('Read-only access')).not.toBeInTheDocument();
   });
 
   test('dashboard filter and empty route states remain usable', async () => {
