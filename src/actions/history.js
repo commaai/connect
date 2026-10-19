@@ -1,7 +1,7 @@
 import { LOCATION_CHANGE, goBack, push, replace } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { api } from '../api/backend';
-import { destinationFromUrl } from '../url';
+import { destinationFromUrl, urlForDestination } from '../url';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import * as Types from './types';
 import {
@@ -17,24 +17,31 @@ const toSearch = (params) => {
   return query ? `?${query}` : '';
 };
 
-export const openDialog = (name, value = '') => (dispatch, getState) => {
+// closing something opened in the app goes back, so close and the back button do the same thing
+const closeTo = (location) => (dispatch, getState) => {
+  dispatch(getState().router.location.state?.dialog ? goBack() : replace(location));
+};
+
+export const openDialog = (name) => (dispatch, getState) => {
   const { pathname, search } = getState().router.location;
   const params = new URLSearchParams(search);
-  params.set(name, value);
+  params.set(name, '');
   dispatch(push({ pathname, search: toSearch(params), state: { dialog: true } }));
 };
 
-// closing a dialog opened in the app goes back, so close and the back button do the same thing
 export const closeDialog = (name) => (dispatch, getState) => {
-  const { pathname, search, state } = getState().router.location;
-  if (state?.dialog) {
-    dispatch(goBack());
-    return;
-  }
+  const { pathname, search } = getState().router.location;
   const params = new URLSearchParams(search);
   params.delete(name);
-  dispatch(replace({ pathname, search: toSearch(params) }));
+  dispatch(closeTo({ pathname, search: toSearch(params) }));
 };
+
+export const openSettings = (dongleId) => push({
+  pathname: urlForDestination({ dongleId, page: 'settings' }),
+  state: { dialog: true },
+});
+
+export const closeSettings = (dongleId) => closeTo(urlForDestination({ dongleId, page: 'dashboard' }));
 
 export const applyDestination = (destination) => ({
   type: Types.ACTION_APPLY_DESTINATION,
@@ -50,8 +57,9 @@ export const applyDestination = (destination) => ({
 //     │   └── :start/:end
 //     ├── :legacyStart/:legacyEnd
 //     ├── stream
-//     └── prime
-// Dialogs open over any of these: ?settings=:dongleId, ?add-device, ?filter
+//     ├── prime
+//     └── settings     (over the dashboard)
+// Dialogs open over any of these: ?add-device, ?filter
 const stateMatches = (state, destination) => {
   if (state.dongleId !== destination.dongleId) return false;
   if (destination.page === 'prime') return state.primeNav && !state.streamNav;
@@ -205,8 +213,12 @@ export const syncStateFromUrl = (pathname) => async (dispatch, getState) => {
     return;
   }
 
-  // dashboard branch: /:dongleId
-  if (authenticated && route.kind === 'dashboard') {
+  // dashboard branch: /:dongleId and /:dongleId/settings (settings opens over it)
+  if (authenticated && (route.kind === 'dashboard' || route.kind === 'settings')) {
+    if (route.kind === 'settings' && !device?.is_owner && !profile?.superuser) {
+      dispatch(replace(`/${dongleId}`));
+      return;
+    }
     window.localStorage.setItem('selectedDongleId', dongleId);
     const destination = { dongleId, page: 'dashboard', drive: null };
     if (!stateMatches(getState(), destination)) dispatch(applyDestination(destination));

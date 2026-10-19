@@ -1,22 +1,23 @@
 import { connect } from 'react-redux';
 
-import { closeDialog } from '../actions/history';
-import { dialogFromUrl } from '../url';
+import { closeDialog, closeSettings } from '../actions/history';
+import { destinationFromUrl, dialogFromUrl } from '../url';
 import AddDevice from './Dashboard/AddDevice';
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import TimeSelect from './TimeSelect';
 
 const Dialogs = ({ dispatch, settings, addDevice, filter }) => (
   <>
-    {settings && <DeviceSettingsModal isOpen dongleId={settings} onClose={() => dispatch(closeDialog('settings'))} />}
+    {settings && <DeviceSettingsModal isOpen dongleId={settings} onClose={() => dispatch(closeSettings(settings))} />}
     {addDevice && <AddDevice />}
     {filter && <TimeSelect onClose={() => dispatch(closeDialog('filter'))} />}
   </>
 );
 
 const stateToProps = (state) => {
-  const { search } = state.router.location;
-  const settings = dialogFromUrl(search, 'settings');
+  const { pathname, search } = state.router.location;
+  const route = destinationFromUrl(pathname);
+  const settings = route.kind === 'settings' ? route.dongleId : null;
   const device = state.devices?.find((d) => d.dongle_id === settings)
     || (state.device?.dongle_id === settings ? state.device : null);
   return {

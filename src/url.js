@@ -26,6 +26,7 @@ export function destinationFromUrl(pathname) {
   if (parts.length === 1) return { kind: 'dashboard', dongleId };
   if (parts.length === 2 && branch === 'prime') return { kind: 'prime', dongleId };
   if (parts.length === 2 && branch === 'stream') return { kind: 'stream', dongleId };
+  if (parts.length === 2 && branch === 'settings') return { kind: 'settings', dongleId };
   if (parts.length === 2 && exactLogIdRegex.test(branch)) {
     return { kind: 'drive', dongleId, logId: branch, start: null, end: null };
   }
@@ -44,7 +45,7 @@ export function destinationFromUrl(pathname) {
 export function urlForDestination(destination) {
   if (!destination?.dongleId) return '/';
   const path = [destination.dongleId];
-  if (destination.page === 'prime' || destination.page === 'stream') path.push(destination.page);
+  if (['prime', 'stream', 'settings'].includes(destination.page)) path.push(destination.page);
   if (destination.drive?.logId) {
     path.push(destination.drive.logId);
     if (destination.drive.start != null && destination.drive.end != null) {
@@ -55,5 +56,5 @@ export function urlForDestination(destination) {
   return `/${path.join('/')}`;
 }
 
-// dialogs are query params so they open over any page: ?settings=:dongleId, ?add-device, ?filter
+// these dialogs are query params so they open over any page: ?add-device, ?filter
 export const dialogFromUrl = (search, name) => new URLSearchParams(search).get(name);

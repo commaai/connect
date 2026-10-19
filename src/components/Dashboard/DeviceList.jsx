@@ -8,7 +8,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
 import { updateDevices } from '../../actions';
-import { openDialog } from '../../actions/history';
+import { openSettings } from '../../actions/history';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
@@ -96,7 +96,7 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.props.dispatch(openDialog('settings', dongleId));
+    this.props.dispatch(openSettings(dongleId));
   }
 
   async onVisible() {
