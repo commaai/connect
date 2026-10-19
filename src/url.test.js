@@ -27,6 +27,7 @@ describe('parseURL', () => {
   });
 
   it.each([
+    [`/${DONGLE}/${LOG}/10`],
     [`/${DONGLE}/${LOG}/ten/20`],
     [`/${DONGLE}/${LOG}/20/10`],
     [`/${DONGLE}/${LOG}/9007199254741/9007199254742`],
@@ -37,7 +38,6 @@ describe('parseURL', () => {
   it.each([
     '/not-a-device',
     `/${DONGLE}/prime/extra`,
-    `/${DONGLE}/${LOG}/10`,
     `/${DONGLE}/20/10`,
     `/${DONGLE}/9007199254740992/9007199254740993`,
   ])('rejects %s', (pathname) => {

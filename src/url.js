@@ -25,8 +25,7 @@ export const parseURL = (location) => {
   if (parts.length > 4 || !dongleIdRegex.test(dongleId)) return { page: 'not-found' };
   if (parts.length === 1) return { page: 'dashboard', dongleId };
   if (parts.length === 2 && devicePages.includes(branch)) return { page: branch, dongleId };
-  if (parts.length === 2 && logIdRegex.test(branch)) return { page: 'drive', dongleId, logId: branch, range: null };
-  if (parts.length === 4 && logIdRegex.test(branch)) return { page: 'drive', dongleId, logId: branch, range: parseDriveRange(start, end) };
+  if (logIdRegex.test(branch)) return { page: 'drive', dongleId, logId: branch, range: parseDriveRange(start, end) };
   if (parts.length === 3) {
     const range = parseDriveRange(branch, start, true);
     if (range) return { page: 'legacy-drive', dongleId, range };
