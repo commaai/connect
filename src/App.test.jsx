@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { createMemoryHistory } from 'history';
 
 import App from './App';
-import { navigateTo, pushTimelineRange } from './actions';
+import { navigateTo, navigateToDrive } from './actions';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
@@ -338,14 +338,14 @@ describe('whole-app behavior', () => {
   test('timeline navigation generates drive URLs', async () => {
     const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
-    act(() => store.dispatch(pushTimelineRange(LOG, 10000, 20000)));
+    act(() => store.dispatch(navigateToDrive(LOG, 10000, 20000)));
     expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`);
-    act(() => store.dispatch(pushTimelineRange(LOG, 0, 20000)));
+    act(() => store.dispatch(navigateToDrive(LOG, 0, 20000)));
     expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/20`);
-    act(() => store.dispatch(pushTimelineRange(LOG, 0, 60000)));
+    act(() => store.dispatch(navigateToDrive(LOG, 0, 60000)));
     expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
-    act(() => store.dispatch(pushTimelineRange(LOG, 10000, 20000)));
-    act(() => store.dispatch(pushTimelineRange(LOG)));
+    act(() => store.dispatch(navigateToDrive(LOG, 10000, 20000)));
+    act(() => store.dispatch(navigateToDrive(LOG)));
     expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
   });
 });

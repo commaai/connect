@@ -139,13 +139,21 @@ export function checkLastRoutesData() {
   };
 }
 
-export const pushTimelineRange = (logId, start, end) => (dispatch, getState) => {
+export const navigateTo = (page, dongleId) => (dispatch, getState) => {
   const state = getState();
-  const selectedRoute = state.routes?.find((route) => route.log_id === logId);
+  const deviceId = dongleId || state.dongleId;
+  if (!deviceId && page !== 'dashboard') return;
+
+  const dashboardPath = deviceId ? `/${deviceId}` : '/';
+  const target = page === 'dashboard' ? dashboardPath : `${dashboardPath}/${page}`;
+  if (state.router.location.pathname !== target) dispatch(push(target));
+}
+
+export const navigateToDrive = (logId, start, end) => (dispatch, getState) => {
+  const selectedRoute = getState().routes?.find((route) => route.log_id === logId);
   const wholeDrive = start == null || end == null || (start === 0 && end === selectedRoute?.duration);
   const range = wholeDrive ? '' : `/${start / 1000}/${end / 1000}`;
-  const target = `/${state.dongleId}/${logId}${range}`;
-  if (state.router.location.pathname !== target) dispatch(push(target));
+  dispatch(navigateTo(`${logId}${range}`));
 }
 
 export function primeGetSubscription(dongleId, subscription) {
@@ -195,16 +203,6 @@ export function fetchDeviceOnline(dongleId) {
       });
     }).catch(console.log);
   };
-}
-
-export const navigateTo = (page, dongleId) => (dispatch, getState) => {
-  const state = getState();
-  const deviceId = dongleId || state.dongleId;
-  if (!deviceId && page !== 'dashboard') return;
-
-  const dashboardPath = deviceId ? `/${deviceId}` : '/';
-  const target = page === 'dashboard' ? dashboardPath : `${dashboardPath}/${page}`;
-  if (state.router.location.pathname !== target) dispatch(push(target));
 }
 
 export function fetchSharedDevice(dongleId) {

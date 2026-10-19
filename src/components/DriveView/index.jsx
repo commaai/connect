@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { pushTimelineRange, navigateTo } from '../../actions';
+import { navigateTo, navigateToDrive } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -39,7 +39,7 @@ class DriveView extends Component {
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
                 className="text-[1.5em] w-[2em] h-[2em]"
-                onClick={() => dispatch(pushTimelineRange(currentRoute.log_id, zoom.previous?.start, zoom.previous?.end))}
+                onClick={() => dispatch(navigateToDrive(currentRoute.log_id, zoom.previous?.start, zoom.previous?.end))}
                 aria-label="Go Back"
                 disabled={ backButtonDisabled }
               >
