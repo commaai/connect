@@ -152,22 +152,7 @@ function driveUrl(state, log_id, start, end) {
   });
 }
 
-function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
-    dispatch(resetPlayback());
-    dispatch(selectLoop(start, end));
-  }
-
-  if (allowPathChange) {
-    const desiredPath = driveUrl(state, log_id, start, end);
-    if (currentPathname(state) !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
-  }
-}
-
-export function popTimelineRange(log_id, allowPathChange = true) {
+export function popTimelineRange(log_id) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.zoom.previous) {
@@ -176,33 +161,23 @@ export function popTimelineRange(log_id, allowPathChange = true) {
       });
 
       const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+      if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
+        || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
+        dispatch(resetPlayback());
+        dispatch(selectLoop(start, end));
+      }
+      const desiredPath = driveUrl(state, log_id, start, end);
+      if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
     }
   };
 }
 
-export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
+export function pushTimelineRange(log_id, start, end) {
   return (dispatch, getState) => {
     const state = getState();
-
-    if (allowPathChange) {
-      const desiredPath = driveUrl(state, log_id, start, end);
-      if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
-      return;
-    }
-
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.selectedRouteId !== log_id) {
-      dispatch({
-        type: Types.TIMELINE_PUSH_SELECTION,
-        log_id,
-        start,
-        end,
-      });
-    }
-
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    const desiredPath = driveUrl(state, log_id, start, end);
+    if (currentPathname(state) !== desiredPath) dispatch(push(desiredPath));
   };
-
 }
 
 
