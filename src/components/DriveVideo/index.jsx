@@ -14,6 +14,7 @@ const RETRY_DELAY_MS = 2000;
 const MAX_RETRY_DELAY_MS = 30000;
 const GAP_MARGIN = 0.25;
 const GAP_EXIT = 0.001; // seek just past a gap's end, seeking to the end itself lands inside it
+const BACK_STEP = 10; // the back button's step, in seconds
 const POSITION_KEY = 'driveVideoPosition';
 
 const MISSING_SEGMENT_ERROR = 'This video segment has not uploaded yet or has been deleted.';
@@ -73,7 +74,7 @@ class DriveVideo extends Component {
     this.retryAt = 0;
     this.reportedPaused = true;
     this.lastTime = 0;
-    this.seekedBack = false;
+    this.seekedBackBy = 0;
     this.waitingSince = null;
     this.gaps = [];
     this.failure = null;
@@ -215,7 +216,7 @@ class DriveVideo extends Component {
     const moved = video.currentTime !== this.lastTime;
     const advancing = moved && !video.seeking;
     if (moved) {
-      this.seekedBack = video.seeking && video.currentTime < this.lastTime;
+      this.seekedBackBy = video.seeking ? this.lastTime - video.currentTime : 0;
     }
     this.lastTime = video.currentTime;
     this.checkPosition();
@@ -368,8 +369,13 @@ class DriveVideo extends Component {
     const video = this.video.current;
     const time = this.currentVideoTime();
     const gap = this.reachedGap();
-    if (this.seekedBack && gap && time >= gap.start) {
-      const back = gap.start - (gap.end - time);
+    // the back button steps over a gap, a click lands where it was made
+    // (with a margin, as its 10 s can round to a hair over)
+    if (gap && time >= gap.start && this.seekedBackBy > 0 && this.seekedBackBy <= BACK_STEP + GAP_MARGIN) {
+      let back = gap.start - (gap.end - time);
+      for (let before = this.gapAt(back); before; before = this.gapAt(back)) {
+        back = before.start - (before.end - back);
+      }
       if (back >= videoTime(currentRoute, zoom.start)) {
         this.seekVideo(back);
         return;
