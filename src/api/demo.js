@@ -104,15 +104,40 @@ const MISSING_DATA_CASES = [
 ];
 
 // Keep two full-length routes for every case: one where the whole route is
-// affected and one where only a single segment is affected.
-const TEST_CASES = MISSING_DATA_CASES.flatMap((testCase) => [
-  testCase,
+// affected and one where only a single segment is affected. The video player
+// also needs video missing at the start, a drive still uploading, and the
+// public route as it is.
+const TEST_CASES = [
+  ...MISSING_DATA_CASES.flatMap((testCase) => [
+    testCase,
+    {
+      ...testCase,
+      title: `${testCase.title} (1 segment)`,
+      affectedSegment: AFFECTED_SEGMENT,
+    },
+  ]),
   {
-    ...testCase,
-    title: `${testCase.title} (1 segment)`,
-    affectedSegment: AFFECTED_SEGMENT,
+    ...MISSING_DATA_CASES.find((testCase) => testCase.missingVideo),
+    title: 'Missing qcamera (first segment)',
+    affectedSegment: 0,
   },
-]);
+  {
+    title: 'Still uploading',
+    // The device has recorded two more minutes than it has uploaded.
+    route(route) {
+      for (let i = 0; i < 2; i++) {
+        const end = route.segment_end_times[route.segment_end_times.length - 1];
+        route.segment_numbers.push(route.segment_numbers.length);
+        route.segment_start_times.push(end);
+        route.segment_end_times.push(end + 60000);
+      }
+    },
+  },
+  {
+    title: 'Public route (no issues)',
+    route() {},
+  },
+];
 
 function fileSegmentNumber(file) {
   const pathParts = new URL(file).pathname.split('/');
