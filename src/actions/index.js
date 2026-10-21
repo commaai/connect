@@ -7,6 +7,7 @@ import * as Types from './types';
 import { hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { hardNavigate } from '../utils/navigation';
+import { buildURL } from '../url';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -139,21 +140,18 @@ export function checkLastRoutesData() {
   };
 }
 
-export const navigateTo = (page, dongleId) => (dispatch, getState) => {
+export const navigateTo = (page, dongleId, logId, range) => (dispatch, getState) => {
   const state = getState();
-  const deviceId = dongleId || state.dongleId;
-  if (!deviceId && page !== 'dashboard') return;
-
-  const dashboardPath = deviceId ? `/${deviceId}` : '/';
-  const target = page === 'dashboard' ? dashboardPath : `${dashboardPath}/${page}`;
-  if (state.router.location.pathname !== target) dispatch(push(target));
+  const target = buildURL({ page, dongleId: dongleId || state.dongleId, logId, range });
+  if (target && state.router.location.pathname !== target) dispatch(push(target));
 }
 
 export const navigateToDrive = (logId, start, end) => (dispatch, getState) => {
-  const selectedRoute = getState().routes?.find((route) => route.log_id === logId);
+  const state = getState();
+  const selectedRoute = state.routes?.find((route) => route.log_id === logId);
   const wholeDrive = start == null || end == null || (start === 0 && end === selectedRoute?.duration);
-  const range = wholeDrive ? '' : `/${Math.floor(start / 1000)}/${Math.floor(end / 1000)}`;
-  dispatch(navigateTo(`${logId}${range}`));
+  const range = wholeDrive ? null : { start, end };
+  dispatch(navigateTo('drive', state.dongleId, logId, range));
 }
 
 export function primeGetSubscription(dongleId, subscription) {

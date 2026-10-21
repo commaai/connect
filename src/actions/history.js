@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
-import { resolveURL } from '../url';
+import { parseURL, buildURL } from '../url';
 import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice } from './index';
 import { ACTION_APPLY_DESTINATION } from './types';
 import { api } from '../api/backend';
@@ -11,18 +11,29 @@ export const syncStateFromURL = () => async (dispatch, getState) => {
   if (state.devices === null) return;
 
   const currentPath = state.router.location.pathname;
-  const { dongleId, logId, range, pathname: resolvedPath } = await resolveURL(state);
+  let route = parseURL(state.router.location);
+
+  if (route.page === 'legacy-drive') {
+    const logId = await api.routes.getRoutesSegments(route.dongleId, route.range.start, route.range.end)
+      .then((routes) => routes?.[0]?.fullname?.split('|')[1])
+      .catch((err) => console.error('Failed to resolve legacy drive URL', err));
+
+    if (logId) route = { ...route, page: 'drive', logId, range: null };
+  }
 
   state = getState();
   const { pathname, search } = state.router.location;
-
   if (pathname !== currentPath) return;
+
+  const dongleId = route.dongleId ?? state.dongleId ?? state.devices[0]?.dongle_id ?? null;
+  const resolvedPath = buildURL({ ...route, dongleId }) ?? pathname;
   if (pathname !== resolvedPath) return dispatch(replace({ pathname: resolvedPath, search }));
+
   if (state.dongleId && state.dongleId !== dongleId) webrtcConnectionManager.disconnect();
 
   dispatch({
     type: ACTION_APPLY_DESTINATION,
-    destination: { dongleId, routeId: logId ?? null, range },
+    destination: { dongleId, routeId: route.logId ?? null, range: route.range },
   });
 
   const newState = getState();
@@ -33,7 +44,7 @@ export const syncStateFromURL = () => async (dispatch, getState) => {
   }
 
   if (state.dongleId === dongleId) {
-    if (logId) dispatch(checkRoutesData());
+    if (route.logId) dispatch(checkRoutesData());
     return;
   }
 

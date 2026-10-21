@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
 
 import { navigateTo } from '../../actions';
 import Notification from '../Notification';
@@ -29,7 +28,7 @@ const Promotions = ({ device, dispatch }) => {
           heading="Refer a friend. Get $50."
           subtitle="Earn $50 for each comma four purchased with your referral link."
           buttonText="refer"
-          onButtonClick={() => { dispatch(push('/referrals')); dismissReferral(); }}
+          onButtonClick={() => { dispatch(navigateTo('referrals')); dismissReferral(); }}
           dismissLabel="Dismiss referral promotion"
           onDismiss={dismissReferral}
         />

@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'connected-react-router';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, AppBar } from '@material-ui/core';
@@ -101,14 +100,14 @@ const AppHeader = ({
 
   const openReferrals = useCallback(() => {
     if (referralsOpen) return;
-    dispatch(push('/referrals'));
+    dispatch(navigateTo('referrals'));
   }, [dispatch, referralsOpen]);
 
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');
     setShowNewReferralsDot(false);
-    dispatch(push(referralsOpen ? dashboardPath : '/referrals'));
-  }, [dispatch, dashboardPath, referralsOpen]);
+    dispatch(navigateTo(referralsOpen ? 'dashboard' : 'referrals'));
+  }, [dispatch, referralsOpen]);
 
   const toggleDrawer = useCallback(() => {
     handleDrawerStateChanged(!drawerIsOpen);
