@@ -251,15 +251,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      this.props.dispatch(pushTimelineRange(route.log_id, startOffset, endOffset, true));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
@@ -281,11 +273,7 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
+    const offset = Math.floor(currentOffset());
     const percent = this.offsetToPercent(offset);
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
@@ -443,7 +431,6 @@ class Timeline extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
-  loop: state.loop,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));
