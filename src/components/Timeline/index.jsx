@@ -280,13 +280,11 @@ class Timeline extends Component {
   }
 
   percentToOffset(perc) {
-    const zoom = this.props.zoomOverride || this.props.zoom;
-    return perc * (zoom.end - zoom.start) + zoom.start;
+    return perc * (this.props.zoom.end - this.props.zoom.start) + this.props.zoom.start;
   }
 
   offsetToPercent(offset) {
-    const zoom = this.props.zoomOverride || this.props.zoom;
-    return (offset - zoom.start) / (zoom.end - zoom.start);
+    return (offset - this.props.zoom.start) / (this.props.zoom.end - this.props.zoom.start);
   }
 
   segmentNum(offset) {
@@ -298,8 +296,7 @@ class Timeline extends Component {
   }
 
   renderRoute() {
-    const { classes, route } = this.props;
-    const zoom = this.props.zoomOverride || this.props.zoom;
+    const { classes, route, zoom } = this.props;
 
     if (!route.events) {
       return null;
@@ -427,8 +424,8 @@ class Timeline extends Component {
   }
 }
 
-const stateToProps = (state) => ({
-  zoom: state.zoom,
+const stateToProps = (state, ownProps) => ({
+  zoom: ownProps.zoomOverride || state.zoom,
   loop: state.loop,
 });
 
