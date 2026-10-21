@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
-import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
@@ -22,84 +21,6 @@ const timerSteps = [
   4,
   8,
 ];
-
-const styles = (theme) => ({
-  base: {
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: theme.palette.grey[999],
-    height: '4em',
-    borderRadius: '2em',
-    padding: '0.5em',
-    width: '25em',
-    maxWidth: '100%',
-    margin: '0 auto',
-    opacity: 0,
-    pointerEvents: 'none',
-    transition: 'opacity 0.1s ease-in-out',
-    '&.isExpanded': {
-      opacity: 1,
-      pointerEvents: 'auto',
-    },
-    '&.isThin': {
-      height: '3.125em',
-      paddingBottom: 0,
-      paddingTop: 0,
-    },
-  },
-  desiredPlaySpeedContainer: {
-    marginRight: '0.5em',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minWidth: '2.5em',
-  },
-  icon: {
-    width: '98%',
-    height: '98%',
-    '&.dim': {
-      color: theme.palette.grey[300],
-    },
-    '&.small': {
-      width: '80%',
-      height: '80%',
-    },
-    '&.circle': {
-      border: `1px solid ${theme.palette.grey[900]}`,
-      borderRadius: '50%',
-    },
-  },
-  iconButton: {
-    fontSize: 'inherit',
-    width: '2.5em',
-    height: '2.5em',
-  },
-  tinyArrowIcon: {
-    fontSize: 'inherit',
-    width: '0.75em',
-    height: '0.75em',
-    color: theme.palette.grey[500],
-    '&[disabled]': {
-      visibility: 'hidden',
-    },
-  },
-  rightBorderBox: {
-    borderRight: `1px solid ${theme.palette.grey[900]}`,
-  },
-  leftBorderBox: {
-    borderLeft: `1px solid ${theme.palette.grey[900]}`,
-  },
-  desiredPlaySpeed: {
-    fontSize: '0.875em',
-  },
-  currentTime: {
-    margin: '0 0.5em',
-    fontSize: '0.9375em',
-    fontWeight: 500,
-    display: 'block',
-    flexGrow: 1,
-  },
-});
 
 class TimeDisplay extends Component {
   static getDerivedStateFromProps(props, state) {
@@ -227,97 +148,102 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio, onFullscreenToggle } = this.props;
+    const { zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio, onFullscreenToggle } = this.props;
     const { displayTime, desiredPlaySpeed } = this.state;
     const isPaused = videoPlaySpeed === 0;
-    const isExpandedCls = zoom ? 'isExpanded' : '';
-    const isThinCls = isThin ? 'isThin' : '';
+    const iconButton = 'text-[length:inherit] w-[2.5em] h-[2.5em]';
+    const smallIcon = 'w-[80%] h-[80%]';
+    const tinyArrow = 'text-[length:inherit] w-[0.75em] h-[0.75em] text-[#424a4f] disabled:invisible';
     return (
-      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-        <div className={ classes.rightBorderBox }>
+      <div
+        className={`flex items-center bg-[#0c0e0f] rounded-[2em] px-[0.5em] w-[25em] max-w-full mx-auto transition-opacity duration-100 ease-in-out
+          ${isThin ? 'h-[3.125em] py-0' : 'h-[4em] py-[0.5em]'}
+          ${zoom ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
+        <div className="border-r border-[#1e2224]">
           <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpBack(10000) }
+            className={iconButton}
+            onClick={this.togglePause}
+            aria-label={isPaused ? 'Unpause' : 'Pause'}
+          >
+            {isPaused
+              ? (<PlayArrow className="w-[98%] h-[98%]" />)
+              : (<Pause className="w-[98%] h-[98%]" />)}
+          </IconButton>
+        </div>
+        <div className="border-r border-[#1e2224]">
+          <IconButton
+            className={iconButton}
+            onClick={() => this.jumpBack(10000)}
             aria-label="Jump back 10 seconds"
           >
-            <Replay10 className={`${classes.icon} small dim`} />
+            <Replay10 className={`${smallIcon} text-[#535f64]`} />
           </IconButton>
         </div>
-        <div className={ classes.rightBorderBox }>
+        <div className="border-r border-[#1e2224]">
           <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpForward(10000) }
+            className={iconButton}
+            onClick={() => this.jumpForward(10000)}
             aria-label="Jump forward 10 seconds"
           >
-            <Forward10 className={`${classes.icon} small dim`} />
+            <Forward10 className={`${smallIcon} text-[#535f64]`} />
           </IconButton>
         </div>
-        { !isThin && (
-          <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
+        {!isThin && (
+          <Typography variant="caption" align="center" className="pt-1">
             CURRENT PLAYBACK TIME
           </Typography>
         )}
-        <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+        <Typography variant="body1" align="center" className="block grow mx-[0.5em] text-[0.9375em] font-medium">
+          <span ref={this.textHolder}>{displayTime}</span>
         </Typography>
         {!isIos() && (
-          <div className={ classes.desiredPlaySpeedContainer }>
+          <div className="flex flex-col items-center min-w-[2.5em] mr-[0.5em]">
             <IconButton
-              className={classes.tinyArrowIcon}
+              className={tinyArrow}
               onClick={this.increaseSpeed}
               disabled={!this.canIncreaseSpeed()}
               aria-label="Increase play speed by 1 step"
             >
-              <UpArrow className={classes.tinyArrowIcon} />
+              <UpArrow className={tinyArrow} />
             </IconButton>
-            <Typography variant="body2" align="center" className={classes.desiredPlaySpeed}>
+            <Typography variant="body2" align="center" className="text-[0.875em]">
               {desiredPlaySpeed}
               ×
             </Typography>
             <IconButton
-              className={classes.tinyArrowIcon}
+              className={tinyArrow}
               onClick={this.decreaseSpeed}
               disabled={!this.canDecreaseSpeed()}
               aria-label="Decrease play speed by 1 step"
             >
-              <DownArrow className={classes.tinyArrowIcon} />
+              <DownArrow className={tinyArrow} />
             </IconButton>
           </div>
         )}
-        <div className={ classes.leftBorderBox }>
-          <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
+        <div className="border-l border-[#1e2224]">
+          <Tooltip title={!hasAudio ? 'Enable audio recording through the "Record and Upload Microphone Audio" toggle on your device' : ''}>
             <div>
               <IconButton
-                className={ classes.iconButton }
+                className={iconButton}
                 onClick={onMuteToggle}
                 disabled={!hasAudio}
                 aria-label={isMuted ? 'Unmute' : 'Mute'}
               >
                 {isMuted
-                  ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
-                  : (<VolumeUp className={`${classes.icon} small`} />)}
+                  ? (<VolumeOff className={`${smallIcon} ${!hasAudio ? 'text-[#535f64]' : ''}`} />)
+                  : (<VolumeUp className={smallIcon} />)}
               </IconButton>
             </div>
           </Tooltip>
         </div>
-        <div className={ classes.leftBorderBox }>
+        <div className="border-l border-[#1e2224]">
           <IconButton
-            className={ classes.iconButton }
-            onClick={this.togglePause}
-            aria-label={isPaused ? 'Unpause' : 'Pause'}
-          >
-            {isPaused
-              ? (<PlayArrow className={classes.icon} />)
-              : (<Pause className={classes.icon} />)}
-          </IconButton>
-        </div>
-        <div className={ classes.leftBorderBox }>
-          <IconButton
-            className={ classes.iconButton }
+            className={iconButton}
             onClick={onFullscreenToggle}
             aria-label="Fullscreen"
           >
-            <Fullscreen className={`${classes.icon} small`} />
+            <Fullscreen className={smallIcon} />
           </IconButton>
         </div>
       </div>
@@ -331,4 +257,4 @@ const stateToProps = (state) => ({
   desiredPlaySpeed: state.desiredPlaySpeed,
 });
 
-export default connect(stateToProps)(withStyles(styles)(TimeDisplay));
+export default connect(stateToProps)(TimeDisplay);

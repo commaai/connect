@@ -91,22 +91,6 @@ const styles = () => ({
     pointerEvents: 'none',
     width: '100%',
   },
-  loopStart: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRight: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    left: 0,
-    height: 44,
-    pointerEvents: 'none',
-  },
-  loopEnd: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderLeft: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    right: 0,
-    height: 44,
-    pointerEvents: 'none',
-  },
   dragHighlight: {
     pointerEvents: 'none',
     background: 'rgba(255, 255, 255, 0.1)',
