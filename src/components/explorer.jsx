@@ -214,7 +214,7 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.app}>
         { bodyTeleopOpen ? (
-          <BodyTeleop onClose={() => dispatch(navigateTo('dashboard')) } />
+          <BodyTeleop />
         ) : (
           <>
             <AppHeader
@@ -263,7 +263,6 @@ class ExplorerApp extends Component {
           <DeviceSettingsModal
             key={dongleId}
             dongleId={dongleId}
-            onClose={() => dispatch(navigateTo('dashboard'))}
           />
         )}
       </div>

@@ -246,8 +246,10 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, dispatch, dongleId } = this.props;
     const commacare = device?.commacare;
+    const onClose = () => dispatch(navigateTo('dashboard', dongleId));
+
     if (!device) {
       return null;
     }
@@ -258,7 +260,7 @@ class DeviceSettingsModal extends Component {
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
           open
-          onClose={this.props.onClose}
+          onClose={onClose}
         >
           <Paper className={classes.modal}>
             <div className={ classes.titleContainer }>
@@ -340,7 +342,7 @@ class DeviceSettingsModal extends Component {
               </div>
             </div>
             <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+              <Button variant="contained" className={ classes.cancelButton } onClick={onClose}>
                 Close
               </Button>
             </div>
