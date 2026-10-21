@@ -52,9 +52,6 @@ export default function reducer(_state, action) {
       } else if (zoomChanged) {
         const prevZoom = state.zoom;
         const goingBack = targetZoom && prevZoom?.previous?.start === targetZoom.start && prevZoom?.previous?.end === targetZoom.end;
-        // reuse cached files when zooming into an already loaded range
-        const invalidateFiles = !prevZoom || !targetZoom || targetZoom.start === 0 || targetZoom.start < prevZoom.start || targetZoom.end > prevZoom.end;
-        if (invalidateFiles) state.files = null;
         if (!range) state.loop = null;
         state.zoom = goingBack ? prevZoom.previous : targetZoom ? { ...targetZoom, previous: prevZoom } : null;
       }
