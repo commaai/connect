@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { goBack } from 'connected-react-router';
 import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { navigateTo, navigateToDrive } from '../../actions';
+import { navigateTo } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -39,7 +40,7 @@ class DriveView extends Component {
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
                 className="text-[1.5em] w-[2em] h-[2em]"
-                onClick={() => dispatch(navigateToDrive(currentRoute.log_id, zoom.previous?.start, zoom.previous?.end))}
+                onClick={() => dispatch(goBack())}
                 aria-label="Go Back"
                 disabled={ backButtonDisabled }
               >

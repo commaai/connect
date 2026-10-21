@@ -46,14 +46,12 @@ export default function reducer(_state, action) {
       const zoomChanged = state.zoom?.start !== targetZoom?.start || state.zoom?.end !== targetZoom?.end;
 
       if (routeChanged) {
-        state.zoom = targetZoom ? { ...targetZoom, previous: null } : null;
         state.files = null;
         state.loop = null;
-      } else if (zoomChanged) {
-        const prevZoom = state.zoom;
-        const goingBack = targetZoom && prevZoom?.previous?.start === targetZoom.start && prevZoom?.previous?.end === targetZoom.end;
+      }
+      if (routeChanged || zoomChanged) {
+        state.zoom = targetZoom;
         if (!range) state.loop = null;
-        state.zoom = goingBack ? prevZoom.previous : targetZoom ? { ...targetZoom, previous: prevZoom } : null;
       }
 
       state.selectedRouteId = routeId;
