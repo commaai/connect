@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
-import { parseURL } from '../url';
+import { resolveURL } from '../url';
 import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice } from './index';
 import { ACTION_APPLY_DESTINATION } from './types';
 import { api } from '../api/backend';
@@ -7,40 +7,22 @@ import { webrtcConnectionManager } from '../utils/webrtc';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 
 export const syncStateFromURL = () => async (dispatch, getState) => {
-  const state = getState();
+  let state = getState();
   if (state.devices === null) return;
 
+  const currentPath = state.router.location.pathname;
+  const { dongleId, logId, range, pathname: resolvedPath } = await resolveURL(state);
+
+  state = getState();
   const { pathname, search } = state.router.location;
-  const route = parseURL(state.router.location);
-  const dongleId = route.dongleId ?? state.dongleId ?? state.devices[0]?.dongle_id ?? null;
 
-  // normalize URLs
-  if (route.page === 'not-found') {
-    return dispatch(replace({ pathname: dongleId ? `/${dongleId}` : '/', search }));
-  }
-  if (route.page === 'root' && dongleId) {
-    return dispatch(replace({ pathname: `/${dongleId}`, search }));
-  }
-  if (route.page === 'drive' && !route.range && pathname !== `/${dongleId}/${route.logId}`) {
-    return dispatch(replace({ pathname: `/${dongleId}/${route.logId}`, search }));
-  }
-  if (route.page === 'legacy-drive') {
-    const logId = await api.routes.getRoutesSegments(dongleId, route.range.start, route.range.end)
-      .then((routes) => routes?.[0]?.fullname?.split('|')[1])
-      .catch((err) => console.error('Failed to resolve legacy drive URL', err));
-    // ignore the result if navigation changed during the request
-    const location = getState().router.location;
-    if (location.pathname !== pathname) return;
-    if (logId) return dispatch(replace({ pathname: `/${dongleId}/${logId}`, search: location.search }));
-  }
+  if (pathname !== currentPath) return;
+  if (pathname !== resolvedPath) return dispatch(replace({ pathname: resolvedPath, search }));
+  if (state.dongleId && state.dongleId !== dongleId) webrtcConnectionManager.disconnect();
 
-  const deviceChanged = state.dongleId !== dongleId;
-  if (deviceChanged && state.dongleId) webrtcConnectionManager.disconnect();
-
-  // apply the destination
   dispatch({
     type: ACTION_APPLY_DESTINATION,
-    destination: { dongleId, routeId: route.page === 'drive' ? route.logId : null, range: route.range },
+    destination: { dongleId, routeId: logId ?? null, range },
   });
 
   const newState = getState();
@@ -50,8 +32,8 @@ export const syncStateFromURL = () => async (dispatch, getState) => {
     dispatch(selectLoop(newState.zoom?.start, newState.zoom?.end));
   }
 
-  if (!deviceChanged) {
-    if (route.page === 'drive') dispatch(checkRoutesData());
+  if (state.dongleId === dongleId) {
+    if (logId) dispatch(checkRoutesData());
     return;
   }
 

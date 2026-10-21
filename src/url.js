@@ -1,3 +1,5 @@
+import { api } from './api/backend';
+
 const dongleIdRegex = /^[a-f0-9]{16}$/;
 const logIdRegex = /^[a-f0-9-]{20}$/;
 const digitsRegex = /^\d+$/;
@@ -29,4 +31,27 @@ export const parseURL = (location) => {
     if (range) return { page: 'legacy-drive', dongleId, range };
   }
   return { page: 'not-found' };
+};
+
+export const resolveURL = async (state) => {
+  let route = parseURL(state.router.location);
+  let pathname = state.router.location.pathname;
+  const dongleId = route.dongleId ?? state.dongleId ?? state.devices[0]?.dongle_id ?? null;
+
+  if (route.page === 'legacy-drive') {
+    const logId = await api.routes.getRoutesSegments(dongleId, route.range.start, route.range.end)
+      .then((routes) => routes?.[0]?.fullname?.split('|')[1])
+      .catch((err) => console.error('Failed to resolve legacy drive URL', err));
+    if (logId) route = { page: 'drive', logId, range: null };
+  }
+
+  if (route.page === 'not-found') {
+    pathname = dongleId ? `/${dongleId}` : '/';
+  } else if (route.page === 'root' && dongleId) {
+    pathname = `/${dongleId}`;
+  } else if (route.page === 'drive' && !route.range) {
+    pathname = `/${dongleId}/${route.logId}`;
+  }
+
+  return { ...route, dongleId, pathname };
 };
