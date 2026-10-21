@@ -3,7 +3,6 @@ import { parseURL, buildURL } from '../url';
 import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice } from './index';
 import { ACTION_APPLY_DESTINATION } from './types';
 import { api } from '../api/backend';
-import { webrtcConnectionManager } from '../utils/webrtc';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 
 export const syncStateFromURL = () => async (dispatch, getState) => {
@@ -28,8 +27,6 @@ export const syncStateFromURL = () => async (dispatch, getState) => {
   const dongleId = route.dongleId ?? state.dongleId ?? state.devices[0]?.dongle_id ?? null;
   const resolvedPath = buildURL({ ...route, dongleId }) ?? pathname;
   if (pathname !== resolvedPath) return dispatch(replace({ pathname: resolvedPath, search }));
-
-  if (state.dongleId && state.dongleId !== dongleId) webrtcConnectionManager.disconnect();
 
   dispatch({
     type: ACTION_APPLY_DESTINATION,

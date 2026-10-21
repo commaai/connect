@@ -20,6 +20,7 @@ import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
+import { webrtcConnectionManager } from '../utils/webrtc';
 import { subscribeWindowSize } from '../hooks/window';
 
 import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
@@ -149,6 +150,12 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps) {
+    if (prevProps.dongleId && prevProps.dongleId !== this.props.dongleId) {
+      if (webrtcConnectionManager.dongleId !== this.props.dongleId) {
+        webrtcConnectionManager.disconnect();
+      }
+    }
+
     if (prevProps.location?.pathname !== this.props.location.pathname) {
       this.setState({ drawerIsOpen: false });
     }
