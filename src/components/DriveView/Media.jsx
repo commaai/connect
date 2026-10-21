@@ -15,7 +15,7 @@ import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
+import { bufferVideo, seek, play, pause } from '../../timeline/playback';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -164,7 +164,10 @@ class Media extends Component {
       clipsSupported: false,
     };
 
+    this.videoContainer = React.createRef();
+
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
+    this.handleFullscreenToggle = this.handleFullscreenToggle.bind(this);
     this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
@@ -190,6 +193,26 @@ class Media extends Component {
 
   handleAudioStatusChange(hasAudio) {
     this.setState({ hasAudio });
+  }
+
+  handleFullscreenToggle() {
+    const video = this.videoContainer.current.querySelector('video');
+    if (!video) return;
+    const onExit = () => {
+      if (document.fullscreenElement) return;
+      video.removeEventListener('fullscreenchange', onExit);
+      video.controls = false;
+      this.props.dispatch(seek(video.currentTime * 1000 + (this.props.currentRoute.videoStartOffset || 0)));
+      this.props.dispatch(video.paused ? pause() : play());
+    };
+    if (document.fullscreenEnabled) {
+      video.controls = true;
+      video.addEventListener('fullscreenchange', onExit);
+      video.requestFullscreen();
+    } else {
+      video.addEventListener('webkitendfullscreen', onExit, { once: true });
+      video.webkitEnterFullscreen();
+    }
   }
 
   componentDidMount() {
@@ -496,7 +519,7 @@ class Media extends Component {
       <div className="flex flex-col gap-4">
         {this.renderMediaOptions(showMapAlways)}
         <div className="flex flex-row gap-5">
-          <div className={showMapAlways ? 'w-[60%]' : 'w-full'}>
+          <div ref={this.videoContainer} className={showMapAlways ? 'w-[60%]' : 'w-full'}>
             {inView === MediaType.VIDEO && (
               <DriveVideo
                 isMuted={isMuted}
@@ -521,6 +544,7 @@ class Media extends Component {
             isMuted={isMuted}
             hasAudio={hasAudio}
             onMuteToggle={this.handleMuteToggle}
+            onFullscreenToggle={this.handleFullscreenToggle}
           />
         </div>
       </div>
