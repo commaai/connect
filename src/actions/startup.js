@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import { api } from '../api/backend';
 
+import { syncStateFromURL } from './history';
 import { ACTION_STARTUP_DATA } from './types';
 
 const loadStartupData = async () => {
@@ -30,5 +31,7 @@ export default function init() {
       profile,
       devices,
     });
+
+    dispatch(syncStateFromURL());
   };
 }

@@ -1,29 +1,18 @@
 import { LOCATION_CHANGE, replace } from 'connected-react-router';
 import { parseURL } from '../url';
 import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice } from './index';
-import { ACTION_APPLY_DESTINATION, ACTION_STARTUP_DATA } from './types';
+import { ACTION_APPLY_DESTINATION } from './types';
 import { api } from '../api/backend';
 import { webrtcConnectionManager } from '../utils/webrtc';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 
-const resolveDongleId = (route, state, defaultId) => {
-  const dongleId = route.dongleId ?? state.dongleId;
-  if (dongleId || !state.devices.length) return dongleId;
-
-  const findDevice = (id) => state.devices.find((d) => d.dongle_id === id);
-  const rememberedId = window.localStorage.getItem('selectedDongleId');
-
-  const device = findDevice(rememberedId) || findDevice(defaultId) || state.devices[0];
-  return device.dongle_id;
-};
-
-export const syncStateFromURL = (defaultDongleId) => async (dispatch, getState) => {
+export const syncStateFromURL = () => async (dispatch, getState) => {
   const state = getState();
   if (state.devices === null) return;
 
   const { pathname, search } = state.router.location;
   const route = parseURL(state.router.location);
-  const dongleId = resolveDongleId(route, state, defaultDongleId);
+  const dongleId = route.dongleId ?? state.dongleId ?? state.devices[0]?.dongle_id ?? null;
 
   // normalize URLs
   if (route.page === 'not-found') {
@@ -67,7 +56,6 @@ export const syncStateFromURL = (defaultDongleId) => async (dispatch, getState) 
   }
 
   // initialize the newly selected device.
-  window.localStorage.setItem('selectedDongleId', dongleId);
   if ((newState.device && !newState.device.shared) || state.profile?.superuser) {
     dispatch(primeFetchSubscription());
     dispatch(fetchDeviceOnline(dongleId));
@@ -81,12 +69,12 @@ export const syncStateFromURL = (defaultDongleId) => async (dispatch, getState) 
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (!action) return;
-  if (action.type !== ACTION_STARTUP_DATA && action.type !== LOCATION_CHANGE) return next(action);
+  if (action.type !== LOCATION_CHANGE) return next(action);
 
   const prevPathname = getState().router.location.pathname;
   const result = next(action);
-  if (action.type === ACTION_STARTUP_DATA || prevPathname !== action.payload.location.pathname) {
-    dispatch(syncStateFromURL(action.devices?.[0]?.dongle_id));
+  if (prevPathname !== action.payload.location.pathname) {
+    dispatch(syncStateFromURL());
   }
   return result;
 };

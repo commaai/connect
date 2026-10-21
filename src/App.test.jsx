@@ -129,7 +129,6 @@ async function renderApp(pathname, options = {}) {
   mocks.options = options;
   mocks.requests = [];
   window.history.replaceState({}, '', pathname);
-  if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
   const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
@@ -166,25 +165,17 @@ describe('whole-app behavior', () => {
     mocks.hardNavigate.mockClear();
   });
 
-  test('root uses a valid stored device and keeps the selection', async () => {
-    const app = await renderApp('/', { selected: FIRST });
+  test('root selects the first device in the sorted list', async () => {
+    const app = await renderApp('/');
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    expect(app.history.location.pathname).toBe(`/${FIRST}`);
-    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+    expect(app.history.location.pathname).toBe(`/${SECOND}`);
   });
 
   test('fetches the initial routes with a nonzero limit', async () => {
-    await renderApp('/', { selected: FIRST });
+    await renderApp('/');
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     const request = mocks.requests.find(({ url }) => url.includes('routes_segments'));
     expect(new URL(request.url).searchParams.get('limit')).toBe('5');
-  });
-
-  test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects first device with %s', async (_name, selected) => {
-    const { history } = await renderApp('/', { selected });
-    expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    expect(history.location.pathname).toBe(`/${FIRST}`);
-    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
   });
 
   test('root with no devices shows pairing', async () => {
@@ -317,7 +308,7 @@ describe('whole-app behavior', () => {
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
-    const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    const { history } = await renderApp(`/${FIRST}`);
     fireEvent.click(await screen.findByText('Mock recent route start'));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
