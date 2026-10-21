@@ -152,7 +152,7 @@ export const navigateTo = (page, dongleId) => (dispatch, getState) => {
 export const navigateToDrive = (logId, start, end) => (dispatch, getState) => {
   const selectedRoute = getState().routes?.find((route) => route.log_id === logId);
   const wholeDrive = start == null || end == null || (start === 0 && end === selectedRoute?.duration);
-  const range = wholeDrive ? '' : `/${start / 1000}/${end / 1000}`;
+  const range = wholeDrive ? '' : `/${Math.floor(start / 1000)}/${Math.floor(end / 1000)}`;
   dispatch(navigateTo(`${logId}${range}`));
 }
 
