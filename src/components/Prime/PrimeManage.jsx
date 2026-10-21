@@ -478,6 +478,14 @@ export class PrimeManage extends Component {
                     <span>{` ${planSubtext}`}</span>
                   </Typography>
                 </div>
+                {subscription.plan === 'data' && subscription.high_usage === true && (
+                  <div className={classes.overviewBlockDisabled} role="status">
+                    <Typography style={{ marginLeft: 0 }}>
+                      <strong>High cellular data usage!</strong>{' '}
+                      Your device has unusually high cellular data usage. Use Wi-Fi for large transfers.
+                    </Typography>
+                  </div>
+                )}
                 <div className={classes.overviewBlock}>
                   <Typography variant="subheading">Joined</Typography>
                   <Typography className={classes.manageItem}>{joinDate}</Typography>
