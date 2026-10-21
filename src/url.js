@@ -1,17 +1,15 @@
 const dongleIdRegex = /^[a-f0-9]{16}$/;
 const logIdRegex = /^[a-f0-9-]{20}$/;
 const digitsRegex = /^\d+$/;
-const secondsRegex = /^\d+(?:\.\d{1,3})?$/;
 const rootPages = ['auth', 'demo', 'referrals'];
 const devicePages = ['prime', 'stream', 'settings'];
 
 const parseDriveRange = (start, end, legacy = false) => {
-  const regex = legacy ? digitsRegex : secondsRegex;
-  if (!regex.test(start) || !regex.test(end)) return null;
+  if (!digitsRegex.test(start) || !digitsRegex.test(end)) return null;
 
   const multiplier = legacy ? 1 : 1000;
-  const startMillis = Math.round(Number(start) * multiplier);
-  const endMillis = Math.round(Number(end) * multiplier);
+  const startMillis = Number(start) * multiplier;
+  const endMillis = Number(end) * multiplier;
   if (!Number.isSafeInteger(startMillis) || !Number.isSafeInteger(endMillis) || endMillis <= startMillis) return null;
   return { start: startMillis, end: endMillis };
 };

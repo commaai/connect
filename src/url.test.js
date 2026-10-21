@@ -16,7 +16,6 @@ const destinations = [
   ['stream', `/${DONGLE}/stream`, { page: 'stream', dongleId: DONGLE }],
   ['whole drive', `/${DONGLE}/${LOG}`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: null }],
   ['drive range', `/${DONGLE}/${LOG}/10/20`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10000, end: 20000 } }],
-  ['fractional range', `/${DONGLE}/${LOG}/10.125/20.5`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10125, end: 20500 } }],
   ['zero-start range', `/${DONGLE}/${LOG}/0/20`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 0, end: 20000 } }],
   ['legacy timestamps', `/${DONGLE}/1000/2000`, { page: 'legacy-drive', dongleId: DONGLE, range: { start: 1000, end: 2000 } }],
 ];
