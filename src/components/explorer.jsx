@@ -183,11 +183,11 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, devices, dispatch, dongleId, page, profile } = this.props;
+    const { classes, devices, dispatch, dongleId, destination, profile } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+    const { page } = destination;
 
-    const bodyTeleopOpen = page === 'stream';
-    if (devices === null || (bodyTeleopOpen && !dongleId)) {
+    if (devices === null && page !== 'stream') {
       return <FullPageLoading />;
     }
 
@@ -213,8 +213,8 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
-        { bodyTeleopOpen ? (
-          <BodyTeleop />
+        { page === 'stream' ? (
+          <BodyTeleop dongleId={destination.dongleId} />
         ) : (
           <>
             <AppHeader

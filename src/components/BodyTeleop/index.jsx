@@ -219,9 +219,8 @@ export const BodyTeleop = ({ dongleId, device, dispatch }) => {
   );
 };
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
-  device: state.device,
+const stateToProps = (state, ownProps) => ({
+  device: state.device?.dongle_id === ownProps.dongleId ? state.device : null,
 });
 
 export default connect(stateToProps)(BodyTeleop);

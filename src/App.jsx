@@ -105,7 +105,7 @@ class App extends Component {
         <Route path="/auth/">
           <Redirect to={this.redirectLink()} />
         </Route>
-        <Route path="/" render={(props) => <Explorer {...props} page={destination.page} />} />
+        <Route path="/" render={(props) => <Explorer {...props} destination={destination} />} />
       </Switch>
     );
   }
