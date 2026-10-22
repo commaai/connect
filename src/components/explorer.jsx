@@ -172,7 +172,7 @@ class ExplorerApp extends Component {
     const { pairDongleId } = this.state;
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
-      this.props.dispatch(navigateTo('dashboard', pairDongleId));
+      this.props.dispatch(navigateTo('dashboard', { dongleId: pairDongleId }));
     }
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
@@ -240,7 +240,7 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(navigateTo('dashboard', dongleId))} />
+                ? <Referrals profile={profile} onBack={() => dispatch(navigateTo('dashboard'))} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : (page === 'drive' ? <DriveView /> : <Dashboard primeNav={page === 'prime'} />)}
@@ -267,10 +267,7 @@ class ExplorerApp extends Component {
           </>
         ) }
         {page === 'settings' && (
-          <DeviceSettingsModal
-            key={dongleId}
-            dongleId={dongleId}
-          />
+          <DeviceSettingsModal key={dongleId} />
         )}
       </div>
     );

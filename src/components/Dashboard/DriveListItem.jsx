@@ -83,7 +83,7 @@ const DriveListItem = (props) => {
     };
   }, [drive, dispatch, isVisible, el]);
 
-  const onClick = filterRegularClick(() => dispatch(navigateTo('drive', drive.dongle_id, drive)));
+  const onClick = filterRegularClick(() => dispatch(navigateTo('drive', { route: drive })));
   const small = windowWidth < 580;
   const dateFormat = small ? 'ddd, MMM D' : 'dddd, MMM D';
   const startDateObj = dayjs(drive.start_time_utc_millis);

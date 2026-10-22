@@ -298,7 +298,7 @@ class AddDevice extends Component {
 
     this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
     if (pairDongleId) {
-      this.props.dispatch(navigateTo('dashboard', pairDongleId));
+      this.props.dispatch(navigateTo('dashboard', { dongleId: pairDongleId }));
     }
   }
 

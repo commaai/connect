@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { goBack } from 'connected-react-router';
 import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
@@ -40,7 +39,7 @@ class DriveView extends Component {
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
                 className="text-[1.5em] w-[2em] h-[2em]"
-                onClick={() => dispatch(goBack())}
+                onClick={() => dispatch(navigateTo('drive', { route: currentRoute, back: true }))}
                 aria-label="Go Back"
                 disabled={ backButtonDisabled }
               >
@@ -59,7 +58,7 @@ class DriveView extends Component {
               </div>
               <IconButton
                 className="text-[1.5em] w-[2em] h-[2em]"
-                onClick={ filterRegularClick(() => dispatch(navigateTo('dashboard', dongleId))) }
+                onClick={ filterRegularClick(() => dispatch(navigateTo('dashboard'))) }
                 aria-label="Close"
                 href={ `/${dongleId}` }
               >

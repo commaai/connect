@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router';
+import { push, goBack } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing } from '../api';
 import { api } from '../api/backend';
@@ -140,17 +140,21 @@ export function checkLastRoutesData() {
   };
 }
 
-export const navigateTo = (page, dongleId, route, range) => (dispatch, getState) => {
+export const navigateTo = (page, options = {}) => (dispatch, getState) => {
+  const { dongleId, route, start, end, back = false } = options;
   const state = getState();
-  dongleId ||= state.dongleId;
 
-  if (page === 'drive' && range?.start === 0 && range.end === route.duration) {
-    range = null;
+  if (back && state.router.location.state?.hasPrevPath) {
+    return dispatch(goBack());
   }
 
-  const target = buildURL({ page, dongleId, logId: route?.log_id, range });
+  const deviceId = dongleId || route?.dongle_id || state.dongleId;
+  const wholeDrive = start == null || end == null || (start === 0 && end === route?.duration);
+  const range = wholeDrive ? null : { start, end };
+
+  const target = buildURL({ page, dongleId: deviceId, logId: route?.log_id, range });
   if (target && state.router.location.pathname !== target) {
-    dispatch(push(target));
+    dispatch(push(target, { hasPrevPath: true }));
   }
 }
 

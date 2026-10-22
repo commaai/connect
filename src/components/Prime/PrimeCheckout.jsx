@@ -372,7 +372,7 @@ class PrimeCheckout extends Component {
     return (
       <div className={ classes.primeBox } style={ containerPadding }>
         <div className={ classes.primeHeader }>
-          <IconButton aria-label="Go Back" onClick={() => dispatch(navigateTo('dashboard')) }>
+          <IconButton aria-label="Go Back" onClick={() => dispatch(navigateTo('dashboard', { back: true })) }>
             <KeyboardBackspaceIcon />
           </IconButton>
           <div className={ classes.headerDevice }>

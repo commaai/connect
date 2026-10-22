@@ -96,7 +96,7 @@ export const BodyTeleop = ({ dongleId, device, dispatch }) => {
     if (!device?.rpc?.not_car) {
       webrtcConnectionManager.disconnect();
     }
-    dispatch(navigateTo('dashboard', dongleId));
+    dispatch(navigateTo('dashboard', { dongleId }));
   }, [device, dispatch, dongleId]);
 
   const switchCamera = useCallback((cameraName) => {

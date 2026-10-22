@@ -424,7 +424,7 @@ export class PrimeManage extends Component {
       <>
         <div className={classes.primeBox}>
           <div className={classes.primeContainer} style={{ padding: `8px ${containerPadding}px` }}>
-            <IconButton aria-label="Go Back" onClick={() => dispatch(navigateTo('dashboard'))}>
+            <IconButton aria-label="Go Back" onClick={() => dispatch(navigateTo('dashboard', { back: true }))}>
               <KeyboardBackspaceIcon />
             </IconButton>
           </div>

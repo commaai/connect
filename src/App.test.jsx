@@ -258,12 +258,13 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(pathname));
   });
 
-  test('Prime close and browser history restore its view', async () => {
-    const { history } = await renderApp(`/${FIRST}/prime`);
+  test('Prime back restores settings and browser forward restores Prime', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/settings`);
+    act(() => store.dispatch(navigateTo('prime')));
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
-    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+    act(() => history.goForward());
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
   });
 
@@ -290,7 +291,7 @@ describe('whole-app behavior', () => {
 
   test('navigates to another device settings', async () => {
     const { history, store } = await renderApp(`/${FIRST}`);
-    act(() => store.dispatch(navigateTo('settings', SECOND)));
+    act(() => store.dispatch(navigateTo('settings', { dongleId: SECOND })));
     expect(history.location.pathname).toBe(`/${SECOND}/settings`);
     await waitFor(() => expect(store.getState().dongleId).toBe(SECOND));
     expect(await screen.findByText('Device settings')).toBeVisible();
@@ -330,14 +331,14 @@ describe('whole-app behavior', () => {
     const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
     expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
     const route = store.getState().currentRoute;
-    act(() => store.dispatch(navigateTo('drive', FIRST, route, { start: 10000, end: 20000 })));
+    act(() => store.dispatch(navigateTo('drive', { route, start: 10000, end: 20000 })));
     expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`);
-    act(() => store.dispatch(navigateTo('drive', FIRST, route, { start: 0, end: 20000 })));
+    act(() => store.dispatch(navigateTo('drive', { route, start: 0, end: 20000 })));
     expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/20`);
-    act(() => store.dispatch(navigateTo('drive', FIRST, route, { start: 0, end: 60000 })));
+    act(() => store.dispatch(navigateTo('drive', { route, start: 0, end: 60000 })));
     expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
-    act(() => store.dispatch(navigateTo('drive', FIRST, route, { start: 10000, end: 20000 })));
-    act(() => store.dispatch(navigateTo('drive', FIRST, route)));
+    act(() => store.dispatch(navigateTo('drive', { route, start: 10000, end: 20000 })));
+    act(() => store.dispatch(navigateTo('drive', { route })));
     expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
   });
 });

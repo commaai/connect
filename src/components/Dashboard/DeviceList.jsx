@@ -95,7 +95,7 @@ class DeviceList extends Component {
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.props.dispatch(navigateTo('settings', dongleId));
+    this.props.dispatch(navigateTo('settings', { dongleId }));
   }
 
   async onVisible() {

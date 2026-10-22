@@ -132,7 +132,6 @@ class DeviceSettingsModal extends Component {
       deviceAlias: props.device?.alias || '',
     };
 
-    this.onPrimeSettings = this.onPrimeSettings.bind(this);
     this.handleAliasChange = this.handleAliasChange.bind(this);
     this.handleEmailChange = this.handleEmailChange.bind(this);
     this.callOnEnter = this.callOnEnter.bind(this);
@@ -197,7 +196,7 @@ class DeviceSettingsModal extends Component {
       hasShared: false,
     });
     try {
-      await api.devices.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
+      await api.devices.grantDeviceReadPermission(this.props.device.dongle_id, this.state.shareEmail.trim());
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',
@@ -213,10 +212,6 @@ class DeviceSettingsModal extends Component {
         this.setState({ error: 'unable to share', loadingDeviceShare: false });
       }
     }
-  }
-
-  onPrimeSettings() {
-    this.props.dispatch(navigateTo('prime', this.props.dongleId));
   }
 
   async unpairDevice() {
@@ -246,9 +241,9 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device, dispatch, dongleId } = this.props;
+    const { classes, device, dispatch } = this.props;
     const commacare = device?.commacare;
-    const onClose = () => dispatch(navigateTo('dashboard', dongleId));
+    const onClose = () => dispatch(navigateTo('dashboard'));
 
     if (!device) {
       return null;
@@ -273,7 +268,11 @@ class DeviceSettingsModal extends Component {
             </div>
             <hr />
             <div>
-              <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
+              <Button
+                variant="outlined"
+                className={ classes.primeManageButton }
+                onClick={ () => dispatch(navigateTo('prime')) }
+              >
                 Prime settings
               </Button>
               <Button

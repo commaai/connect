@@ -64,9 +64,10 @@ describe('history middleware', () => {
   it('converts a legacy timestamp range to a route', async () => {
     Drives.getRoutesSegments.mockResolvedValue([{ fullname: `${DONGLE}|${LOG}` }]);
     const pathname = `/${DONGLE}/1000/2000`;
-    const { store } = create({ ...baseState, router: { location: { pathname, search: '' } } });
+    const locationState = { hasPrevPath: true };
+    const { store } = create({ ...baseState, router: { location: { pathname, search: '', state: locationState } } });
     await syncStateFromURL()(store.dispatch, store.getState);
     expect(Drives.getRoutesSegments).toHaveBeenCalledWith(DONGLE, 1000, 2000);
-    expect(store.dispatch).toHaveBeenCalledWith(replace({ pathname: `/${DONGLE}/${LOG}`, search: '' }));
+    expect(store.dispatch).toHaveBeenCalledWith(replace({ pathname: `/${DONGLE}/${LOG}`, search: '', state: locationState }));
   });
 });

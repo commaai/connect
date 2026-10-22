@@ -134,14 +134,14 @@ const AppHeader = ({
                 <a
                   href={dashboardPath}
                   className={classes.logoImgLink}
-                  onClick={filterRegularClick(() => dispatch(navigateTo('dashboard', dongleId)))}
+                  onClick={filterRegularClick(() => dispatch(navigateTo('dashboard')))}
                 >
                   <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
                 </a>
               )}
             <a
               href={dashboardPath}
-              onClick={filterRegularClick(() => dispatch(navigateTo('dashboard', dongleId)))}
+              onClick={filterRegularClick(() => dispatch(navigateTo('dashboard')))}
             >
               <Typography className={classes.logoText}>connect</Typography>
             </a>

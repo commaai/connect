@@ -21,12 +21,14 @@ export const syncStateFromURL = () => async (dispatch, getState) => {
   }
 
   state = getState();
-  const { pathname, search } = state.router.location;
+  const { pathname, search, state: locationState } = state.router.location;
   if (pathname !== currentPath) return;
 
   const dongleId = route.dongleId ?? state.dongleId ?? state.devices[0]?.dongle_id ?? null;
   const resolvedPath = buildURL({ ...route, dongleId }) ?? pathname;
-  if (pathname !== resolvedPath) return dispatch(replace({ pathname: resolvedPath, search }));
+  if (pathname !== resolvedPath) {
+    return dispatch(replace({ pathname: resolvedPath, search, state: locationState }));
+  }
 
   dispatch({
     type: ACTION_APPLY_DESTINATION,

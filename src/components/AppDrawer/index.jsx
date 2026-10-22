@@ -28,7 +28,7 @@ const AppDrawer = ({
   }, [handleDrawerStateChanged]);
 
   const handleDeviceSelected = useCallback((dongleId) => {
-    dispatch(navigateTo('dashboard', dongleId));
+    dispatch(navigateTo('dashboard', { dongleId }));
     toggleDrawerOff();
   }, [dispatch, toggleDrawerOff]);
 
