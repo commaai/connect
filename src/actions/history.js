@@ -28,9 +28,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
         if (routesData && routesData.length > 0) {
           const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
+          dispatch(pushTimelineRange(log_id, null, null, true));
         }
       }).catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);
