@@ -190,3 +190,47 @@ export async function reverseLookup(coords, navFormat = false) {
   return null;
 }
 
+
+async function navigationRequest(path, params, signal) {
+  const { request } = await import('../api');
+  const response = await fetch(`${request.baseUrl}v1/nav/${path}?${new URLSearchParams(params)}`, {
+    headers: request.headers,
+    signal,
+  });
+  if (!response.ok) throw new Error(`Navigation request failed: ${response.status}`);
+  return response.json();
+}
+
+export async function forwardLookup(query, proximity, signal) {
+  const [longitude, latitude] = proximity;
+  const latitudeRange = 50 / 111.32;
+  const longitudeRange = latitudeRange / Math.max(Math.cos(latitude * Math.PI / 180), 0.01);
+  const params = {
+    q: query, limit: '10', proximity: proximity.join(','),
+    bbox: [Math.max(-180, longitude - longitudeRange), Math.max(-90, latitude - latitudeRange),
+      Math.min(180, longitude + longitudeRange), Math.min(90, latitude + latitudeRange)].join(','),
+  };
+  const data = await navigationRequest('search/searchbox/v1/forward', params, signal);
+  return data.features.filter(place => place.geometry?.coordinates?.length === 2 && place.geometry.coordinates.every(Number.isFinite)
+    && Math.abs(place.geometry.coordinates[0]) <= 180 && Math.abs(place.geometry.coordinates[1]) <= 90).map(place => {
+    const [lng, lat] = place.geometry.coordinates;
+    const radians = Math.PI / 180;
+    const a = Math.sin((lat - latitude) * radians / 2) ** 2
+      + Math.cos(latitude * radians) * Math.cos(lat * radians) * Math.sin((lng - longitude) * radians / 2) ** 2;
+    const distance = 6371000 * 2 * Math.asin(Math.sqrt(Math.min(1, a)));
+    return {
+      id: place.properties.mapbox_id,
+      title: place.properties.name,
+      resultType: 'place',
+      position: { lng, lat }, distance,
+      address: { label: place.properties.full_address || place.properties.place_formatted || '' },
+    };
+  }).filter(place => place.distance <= 50000).sort((a, b) => a.distance - b.distance).slice(0, 5);
+}
+
+export async function getDirections(points, signal) {
+  const data = await navigationRequest(`directions/v5/mapbox/driving-traffic/${points.map(point => point.join(',')).join(';')}`, {
+    geometries: 'geojson', overview: 'full', steps: 'false',
+  }, signal);
+  return data.routes;
+}
