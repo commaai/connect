@@ -40,15 +40,15 @@ export default function reducer(_state, action) {
       }
 
       const routeChanged = deviceChanged || state.selectedRouteId !== routeId;
-      if (routeChanged) state.currentRoute = state.routes?.find((route) => route.log_id === routeId) ?? null;
-      const end = routeId ? range?.end ?? state.currentRoute?.duration ?? null : null;
-      const targetZoom = end !== null ? { start: range?.start ?? 0, end } : null;
-      const zoomChanged = state.zoom?.start !== targetZoom?.start || state.zoom?.end !== targetZoom?.end;
-
       if (routeChanged) {
+        state.currentRoute = state.routes?.find((route) => route.log_id === routeId) ?? null;
         state.files = null;
         state.loop = null;
       }
+
+      const end = routeId ? range?.end ?? state.currentRoute?.duration ?? null : null;
+      const targetZoom = end !== null ? { start: range?.start ?? 0, end } : null;
+      const zoomChanged = state.zoom?.start !== targetZoom?.start || state.zoom?.end !== targetZoom?.end;
       if (routeChanged || zoomChanged) {
         state.zoom = targetZoom;
         if (!range) state.loop = null;

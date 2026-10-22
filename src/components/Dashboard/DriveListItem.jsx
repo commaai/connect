@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
-import { navigateToDrive } from '../../actions';
+import { navigateTo } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
@@ -83,7 +83,7 @@ const DriveListItem = (props) => {
     };
   }, [drive, dispatch, isVisible, el]);
 
-  const onClick = filterRegularClick(() => dispatch(navigateToDrive(drive.log_id, 0, drive.duration)));
+  const onClick = filterRegularClick(() => dispatch(navigateTo('drive', drive.dongle_id, drive)));
   const small = windowWidth < 580;
   const dateFormat = small ? 'ddd, MMM D' : 'dddd, MMM D';
   const startDateObj = dayjs(drive.start_time_utc_millis);

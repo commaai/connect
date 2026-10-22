@@ -140,18 +140,18 @@ export function checkLastRoutesData() {
   };
 }
 
-export const navigateTo = (page, dongleId, logId, range) => (dispatch, getState) => {
+export const navigateTo = (page, dongleId, route, range) => (dispatch, getState) => {
   const state = getState();
-  const target = buildURL({ page, dongleId: dongleId || state.dongleId, logId, range });
-  if (target && state.router.location.pathname !== target) dispatch(push(target));
-}
+  dongleId ||= state.dongleId;
 
-export const navigateToDrive = (logId, start, end) => (dispatch, getState) => {
-  const state = getState();
-  const selectedRoute = state.routes?.find((route) => route.log_id === logId);
-  const wholeDrive = start == null || end == null || (start === 0 && end === selectedRoute?.duration);
-  const range = wholeDrive ? null : { start, end };
-  dispatch(navigateTo('drive', state.dongleId, logId, range));
+  if (page === 'drive' && range?.start === 0 && range.end === route.duration) {
+    range = null;
+  }
+
+  const target = buildURL({ page, dongleId, logId: route?.log_id, range });
+  if (target && state.router.location.pathname !== target) {
+    dispatch(push(target));
+  }
 }
 
 export function primeGetSubscription(dongleId, subscription) {

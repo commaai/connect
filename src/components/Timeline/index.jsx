@@ -8,7 +8,7 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { navigateToDrive } from '../../actions';
+import { navigateTo } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
@@ -245,7 +245,10 @@ class Timeline extends Component {
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
-      this.props.dispatch(navigateToDrive(route.log_id, startOffset, endOffset));
+      this.props.dispatch(navigateTo('drive', route.dongle_id, route, {
+        start: startOffset,
+        end: endOffset
+      }));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
