@@ -9,6 +9,7 @@ import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import { AddCircleOutlineIcon } from '../../icons';
 import Colors from '../../colors';
+import attachCameraZoom from './cameraZoom';
 
 const styles = (theme) => ({
   titleContainer: {
@@ -116,6 +117,7 @@ class AddDevice extends Component {
     this.stream = null;
     this.scanning = false;
     this.scanFrameId = null;
+    this.detachCameraZoom = () => {};
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
     this.onVideoRef = this.onVideoRef.bind(this);
@@ -134,31 +136,23 @@ class AddDevice extends Component {
   }
 
   async componentDidUpdate() {
-    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
-    let { hasCamera } = this.state;
+    const { modalOpen, pairLoading, pairError, pairDongleId, hasCamera } = this.state;
 
-    // Check for camera availability
-    if (hasCamera === null) {
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        hasCamera = devices.some((d) => d.kind === 'videoinput');
-        this.setState({ hasCamera });
-      } catch {
-        hasCamera = false;
-        this.setState({ hasCamera });
-      }
-    }
-
-    // Initialize detector and camera stream
-    if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
+    if (modalOpen && this.videoRef && !this.detector && hasCamera !== false && !pairDongleId) {
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
         this.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
+        this.detachCameraZoom = attachCameraZoom(
+          this.videoRef.parentElement,
+          this.stream.getVideoTracks()[0],
+          () => this.scanning && !this.state.pairLoading && !this.state.pairError && !this.state.pairDongleId,
+        );
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
+        this.setState({ hasCamera: true });
         this.startScanning();
       } catch (err) {
         let cameraError = 'Unable to access camera.';
@@ -255,6 +249,7 @@ class AddDevice extends Component {
   }
 
   async componentWillUnmount() {
+    this.detachCameraZoom();
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
@@ -283,6 +278,7 @@ class AddDevice extends Component {
   modalClose() {
     const { pairDongleId } = this.state;
 
+    this.detachCameraZoom();
     this.stopScanning();
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
@@ -370,7 +366,7 @@ class AddDevice extends Component {
   }
 
   onOpenModal() {
-    this.setState({ modalOpen: true });
+    this.setState({ modalOpen: true, hasCamera: null, cameraError: null });
   }
 
   render() {
