@@ -2,48 +2,59 @@ const dongleIdRegex = /[a-f0-9]{16}/;
 const logIdRegex = /[a-f0-9-]{20}/;
 
 export function centralUrlParse(pathname) {
+  //uniform return object
+  const route = {
+    page: 'unknown',
+    dongleId: null,
+    routeId: null,
+    start: null,
+    end: null
+  };
+
   //split pathname into parts
   const parts = pathname.split('/').filter(Boolean);
   const [first, second, third, fourth] = parts;
 
   //home page
-  if (parts.length === 0) { return { page: 'home' }; }
+  if (parts.length === 0) { route.page = 'home'; };
 
   //checking Non-device related pages
-  if (first === 'referrals') { return { page: 'referrals' }; }
-  if (first === 'auth') { return { page: 'auth' }; }
-  if (first === 'demo') { return { page: 'demo' }; }
+  if (first === 'referrals') { route.page = 'referrals'; };
+  if (first === 'auth') { route.page = 'auth'; };
+  if (first === 'demo') { route.page = 'demo'; };
 
   //checking Device related pages
-  if (!dongleIdRegex.test(first ?? '')) { return { page: 'unknown' }; }
+  if (dongleIdRegex.test(first ?? '')) {
+    route.dongleId = parts[0] || null;
 
-  if (parts.length >= 4) {
-    if (!logIdRegex.test(second ?? '')) { return { page: 'unknown' }; }
-    return {
-      page: 'drive',
-      start: Number(third) * 1000,
-      end: Number(fourth) * 1000
+    if (logIdRegex.test(second ?? '')) {
+      route.page = 'drive';
+      route.routeId = second;
+      if (parts.length >= 4) {
+        route.start = Number(third) * 1000;
+        route.end = Number(fourth) * 1000;
+      };
     };
-  }
-  if (parts.length === 2) {
-    if (second === 'prime') { return { page: 'prime', id: dongleId }; }
-    if (second === 'stream') { return { page: 'stream', id: dongleId }; }
-  }
-  if (parts.length === 1) { return { page: 'dashboard' }; }
+    if (parts.length === 2) {
+      if (second === 'prime') {
+        route.page = 'prime';
+      };
+      if (second === 'stream') {
+        route.page = 'stream';
+      };
+    };
+    if (parts.length === 1) {
+      route.page = 'dashboard';
+    };
+  };
 
+  return route;
 }
 
 
 export function getDongleID(pathname) {
-  centralUrlParse(pathname);
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
-  }
-
-  return parts[0] || null;
+  const loc = centralUrlParse(pathname);
+  return loc.dongleId;
 }
 
 export function getZoom(pathname) {
@@ -59,42 +70,27 @@ export function getZoom(pathname) {
 }
 
 export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
+  const loc = centralUrlParse(pathname);
+  return loc.routeId;
 }
 
 export function getRouteZoom(pathname) {
-  const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
+  const loc = centralUrlParse(pathname);
+
+  if (loc.routeId && Number.isFinite(loc.start) && Number.isFinite(loc.end)) {
     return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
+      start: loc.start, end: loc.end
     };
   }
   return null;
 }
 
 export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
-  }
-  return false;
+  const loc = centralUrlParse(pathname);
+  return (loc.page === 'prime');
 }
 
 export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
-  }
-  return false;
+  const loc = centralUrlParse(pathname);
+  return (loc.page === 'stream');
 }
