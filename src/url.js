@@ -10,18 +10,21 @@ export function centralUrlParse(pathname) {
     start: null,
     end: null
   };
+  const staticPages = new Set(['referrals', 'auth', 'demo']);
 
   //split pathname into parts
   const parts = pathname.split('/').filter(Boolean);
   const [first, second, third, fourth] = parts;
 
   //home page
-  if (parts.length === 0) { route.page = 'home'; };
+  if (parts.length === 0) {
+    route.page = 'home';
+  }
 
   //checking Non-device related pages
-  if (first === 'referrals') { route.page = 'referrals'; };
-  if (first === 'auth') { route.page = 'auth'; };
-  if (first === 'demo') { route.page = 'demo'; };
+  if (staticPages.has(first)) {
+    route.page = first;
+  }
 
   //checking Device related pages
   if (dongleIdRegex.test(first ?? '')) {
@@ -33,20 +36,13 @@ export function centralUrlParse(pathname) {
       if (parts.length >= 4) {
         route.start = Number(third) * 1000;
         route.end = Number(fourth) * 1000;
-      };
-    };
-    if (parts.length === 2) {
-      if (second === 'prime') {
-        route.page = 'prime';
-      };
-      if (second === 'stream') {
-        route.page = 'stream';
-      };
-    };
-    if (parts.length === 1) {
-      route.page = 'dashboard';
-    };
-  };
+      }
+    }
+
+    if (parts.length === 2 && ['prime', 'stream'].includes(second)) {
+      route.page = second;
+    }
+  }
 
   return route;
 }
@@ -75,14 +71,11 @@ export function getRouteId(pathname) {
 }
 
 export function getRouteZoom(pathname) {
-  const loc = centralUrlParse(pathname);
+  const { routeId, start, end } = centralUrlParse(pathname);
 
-  if (loc.routeId && Number.isFinite(loc.start) && Number.isFinite(loc.end)) {
-    return {
-      start: loc.start, end: loc.end
-    };
-  }
-  return null;
+  return routeId && Number.isFinite(start) && Number.isFinite(end)
+    ? { start, end }
+    : null;
 }
 
 export function getPrimeNav(pathname) {
