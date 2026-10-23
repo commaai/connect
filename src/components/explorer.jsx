@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
@@ -27,6 +27,8 @@ import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+
+const Prime = lazy(() => import('./Prime'));
 
 const styles = (theme) => ({
   app: {
@@ -190,7 +192,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, devices, dongleId, destination, profile } = this.props;
+    const { classes, device, devices, dongleId, destination, profile } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
     const { page } = destination;
 
@@ -217,6 +219,13 @@ class ExplorerApp extends Component {
     const drawerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
+    const primeView = (
+      <div className="relative flex flex-col">
+        <Suspense fallback={<FullPageLoading />}>
+          {device ? <Prime /> : <FullPageLoading />}
+        </Suspense>
+      </div>
+    );
 
     return (
       <div className={classes.app}>
@@ -239,11 +248,11 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
-                ? <Referrals profile={profile} />
-                : noDevicesUpsell
-                ? <NoDeviceUpsell />
-                : (page === 'drive' ? <DriveView /> : <Dashboard primeNav={page === 'prime'} />)}
+              {referralsOpen ? <Referrals profile={profile} />
+                : noDevicesUpsell ? <NoDeviceUpsell />
+                : page === 'drive' ? <DriveView />
+                : page === 'prime' ? primeView
+                : <Dashboard />}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -277,6 +286,7 @@ class ExplorerApp extends Component {
 const stateToProps = (state) => ({
   zoom: state.zoom,
   dongleId: state.dongleId,
+  device: state.device,
   devices: state.devices,
   profile: state.profile,
 });

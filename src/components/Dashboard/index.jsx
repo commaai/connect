@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 
 import DriveList from './DriveList';
@@ -7,27 +6,17 @@ import Promotions from '../Promotions';
 import DeviceInfo from '../DeviceInfo';
 import FullPageLoading from '../FullPageLoading';
 
-const Prime = lazy(() => import('../Prime'));
-
-const Dashboard = ({ primeNav, device, dongleId }) => {
+const Dashboard = ({ device, dongleId }) => {
   if (!device || !dongleId) {
     return <FullPageLoading />;
   }
 
   return (
     <div className="relative flex flex-col">
-      <Suspense fallback={<FullPageLoading />}>
-        { primeNav
-          ? <Prime />
-          : (
-            <>
-              <Navigation />
-              <Promotions />
-              <DeviceInfo />
-              <DriveList />
-            </>
-          )}
-      </Suspense>
+      <Navigation />
+      <Promotions />
+      <DeviceInfo />
+      <DriveList />
     </div>
   );
 };
