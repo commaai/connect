@@ -1,7 +1,41 @@
 const dongleIdRegex = /[a-f0-9]{16}/;
 const logIdRegex = /[a-f0-9-]{20}/;
 
+export function centralUrlParse(pathname) {
+  //split pathname into parts
+  const parts = pathname.split('/').filter(Boolean);
+  const [first, second, third, fourth] = parts;
+
+  //home page
+  if (parts.length === 0) { return { page: 'home' }; }
+
+  //checking Non-device related pages
+  if (first === 'referrals') { return { page: 'referrals' }; }
+  if (first === 'auth') { return { page: 'auth' }; }
+  if (first === 'demo') { return { page: 'demo' }; }
+
+  //checking Device related pages
+  if (!dongleIdRegex.test(first ?? '')) { return { page: 'unknown' }; }
+
+  if (parts.length >= 4) {
+    if (!logIdRegex.test(second ?? '')) { return { page: 'unknown' }; }
+    return {
+      page: 'drive',
+      start: Number(third) * 1000,
+      end: Number(fourth) * 1000
+    };
+  }
+  if (parts.length === 2) {
+    if (second === 'prime') { return { page: 'prime', id: dongleId }; }
+    if (second === 'stream') { return { page: 'stream', id: dongleId }; }
+  }
+  if (parts.length === 1) { return { page: 'dashboard' }; }
+
+}
+
+
 export function getDongleID(pathname) {
+  centralUrlParse(pathname);
   let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
