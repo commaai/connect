@@ -22,7 +22,7 @@ const destinations = [
 
 describe('parseURL', () => {
   it.each(destinations)('parses %s: %s', (_name, pathname, destination) => {
-    expect(parseURL({ pathname })).toEqual(destination);
+    expect(parseURL(pathname)).toEqual(destination);
   });
 
   it.each([
@@ -31,7 +31,7 @@ describe('parseURL', () => {
     [`/${DONGLE}/${LOG}/20/10`],
     [`/${DONGLE}/${LOG}/9007199254741/9007199254742`],
   ])('falls back to the whole drive for an invalid range: %s', (pathname) => {
-    expect(parseURL({ pathname })).toEqual({ page: 'drive', dongleId: DONGLE, logId: LOG, range: null });
+    expect(parseURL(pathname)).toEqual({ page: 'drive', dongleId: DONGLE, logId: LOG, range: null });
   });
 
   it.each([
@@ -40,6 +40,6 @@ describe('parseURL', () => {
     `/${DONGLE}/20/10`,
     `/${DONGLE}/9007199254740992/9007199254740993`,
   ])('rejects %s', (pathname) => {
-    expect(parseURL({ pathname })).toEqual({ page: 'not-found' });
+    expect(parseURL(pathname)).toEqual({ page: 'not-found' });
   });
 });

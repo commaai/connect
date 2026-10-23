@@ -8,7 +8,7 @@ import { parseURL } from './url';
 import { deviceIsOnline } from './utils';
 
 function getPageViewEventLocation(pathname) {
-  const { page, dongleId, logId, range } = parseURL({ pathname });
+  const { page, dongleId, logId, range } = parseURL(pathname);
   const dongleIdRegex = /^\/[a-f0-9]{16}(?=\/|$)/;
   if (!dongleId) return pathname.replace(dongleIdRegex, '/<dongleId>').replace(/\/$/, '');
   if (page === 'dashboard') return '/<dongleId>';

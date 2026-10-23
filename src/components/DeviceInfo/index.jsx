@@ -166,11 +166,6 @@ class DeviceInfo extends Component {
     this.renderButtons = this.renderButtons.bind(this);
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
     this.prewarmBodyTeleop = this.prewarmBodyTeleop.bind(this);
-    this.openBodyTeleop = this.openBodyTeleop.bind(this);
-  }
-
-  openBodyTeleop() {
-    this.props.dispatch(navigateTo('stream'));
   }
 
   componentDidMount() {
@@ -429,7 +424,7 @@ class DeviceInfo extends Component {
             <button
               aria-label={ bodyTeleopEnabled ? 'Teleop' : 'Livestream' }
               className={`${classes.button} ${classes.carBattery}`}
-              onClick={ this.openBodyTeleop }
+              onClick={ () => this.props.dispatch(navigateTo('stream')) }
               disabled={ offline }
             >
               { bodyTeleopEnabled

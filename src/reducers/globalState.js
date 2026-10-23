@@ -24,7 +24,7 @@ export default function reducer(_state, action) {
   let deviceIndex = null;
   switch (action.type) {
     case Types.ACTION_APPLY_DESTINATION: {
-      const { dongleId = null, routeId, range } = action.destination;
+      const { dongleId = null, logId = null, range } = action.destination;
 
       const deviceChanged = state.dongleId !== dongleId;
       if (deviceChanged) {
@@ -39,22 +39,22 @@ export default function reducer(_state, action) {
         state.limit = 0;
       }
 
-      const routeChanged = deviceChanged || state.selectedRouteId !== routeId;
+      const routeChanged = deviceChanged || state.selectedRouteId !== logId;
       if (routeChanged) {
-        state.currentRoute = state.routes?.find((route) => route.log_id === routeId) ?? null;
+        state.currentRoute = state.routes?.find((route) => route.log_id === logId) ?? null;
         state.files = null;
         state.loop = null;
       }
 
-      const end = routeId ? range?.end ?? state.currentRoute?.duration ?? null : null;
-      const targetZoom = end !== null ? { start: range?.start ?? 0, end } : null;
+      const wholeDrive = state.currentRoute ? { start: 0, end: state.currentRoute.duration } : null;
+      const targetZoom = logId ? range ?? wholeDrive : null;
       const zoomChanged = state.zoom?.start !== targetZoom?.start || state.zoom?.end !== targetZoom?.end;
       if (routeChanged || zoomChanged) {
         state.zoom = targetZoom;
         if (!range) state.loop = null;
       }
 
-      state.selectedRouteId = routeId;
+      state.selectedRouteId = logId;
       state.dongleId = dongleId;
       break;
     }

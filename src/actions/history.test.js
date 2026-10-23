@@ -56,7 +56,7 @@ describe('history middleware', () => {
     await syncStateFromURL()(store.dispatch, store.getState);
     expect(store.dispatch).toHaveBeenCalledWith({
       type: ACTION_APPLY_DESTINATION,
-      destination: { dongleId: OTHER, routeId: null, range: undefined },
+      destination: { page: 'dashboard', dongleId: OTHER },
     });
     expect(actions.checkLastRoutesData).toHaveBeenCalledOnce();
   });

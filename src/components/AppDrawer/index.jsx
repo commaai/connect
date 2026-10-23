@@ -11,7 +11,7 @@ import { navigateTo } from '../../actions';
 const listener = (ev) => ev.stopPropagation();
 
 const AppDrawer = ({
-  dispatch, isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width,
+  dispatch, isPermanent, drawerIsOpen, handleDrawerStateChanged, width,
 }) => {
   const contentRef = useRef(null);
 
@@ -47,18 +47,10 @@ const AppDrawer = ({
               <span className="text-xl font-extrabold">connect</span>
             </Link>
           )}
-        <DeviceList
-          selectedDevice={selectedDongleId}
-          handleDeviceSelected={handleDeviceSelected}
-        />
+        <DeviceList handleDeviceSelected={handleDeviceSelected} />
       </div>
     </Drawer>
   );
 };
 
-const stateToProps = (state) => ({
-  selectedDongleId: state.dongleId,
-  device: state.device,
-});
-
-export default connect(stateToProps)(AppDrawer);
+export default connect()(AppDrawer);

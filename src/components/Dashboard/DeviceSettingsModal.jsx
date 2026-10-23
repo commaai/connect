@@ -109,27 +109,22 @@ const styles = (theme) => ({
   },
 });
 
-const initialState = {
-  deviceAlias: '',
-  loadingDeviceAlias: false,
-  loadingDeviceShare: false,
-  hasSavedAlias: false,
-  shareEmail: '',
-  unpairConfirm: false,
-  unpaired: false,
-  loadingUnpair: false,
-  error: null,
-  unpairError: null,
-  uploadModal: false,
-};
-
 class DeviceSettingsModal extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      ...initialState,
       deviceAlias: props.device?.alias || '',
+      loadingDeviceAlias: false,
+      loadingDeviceShare: false,
+      hasSavedAlias: false,
+      shareEmail: '',
+      unpairConfirm: false,
+      unpaired: false,
+      loadingUnpair: false,
+      error: null,
+      unpairError: null,
+      uploadModal: false,
     };
 
     this.handleAliasChange = this.handleAliasChange.bind(this);
@@ -304,7 +299,7 @@ class DeviceSettingsModal extends Component {
                   id="device_alias"
                   label="Device name"
                   className={ classes.textField }
-                  value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
+                  value={ this.state.deviceAlias }
                   onChange={this.handleAliasChange}
                   onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) }
                 />

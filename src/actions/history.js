@@ -10,29 +10,34 @@ export const syncStateFromURL = () => async (dispatch, getState) => {
   if (state.devices === null) return;
 
   const currentPath = state.router.location.pathname;
-  let route = parseURL(state.router.location);
+  let destination = parseURL(currentPath);
 
-  if (route.page === 'legacy-drive') {
-    const logId = await api.routes.getRoutesSegments(route.dongleId, route.range.start, route.range.end)
+  if (destination.page === 'legacy-drive') {
+    const { dongleId, range } = destination;
+    const logId = await api.routes.getRoutesSegments(dongleId, range.start, range.end)
       .then((routes) => routes?.[0]?.fullname?.split('|')[1])
       .catch((err) => console.error('Failed to resolve legacy drive URL', err));
 
-    if (logId) route = { ...route, page: 'drive', logId, range: null };
+    if (logId) destination = { ...destination, page: 'drive', logId, range: null };
   }
 
   state = getState();
-  const { pathname, search, state: locationState } = state.router.location;
-  if (pathname !== currentPath) return;
+  const location = state.router.location;
+  if (location.pathname !== currentPath) return;
 
-  const dongleId = route.dongleId ?? state.dongleId ?? state.devices[0]?.dongle_id ?? null;
-  const resolvedPath = buildURL({ ...route, dongleId }) ?? pathname;
-  if (pathname !== resolvedPath) {
-    return dispatch(replace({ pathname: resolvedPath, search, state: locationState }));
+  destination.dongleId ??= state.dongleId ?? state.devices[0]?.dongle_id ?? null;
+  const resolvedPath = buildURL(destination) ?? location.pathname;
+  if (location.pathname !== resolvedPath) {
+    return dispatch(replace({
+      pathname: resolvedPath,
+      search: location.search,
+      state: location.state,
+    }));
   }
 
   dispatch({
     type: ACTION_APPLY_DESTINATION,
-    destination: { dongleId, routeId: route.logId ?? null, range: route.range },
+    destination,
   });
 
   const newState = getState();
@@ -42,21 +47,22 @@ export const syncStateFromURL = () => async (dispatch, getState) => {
     dispatch(selectLoop(newState.zoom?.start, newState.zoom?.end));
   }
 
-  if (state.dongleId === dongleId) {
-    if (route.logId) dispatch(checkRoutesData());
-    return;
-  }
-
   // initialize the newly selected device.
-  if ((newState.device && !newState.device.shared) || state.profile?.superuser) {
-    dispatch(primeFetchSubscription());
-    dispatch(fetchDeviceOnline(dongleId));
+  if (state.dongleId !== destination.dongleId) {
+    if ((newState.device && !newState.device.shared) || state.profile?.superuser) {
+      dispatch(primeFetchSubscription());
+      dispatch(fetchDeviceOnline(destination.dongleId));
+    }
+
+    const isOwned = state.devices?.some((device) => device.dongle_id === destination.dongleId);
+    if (!isOwned && api.auth.isAuthenticated()) {
+      dispatch(fetchSharedDevice(destination.dongleId));
+    }
+
+    dispatch(checkLastRoutesData());
+  } else if (destination.logId) { // load drive on current device
+    dispatch(checkRoutesData());
   }
-  const isOwned = state.devices?.some((device) => device.dongle_id === dongleId);
-  if (!isOwned && api.auth.isAuthenticated()) {
-    dispatch(fetchSharedDevice(dongleId));
-  }
-  dispatch(checkLastRoutesData());
 };
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {

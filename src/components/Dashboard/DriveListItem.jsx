@@ -152,7 +152,7 @@ const DriveListItem = (props) => {
       <Timeline
         route={drive}
         thumbnailsVisible={isVisible}
-        zoomOverride={{ start: 0, end: drive.duration }}
+        zoom={{ start: 0, end: drive.duration }}
       />
     </a>
   );

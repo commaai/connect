@@ -14,25 +14,36 @@ const parseDriveRange = (start, end, legacy = false) => {
   return { start: startMillis, end: endMillis };
 };
 
-export const parseURL = (location) => {
-  const parts = location.pathname.split('/').filter(Boolean);
-  const [dongleId, branch, start, end] = parts;
+export const parseURL = (pathname) => {
+  const parts = pathname.split('/').filter(Boolean);
 
+  // global paths
   if (parts.length === 0) return { page: 'root' };
   if (parts.length === 1 && rootPages.includes(parts[0])) return { page: parts[0] };
+
+  const dongleId = parts[0];
+
+  // device paths
   if (parts.length > 4 || !dongleIdRegex.test(dongleId)) return { page: 'not-found' };
   if (parts.length === 1) return { page: 'dashboard', dongleId };
-  if (parts.length === 2 && devicePages.includes(branch)) return { page: branch, dongleId };
-  if (logIdRegex.test(branch)) return { page: 'drive', dongleId, logId: branch, range: parseDriveRange(start, end) };
+  if (parts.length === 2 && devicePages.includes(parts[1])) return { page: parts[1], dongleId };
+
+  // drive paths
+  if (logIdRegex.test(parts[1])) {
+    const range = parseDriveRange(parts[2], parts[3]);
+    return { page: 'drive', dongleId, logId: parts[1], range };
+  }
   if (parts.length === 3) {
-    const range = parseDriveRange(branch, start, true);
+    const range = parseDriveRange(parts[1], parts[2], true);
     if (range) return { page: 'legacy-drive', dongleId, range };
   }
+
   return { page: 'not-found' };
 };
 
 export const buildURL = (destination) => {
   const { page, dongleId, logId, range } = destination;
+
   if (rootPages.includes(page)) return `/${page}`;
 
   const basePath = dongleId ? `/${dongleId}` : '/';

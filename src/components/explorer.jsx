@@ -190,7 +190,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, devices, dispatch, dongleId, destination, profile } = this.props;
+    const { classes, devices, dongleId, destination, profile } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
     const { page } = destination;
 
@@ -240,7 +240,7 @@ class ExplorerApp extends Component {
             />
             <div className={ classes.window } style={ containerStyles }>
               { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(navigateTo('dashboard'))} />
+                ? <Referrals profile={profile} />
                 : noDevicesUpsell
                 ? <NoDeviceUpsell />
                 : (page === 'drive' ? <DriveView /> : <Dashboard primeNav={page === 'prime'} />)}

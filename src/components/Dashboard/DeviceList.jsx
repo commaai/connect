@@ -112,8 +112,8 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
-    const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
+    const { classes, handleDeviceSelected, profile, dongleId } = this.props;
+    const isSelectedCls = (dongleId === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
       <a
@@ -148,7 +148,7 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { classes, device, selectedDevice: dongleId } = this.props;
+    const { classes, device, dongleId } = this.props;
     let { devices } = this.props;
 
     const found = devices.some((d) => d.dongle_id === dongleId);
@@ -191,6 +191,7 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  dongleId: state.dongleId,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

@@ -424,9 +424,4 @@ class Timeline extends Component {
   }
 }
 
-const stateToProps = (state, ownProps) => ({
-  zoom: ownProps.zoomOverride || state.zoom,
-  loop: state.loop,
-});
-
-export default connect(stateToProps)(withStyles(styles)(Timeline));
+export default connect()(withStyles(styles)(Timeline));

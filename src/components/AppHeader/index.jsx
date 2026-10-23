@@ -99,9 +99,8 @@ const AppHeader = ({
   }, []);
 
   const openReferrals = useCallback(() => {
-    if (referralsOpen) return;
     dispatch(navigateTo('referrals'));
-  }, [dispatch, referralsOpen]);
+  }, [dispatch]);
 
   const toggleReferrals = useCallback(() => {
     window.localStorage.setItem(REFERRALS_SEEN_KEY, 'true');

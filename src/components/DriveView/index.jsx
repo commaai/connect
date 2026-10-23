@@ -65,7 +65,7 @@ class DriveView extends Component {
                 <CloseBold fontSize="inherit" />
               </IconButton>
             </div>
-            <Timeline route={currentRoute} thumbnailsVisible hasRuler />
+            <Timeline route={currentRoute} zoom={zoom} thumbnailsVisible hasRuler />
           </div>
           <div className='px-3 pb-3 md:px-8 md:pb-8'>
             {(routes && routes.length === 0)
