@@ -241,10 +241,6 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
       this.props.dispatch(navigateTo('drive', { route, start: startOffset, end: endOffset }));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
@@ -280,11 +276,13 @@ class Timeline extends Component {
   }
 
   percentToOffset(perc) {
-    return perc * (this.props.zoom.end - this.props.zoom.start) + this.props.zoom.start;
+    const { start, end } = this.props.zoom;
+    return perc * (end - start) + start;
   }
 
   offsetToPercent(offset) {
-    return (offset - this.props.zoom.start) / (this.props.zoom.end - this.props.zoom.start);
+    const { start, end } = this.props.zoom;
+    return (offset - start) / (end - start);
   }
 
   segmentNum(offset) {

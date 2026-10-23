@@ -13,9 +13,15 @@ function populateFetchedAt(d) {
 }
 
 function deviceCompareFn(a, b) {
-  if (a.is_owner !== b.is_owner) return b.is_owner - a.is_owner;
-  if (a.alias && b.alias) return a.alias.localeCompare(b.alias);
-  if (!a.alias && !b.alias) return a.dongle_id.localeCompare(b.dongle_id);
+  if (a.is_owner !== b.is_owner) {
+    return b.is_owner - a.is_owner;
+  }
+  if (a.alias && b.alias) {
+    return a.alias.localeCompare(b.alias);
+  }
+  if (!a.alias && !b.alias) {
+    return a.dongle_id.localeCompare(b.dongle_id);
+  }
   return Boolean(b.alias) - Boolean(a.alias);
 }
 

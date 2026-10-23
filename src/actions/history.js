@@ -54,8 +54,8 @@ export const syncStateFromURL = () => async (dispatch, getState) => {
       dispatch(fetchDeviceOnline(destination.dongleId));
     }
 
-    const isOwned = state.devices?.some((device) => device.dongle_id === destination.dongleId);
-    if (!isOwned && api.auth.isAuthenticated()) {
+    const isListed = state.devices?.some((device) => device.dongle_id === destination.dongleId);
+    if (!isListed && api.auth.isAuthenticated()) {
       dispatch(fetchSharedDevice(destination.dongleId));
     }
 
