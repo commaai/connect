@@ -6,12 +6,12 @@ import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
-import { selectDevice } from '../../actions';
+import { navigateTo } from '../../actions';
 
 const listener = (ev) => ev.stopPropagation();
 
 const AppDrawer = ({
-  dispatch, isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width,
+  dispatch, isPermanent, drawerIsOpen, handleDrawerStateChanged, width,
 }) => {
   const contentRef = useRef(null);
 
@@ -28,7 +28,7 @@ const AppDrawer = ({
   }, [handleDrawerStateChanged]);
 
   const handleDeviceSelected = useCallback((dongleId) => {
-    dispatch(selectDevice(dongleId));
+    dispatch(navigateTo('dashboard', { dongleId }));
     toggleDrawerOff();
   }, [dispatch, toggleDrawerOff]);
 
@@ -47,18 +47,10 @@ const AppDrawer = ({
               <span className="text-xl font-extrabold">connect</span>
             </Link>
           )}
-        <DeviceList
-          selectedDevice={selectedDongleId}
-          handleDeviceSelected={handleDeviceSelected}
-        />
+        <DeviceList handleDeviceSelected={handleDeviceSelected} />
       </div>
     </Drawer>
   );
 };
 
-const stateToProps = (state) => ({
-  selectedDongleId: state.dongleId,
-  device: state.device,
-});
-
-export default connect(stateToProps)(AppDrawer);
+export default connect()(AppDrawer);

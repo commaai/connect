@@ -1,61 +1,75 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
-import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
+import { LOCATION_CHANGE, replace } from 'connected-react-router';
+import { parseURL, buildURL } from '../url';
+import { checkRoutesData, checkLastRoutesData, primeFetchSubscription, fetchDeviceOnline, fetchSharedDevice } from './index';
+import { ACTION_APPLY_DESTINATION } from './types';
 import { api } from '../api/backend';
+import { resetPlayback, selectLoop } from '../timeline/playback';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
-  if (!action) {
-    return;
+export const syncStateFromURL = () => async (dispatch, getState) => {
+  let state = getState();
+  if (state.devices === null) return;
+
+  const currentPath = state.router.location.pathname;
+  let destination = parseURL(currentPath);
+
+  if (destination.page === 'legacy-drive') {
+    const { dongleId, range } = destination;
+    const logId = await api.routes.getRoutesSegments(dongleId, range.start, range.end)
+      .then((routes) => routes?.[0]?.fullname?.split('|')[1])
+      .catch((err) => console.error('Failed to resolve legacy drive URL', err));
+    // state may have changed while the lookup was pending
+    state = getState();
+    if (state.router.location.pathname !== currentPath) return;
+
+    if (logId) destination = { ...destination, page: 'drive', logId, range: null };
   }
 
-  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
-    const state = getState();
+  destination.dongleId ??= state.dongleId ?? state.devices[0]?.dongle_id ?? null;
 
-    next(action); // must be first, otherwise breaks history
-
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
-    }
-
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
-        if (routesData && routesData.length > 0) {
-          const log_id = routesData[0].fullname.split('|')[1]; 
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-        }
-      }).catch((err) => {
-        console.error('Error fetching routes data for log ID conversion', err);
-      });
-    }
-
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
-    }
-
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(checkRoutesData());
-    }
-
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
-    }
-
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
-    }
-  } else {
-    next(action);
+  const location = state.router.location;
+  const resolvedPath = buildURL(destination) ?? location.pathname;
+  if (location.pathname !== resolvedPath) {
+    return dispatch(replace({ ...location, pathname: resolvedPath }));
   }
+
+  dispatch({
+    type: ACTION_APPLY_DESTINATION,
+    destination,
+  });
+
+  const newState = getState();
+  const playbackChanged = state.zoom !== newState.zoom || state.selectedRouteId !== newState.selectedRouteId;
+  if (playbackChanged) {
+    dispatch(resetPlayback());
+    dispatch(selectLoop(newState.zoom?.start, newState.zoom?.end));
+  }
+
+  // initialize the newly selected device.
+  if (state.dongleId !== destination.dongleId) {
+    if ((newState.device && !newState.device.shared) || state.profile?.superuser) {
+      dispatch(primeFetchSubscription());
+      dispatch(fetchDeviceOnline(destination.dongleId));
+    }
+
+    const isListed = state.devices?.some((device) => device.dongle_id === destination.dongleId);
+    if (!isListed && api.auth.isAuthenticated()) {
+      dispatch(fetchSharedDevice(destination.dongleId));
+    }
+
+    dispatch(checkLastRoutesData());
+  } else if (destination.logId) { // load drive on current device
+    dispatch(checkRoutesData());
+  }
+};
+
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
+  if (!action) return;
+  if (action.type !== LOCATION_CHANGE) return next(action);
+
+  const prevPathname = getState().router.location.pathname;
+  const result = next(action);
+  if (prevPathname !== action.payload.location.pathname) {
+    dispatch(syncStateFromURL());
+  }
+  return result;
 };

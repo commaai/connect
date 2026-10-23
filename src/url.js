@@ -1,66 +1,60 @@
-const dongleIdRegex = /[a-f0-9]{16}/;
-const logIdRegex = /[a-f0-9-]{20}/;
+const dongleIdRegex = /^[a-f0-9]{16}$/;
+const logIdRegex = /^[a-f0-9-]{20}$/;
+const digitsRegex = /^\d+$/;
+const rootPages = ['auth', 'demo', 'referrals'];
+const devicePages = ['prime', 'stream', 'settings'];
 
-export function getDongleID(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+const parseDriveRange = (start, end, legacy = false) => {
+  if (!digitsRegex.test(start) || !digitsRegex.test(end)) return null;
 
-  if (!dongleIdRegex.test(parts[0])) {
-    return null;
-  }
+  const multiplier = legacy ? 1 : 1000;
+  const startMillis = Number(start) * multiplier;
+  const endMillis = Number(end) * multiplier;
+  if (!Number.isSafeInteger(startMillis) || !Number.isSafeInteger(endMillis) || endMillis <= startMillis) return null;
+  return { start: startMillis, end: endMillis };
+};
 
-  return parts[0] || null;
-}
-
-export function getZoom(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-  if (parts.length >= 3 && parts[0] !== 'auth') {
-    return {
-      start: Number(parts[1]),
-      end: Number(parts[2]),
-    };
-  }
-  return null;
-}
-
-export function getRouteId(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length >= 2 && logIdRegex.test(parts[1])) {
-    return parts[1];
-  }
-  return null;
-}
-
-export function getRouteZoom(pathname) {
+export const parseURL = (pathname) => {
   const parts = pathname.split('/').filter(Boolean);
-  if (getRouteId(pathname) && parts.length >= 4) {
-    return {
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
-    };
+
+  // global paths
+  if (parts.length === 0) return { page: 'root' };
+  if (parts.length === 1 && rootPages.includes(parts[0])) return { page: parts[0] };
+
+  const dongleId = parts[0];
+
+  // device paths
+  if (parts.length > 4 || !dongleIdRegex.test(dongleId)) return { page: 'not-found' };
+  if (parts.length === 1) return { page: 'dashboard', dongleId };
+  if (parts.length === 2 && devicePages.includes(parts[1])) return { page: parts[1], dongleId };
+
+  // drive paths
+  if (logIdRegex.test(parts[1])) {
+    const range = parseDriveRange(parts[2], parts[3]);
+    return { page: 'drive', dongleId, logId: parts[1], range };
   }
-  return null;
-}
-
-export function getPrimeNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
-
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'prime') {
-    return true;
+  if (parts.length === 3) {
+    const range = parseDriveRange(parts[1], parts[2], true);
+    if (range) return { page: 'legacy-drive', dongleId, range };
   }
-  return false;
-}
 
-export function getStreamNav(pathname) {
-  let parts = pathname.split('/');
-  parts = parts.filter((m) => m.length);
+  return { page: 'not-found' };
+};
 
-  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'stream') {
-    return true;
+export const buildURL = (destination) => {
+  const { page, dongleId, logId, range } = destination;
+
+  if (rootPages.includes(page)) return `/${page}`;
+
+  const basePath = dongleId ? `/${dongleId}` : '/';
+  if (page === 'dashboard' || page === 'root' || page === 'not-found') return basePath;
+
+  if (!dongleId) return;
+
+  if (page === 'drive') {
+    if (!range) return `${basePath}/${logId}`;
+    return `${basePath}/${logId}/${Math.floor(range.start / 1000)}/${Math.floor(range.end / 1000)}`;
   }
-  return false;
-}
+
+  if (devicePages.includes(page)) return `${basePath}/${page}`;
+};

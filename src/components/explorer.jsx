@@ -1,7 +1,7 @@
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import localforage from 'localforage';
-import { push, replace } from 'connected-react-router';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Button, CircularProgress, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -13,17 +13,22 @@ import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import BodyTeleop from './BodyTeleop';
+import FullPageLoading from './FullPageLoading';
 
-import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
+import { analyticsEvent, updateDevices, navigateTo } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
+import { webrtcConnectionManager } from '../utils/webrtc';
 import { subscribeWindowSize } from '../hooks/window';
 
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+
+const Prime = lazy(() => import('./Prime'));
 
 const styles = (theme) => ({
   app: {
@@ -81,11 +86,6 @@ class ExplorerApp extends Component {
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
-    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
-  }
-
-  closeBodyTeleop() {
-    this.props.dispatch(streamNav(false));
   }
 
   async componentDidMount() {
@@ -145,33 +145,28 @@ class ExplorerApp extends Component {
         this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${msg}, please try again` });
       }
     }
-
-    this.componentDidUpdate({});
   }
 
   componentWillUnmount() {
     this.unsubscribeWindowSize?.();
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+  componentDidUpdate(prevProps) {
+    if (prevProps.dongleId && prevProps.dongleId !== this.props.dongleId) {
+      if (webrtcConnectionManager.dongleId !== this.props.dongleId) {
+        webrtcConnectionManager.disconnect();
+      }
+    }
 
-    if (prevProps.pathname !== pathname) {
+    if (prevProps.pathname !== this.props.pathname) {
       this.setState({ drawerIsOpen: false });
     }
 
-    if (!prevProps.zoom && zoom) {
+    if (!prevProps.zoom && this.props.zoom) {
       this.props.dispatch(play());
     }
-    if (prevProps.zoom && !zoom) {
+    if (prevProps.zoom && !this.props.zoom) {
       this.props.dispatch(pause());
-    }
-
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
     }
   }
 
@@ -179,7 +174,7 @@ class ExplorerApp extends Component {
     const { pairDongleId } = this.state;
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      this.props.dispatch(navigateTo('dashboard', { dongleId: pairDongleId }));
     }
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
@@ -197,13 +192,16 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const {
-      classes, currentRoute, devices, dispatch, dongleId, bodyTeleopOpen, selectedRouteId, pathname, profile,
-    } = this.props;
+    const { classes, device, devices, dongleId, destination, profile } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+    const { page } = destination;
+
+    if (devices === null && page !== 'stream') {
+      return <FullPageLoading />;
+    }
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const referralsOpen = pathname === '/referrals';
+    const referralsOpen = page === 'referrals';
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -221,16 +219,23 @@ class ExplorerApp extends Component {
     const drawerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
+    const primeView = (
+      <div className="relative flex flex-col">
+        <Suspense fallback={<FullPageLoading />}>
+          {device ? <Prime /> : <FullPageLoading />}
+        </Suspense>
+      </div>
+    );
 
     return (
       <div className={classes.app}>
-        { bodyTeleopOpen ? (
-          <BodyTeleop onClose={ this.closeBodyTeleop } />
+        { page === 'stream' ? (
+          <BodyTeleop dongleId={destination.dongleId} />
         ) : (
           <>
             <AppHeader
               drawerIsOpen={ drawerIsOpen }
-              viewingRoute={ Boolean(currentRoute) }
+              referralsOpen={ referralsOpen }
               showDrawerButton={ !isLarge }
               handleDrawerStateChanged={this.handleDrawerStateChanged}
               forwardRef={ this.updateHeaderRef }
@@ -243,11 +248,11 @@ class ExplorerApp extends Component {
               style={ drawerStyles }
             />
             <div className={ classes.window } style={ containerStyles }>
-              { referralsOpen
-                ? <Referrals profile={profile} onBack={() => dispatch(push(dongleId ? `/${dongleId}` : '/'))} />
-                : noDevicesUpsell
-                ? <NoDeviceUpsell />
-                : ((currentRoute || selectedRouteId) ? <DriveView /> : <Dashboard />)}
+              {referralsOpen ? <Referrals profile={profile} />
+                : noDevicesUpsell ? <NoDeviceUpsell />
+                : page === 'drive' ? <DriveView />
+                : page === 'prime' ? primeView
+                : <Dashboard />}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -270,6 +275,9 @@ class ExplorerApp extends Component {
             </Modal>
           </>
         ) }
+        {page === 'settings' && (
+          <DeviceSettingsModal key={dongleId} />
+        )}
       </div>
     );
   }
@@ -277,13 +285,9 @@ class ExplorerApp extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
-  pathname: state.router.location.pathname,
   dongleId: state.dongleId,
+  device: state.device,
   devices: state.devices,
-  currentRoute: state.currentRoute,
-  selectedRouteId: state.selectedRouteId,
-  limit: state.limit,
-  bodyTeleopOpen: state.streamNav,
   profile: state.profile,
 });
 

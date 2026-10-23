@@ -8,7 +8,7 @@ import dayjs from 'dayjs';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { navigateTo } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
@@ -148,11 +148,9 @@ class Timeline extends Component {
     this.hoverBead = React.createRef();
     this.thumbnailsRef = React.createRef();
 
-    const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
       hoverX: null,
-      zoom: zoomOverride || zoom,
       thumbnail: {
         height: 0,
         width: 0,
@@ -163,7 +161,6 @@ class Timeline extends Component {
   componentDidMount() {
     this.mounted = true;
     requestAnimationFrame(this.getOffset);
-    this.componentDidUpdate({});
 
     if (typeof ResizeObserver !== 'undefined' && this.thumbnailsRef.current) {
       this.resizeObserver = new ResizeObserver((entries) => {
@@ -175,13 +172,6 @@ class Timeline extends Component {
         this.setState({ thumbnail: { width, height } });
       });
       this.resizeObserver.observe(this.thumbnailsRef.current);
-    }
-  }
-
-  componentDidUpdate(prevProps) {
-    const { zoomOverride, zoom } = this.props;
-    if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
-      this.setState({ zoom: zoomOverride || zoom });
     }
   }
 
@@ -251,15 +241,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      this.props.dispatch(navigateTo('drive', { route, start: startOffset, end: endOffset }));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
@@ -294,13 +276,13 @@ class Timeline extends Component {
   }
 
   percentToOffset(perc) {
-    const { zoom } = this.state;
-    return perc * (zoom.end - zoom.start) + zoom.start;
+    const { start, end } = this.props.zoom;
+    return perc * (end - start) + start;
   }
 
   offsetToPercent(offset) {
-    const { zoom } = this.state;
-    return (offset - zoom.start) / (zoom.end - zoom.start);
+    const { start, end } = this.props.zoom;
+    return (offset - start) / (end - start);
   }
 
   segmentNum(offset) {
@@ -312,8 +294,7 @@ class Timeline extends Component {
   }
 
   renderRoute() {
-    const { classes, route } = this.props;
-    const { zoom } = this.state;
+    const { classes, route, zoom } = this.props;
 
     if (!route.events) {
       return null;
@@ -441,9 +422,4 @@ class Timeline extends Component {
   }
 }
 
-const stateToProps = (state) => ({
-  zoom: state.zoom,
-  loop: state.loop,
-});
-
-export default connect(stateToProps)(withStyles(styles)(Timeline));
+export default connect()(withStyles(styles)(Timeline));
