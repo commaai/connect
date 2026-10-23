@@ -158,7 +158,7 @@ class ExplorerApp extends Component {
       }
     }
 
-    if (prevProps.location?.pathname !== this.props.location.pathname) {
+    if (prevProps.pathname !== this.props.pathname) {
       this.setState({ drawerIsOpen: false });
     }
 

@@ -99,39 +99,26 @@ class App extends Component {
     return url;
   }
 
-  authRoutes(destination) {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to={this.redirectLink()} />
-        </Route>
-        <Route path="/" render={(props) => <Explorer {...props} destination={destination} />} />
-      </Switch>
-    );
-  }
-
-  anonymousRoutes() {
-    return (
-      <Switch>
-        <Route path="/auth/">
-          <Redirect to="/" />
-        </Route>
-        <Route path="/" component={AnonymousLanding} />
-      </Switch>
-    );
-  }
-
   render() {
     if (!this.state.initialized) return <FullPageLoading />;
 
     const { store = defaultStore, history = defaultHistory } = this.props;
     let content = (
       <Suspense fallback={<FullPageLoading />}>
-        <Route render={({ location }) => {
-          const destination = parseURL(location.pathname);
-          const isDrive = destination.page === 'drive' || destination.page === 'legacy-drive';
-          return !api.auth.isAuthenticated() && !isDrive ? this.anonymousRoutes() : this.authRoutes(destination);
-        }} />
+        <Switch>
+          <Route path="/auth/" render={() => {
+            const destination = api.auth.isAuthenticated() ? this.redirectLink() : '/';
+            return <Redirect to={destination} />;
+          }} />
+          <Route path="/" render={({ location }) => {
+            const destination = parseURL(location.pathname);
+            const isDrive = destination.page === 'drive' || destination.page === 'legacy-drive';
+
+            return api.auth.isAuthenticated() || isDrive
+              ? <Explorer destination={destination} pathname={location.pathname} />
+              : <AnonymousLanding />;
+          }} />
+        </Switch>
       </Suspense>
     );
 
