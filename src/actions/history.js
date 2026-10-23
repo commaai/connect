@@ -17,22 +17,19 @@ export const syncStateFromURL = () => async (dispatch, getState) => {
     const logId = await api.routes.getRoutesSegments(dongleId, range.start, range.end)
       .then((routes) => routes?.[0]?.fullname?.split('|')[1])
       .catch((err) => console.error('Failed to resolve legacy drive URL', err));
+    // state may have changed while the lookup was pending
+    state = getState();
+    if (state.router.location.pathname !== currentPath) return;
 
     if (logId) destination = { ...destination, page: 'drive', logId, range: null };
   }
 
-  state = getState();
-  const location = state.router.location;
-  if (location.pathname !== currentPath) return;
-
   destination.dongleId ??= state.dongleId ?? state.devices[0]?.dongle_id ?? null;
+
+  const location = state.router.location;
   const resolvedPath = buildURL(destination) ?? location.pathname;
   if (location.pathname !== resolvedPath) {
-    return dispatch(replace({
-      pathname: resolvedPath,
-      search: location.search,
-      state: location.state,
-    }));
+    return dispatch(replace({ ...location, pathname: resolvedPath }));
   }
 
   dispatch({
