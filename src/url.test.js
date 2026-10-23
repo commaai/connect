@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseURL } from './url';
+import { parseURL, buildURL } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -17,12 +17,17 @@ const destinations = [
   ['whole drive', `/${DONGLE}/${LOG}`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: null }],
   ['drive range', `/${DONGLE}/${LOG}/10/20`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 10000, end: 20000 } }],
   ['zero-start range', `/${DONGLE}/${LOG}/0/20`, { page: 'drive', dongleId: DONGLE, logId: LOG, range: { start: 0, end: 20000 } }],
-  ['legacy timestamps', `/${DONGLE}/1000/2000`, { page: 'legacy-drive', dongleId: DONGLE, range: { start: 1000, end: 2000 } }],
 ];
 
 describe('parseURL', () => {
   it.each(destinations)('parses %s: %s', (_name, pathname, destination) => {
     expect(parseURL(pathname)).toEqual(destination);
+  });
+
+  it('parses legacy timestamps', () => {
+    expect(parseURL(`/${DONGLE}/1000/2000`)).toEqual({
+      page: 'legacy-drive', dongleId: DONGLE, range: { start: 1000, end: 2000 }
+    });
   });
 
   it.each([
@@ -41,5 +46,11 @@ describe('parseURL', () => {
     `/${DONGLE}/9007199254740992/9007199254740993`,
   ])('rejects %s', (pathname) => {
     expect(parseURL(pathname)).toEqual({ page: 'not-found' });
+  });
+});
+
+describe('buildURL', () => {
+  it.each(destinations)('builds %s: %s', (_name, pathname, destination) => {
+    expect(buildURL(destination)).toBe(pathname);
   });
 });

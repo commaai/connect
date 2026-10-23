@@ -141,7 +141,7 @@ export function checkLastRoutesData() {
 }
 
 export const navigateTo = (page, options = {}) => (dispatch, getState) => {
-  const { dongleId, route, start, end, back = false } = options;
+  const { dongleId, route, start, end, back } = options;
   const state = getState();
 
   if (back && state.router.location.state?.hasPrevPath) {
