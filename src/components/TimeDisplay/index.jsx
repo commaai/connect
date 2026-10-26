@@ -2,7 +2,6 @@ import React from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
-import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
@@ -25,89 +24,15 @@ const timerSteps = [
   8,
 ];
 
-const styles = (theme) => ({
-  base: {
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: theme.palette.grey[999],
-    height: '4em',
-    borderRadius: '2em',
-    padding: '0.5em',
-    width: '25em',
-    maxWidth: '100%',
-    margin: '0 auto',
-    opacity: 0,
-    pointerEvents: 'none',
-    transition: 'opacity 0.1s ease-in-out',
-    '&.isExpanded': {
-      opacity: 1,
-      pointerEvents: 'auto',
-    },
-    '&.isThin': {
-      height: '3.125em',
-      paddingBottom: 0,
-      paddingTop: 0,
-    },
-  },
-  desiredPlaySpeedContainer: {
-    marginRight: '0.5em',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minWidth: '2.5em',
-  },
-  icon: {
-    width: '98%',
-    height: '98%',
-    '&.dim': {
-      color: theme.palette.grey[300],
-    },
-    '&.small': {
-      width: '80%',
-      height: '80%',
-    },
-    '&.circle': {
-      border: `1px solid ${theme.palette.grey[900]}`,
-      borderRadius: '50%',
-    },
-  },
-  iconButton: {
-    fontSize: 'inherit',
-    width: '2.5em',
-    height: '2.5em',
-  },
-  tinyArrowIcon: {
-    fontSize: 'inherit',
-    width: '0.75em',
-    height: '0.75em',
-    color: theme.palette.grey[500],
-    '&[disabled]': {
-      visibility: 'hidden',
-    },
-  },
-  rightBorderBox: {
-    borderRight: `1px solid ${theme.palette.grey[900]}`,
-  },
-  leftBorderBox: {
-    borderLeft: `1px solid ${theme.palette.grey[900]}`,
-  },
-  desiredPlaySpeed: {
-    fontSize: '0.875em',
-  },
-  currentTime: {
-    margin: '0 0.5em',
-    fontSize: '0.9375em',
-    fontWeight: 500,
-    display: 'block',
-    flexGrow: 1,
-  },
-});
+const iconButton = 'text-[length:inherit] w-[2.5em] h-[2.5em]';
+const smallIcon = 'w-[80%] h-[80%]';
+const tinyArrow = 'text-[length:inherit] w-[0.75em] h-[0.75em] text-[#424a4f] disabled:invisible';
 
 function formatPlaybackTime(routeStartMs, routeMs) {
   const now = new Date(routeMs + routeStartMs);
   if (Number.isNaN(now.getTime())) return '...';
   const time = dayjs(now).format('HH:mm:ss');
-  return `${time} \u2013 ${segmentAtRouteMs(routeMs)}`;
+  return `${time} – ${segmentAtRouteMs(routeMs)}`;
 }
 
 function speedStepIndex(playbackRate) {
@@ -130,73 +55,73 @@ const PlaybackTime = ({ className, routeStartMs, videoStartOffset }) => {
   );
 };
 
-const SpeedControl = ({ classes, makeHandleSpeedChange }) => {
+const SpeedControl = ({ makeHandleSpeedChange }) => {
   const playbackRate = useVideoPlaybackRate();
   const speedIndex = speedStepIndex(playbackRate);
   const canIncreaseSpeed = speedIndex < timerSteps.length - 1;
   const canDecreaseSpeed = speedIndex > 0;
   return (
-    <div className={ classes.desiredPlaySpeedContainer }>
+    <div className="flex flex-col items-center min-w-[2.5em] mr-[0.5em]">
       <IconButton
-        className={classes.tinyArrowIcon}
+        className={tinyArrow}
         onClick={makeHandleSpeedChange(1)}
         disabled={!canIncreaseSpeed}
         aria-label="Increase play speed by 1 step"
       >
-        <UpArrow className={classes.tinyArrowIcon} />
+        <UpArrow className={tinyArrow} />
       </IconButton>
-      <Typography variant="body2" align="center" className={classes.desiredPlaySpeed}>
+      <Typography variant="body2" align="center" className="text-[0.875em]">
         {playbackRate}
         ×
       </Typography>
       <IconButton
-        className={classes.tinyArrowIcon}
+        className={tinyArrow}
         onClick={makeHandleSpeedChange(-1)}
         disabled={!canDecreaseSpeed}
         aria-label="Decrease play speed by 1 step"
       >
-        <DownArrow className={classes.tinyArrowIcon} />
+        <DownArrow className={tinyArrow} />
       </IconButton>
     </div>
   );
 };
 
-const MuteButton = ({ classes, hasAudio, onToggle }) => {
+const MuteButton = ({ hasAudio, onToggle }) => {
   const muted = useVideoMuted();
   return (
-    <Tooltip title={ !hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
+    <Tooltip title={!hasAudio ? 'Enable audio recording through the "Record and Upload Microphone Audio" toggle on your device' : ''}>
       <div>
         <IconButton
-          className={ classes.iconButton }
+          className={iconButton}
           onClick={onToggle}
           disabled={!hasAudio}
           aria-label={muted ? 'Unmute' : 'Mute'}
         >
           {muted
-            ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
-            : (<VolumeUp className={`${classes.icon} small`} />)}
+            ? (<VolumeOff className={`${smallIcon} ${!hasAudio ? 'text-[#535f64]' : ''}`} />)
+            : (<VolumeUp className={smallIcon} />)}
         </IconButton>
       </div>
     </Tooltip>
   );
 };
 
-const PlayPauseButton = ({ classes, onToggle }) => {
+const PlayPauseButton = ({ onToggle }) => {
   const paused = useVideoPaused();
   return (
     <IconButton
-      className={ classes.iconButton }
+      className={iconButton}
       onClick={onToggle}
       aria-label={paused ? 'Unpause' : 'Pause'}
     >
       {paused
-        ? (<PlayArrow className={classes.icon} />)
-        : (<Pause className={classes.icon} />)}
+        ? (<PlayArrow className="w-[98%] h-[98%]" />)
+        : (<Pause className="w-[98%] h-[98%]" />)}
     </IconButton>
   );
 };
 
-function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasAudio }) {
+function TimeDisplay({ dispatch, currentRoute, loop, zoom, isThin, hasAudio }) {
   const video = useVideo();
   const videoStartOffset = currentRoute?.videoStartOffset;
 
@@ -232,44 +157,46 @@ function TimeDisplay({ classes, dispatch, currentRoute, loop, zoom, isThin, hasA
     video.muted = !video.muted;
   };
 
-  const isExpandedCls = zoom ? 'isExpanded' : '';
-  const isThinCls = isThin ? 'isThin' : '';
   return (
-    <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-      <div className={ classes.rightBorderBox }>
+    <div
+      className={`flex items-center bg-[#0c0e0f] rounded-[2em] px-[0.5em] w-[25em] max-w-full mx-auto transition-opacity duration-100 ease-in-out
+        ${isThin ? 'h-[3.125em] py-0' : 'h-[4em] py-[0.5em]'}
+        ${zoom ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+    >
+      <div className="border-r border-[#1e2224]">
+        <PlayPauseButton onToggle={handlePauseToggle} />
+      </div>
+      <div className="border-r border-[#1e2224]">
         <IconButton
-          className={ classes.iconButton }
-          onClick={ () => handleJump(-10000) }
+          className={iconButton}
+          onClick={() => handleJump(-10000)}
           aria-label="Jump back 10 seconds"
         >
-          <Replay10 className={`${classes.icon} small dim`} />
+          <Replay10 className={`${smallIcon} text-[#535f64]`} />
         </IconButton>
       </div>
-      <div className={ classes.rightBorderBox }>
+      <div className="border-r border-[#1e2224]">
         <IconButton
-          className={ classes.iconButton }
-          onClick={ () => handleJump(10000) }
+          className={iconButton}
+          onClick={() => handleJump(10000)}
           aria-label="Jump forward 10 seconds"
         >
-          <Forward10 className={`${classes.icon} small dim`} />
+          <Forward10 className={`${smallIcon} text-[#535f64]`} />
         </IconButton>
       </div>
-      { !isThin && (
-        <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
+      {!isThin && (
+        <Typography variant="caption" align="center" className="pt-1">
           CURRENT PLAYBACK TIME
         </Typography>
       )}
       <PlaybackTime
-        className={classes.currentTime}
+        className="block grow mx-[0.5em] text-[0.9375em] font-medium"
         routeStartMs={currentRoute?.start_time_utc_millis}
         videoStartOffset={videoStartOffset}
       />
-      {!playsHlsNatively() && <SpeedControl classes={classes} makeHandleSpeedChange={makeHandleSpeedChange} />}
-      <div className={ classes.leftBorderBox }>
-        <MuteButton classes={classes} hasAudio={hasAudio} onToggle={handleMuteToggle} />
-      </div>
-      <div className={ classes.leftBorderBox }>
-        <PlayPauseButton classes={classes} onToggle={handlePauseToggle} />
+      {!playsHlsNatively() && <SpeedControl makeHandleSpeedChange={makeHandleSpeedChange} />}
+      <div className="border-l border-[#1e2224]">
+        <MuteButton hasAudio={hasAudio} onToggle={handleMuteToggle} />
       </div>
     </div>
   );
@@ -281,4 +208,4 @@ const stateToProps = (state) => ({
   loop: state.loop,
 });
 
-export default connect(stateToProps)(withStyles(styles)(TimeDisplay));
+export default connect(stateToProps)(TimeDisplay);

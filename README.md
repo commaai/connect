@@ -19,7 +19,7 @@ API and useradmin URL roots can be overridden at build time with
 ## Contributing
 
 * Use best practices
-* Write test cases
+* Write/update test cases for functionality changes
 * Keep files small and clean
 * Use branches / pull requests to isolate work. Don't do work that can't be merged quickly, find ways to break it up
 
