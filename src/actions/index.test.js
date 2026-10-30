@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { push } from 'connected-react-router';
-import { primeNav, pushTimelineRange, streamNav, urlForState } from './index';
+import { athena as Athena} from '../api'
+import { fetchDeviceNetworkStatus, primeNav, pushTimelineRange, streamNav, urlForState } from './index';
 
 vi.mock('../timeline/playback', () => ({
   reducer: (state) => state,
@@ -50,4 +51,14 @@ describe('timeline actions', () => {
     action(true)(dispatch, () => ({ dongleId: 'statedongle', [stateKey]: false }));
     expect(push).toHaveBeenCalledWith(expected);
   });
+
+  it('reports a failed network status request instead of marking the device offline', async ()=>{
+    const err = new Error('Failed to fetch');
+    vi.spyOn(Athena, 'postJsonRpcPayload').mockRejectedValueOnce(err);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const dispatch = vi.fn();
+    await fetchDeviceNetworkStatus('dongle')(dispatch, () => ({ device: { dongle_id: 'dongle', openpilot_version: '0.10.1' } }));
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(err);
+  })
 });

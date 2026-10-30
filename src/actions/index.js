@@ -405,7 +405,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
           dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
-        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
+        if (err.message && (err.message.indexOf('Timed out') !== -1 || err.message.indexOf('Device not registered') !== -1)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
           console.error(err);
@@ -430,7 +430,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
           dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
-        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
+        if (err.message && (err.message.indexOf('Timed out') !== -1 || err.message.indexOf('Device not registered') !== -1)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
           console.error(err);
