@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import { athena as Athena } from '../api';
 import { api } from '../api/backend';
 
-import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
+import { fetchDeviceNetworkStatus } from '.';
 import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
@@ -155,13 +155,9 @@ export function fetchUploadQueue(dongleId) {
     };
     const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
     if (!uploadQueue || !uploadQueue.result) {
-      if (uploadQueue && uploadQueue.offline) {
-        dispatch(updateDeviceOnline(dongleId, 0));
-      }
       cancelFetchUploadQueue();
       return;
     }
-    dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
 
     const prevFilesUploading = getState().filesUploading || {};
     const device = getDeviceFromState(getState(), dongleId);
@@ -239,10 +235,7 @@ export function doUpload(dongleId, paths, urls) {
           state[pathToFileName(dongleId, path)] = {};
           return state;
         }, {});
-        dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         dispatch(updateFiles(newUploading));
-      } else if (resp.offline) {
-        dispatch(updateDeviceOnline(dongleId, 0));
       } else if (resp.result === 'Device offline, message queued') {
         const newUploading = paths.reduce((state, path) => {
           state[pathToFileName(dongleId, path)] = { progress: 0, current: false };
@@ -289,10 +282,7 @@ export function doUpload(dongleId, paths, urls) {
         if (!resp || resp.error) {
           const uploading = {};
           uploading[pathToFileName(dongleId, paths[i])] = {};
-          dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
           dispatch(updateFiles(uploading));
-        } else if (resp.offline) {
-          dispatch(updateDeviceOnline(dongleId, 0));
         } else if (resp.result === 'Device offline, message queued') {
           const uploading = {};
           uploading[pathToFileName(dongleId, paths[i])] = { progress: 0, current: false };
@@ -356,8 +346,6 @@ export function cancelUploads(dongleId, ids) {
         dongleId,
         ids: idsArray,
       });
-    } else if (resp && resp.offline) {
-      dispatch(updateDeviceOnline(dongleId, 0));
     }
   };
 }
