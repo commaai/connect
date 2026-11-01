@@ -8,7 +8,7 @@ import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
+import { getVideoElement } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -23,16 +23,6 @@ const timerSteps = [
 ];
 
 class TimeDisplay extends Component {
-  static getDerivedStateFromProps(props, state) {
-    if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
-      return {
-        ...state,
-        desiredPlaySpeed: props.desiredPlaySpeed,
-      };
-    }
-    return state;
-  }
-
   constructor(props) {
     super(props);
 
@@ -46,8 +36,9 @@ class TimeDisplay extends Component {
     this.jumpForward = this.jumpForward.bind(this);
 
     this.state = {
-      desiredPlaySpeed: 1,
       displayTime: this.getDisplayTime(),
+      isPaused: true,
+      playbackRate: 1,
     };
   }
 
@@ -77,80 +68,73 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
+    const video = getVideoElement();
+    if (video) {
+      video.currentTime = Math.max(0, video.currentTime - (amount / 1000));
+    }
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
+    const video = getVideoElement();
+    if (video) {
+      video.currentTime += amount / 1000;
+    }
   }
 
+  // read the playback state straight from the video every frame
   updateTime() {
     if (!this.mounted || !this.textHolder.current) {
       return;
     }
-    const newDisplayTime = this.getDisplayTime();
-    const { displayTime } = this.state;
-    if (newDisplayTime !== displayTime) {
-      this.setState({ displayTime: newDisplayTime });
+    const video = getVideoElement();
+    const next = {
+      displayTime: this.getDisplayTime(),
+      isPaused: video ? video.paused : true,
+      playbackRate: video ? video.playbackRate : 1,
+    };
+    const { displayTime, isPaused, playbackRate } = this.state;
+    if (next.displayTime !== displayTime || next.isPaused !== isPaused || next.playbackRate !== playbackRate) {
+      this.setState(next);
     }
 
     requestAnimationFrame(this.updateTime);
   }
 
-  decreaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.max(0, curIndex - 1);
-    dispatch(play(timerSteps[curIndex]));
+  speedIndex() {
+    const curIndex = timerSteps.indexOf(this.state.playbackRate);
+    return curIndex === -1 ? timerSteps.indexOf(1) : curIndex;
   }
 
-  canDecreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
+  setSpeed(index) {
+    const video = getVideoElement();
+    if (video) {
+      video.playbackRate = timerSteps[index];
     }
-    return curIndex > 0;
+  }
+
+  decreaseSpeed() {
+    this.setSpeed(Math.max(0, this.speedIndex() - 1));
   }
 
   increaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    dispatch(play(timerSteps[curIndex]));
-  }
-
-  canIncreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
-    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    return curIndex < timerSteps.length - 1;
+    this.setSpeed(Math.min(timerSteps.length - 1, this.speedIndex() + 1));
   }
 
   togglePause() {
-    const { desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed === 0) {
-      // eslint-disable-next-line react/destructuring-assignment
-      dispatch(play(this.state.desiredPlaySpeed));
+    const video = getVideoElement();
+    if (!video) {
+      return;
+    }
+    if (video.paused) {
+      video.play().catch(() => {});
     } else {
-      dispatch(pause());
+      video.pause();
     }
   }
 
   render() {
-    const { zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime, desiredPlaySpeed } = this.state;
-    const isPaused = videoPlaySpeed === 0;
+    const { zoom, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
+    const { displayTime, isPaused, playbackRate } = this.state;
     const iconButton = 'text-[length:inherit] w-[2.5em] h-[2.5em]';
     const smallIcon = 'w-[80%] h-[80%]';
     const tinyArrow = 'text-[length:inherit] w-[0.75em] h-[0.75em] text-[#424a4f] disabled:invisible';
@@ -202,19 +186,19 @@ class TimeDisplay extends Component {
             <IconButton
               className={tinyArrow}
               onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
+              disabled={this.speedIndex() === timerSteps.length - 1}
               aria-label="Increase play speed by 1 step"
             >
               <UpArrow className={tinyArrow} />
             </IconButton>
             <Typography variant="body2" align="center" className="text-[0.875em]">
-              {desiredPlaySpeed}
+              {playbackRate}
               ×
             </Typography>
             <IconButton
               className={tinyArrow}
               onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
+              disabled={this.speedIndex() === 0}
               aria-label="Decrease play speed by 1 step"
             >
               <DownArrow className={tinyArrow} />
@@ -245,7 +229,6 @@ class TimeDisplay extends Component {
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
-  desiredPlaySpeed: state.desiredPlaySpeed,
 });
 
 export default connect(stateToProps)(TimeDisplay);
