@@ -5,6 +5,7 @@ import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
 import { currentOffset } from '../../timeline';
+import { getVideoElement, subscribeVideoElement } from '../../timeline/video';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
@@ -30,21 +31,26 @@ class DriveMap extends Component {
     this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onInteraction = this.onInteraction.bind(this);
+    this.onSeeked = this.onSeeked.bind(this);
+    this.watchVideo = this.watchVideo.bind(this);
 
     this.shouldFlyTo = false;
     this.isInteracting = false;
     this.isInteractingTimeout = null;
     this.lastMapPos = [0, 0];
+    this.video = null;
   }
 
   componentDidMount() {
     this.mounted = true;
     this.componentDidUpdate({}, {});
     this.updateMarkerPos();
+    this.watchVideo();
+    this.unsubscribeVideo = subscribeVideoElement(this.watchVideo);
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -53,10 +59,6 @@ class DriveMap extends Component {
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
-    }
-
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
-      this.shouldFlyTo = true;
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
@@ -73,6 +75,19 @@ class DriveMap extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    this.unsubscribeVideo();
+    this.video?.removeEventListener('seeked', this.onSeeked);
+  }
+
+  // fly to the new position after the video jumps
+  onSeeked() {
+    this.shouldFlyTo = true;
+  }
+
+  watchVideo() {
+    this.video?.removeEventListener('seeked', this.onSeeked);
+    this.video = getVideoElement();
+    this.video?.addEventListener('seeked', this.onSeeked);
   }
 
   onInteraction(ev) {
@@ -306,9 +321,7 @@ class DriveMap extends Component {
 }
 
 const stateToProps = (state) => ({
-  offset: state.offset,
   currentRoute: state.currentRoute,
-  startTime: state.startTime,
 });
 
 export default connect(stateToProps)(DriveMap);
