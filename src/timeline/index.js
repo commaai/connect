@@ -1,4 +1,5 @@
 import store from '../store';
+import { getVideoElement, videoSecToRouteMs } from './video';
 
 /**
  * Get current playback offset
@@ -13,7 +14,10 @@ export function currentOffset(state = null) {
 
   /** @type {number} */
   let offset;
-  if (state.offset === null && state.loop?.startTime) {
+  const videoElement = getVideoElement();
+  if (videoElement && state.currentRoute) {
+    offset = videoSecToRouteMs(state.currentRoute, videoElement.currentTime);
+  } else if (state.offset === null && state.loop?.startTime) {
     offset = state.loop.startTime;
   } else {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
