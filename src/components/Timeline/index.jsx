@@ -11,7 +11,7 @@ import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
-import { seek } from '../../timeline/playback';
+import { getVideoElement, routeMsToVideoSec } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -197,7 +197,14 @@ class Timeline extends Component {
     const { dragging } = this.state;
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(ev);
-      this.props.dispatch(seek(this.percentToOffset(percent)));
+      this.seekTo(this.percentToOffset(percent));
+    }
+  }
+
+  seekTo(offset) {
+    const video = getVideoElement();
+    if (video) {
+      video.currentTime = routeMsToVideoSec(this.props.route, offset);
     }
   }
 
@@ -253,7 +260,7 @@ class Timeline extends Component {
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
+        this.seekTo(startOffset);
       }
       const { dispatch } = this.props;
       const startTime = startOffset;
