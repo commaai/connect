@@ -10,7 +10,6 @@ const defaultState = {
 };
 
 vi.mock('../Timeline', () => ({ default: () => null }));
-vi.mock('../../timeline', () => ({ currentOffset: vi.fn(() => 0) }));
 
 const store = Redux.createStore((state) => {
   if (!state) {

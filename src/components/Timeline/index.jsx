@@ -10,8 +10,7 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
-import { getVideoElement, routeMsToVideoSec } from '../../timeline/video';
+import { currentVideoOffset, getVideoElement, routeMsToVideoSec } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -258,10 +257,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.seekTo(startOffset);
-      }
+      // the new loop makes DriveVideo seek to its start
       const { dispatch } = this.props;
       const startTime = startOffset;
       const endTime = endOffset;
@@ -288,11 +284,7 @@ class Timeline extends Component {
       return;
     }
     requestAnimationFrame(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
+    const offset = Math.floor(currentVideoOffset(this.props.route, this.state.zoom.start));
     const percent = this.offsetToPercent(offset);
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
@@ -450,7 +442,6 @@ class Timeline extends Component {
 
 const stateToProps = (state) => ({
   zoom: state.zoom,
-  loop: state.loop,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

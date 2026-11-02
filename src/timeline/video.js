@@ -52,3 +52,16 @@ export function routeMsToVideoSec(route, routeMs) {
 export function videoSecToRouteMs(route, videoSec) {
   return (videoSec * 1000) + (route?.videoStartOffset || 0);
 }
+
+
+/**
+ * Route offset (ms) the video is currently showing
+ *
+ * @param {object} route
+ * @param {number} [fallback] route offset (ms) to use when no video is mounted
+ * @returns {number}
+ */
+export function currentVideoOffset(route, fallback = 0) {
+  const video = getVideoElement();
+  return video ? videoSecToRouteMs(route, video.currentTime) : fallback;
+}

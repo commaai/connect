@@ -15,7 +15,7 @@ import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
+import { currentVideoOffset } from '../../timeline/video';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -213,10 +213,6 @@ class Media extends Component {
       this.setState({ inView: MediaType.VIDEO });
     }
 
-    if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
-    }
-
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
       this.props.dispatch(fetchEvents(this.props.currentRoute));
     }
@@ -260,13 +256,18 @@ class Media extends Component {
     }
   }
 
+  currentSegment() {
+    const { currentRoute, loop } = this.props;
+    return getSegmentNumber(currentRoute, currentVideoOffset(currentRoute, loop?.startTime));
+  }
+
   async copySegmentName() {
     const { currentRoute } = this.props;
     if (!currentRoute || !navigator.clipboard) {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${this.currentSegment()}`);
     this.setState({ moreInfoMenu: null });
   }
 
@@ -312,7 +313,7 @@ class Media extends Component {
     }));
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
-    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
+    const fileName = `${dongleId}|${routeNoDongleId}--${this.currentSegment()}/${type}`;
 
     const uploading = {};
     uploading[fileName] = { requested: true };
@@ -323,7 +324,7 @@ class Media extends Component {
 
     // request all possible file names
     for (const fn of FILE_NAMES[type]) {
-      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${fn}`;
+      const path = `${routeNoDongleId}--${this.currentSegment()}/${fn}`;
       paths.push(path);
       url_promises.push(fetchUploadUrls(dongleId, [path]).then(urls => urls[0]));
     }
@@ -594,7 +595,7 @@ class Media extends Component {
     let fcam = {}; let ecam = {}; let dcam = {}; let
       rlog = {};
     if (files && currentRoute) {
-      const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`;
+      const seg = `${currentRoute.fullname}--${this.currentSegment()}`;
       fcam = files[`${seg}/cameras`] || {};
       ecam = files[`${seg}/ecameras`] || {};
       dcam = files[`${seg}/dcameras`] || {};
@@ -735,7 +736,7 @@ class Media extends Component {
             onClick={ this.copySegmentName }
             style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
           >
-            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}` : '---' }</div>
+            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${this.currentSegment()}` : '---' }</div>
             <ContentCopy />
           </MenuItem>
           { typeof navigator.share !== 'undefined'
@@ -877,7 +878,6 @@ const stateToProps = (state) => ({
   filter: state.filter,
   files: state.files,
   profile: state.profile,
-  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

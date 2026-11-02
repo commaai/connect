@@ -7,8 +7,7 @@ import IconButton from '@material-ui/core/IconButton';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow, VolumeUp, VolumeOff } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { getVideoElement } from '../../timeline/video';
+import { currentVideoOffset, getVideoElement } from '../../timeline/video';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -52,14 +51,14 @@ class TimeDisplay extends Component {
   }
 
   getDisplayTime() {
-    const offset = currentOffset();
-    const { currentRoute } = this.props;
+    const { currentRoute, loop } = this.props;
+    const offset = currentVideoOffset(currentRoute, loop?.startTime);
     const now = new Date(offset + currentRoute.start_time_utc_millis);
     if (Number.isNaN(now.getTime())) {
       return '...';
     }
     let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute);
+    const seg = getSegmentNumber(currentRoute, offset);
     if (seg !== null) {
       dateString = `${dateString} \u2013 ${seg}`;
     }
@@ -229,6 +228,7 @@ class TimeDisplay extends Component {
 const stateToProps = (state) => ({
   currentRoute: state.currentRoute,
   zoom: state.zoom,
+  loop: state.loop,
 });
 
 export default connect(stateToProps)(TimeDisplay);
