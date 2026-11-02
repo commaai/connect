@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from '../url';
+import { parseUrl } from '../url';
 import { checkRoutesData, primeNav, streamNav, selectDevice, pushTimelineRange } from './index';
 import { api } from '../api/backend';
 
@@ -13,19 +13,13 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
 
     next(action); // must be first, otherwise breaks history
 
-    const pathDongleId = getDongleID(action.payload.location.pathname);
-    if (pathDongleId && pathDongleId !== state.dongleId) {
-      dispatch(selectDevice(pathDongleId, false, false));
+    const url = parseUrl(action.payload.location.pathname);
+    if (url.dongleId && url.dongleId !== state.dongleId) {
+      dispatch(selectDevice(url.dongleId, false, false));
     }
 
-    const pathZoom = getZoom(action.payload.location.pathname);
-    const pathRouteId = getRouteId(action.payload.location.pathname);
-    const pathRouteZoom = getRouteZoom(action.payload.location.pathname);
-
-    if ((pathZoom !== state.zoom) && pathZoom && !pathRouteId) {
-      const [start, end] = [pathZoom.start, pathZoom.end];
-
-      api.routes.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
+    if (url.legacyZoom) {
+      api.routes.getRoutesSegments(url.dongleId, url.legacyZoom.start, url.legacyZoom.end).then((routesData) => {
         if (routesData && routesData.length > 0) {
           const log_id = routesData[0].fullname.split('|')[1]; 
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
@@ -37,23 +31,20 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       });
     }
 
-    
-    if (pathRouteId || state.selectedRouteId) {
-      dispatch(pushTimelineRange(pathRouteId, pathRouteZoom?.start ?? null, pathRouteZoom?.end ?? null, false));
+    if (url.selectedRouteId || state.selectedRouteId) {
+      dispatch(pushTimelineRange(url.selectedRouteId, url.zoom?.start ?? null, url.zoom?.end ?? null, false));
     }
 
-    if (pathDongleId && pathDongleId !== state.dongleId) {
+    if (url.dongleId && url.dongleId !== state.dongleId) {
       dispatch(checkRoutesData());
     }
 
-    const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      dispatch(primeNav(pathPrimeNav));
+    if (url.primeNav !== state.primeNav) {
+      dispatch(primeNav(url.primeNav));
     }
 
-    const pathStreamNav = getStreamNav(action.payload.location.pathname);
-    if (pathStreamNav !== state.streamNav) {
-      dispatch(streamNav(pathStreamNav, false));
+    if (url.streamNav !== state.streamNav) {
+      dispatch(streamNav(url.streamNav, false));
     }
   } else {
     next(action);
