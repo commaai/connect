@@ -2,14 +2,12 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
-import { withStyles, TextField, InputAdornment, Typography, Button } from '@material-ui/core';
 import dayjs from 'dayjs';
 
 import { api } from '../../api/backend';
 import { athena } from '../../api';
 import { analyticsEvent } from '../../actions';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup, forwardLookup, getDirections } from '../../utils/geocode';
-import Colors from '../../colors';
 import { Clear, PinCarIcon, PinMarkerIcon } from '../../icons';
 import { deviceIsOnline, timeFromNow } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
@@ -17,186 +15,16 @@ import { subscribeWindowSize } from '../../hooks/window';
 import * as Utils from './utils';
 import { isIos } from '../../utils/browser.js';
 
-const styles = () => ({
-  mapContainer: {
-    borderBottom: `1px solid ${Colors.white10}`,
-  },
-  mapError: {
-    position: 'relative',
-    marginTop: 20,
-    marginLeft: 20,
-    '& p': { color: Colors.white50 },
-  },
-  geolocateControl: {
-    display: 'none',
-  },
-  overlay: {
-    color: Colors.white,
-    borderRadius: 22,
-    padding: '12px 16px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    maxHeight: 'calc(60vh - 100px)',
-    display: 'flex',
-    flexDirection: 'column',
-    outline: 'none !important',
-  },
-  overlayTextfield: {
-    borderRadius: 0,
-    '& input': {
-      padding: 0,
-      height: 24,
-    },
-  },
-  overlaySearchButton: {
-    color: Colors.white30,
-  },
-  overlayClearButton: {
-    color: Colors.white30,
-    cursor: 'pointer',
-  },
-  overlaySearchResults: {
-    marginTop: 3,
-    paddingRight: 3,
-    flexGrow: 1,
-    overflowY: 'auto',
-    '&::-webkit-scrollbar-thumb': {
-      backgroundColor: Colors.white20,
-    },
-  },
-  overlaySearchResultsHr: {
-    marginTop: 2,
-    borderTop: `1px solid ${Colors.white20}`,
-  },
-  overlaySearchItem: {
-    cursor: 'pointer',
-    marginTop: 15,
-    '&:first-child': {
-      marginTop: 10,
-    },
-  },
-  overlaySearchNoResults: {
-    marginTop: 10,
-    fontSize: 14,
-  },
-  overlaySearchNoLocation: {
-    marginTop: 10,
-    fontSize: 14,
-    color: Colors.orange100,
-  },
-  overlaySearchDetails: {
-    color: Colors.white40,
-  },
-  searchSelectBox: {
-    borderRadius: 22,
-    padding: '12px 16px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  searchSelectBoxHeader: {
-    display: 'flex',
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  searchSelectBoxTitle: {
-    flexBasis: 'auto',
-  },
-  searchSelectBoxButtons: {
-    display: 'flex',
-    flexWrap: 'wrap-reverse',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-  },
-  bold: {
-    fontWeight: 600,
-  },
-  searchSelectButton: {
-    marginLeft: 8,
-    padding: '6px 12px',
-    backgroundColor: Colors.white,
-    borderRadius: 15,
-    color: Colors.grey900,
-    textTransform: 'none',
-    minHeight: 'unset',
-    flexGrow: 1,
-    maxWidth: 125,
-    '&:hover': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-  },
-  searchSelectButtonSecondary: {
-    marginLeft: 8,
-    padding: '4.5px 12px',
-    borderRadius: 15,
-    textTransform: 'none',
-    minHeight: 'unset',
-    flexGrow: 1,
-    maxWidth: 125,
-    border: `1.5px solid ${Colors.white50}`,
-    '&:disabled': {
-      border: `1.5px solid ${Colors.white20}`,
-    },
-  },
-  searchSelectBoxDetails: {
-    color: Colors.white40,
-  },
-  pin: {
-    width: 20,
-    height: 32,
-  },
-  carPinTooltip: {
-    textAlign: 'center',
-    borderRadius: 14,
-    fontSize: '0.8em',
-    padding: '6px 8px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-  },
-  researchArea: {
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 18,
-    padding: '6px 16px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey900,
-    },
-    '& svg': {
-      marginRight: 6,
-    },
-  },
-  clearSearchSelect: {
-    padding: 5,
-    fontSize: 20,
-    cursor: 'pointer',
-    position: 'absolute',
-    left: -6,
-    top: -8,
-    height: 24,
-    width: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.grey900,
-    color: Colors.white,
-    border: `1px solid ${Colors.grey600}`,
-    '&:hover': {
-      backgroundColor: Colors.grey700,
-    },
-  },
-});
+// MUI Button/Typography base styles, kept so the converted elements look the same
+const buttonBase = 'inline-flex items-center justify-center box-border min-w-16 cursor-pointer select-none no-underline '
+  + 'text-sm font-medium leading-[1.75] tracking-[0.02857em] transition-colors disabled:pointer-events-none';
+const text = 'm-0 text-base leading-normal tracking-[0.00938em]';
+const searchSelectButtonBase = `${buttonBase} ml-2 grow max-w-[125px] rounded-[15px] px-3`;
+const searchSelectButton = `${searchSelectButtonBase} py-1.5 bg-white text-[#1e2224]
+  hover:bg-[#ddd] hover:text-[#1e2224] disabled:bg-[#ddd] disabled:text-[#1e2224]`;
+const searchSelectButtonSecondary = `${searchSelectButtonBase} py-[4.5px] text-white border-[1.5px] border-white/50
+  hover:bg-white/8 disabled:border-white/20 disabled:text-white/30`;
+const inputAdornment = 'ml-2 flex h-[0.01em] max-h-[2em] items-center whitespace-nowrap';
 
 const initialState = {
   hasFocus: false,
@@ -663,7 +491,6 @@ class Navigation extends Component {
   }
 
   render() {
-    const { classes } = this.props;
     const {
       mapError, hasFocus, search, searchSelect, viewport, windowWidth,
     } = this.state;
@@ -684,15 +511,15 @@ class Navigation extends Component {
     return (
       <div
         ref={this.onContainerRef}
-        className={classes.mapContainer}
+        className="border-b border-white/10"
         style={{ height: hasFocus ? '60vh' : 200 }}
       >
         <VisibilityHandler onVisible={this.updateDevice} onInit onDongleId minInterval={60} />
         {mapError
           && (
-            <div className={classes.mapError}>
-              <Typography>Could not initialize map.</Typography>
-              <Typography>{mapError}</Typography>
+            <div className="relative mt-5 ml-5">
+              <p className={`${text} text-white/50`}>Could not initialize map.</p>
+              <p className={`${text} text-white/50`}>{mapError}</p>
             </div>
           )}
         <ReactMapGL
@@ -714,7 +541,7 @@ class Navigation extends Component {
           onError={(err) => this.setState({ mapError: err.error.message })}
         >
           <GeolocateControl
-            className={classes.geolocateControl}
+            className="hidden"
             positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={false}
             onGeolocate={this.onGeolocate}
@@ -729,7 +556,7 @@ class Navigation extends Component {
           </Source>}
           {(searchSelect && searchSelect.resultType !== 'car' ? [searchSelect] : search || []).map(item => (
             <Marker key={item.id} latitude={item.position.lat} longitude={item.position.lng} offsetLeft={-10} offsetTop={-30}>
-              <PinMarkerIcon className={classes.pin} onClick={() => this.onSearchSelect(item)}
+              <PinMarkerIcon className="h-8 w-5" onClick={() => this.onSearchSelect(item)}
                 alt={item.title} style={{ cursor: 'pointer' }} />
             </Marker>
           ))}
@@ -747,14 +574,14 @@ class Navigation extends Component {
                 captureDoubleClick={false}
               >
                 <PinCarIcon
-                  className={classes.pin}
+                  className="h-8 w-5"
                   onMouseEnter={() => this.toggleCarPinTooltip(true)}
                   onMouseLeave={() => this.toggleCarPinTooltip(false)}
                   alt="car-location"
                   onClick={() => this.onCarSelect(carLocation)}
                 />
                 <div
-                  className={classes.carPinTooltip}
+                  className="rounded-[14px] border border-white/10 bg-[#272c2f] px-2 py-1.5 text-center text-[0.8em] text-white"
                   ref={this.carPinTooltipRef}
                   style={{ ...carPinTooltipStyle, display: 'none' }}
                 >
@@ -778,7 +605,12 @@ class Navigation extends Component {
               </Source>
             )}
           {this.state.searchLooking && !searchSelect && <HTMLOverlay
-            redraw={() => <Button className={classes.researchArea} onClick={this.researchArea}>search this area</Button>}
+            redraw={() => (
+              <button type="button" onClick={this.researchArea}
+                className={`${buttonBase} w-full rounded-[18px] border border-white/10 bg-[#272c2f] px-4 py-1.5 text-white hover:bg-[#1e2224] [&_svg]:mr-1.5`}>
+                search this area
+              </button>
+            )}
             captureScroll captureDrag captureClick captureDoubleClick capturePointerMove
             style={{ ...cardStyle, width: 180, top: 10, left: 'auto', right: 10 }} />}
           {searchSelect
@@ -799,61 +631,57 @@ class Navigation extends Component {
   }
 
   renderOverlay() {
-    const { classes } = this.props;
     const { search, searchSelect, searchLooking, geoLocateCoords } = this.state;
     const carLocation = this.getCarLocation();
 
     return (
       <div
-        className={ classes.overlay }
+        className="flex max-h-[calc(60vh-100px)] flex-col rounded-[22px] border border-white/10 bg-[#272c2f] px-4 py-3 text-white outline-none"
 
         tabIndex={ -1 }
 
         onClick={ this.focus }
       >
-        <TextField
-          onChange={ this.onSearch }
-          fullWidth
-          inputRef={ this.searchInputRef }
-          placeholder="where do you want to go?"
-          InputProps={{
-            onFocus: this.onFocus,
-
-            classes: { root: classes.overlayTextfield },
-            endAdornment: <>
-              { this.searchInputRef.current && this.searchInputRef.current.value
-                && (
-                <InputAdornment position="end">
-                  <Clear className={ classes.overlayClearButton } onClick={ this.clearSearch } />
-                </InputAdornment>
-                )}
-              <InputAdornment position="end">
-                <svg width="24" height="24" viewBox="0 0 24 24" className={classes.overlaySearchButton}><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" strokeWidth="2" /><path d="m15 15 6 6" stroke="currentColor" strokeWidth="2" /></svg>
-              </InputAdornment>
-            </>,
-          }}
-        />
-        {this.state.navError && <Typography role="alert" className={classes.overlaySearchNoLocation}>{this.state.navError}</Typography>}
+        <div className="relative box-border inline-flex w-full cursor-text items-center overflow-hidden border border-[#272c2f] text-base leading-[1.1876em] text-white">
+          <input
+            type="text"
+            onChange={ this.onSearch }
+            onFocus={ this.onFocus }
+            ref={ this.searchInputRef }
+            placeholder="where do you want to go?"
+            className="m-0 block h-6 w-full min-w-0 border-0 bg-transparent p-0 text-inherit [font:inherit] outline-none placeholder:text-white/30 placeholder:opacity-100 focus:shadow-none focus:outline-none"
+          />
+          { this.searchInputRef.current && this.searchInputRef.current.value
+            && (
+            <div className={ inputAdornment }>
+              <Clear className="cursor-pointer text-white/30" onClick={ this.clearSearch } />
+            </div>
+            )}
+          <div className={ inputAdornment }>
+            <svg width="24" height="24" viewBox="0 0 24 24" className="text-white/30"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" strokeWidth="2" /><path d="m15 15 6 6" stroke="currentColor" strokeWidth="2" /></svg>
+          </div>
+        </div>
+        {this.state.navError && <p role="alert" className={`${text} mt-2.5 text-sm text-[#c96722]`}>{this.state.navError}</p>}
         { search && !searchSelect && !searchLooking && (
         <>
-          <div className={ classes.overlaySearchResultsHr } />
-          <div className={ `${classes.overlaySearchResults} scrollstyle` }>
+          <div className="mt-0.5 border-t border-white/20" />
+          <div className="scrollstyle mt-[3px] grow overflow-y-auto pr-[3px] [&::-webkit-scrollbar-thumb]:bg-white/20">
             { !geoLocateCoords && !carLocation
               && (
-              <Typography className={ classes.overlaySearchNoLocation }>
+              <p className={ `${text} mt-2.5 text-sm text-[#c96722]` }>
                 location unknown, turn on device for better results
-              </Typography>
+              </p>
               ) }
             { search.length === 0
-              && <Typography className={ classes.overlaySearchNoResults }>no search results</Typography> }
+              && <p className={ `${text} mt-2.5 text-sm` }>no search results</p> }
             { search.map((item) => (
-              <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
-                <Typography>
+              <div key={ item.id } className="mt-[15px] cursor-pointer first:mt-2.5" onClick={ () => this.onSearchSelect(item) }>
+                <p className={ text }>
                   { Utils.formatPlaceName(item) }
-                  <span className={ classes.overlaySearchDetails }>
+                  <span className="text-white/40">
                     { Utils.formatSearchList(item) }
                   </span>
-                </Typography>
+                </p>
               </div>
             )) }
           </div>
@@ -864,7 +692,7 @@ class Navigation extends Component {
   }
 
   renderSearchOverlay() {
-    const { classes, device } = this.props;
+    const { device } = this.props;
     const { searchSelect } = this.state;
 
     const carLocation = this.getCarLocation();
@@ -881,32 +709,32 @@ class Navigation extends Component {
     }
 
     return (
-      <div className={classes.searchSelectBox} ref={this.searchSelectBoxRef}>
-        <Clear className={classes.clearSearchSelect} onClick={this.clearSearchSelect} />
-        <div className={classes.searchSelectBoxHeader}>
-          <div className={classes.searchSelectBoxTitle}>
-            <Typography className={classes.bold}>{title}</Typography>
-            {isCar && carLocation && <Typography className={classes.searchSelectBoxDetails}>{timeFromNow(carLocation.time)}</Typography>}
-            {searchSelect.route && <Typography className={classes.searchSelectBoxDetails}>
+      <div className="flex flex-col rounded-[22px] border border-white/10 bg-[#272c2f] px-4 py-3 text-white" ref={this.searchSelectBoxRef}>
+        <Clear className="absolute -top-2 -left-1.5 size-6 cursor-pointer rounded-xl border border-[#394044] bg-[#1e2224] p-[5px] text-xl text-white hover:bg-[#303639]" onClick={this.clearSearchSelect} />
+        <div className="mb-2.5 flex w-full items-start justify-between">
+          <div className="basis-auto">
+            <p className={`${text} font-semibold`}>{title}</p>
+            {isCar && carLocation && <p className={`${text} text-white/40`}>{timeFromNow(carLocation.time)}</p>}
+            {searchSelect.route && <p className={`${text} text-white/40`}>
               {Utils.formatRouteDistance(searchSelect.route)} ({Utils.formatRouteDuration(searchSelect.route)})
-            </Typography>}
+            </p>}
           </div>
-          <div className={classes.searchSelectBoxButtons}>
-            <Button classes={{ root: isCar ? classes.searchSelectButton : classes.searchSelectButtonSecondary }} target="_blank" href={geoUri}>
+          <div className="flex flex-wrap-reverse items-end justify-end">
+            <a className={isCar ? searchSelectButton : searchSelectButtonSecondary} target="_blank" rel="noopener noreferrer" href={geoUri}>
               open in maps
-            </Button>
-            {!isCar && <Button onClick={this.navigate} classes={{ root: classes.searchSelectButton }}
+            </a>
+            {!isCar && <button type="button" onClick={this.navigate} className={searchSelectButton}
               disabled={!device.prime || !deviceIsOnline(device) || searchSelect.settingDest || searchSelect.success}>
               {searchSelect.success ? 'destination set' : searchSelect.settingDest ? 'setting destination...' : 'navigate'}
-            </Button>}
+            </button>}
           </div>
         </div>
-        <Typography className={classes.searchSelectBoxDetails}>
+        <p className={`${text} text-white/40`}>
           {isCar && `${Utils.formatPlaceName(searchSelect)}, `}
           {Utils.formatPlaceAddress(searchSelect, 'state')}
-        </Typography>
-        {!isCar && !device.prime && <Typography className={classes.searchSelectBoxDetails}>comma prime is required to navigate</Typography>}
-        {!isCar && device.prime && !deviceIsOnline(device) && <Typography className={classes.searchSelectBoxDetails}>turn on device to navigate</Typography>}
+        </p>
+        {!isCar && !device.prime && <p className={`${text} text-white/40`}>comma prime is required to navigate</p>}
+        {!isCar && device.prime && !deviceIsOnline(device) && <p className={`${text} text-white/40`}>turn on device to navigate</p>}
       </div>
     );
   }
@@ -918,4 +746,4 @@ const stateToProps = (state) => ({
   dongleId: state.dongleId,
 });
 
-export default connect(stateToProps)(withStyles(styles)(Navigation));
+export default connect(stateToProps)(Navigation);
