@@ -192,11 +192,19 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, device, devices, dongleId, destination, profile } = this.props;
+    const { classes, dispatch, device, devices, dongleId, destination, profile } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
     const { page } = destination;
 
-    if (devices === null && page !== 'stream') {
+    if (page === 'stream') {
+      return (
+        <div className={classes.app}>
+          <BodyTeleop dongleId={destination.dongleId} />
+        </div>
+      );
+    }
+
+    if (devices === null) {
       return <FullPageLoading />;
     }
 
@@ -222,58 +230,59 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.app}>
-        { page === 'stream' ? (
-          <BodyTeleop dongleId={destination.dongleId} />
-        ) : (
-          <>
-            <AppHeader
-              drawerIsOpen={ drawerIsOpen }
-              referralsOpen={ referralsOpen }
-              showDrawerButton={ !isLarge }
-              handleDrawerStateChanged={this.handleDrawerStateChanged}
-              forwardRef={ this.updateHeaderRef }
-            />
-            <AppDrawer
-              drawerIsOpen={ drawerIsOpen }
-              isPermanent={ isLarge }
-              width={ sidebarWidth }
-              handleDrawerStateChanged={this.handleDrawerStateChanged}
-              style={ drawerStyles }
-            />
-            <div className={ classes.window } style={ containerStyles }>
-              {referralsOpen ? <Referrals profile={profile} />
-                : noDevicesUpsell ? <NoDeviceUpsell />
-                : page === 'drive' ? <DriveView />
-                : page === 'prime' ? (
-                    <div className="relative flex flex-col">
-                      <Suspense fallback={<FullPageLoading />}>
-                        {device ? <Prime /> : <FullPageLoading />}
-                      </Suspense>
-                    </div>
-                  )
-                : device ? <Dashboard /> : <FullPageLoading />}
-            </div>
-            <IosPwaPopup />
-            <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
-              <Paper className={classes.modal}>
-                <Typography variant="title">Pairing device</Typography>
-                <hr />
-                { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
-                { pairDongleId
-                  && (
-                  <Typography>
-                    {'Successfully paired device '}
-                    <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
-                  </Typography>
-                  )}
-                { pairError && <Typography>{ pairError }</Typography> }
-                <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
-                  Close
-                </Button>
-              </Paper>
-            </Modal>
-          </>
-        ) }
+        <AppHeader
+          drawerIsOpen={ drawerIsOpen }
+          referralsOpen={ referralsOpen }
+          showDrawerButton={ !isLarge }
+          handleDrawerStateChanged={this.handleDrawerStateChanged}
+          forwardRef={ this.updateHeaderRef }
+        />
+        <AppDrawer
+          drawerIsOpen={ drawerIsOpen }
+          isPermanent={ isLarge }
+          width={ sidebarWidth }
+          handleDrawerStateChanged={this.handleDrawerStateChanged}
+          style={ drawerStyles }
+        />
+        <div className={ classes.window } style={ containerStyles }>
+          {page === 'not-found' ? (
+            <main className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+              <h1 className="text-2xl">Page not found</h1>
+              <Button variant="contained" onClick={() => dispatch(navigateTo('dashboard'))}>
+                Go home
+              </Button>
+            </main>
+          ) : referralsOpen ? <Referrals profile={profile} />
+            : noDevicesUpsell ? <NoDeviceUpsell />
+            : page === 'drive' ? <DriveView />
+            : page === 'prime' ? (
+                <div className="relative flex flex-col">
+                  <Suspense fallback={<FullPageLoading />}>
+                    {device ? <Prime /> : <FullPageLoading />}
+                  </Suspense>
+                </div>
+              )
+            : device ? <Dashboard /> : <FullPageLoading />}
+        </div>
+        <IosPwaPopup />
+        <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+          <Paper className={classes.modal}>
+            <Typography variant="title">Pairing device</Typography>
+            <hr />
+            { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
+            { pairDongleId
+              && (
+              <Typography>
+                {'Successfully paired device '}
+                <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+              </Typography>
+              )}
+            { pairError && <Typography>{ pairError }</Typography> }
+            <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
+              Close
+            </Button>
+          </Paper>
+        </Modal>
         {page === 'settings' && (
           <DeviceSettingsModal key={dongleId} />
         )}

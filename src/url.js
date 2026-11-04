@@ -47,7 +47,7 @@ export const buildURL = (destination) => {
   if (rootPages.includes(page)) return `/${page}`;
 
   const basePath = dongleId ? `/${dongleId}` : '/';
-  if (page === 'dashboard' || page === 'root' || page === 'not-found') return basePath;
+  if (page === 'dashboard' || page === 'root') return basePath;
 
   if (!dongleId) return;
 

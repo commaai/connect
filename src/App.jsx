@@ -114,7 +114,7 @@ class App extends Component {
             const destination = parseURL(location.pathname);
             const isDrive = destination.page === 'drive' || destination.page === 'legacy-drive';
 
-            return api.auth.isAuthenticated() || isDrive
+            return api.auth.isAuthenticated() || isDrive || destination.page === 'not-found'
               ? <Explorer destination={destination} pathname={location.pathname} />
               : <AnonymousLanding />;
           }} />
