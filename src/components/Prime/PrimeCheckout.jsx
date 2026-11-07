@@ -166,7 +166,7 @@ const styles = () => ({
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-around',
-    height: 140,
+    minHeight: 140,
   },
   planBoxContainer: {
     position: 'relative',
@@ -348,7 +348,7 @@ class PrimeCheckout extends Component {
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
     const disabledDataPlan = Boolean(!subscribeInfo || !this.dataPlanAvailable());
-    const boxHeight = windowHeight > 600 ? { height: 140 } : { height: 110 };
+    const boxHeight = windowHeight > 600 ? { minHeight: 140 } : { minHeight: 110 };
 
     let disabledDataPlanText;
     if (subscribeInfo && disabledDataPlan) {
