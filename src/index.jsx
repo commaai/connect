@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import './index.css';
 import App from './App';
 import Theme from './theme';
+import { registerServiceWorker } from './utils/notifications';
 
 posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
   api_host: import.meta.env.VITE_POSTHOG_HOST,
@@ -40,6 +41,8 @@ console.info('connect version:', import.meta.env.VITE_APP_GIT_SHA || 'dev');
 if (import.meta.env.VITE_APP_GIT_TIMESTAMP) {
   console.info('commit date:', import.meta.env.VITE_APP_GIT_TIMESTAMP);
 }
+
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>

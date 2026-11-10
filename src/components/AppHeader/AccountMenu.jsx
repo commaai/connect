@@ -1,10 +1,11 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { USERADMIN_URL_ROOT } from '../../api';
 import { filterRegularClick } from '../../utils';
+import { getNotificationPermission, requestNotificationPermission } from '../../utils/notifications';
 
 const logOut = async () => {
   await MyCommaAuth.logOut();
@@ -36,6 +37,12 @@ const Version = () => {
 
 const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
   const version = useMemo(() => <Version />, []);
+
+  const [notificationPermission, setNotificationPermission] = useState(getNotificationPermission);
+
+  const onEnableNotifications = useCallback(async () => {
+    setNotificationPermission(await requestNotificationPermission());
+  }, []);
 
   const onLogOut = useCallback(() => {
     onClose();
@@ -75,6 +82,14 @@ const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
         >
           Manage account
         </a>
+        {notificationPermission === 'default' && (
+          <button
+            className="block w-full px-4 py-3 text-left text-white hover:bg-white/10 cursor-pointer"
+            onClick={onEnableNotifications}
+          >
+            Enable notifications
+          </button>
+        )}
         <button
           className="block w-full px-4 py-3 text-left text-white hover:bg-white/10 cursor-pointer"
           onClick={onLogOut}
