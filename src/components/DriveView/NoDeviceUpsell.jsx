@@ -5,19 +5,18 @@ const NoDeviceUpsell = () => (
     <div className="flex flex-col prose prose-invert py-2 items-center max-w-sm">
       <h2>Pair your device</h2>
       <p>
-        Scan the QR code on your device.
+        On your device, navigate to <b>settings</b> {`>`} <b>device</b> {`>`} <b>pair</b>.
+        In the pair menu, you should see a QR code.
+        Press &quot;add new device&quot; to open the camera or use the camera app on your phone to scan the QR code.
+      </p>
+      <p className="mb-1">
         If you cannot see a QR code, check the following:
       </p>
       <ul className="my-0">
         <li>Your device is connected to the internet</li>
         <li>You have installed the latest version of openpilot</li>
-        <li>You may need to look for &quot;Pair Device&quot; in Settings</li>
+        <li>Your device is not already paired. Make sure you have signed in with the same account you may have used previously.</li>
       </ul>
-      <p>
-        If you still cannot see a QR code, your device may already be paired to
-        another account. Make sure you have signed in with the same account you
-        may have used previously.
-      </p>
       <div className="mt-2 w-full">
         <AddDevice buttonText="add new device" />
       </div>
