@@ -8,7 +8,7 @@ import { Typography, IconButton, AppBar } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { selectDevice } from '../../actions';
-import { AccountIcon, GiftIcon, GiftOpenIcon, MenuIcon } from '../../icons';
+import { AccountIcon, GiftClosedIcon, GiftOpenIcon, MenuIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
 
@@ -56,9 +56,10 @@ const styles = () => ({
     width: 34,
   },
   giftIcon: {
-    color: Colors.white30,
     height: 28,
     width: 28,
+    objectFit: 'contain',
+    opacity: 0.3,
   },
   giftButton: {
     position: 'relative',
@@ -73,7 +74,7 @@ const styles = () => ({
     backgroundColor: Colors.primeBlue50,
   },
   activeGiftIcon: {
-    color: Colors.white,
+    opacity: 1,
   },
 });
 
@@ -115,7 +116,7 @@ const AppHeader = ({
 
   const open = menuOpen;
   const referralsOpen = pathname === '/referrals';
-  const ReferralsIcon = referralsOpen ? GiftOpenIcon : GiftIcon;
+  const referralsIcon = referralsOpen ? GiftOpenIcon : GiftClosedIcon;
 
   return (
     <>
@@ -155,7 +156,11 @@ const AppHeader = ({
               className={classes.giftButton}
               onClick={filterRegularClick(toggleReferrals)}
             >
-              <ReferralsIcon className={`${classes.giftIcon} ${referralsOpen ? classes.activeGiftIcon : ''}`} />
+              <img
+                src={referralsIcon}
+                alt=""
+                className={`${classes.giftIcon} ${referralsOpen ? classes.activeGiftIcon : ''}`}
+              />
               {showNewReferralsDot && <span aria-label="New referrals" className={classes.newReferralsDot} />}
             </IconButton>
             <div className="relative">
