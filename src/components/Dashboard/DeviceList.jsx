@@ -7,14 +7,13 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { api } from '../../api/backend';
 
-import { updateDevices } from '../../actions';
+import { updateDevices, navigateTo } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import { SettingsIcon } from '../../icons';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
 
 const styles = (theme) => ({
   deviceList: {
@@ -88,24 +87,15 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
-
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
+    this.props.dispatch(navigateTo('settings', { dongleId }));
   }
 
   async onVisible() {
@@ -122,14 +112,17 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
-    const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
+    const { classes, dispatch, onDeviceSelected, profile, dongleId } = this.props;
+    const isSelectedCls = (dongleId === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
       <a
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
+        onClick={ filterRegularClick(() => {
+          dispatch(navigateTo('dashboard', { dongleId: device.dongle_id }));
+          onDeviceSelected();
+        })}
         href={ `/${device.dongle_id}` }
       >
         <div className={classes.deviceInfo}>
@@ -158,24 +151,14 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
-    const { classes, device, selectedDevice: dongleId } = this.props;
-
+    const { classes, device, dongleId } = this.props;
     let { devices } = this.props;
-    if (devices === null) {
-      return null;
-    }
 
     const found = devices.some((d) => d.dongle_id === dongleId);
-    if (!found && device && dongleId === device.dongle_id) {
+    if (!found && device) {
       devices = [{
         ...device,
         alias: emptyDevice.alias,
-      }].concat(devices);
-    } else if (!found && dongleId) {
-      devices = [{
-        ...emptyDevice,
-        dongle_id: dongleId,
       }].concat(devices);
     }
 
@@ -202,11 +185,6 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
       </>
     );
   }
@@ -216,6 +194,7 @@ const stateToProps = (state) => ({
   devices: state.devices,
   device: state.device,
   profile: state.profile,
+  dongleId: state.dongleId,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

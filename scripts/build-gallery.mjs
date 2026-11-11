@@ -561,7 +561,6 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
       globalThis.Date = FrozenDate;
       if (authenticated) localStorage.setItem('authorization', 'gallery-token');
       else localStorage.removeItem('authorization');
-      localStorage.removeItem('selectedDongleId');
       globalThis.galleryVisible = (element) => {
         if (!element) return false;
         const bounds = element.getBoundingClientRect();

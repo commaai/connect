@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
-import { pushTimelineRange } from '../../actions';
+import { navigateTo } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
@@ -83,10 +83,7 @@ const DriveListItem = (props) => {
     };
   }, [drive, dispatch, isVisible, el]);
 
-  const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
-  );
-
+  const onClick = filterRegularClick(() => dispatch(navigateTo('drive', { route: drive })));
   const small = windowWidth < 580;
   const dateFormat = small ? 'ddd, MMM D' : 'dddd, MMM D';
   const startDateObj = dayjs(drive.start_time_utc_millis);
@@ -155,7 +152,7 @@ const DriveListItem = (props) => {
       <Timeline
         route={drive}
         thumbnailsVisible={isVisible}
-        zoomOverride={{ start: 0, end: drive.duration }}
+        zoom={{ start: 0, end: drive.duration }}
       />
     </a>
   );

@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { createMemoryHistory } from 'history';
 
 import App from './App';
+import { navigateTo } from './actions';
 import { createInitialState } from './initialState';
 import { createAppStore } from './store';
 
@@ -128,9 +129,8 @@ async function renderApp(pathname, options = {}) {
   mocks.options = options;
   mocks.requests = [];
   window.history.replaceState({}, '', pathname);
-  if (options.selected) localStorage.setItem('selectedDongleId', options.selected);
   const history = createMemoryHistory({ initialEntries: [pathname] });
-  const store = createAppStore(history, createInitialState(history.location.pathname));
+  const store = createAppStore(history, createInitialState());
   const view = render(<App history={history} store={store} />);
   await waitFor(
     () => expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument(),
@@ -165,25 +165,17 @@ describe('whole-app behavior', () => {
     mocks.hardNavigate.mockClear();
   });
 
-  test('root uses a valid stored device and keeps the selection', async () => {
-    const app = await renderApp('/', { selected: FIRST });
+  test('root selects the first device in the sorted list', async () => {
+    const app = await renderApp('/');
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    expect(app.history.location.pathname).toBe(`/${FIRST}`);
-    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
+    expect(app.history.location.pathname).toBe(`/${SECOND}`);
   });
 
   test('fetches the initial routes with a nonzero limit', async () => {
-    await renderApp('/', { selected: FIRST });
+    await renderApp('/');
     expect(await screen.findByText('Mock recent route start')).toBeVisible();
     const request = mocks.requests.find(({ url }) => url.includes('routes_segments'));
     expect(new URL(request.url).searchParams.get('limit')).toBe('5');
-  });
-
-  test.each([['no stored device', undefined], ['an unknown stored device', 'dddddddddddddddd']])('root selects first device with %s', async (_name, selected) => {
-    const { history } = await renderApp('/', { selected });
-    expect(await screen.findByText('Mock recent route start')).toBeVisible();
-    expect(history.location.pathname).toBe(`/${FIRST}`);
-    expect(localStorage.getItem('selectedDongleId')).toBe(FIRST);
   });
 
   test('root with no devices shows pairing', async () => {
@@ -241,6 +233,13 @@ describe('whole-app behavior', () => {
     expect(history.location.pathname).toBe(pathname);
   });
 
+  test('signed-out navigation from a public drive to dashboard shows login', async () => {
+    const { history } = await renderApp(`/${FIRST}/${LOG}`, { authenticated: false });
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    act(() => history.push(`/${FIRST}`));
+    expect(await screen.findByText('Sign in with Google')).toBeVisible();
+  });
+
   test('a missing public route redirects to login with the requested route', async () => {
     const pathname = `/${FIRST}/2026-08-06--99-99-99`;
     await renderApp(pathname, { authenticated: false });
@@ -259,12 +258,13 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(pathname));
   });
 
-  test('Prime close and browser history restore its view', async () => {
-    const { history } = await renderApp(`/${FIRST}/prime`);
+  test('Prime back restores settings and browser forward restores Prime', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/settings`);
+    act(() => store.dispatch(navigateTo('prime')));
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
-    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
-    act(() => history.goBack());
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/settings`));
+    act(() => history.goForward());
     expect(await screen.findByRole('heading', { name: 'comma prime' })).toBeVisible();
   });
 
@@ -276,6 +276,25 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
     act(() => history.goBack());
     expect(await screen.findByRole('button', { name: 'Close teleop' })).toBeVisible();
+  });
+
+  test.each([
+    ['Prime', 'prime', `/${FIRST}/prime`],
+    ['stream', 'stream', `/${FIRST}/stream`],
+    ['settings', 'settings', `/${FIRST}/settings`],
+    ['dashboard', 'dashboard', `/${FIRST}`],
+  ])('navigates to %s', async (_name, page, expected) => {
+    const { history, store } = await renderApp(page === 'dashboard' ? `/${FIRST}/prime` : `/${FIRST}`);
+    act(() => store.dispatch(navigateTo(page)));
+    expect(history.location.pathname).toBe(expected);
+  });
+
+  test('navigates to another device settings', async () => {
+    const { history, store } = await renderApp(`/${FIRST}`);
+    act(() => store.dispatch(navigateTo('settings', { dongleId: SECOND })));
+    expect(history.location.pathname).toBe(`/${SECOND}/settings`);
+    await waitFor(() => expect(store.getState().dongleId).toBe(SECOND));
+    expect(await screen.findByText('Device settings')).toBeVisible();
   });
 
   test('device browser history restores exact dashboards', async () => {
@@ -290,7 +309,7 @@ describe('whole-app behavior', () => {
   });
 
   test('drive selection, timeline range, back, and close preserve exact URLs', async () => {
-    const { history } = await renderApp(`/${FIRST}`, { selected: FIRST });
+    const { history } = await renderApp(`/${FIRST}`);
     fireEvent.click(await screen.findByText('Mock recent route start'));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     const timeline = await screen.findByRole('slider', { name: 'Drive timeline' });
@@ -300,7 +319,26 @@ describe('whole-app behavior', () => {
     await waitFor(() => expect(history.location.pathname).toMatch(new RegExp(`/${FIRST}/${RECENT_LOG}/\\d+/\\d+$`)));
     act(() => history.goBack());
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
+    act(() => history.goForward());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Go Back' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+    await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}/${RECENT_LOG}`));
     fireEvent.click(within(document.body).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(history.location.pathname).toBe(`/${FIRST}`));
+  });
+
+  test('timeline navigation generates drive URLs', async () => {
+    const { history, store } = await renderApp(`/${FIRST}/${LOG}`);
+    expect(await screen.findByRole('slider', { name: 'Drive timeline' })).toBeVisible();
+    const route = store.getState().currentRoute;
+    act(() => store.dispatch(navigateTo('drive', { route, start: 10000, end: 20000 })));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/10/20`);
+    act(() => store.dispatch(navigateTo('drive', { route, start: 0, end: 20000 })));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}/0/20`);
+    act(() => store.dispatch(navigateTo('drive', { route, start: 0, end: 60000 })));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
+    act(() => store.dispatch(navigateTo('drive', { route, start: 10000, end: 20000 })));
+    act(() => store.dispatch(navigateTo('drive', { route })));
+    expect(history.location.pathname).toBe(`/${FIRST}/${LOG}`);
   });
 });
