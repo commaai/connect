@@ -147,7 +147,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 
   if (log_id) {
     path.push(log_id);
-    if (start && end) {
+    if (start != null && end != null) {
       path.push(start);
       path.push(end);
     }
