@@ -26,6 +26,11 @@ posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
   opt_in_site_apps: false,
 });
 
+posthog.register({
+  display_mode: ['browser', 'standalone', 'minimal-ui', 'fullscreen', 'window-controls-overlay']
+    .find((m) => window.matchMedia(`(display-mode: ${m})`).matches) ?? 'unknown',
+});
+
 if (import.meta.env.VITE_SENTRY_ENV) {
   Sentry.init({
     dsn: 'https://6a242abfa01b4660aa34f150e87de018@o33823.ingest.sentry.io/1234624',
