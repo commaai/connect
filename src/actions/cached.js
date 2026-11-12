@@ -42,6 +42,7 @@ async function getCacheDB() {
       console.log(ev.target.error);
       resolve(null);
     };
+    request.onblocked = () => resolve(null);
     request.onsuccess = (ev) => {
       const db = ev.target.result;
       for (const store of ['events', 'coords', 'driveCoords']) {
@@ -107,12 +108,9 @@ async function getCacheItem(store, key, version = undefined) {
   }
 
   const db = await getCacheDB();
-  if (!db) {
-    return null;
-  }
+  if (!db) return null;
 
-  const transaction = db.transaction([store]);
-  const req = transaction.objectStore(store).get(key);
+  const req = db.transaction([store]).objectStore(store).get(key);
 
   return new Promise((resolve, reject) => {
     req.onsuccess = (ev) => {
@@ -292,7 +290,10 @@ export function fetchEvents(route) {
 
     if (!USE_LOCAL_EVENTS_DATA) {
       // in cache?
-      const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog);
+      const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog).catch((err) => {
+        console.error(err);
+        return null;
+      });
       if (cacheEvents !== null) {
         dispatch({
           type: Types.ACTION_UPDATE_ROUTE_EVENTS,
@@ -325,6 +326,12 @@ export function fetchEvents(route) {
       driveEvents = [].concat(...(await Promise.all(promises)));
     } catch (err) {
       console.error(err);
+      dispatch({
+        type: Types.ACTION_UPDATE_ROUTE_EVENTS,
+        fullname: route.fullname,
+        events: [],
+      });
+      resolveEvents([]);
       return;
     }
 
