@@ -1,3 +1,40 @@
+export function formatDistance(meters, metric) {
+  if (metric) {
+    return `${(meters / 1000.0).toFixed(1)} km`;
+  }
+  return `${(meters / 1609.34).toFixed(1)} mi`;
+}
+
+export function formatRouteDistance(route) {
+  let metric = true;
+  try {
+    route.legs[0].admins.forEach((adm) => {
+      if (['US', 'GB'].includes(adm.iso_3166_1)) {
+        metric = false;
+      }
+    });
+  } catch (err) {
+    metric = false;
+  }
+
+  return formatDistance(route.distance, metric);
+}
+
+export function formatDuration(seconds) {
+  let mins = Math.round(seconds / 60.0);
+  let res = '';
+  if (mins >= 60) {
+    const hours = Math.floor(mins / 60.0);
+    mins -= hours * 60;
+    res += `${hours} hr `;
+  }
+  return `${res}${mins} min`;
+}
+
+export function formatRouteDuration(route) {
+  return formatDuration(route.duration_typical ?? route.duration);
+}
+
 export function formatPlaceName(item) {
   if (item.resultType === 'place' || item.resultType === 'car') {
     return item.title;
@@ -7,9 +44,10 @@ export function formatPlaceName(item) {
 
 /**
  * @param {*} item
+ * @param {'none'|'state'|'all'} details
  * @returns {string}
  */
-export function formatPlaceAddress(item) {
+export function formatPlaceAddress(item, details = 'state') {
   const { address, resultType } = item;
   let res;
 
@@ -20,7 +58,7 @@ export function formatPlaceAddress(item) {
 
     res = '';
 
-    if (['car', 'place'].includes(resultType)) {
+    if (details === 'all' || ['car', 'place'].includes(resultType)) {
       const { houseNumber, street, streets } = address;
       if (houseNumber) res += `${houseNumber} `;
       if (streets) {
@@ -34,19 +72,29 @@ export function formatPlaceAddress(item) {
     const { city } = address;
     res += `${city}`;
 
-    const { stateCode, postalCode } = address;
-    if (stateCode || postalCode) {
-      res += ',';
-      if (stateCode) res += ` ${stateCode}`;
-      res += ` ${postalCode}`;
+    if (['state', 'all'].includes(details)) {
+      const { stateCode, postalCode, countryName } = address;
+      if (stateCode || postalCode) {
+        res += ',';
+        if (stateCode) res += ` ${stateCode}`;
+        res += ` ${postalCode}`;
+      }
+      if (details === 'all' && countryName) res += `, ${countryName}`;
     }
   }
 
   // NOTE: this is a hack to remove the name from the address. it's necessary
   //       for cases where we only have the address label, without individual
   //       address components (search results and favorites).
-  const name = formatPlaceName(item);
-  if (res.startsWith(name)) res = res.substring(name.length + 2);
+  if (details !== 'all') {
+    const name = formatPlaceName(item);
+    if (res.startsWith(name)) res = res.substring(name.length + 2);
+  }
 
   return res;
+}
+
+export function formatSearchList(item) {
+  const address = formatPlaceAddress(item, 'none');
+  return `, ${address}${Number.isFinite(item.distance) ? ` (${formatDistance(item.distance)})` : ''}`;
 }
