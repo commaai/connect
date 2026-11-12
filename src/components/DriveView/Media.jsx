@@ -773,7 +773,7 @@ class Media extends Component {
         <UploadQueue
           open={ uploadModal }
           onClose={ () => this.setState({ uploadModal: false }) }
-          update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
+          update={ Boolean((moreInfoMenu || uploadModal || downloadMenu) && (!device.shared || profile?.superuser)) }
           store={ this.props.store }
           device={ device }
         />
