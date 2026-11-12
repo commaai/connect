@@ -647,7 +647,7 @@ class Media extends Component {
             disabled
             style={ files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
           >
-            All logs
+            All logs (selected range)
             { Boolean(files && canUpload && !rlogUploadDisabled)
             && (
             <Button
@@ -672,7 +672,7 @@ class Media extends Component {
             disabled
             style={ files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
           >
-            All files
+            All files (selected range)
             { Boolean(files && canUpload && !allUploadDisabled)
             && (
             <Button
@@ -860,7 +860,7 @@ class Media extends Component {
         className={ classes.filesItem }
         style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
       >
-        { name }
+        { name } (current segment)
         { button }
       </MenuItem>
     );
