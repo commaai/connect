@@ -1,14 +1,13 @@
 import React, { useCallback, useMemo, useReducer } from 'react';
 import dayjs from 'dayjs';
 
-import MyCommaAuth from '@commaai/my-comma-auth';
-
 import { USERADMIN_URL_ROOT } from '../../api';
 import { filterRegularClick } from '../../utils';
+import { logOut } from '../../utils/auth';
 import { notificationsAvailable, notificationsEnabled } from '../../utils/notifications';
 
-const logOut = async () => {
-  await MyCommaAuth.logOut();
+const logOutAndRedirect = async () => {
+  await logOut();
   if (window.location) {
     window.location = window.location.origin;
   }
@@ -49,7 +48,7 @@ const AccountMenu = ({
 
   const onLogOut = useCallback(() => {
     onClose();
-    logOut();
+    logOutAndRedirect();
   }, [onClose]);
 
   if (!open) {

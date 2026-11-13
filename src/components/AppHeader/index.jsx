@@ -114,6 +114,7 @@ const AppHeader = ({
       setNotificationsDialog('help');
       return;
     }
+    dismissNotificationsPrompt();
     setNotificationsDialog(null);
     await enableNotifications();
     syncPushSubscription();

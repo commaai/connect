@@ -1,5 +1,5 @@
 import { request } from '../api';
-import { getFcmToken } from './firebase';
+import { deleteFcmToken, getFcmToken } from './firebase';
 
 const PROMPT_DISMISSED_KEY = 'notificationsPromptDismissed';
 const DISABLED_KEY = 'notificationsDisabled';
@@ -21,7 +21,9 @@ function save(key, value) {
     } else {
       window.localStorage.removeItem(key);
     }
-  } catch {}
+  } catch {
+    // localStorage may be unavailable (private mode, quota); ignore
+  }
 }
 
 function notificationsSupported() {
@@ -67,12 +69,17 @@ export function enableNotifications() {
   return Notification.requestPermission();
 }
 
+export async function unsubscribeFromPush() {
+  save(REGISTERED_TOKEN_KEY, null);
+  if (!notificationsSupported()) return;
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!(await registration?.pushManager.getSubscription())) return;
+  await deleteFcmToken(registration);
+}
+
 export async function disableNotifications() {
   save(DISABLED_KEY, true);
-  save(REGISTERED_TOKEN_KEY, null);
-  const registration = await navigator.serviceWorker.getRegistration();
-  const subscription = await registration?.pushManager.getSubscription();
-  await subscription?.unsubscribe();
+  await unsubscribeFromPush();
 }
 
 export function registerServiceWorker() {
