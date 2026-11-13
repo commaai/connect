@@ -36,7 +36,7 @@ const Version = () => {
 };
 
 const AccountMenu = ({
-  profile, open, onClose, onReferrals, onEnableNotifications, onDisableNotifications, onResetNotifications,
+  profile, open, onClose, onReferrals, onEnableNotifications, onDisableNotifications,
 }) => {
   const version = useMemo(() => <Version />, []);
   const [, refresh] = useReducer((n) => n + 1, 0);
@@ -101,17 +101,6 @@ const AccountMenu = ({
             >
               <span className="h-4 w-4 rounded-full bg-white shadow" />
             </span>
-          </button>
-        )}
-        {onResetNotifications && (
-          <button
-            className="block w-full px-4 py-3 text-left text-white/60 hover:bg-white/10 cursor-pointer"
-            onClick={() => {
-              onClose();
-              onResetNotifications();
-            }}
-          >
-            Reset notifications (dev)
           </button>
         )}
         <button

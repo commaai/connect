@@ -27,28 +27,6 @@ function previewBranding() {
   };
 }
 
-function devFcmToken() {
-  return {
-    name: 'dev-fcm-token',
-    apply: 'serve',
-    configureServer(server) {
-      server.middlewares.use('/__dev/fcm-token', (req, res) => {
-        let body = '';
-        req.on('data', (chunk) => { body += chunk; });
-        req.on('end', () => {
-          try {
-            const { token } = JSON.parse(body);
-            console.log(`\n[fcm] ${req.headers['user-agent']}\n`
-              + `FCM registration token: ${token}\n`);
-          } catch {}
-          res.statusCode = 204;
-          res.end();
-        });
-      });
-    },
-  };
-}
-
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   const devSsl = command === 'serve' && process.argv.includes('--ssl');
@@ -88,7 +66,6 @@ export default defineConfig(({ command, mode }) => {
       react(),
       sentryPlugin,
       process.env.PREVIEW && previewBranding(),
-      devFcmToken(),
       devSsl && basicSsl(),
     ].filter(Boolean),
     optimizeDeps: {

@@ -16,9 +16,7 @@ import {
   disableNotifications,
   dismissNotificationsPrompt,
   enableNotifications,
-  getNotificationPermission,
-  notificationsEnabled,
-  resetNotificationsState,
+  notificationsDenied,
   shouldPromptForNotifications,
   subscribeToPush,
 } from '../../utils/notifications';
@@ -107,17 +105,18 @@ const AppHeader = ({
   useEffect(() => {
     if (!loggedIn) return;
     if (shouldPromptForNotifications()) setNotificationsDialog('ask');
-    if (notificationsEnabled()) syncPushSubscription();
+    syncPushSubscription();
   }, [loggedIn]);
 
   const onEnableNotifications = useCallback(async () => {
-    if (getNotificationPermission() === 'denied') {
+    if (notificationsDenied()) {
       setMenuOpen(false);
       setNotificationsDialog('help');
       return;
     }
     setNotificationsDialog(null);
-    if (await enableNotifications() === 'granted') syncPushSubscription();
+    await enableNotifications();
+    syncPushSubscription();
   }, []);
 
   const dismissNotificationsDialog = useCallback(() => {
@@ -126,13 +125,6 @@ const AppHeader = ({
   }, []);
 
   const closeNotificationsDialog = useCallback(() => setNotificationsDialog(null), []);
-
-  const onResetNotifications = useCallback(async () => {
-    await resetNotificationsState();
-    const permission = getNotificationPermission();
-    console.info('notifications reset, permission is', permission);
-    setNotificationsDialog(permission === 'denied' ? 'help' : 'ask');
-  }, []);
 
   const onDisableNotifications = useCallback(
     () => disableNotifications().catch((err) => console.error('Failed to disable notifications:', err)),
@@ -227,7 +219,6 @@ const AppHeader = ({
                   onReferrals={openReferrals}
                   onEnableNotifications={onEnableNotifications}
                   onDisableNotifications={onDisableNotifications}
-                  onResetNotifications={import.meta.env.DEV ? onResetNotifications : undefined}
                   profile={profile}
                 />
               )}

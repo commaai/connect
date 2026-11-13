@@ -9,20 +9,24 @@ const FIREBASE_CONFIG = {
 
 let messagingPromise = null;
 
-export function getFirebaseMessaging() {
+function getMessaging() {
   if (!messagingPromise) {
     messagingPromise = (async () => {
-      const [{ initializeApp }, { getMessaging, getToken, isSupported }] = await Promise.all([
+      const [{ initializeApp }, messaging] = await Promise.all([
         import('firebase/app'),
         import('firebase/messaging'),
       ]);
-      if (!(await isSupported())) return null;
-      const app = initializeApp(FIREBASE_CONFIG);
-      return { messaging: getMessaging(app), getToken };
+      if (!(await messaging.isSupported())) return null;
+      return { messaging: messaging.getMessaging(initializeApp(FIREBASE_CONFIG)), getToken: messaging.getToken };
     })().catch((err) => {
       messagingPromise = null;
       throw err;
     });
   }
   return messagingPromise;
+}
+
+export async function getFcmToken(serviceWorkerRegistration) {
+  const fcm = await getMessaging();
+  return fcm && fcm.getToken(fcm.messaging, { serviceWorkerRegistration });
 }

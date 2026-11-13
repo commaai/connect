@@ -70,10 +70,6 @@ class App extends Component {
       }
     }
 
-    if (import.meta.hot && import.meta.env.VITE_DEV_AUTH_TOKEN) {
-      AuthStorage.setCommaAccessToken(import.meta.env.VITE_DEV_AUTH_TOKEN);
-    }
-
     const token = await MyCommaAuth.init();
     if (token) {
       Request.configure(token, this.apiErrorResponseCallback);
