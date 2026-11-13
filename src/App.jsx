@@ -69,6 +69,10 @@ class App extends Component {
         }
       }
     }
+    
+    if (import.meta.env.DEV && import.meta.env.VITE_DEV_JWT) {
+      AuthStorage.setCommaAccessToken(import.meta.env.VITE_DEV_JWT);
+    }
 
     const token = await MyCommaAuth.init();
     if (token) {

@@ -24,6 +24,7 @@ import { subscribeWindowSize } from '../hooks/window';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import Referrals from './Referrals';
+import PullToRefresh from './PullToRefresh';
 
 const styles = (theme) => ({
   app: {
@@ -227,7 +228,7 @@ class ExplorerApp extends Component {
         { bodyTeleopOpen ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (
-          <>
+          <PullToRefresh enabled>
             <AppHeader
               drawerIsOpen={ drawerIsOpen }
               viewingRoute={ Boolean(currentRoute) }
@@ -268,7 +269,7 @@ class ExplorerApp extends Component {
                 </Button>
               </Paper>
             </Modal>
-          </>
+          </PullToRefresh>
         ) }
       </div>
     );
