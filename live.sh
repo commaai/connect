@@ -11,4 +11,9 @@ export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 bun install
-bun run start -- "$@"
+args=()
+ssl=()
+for arg in "$@"; do
+  if [ "$arg" = "--ssl" ]; then ssl=(-- --ssl); else args+=("$arg"); fi
+done
+bun run start -- ${args[@]+"${args[@]}"} ${ssl[@]+"${ssl[@]}"}

@@ -1,11 +1,11 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useReducer } from 'react';
 import dayjs from 'dayjs';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { USERADMIN_URL_ROOT } from '../../api';
 import { filterRegularClick } from '../../utils';
-import { getNotificationPermission, requestNotificationPermission } from '../../utils/notifications';
+import { notificationsAvailable, notificationsEnabled } from '../../utils/notifications';
 
 const logOut = async () => {
   await MyCommaAuth.logOut();
@@ -35,14 +35,17 @@ const Version = () => {
   return <span className="text-xs text-[#ffffff66]">{content}</span>
 };
 
-const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
+const AccountMenu = ({
+  profile, open, onClose, onReferrals, onEnableNotifications, onDisableNotifications, onResetNotifications,
+}) => {
   const version = useMemo(() => <Version />, []);
+  const [, refresh] = useReducer((n) => n + 1, 0);
 
-  const [notificationPermission, setNotificationPermission] = useState(getNotificationPermission);
-
-  const onEnableNotifications = useCallback(async () => {
-    setNotificationPermission(await requestNotificationPermission());
-  }, []);
+  const notificationsOn = notificationsEnabled();
+  const onToggleNotifications = useCallback(async () => {
+    await (notificationsOn ? onDisableNotifications() : onEnableNotifications());
+    refresh();
+  }, [notificationsOn, onDisableNotifications, onEnableNotifications]);
 
   const onLogOut = useCallback(() => {
     onClose();
@@ -82,12 +85,33 @@ const AccountMenu = ({ profile, open, onClose, onReferrals }) => {
         >
           Manage account
         </a>
-        {notificationPermission === 'default' && (
+        {notificationsAvailable() && (
           <button
-            className="block w-full px-4 py-3 text-left text-white hover:bg-white/10 cursor-pointer"
-            onClick={onEnableNotifications}
+            type="button"
+            role="switch"
+            aria-checked={notificationsOn}
+            className="flex w-full items-center justify-between px-4 py-3 text-left text-white hover:bg-white/10 cursor-pointer"
+            onClick={onToggleNotifications}
           >
-            Enable notifications
+            Notifications
+            <span
+              className={`flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors ${
+                notificationsOn ? 'justify-end bg-[#5e8bff]' : 'justify-start bg-white/25'
+              }`}
+            >
+              <span className="h-4 w-4 rounded-full bg-white shadow" />
+            </span>
+          </button>
+        )}
+        {onResetNotifications && (
+          <button
+            className="block w-full px-4 py-3 text-left text-white/60 hover:bg-white/10 cursor-pointer"
+            onClick={() => {
+              onClose();
+              onResetNotifications();
+            }}
+          >
+            Reset notifications (dev)
           </button>
         )}
         <button
