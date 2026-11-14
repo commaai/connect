@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import { push } from 'connected-react-router';
 
@@ -12,9 +12,22 @@ import { AccountIcon, GiftClosedIcon, GiftOpenIcon, MenuIcon } from '../../icons
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
 
+import {
+  disableNotifications,
+  dismissNotificationsPrompt,
+  enableNotifications,
+  notificationsDenied,
+  shouldPromptForNotifications,
+  subscribeToPush,
+} from '../../utils/notifications';
+import NotificationsDialog, { NotificationsHelpDialog } from '../NotificationsDialog';
+
 import AccountMenu from './AccountMenu';
 
 const REFERRALS_SEEN_KEY = 'referralsGiftClicked';
+
+const syncPushSubscription = () => subscribeToPush()
+  .catch((err) => console.error('Failed to subscribe to push notifications:', err));
 
 const styles = () => ({
   header: {
@@ -86,6 +99,39 @@ const AppHeader = ({
   const [showNewReferralsDot, setShowNewReferralsDot] = useState(() => (
     window.localStorage.getItem(REFERRALS_SEEN_KEY) !== 'true'
   ));
+
+  const [notificationsDialog, setNotificationsDialog] = useState(null);
+  const loggedIn = Boolean(MyCommaAuth.isAuthenticated() && profile);
+
+  useEffect(() => {
+    if (!loggedIn) return;
+    if (shouldPromptForNotifications()) setNotificationsDialog('ask');
+    syncPushSubscription();
+  }, [loggedIn]);
+
+  const onEnableNotifications = useCallback(async () => {
+    if (notificationsDenied()) {
+      setMenuOpen(false);
+      setNotificationsDialog('help');
+      return;
+    }
+    dismissNotificationsPrompt();
+    setNotificationsDialog(null);
+    await enableNotifications();
+    syncPushSubscription();
+  }, []);
+
+  const dismissNotificationsDialog = useCallback(() => {
+    dismissNotificationsPrompt();
+    setNotificationsDialog(null);
+  }, []);
+
+  const closeNotificationsDialog = useCallback(() => setNotificationsDialog(null), []);
+
+  const onDisableNotifications = useCallback(
+    () => disableNotifications().catch((err) => console.error('Failed to disable notifications:', err)),
+    [],
+  );
 
   const handleClickedAccount = useCallback(() => {
     if (MyCommaAuth.isAuthenticated()) {
@@ -172,11 +218,13 @@ const AppHeader = ({
               >
                 <AccountIcon className={classes.accountIcon} />
               </IconButton>
-              {Boolean(MyCommaAuth.isAuthenticated() && profile) && (
+              {loggedIn && (
                 <AccountMenu
                   open={open}
                   onClose={handleClose}
                   onReferrals={openReferrals}
+                  onEnableNotifications={onEnableNotifications}
+                  onDisableNotifications={onDisableNotifications}
                   profile={profile}
                 />
               )}
@@ -184,6 +232,12 @@ const AppHeader = ({
           </div>
         </div>
       </AppBar>
+      <NotificationsDialog
+        open={notificationsDialog === 'ask'}
+        onAllow={onEnableNotifications}
+        onDismiss={dismissNotificationsDialog}
+      />
+      <NotificationsHelpDialog open={notificationsDialog === 'help'} onClose={closeNotificationsDialog} />
     </>
   );
 };
