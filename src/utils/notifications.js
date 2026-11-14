@@ -53,7 +53,7 @@ export function notificationsDenied() {
 }
 
 export function notificationsEnabled() {
-  return notificationsSupported() && Notification.permission === 'granted' && !load(DISABLED_KEY);
+  return notificationsAvailable() && Notification.permission === 'granted' && !load(DISABLED_KEY);
 }
 
 export function shouldPromptForNotifications() {
