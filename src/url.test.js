@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav } from './url';
+import { getDongleID, getZoom, getRouteId, getRouteZoom, getPrimeNav, getStreamNav, isBarePrimePath } from './url';
 
 const DONGLE = '0000aaaa0000aaaa';
 const LOG = '2026-08-06--12-00-00';
@@ -67,5 +67,16 @@ describe('URL pathname helpers', () => {
     [`/${DONGLE}/prime`, false],
   ])('getStreamNav(%s)', (pathname, expected) => {
     expect(getStreamNav(pathname)).toBe(expected);
+  });
+
+  it.each([
+    ['/prime', true],
+    ['/prime/', true],
+    ['/', false],
+    [`/${DONGLE}/prime`, false],
+    ['/prime/extra', false],
+    ['/stream', false],
+  ])('isBarePrimePath(%s)', (pathname, expected) => {
+    expect(isBarePrimePath(pathname)).toBe(expected);
   });
 });

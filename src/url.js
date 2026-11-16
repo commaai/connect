@@ -64,3 +64,8 @@ export function getStreamNav(pathname) {
   }
   return false;
 }
+
+export function isBarePrimePath(pathname) {
+  const parts = pathname.split('/').filter((m) => m.length);
+  return parts.length === 1 && parts[0] === 'prime';
+}

@@ -1,9 +1,11 @@
 import * as Sentry from '@sentry/react';
+import { replace } from 'connected-react-router';
 
 import { api } from '../api/backend';
+import { isBarePrimePath } from '../url';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice, primeNav } from '.';
 
 async function initProfile() {
   const { auth, account } = api;
@@ -54,14 +56,20 @@ export default function init() {
       Sentry.setUser({ id: profile.id });
     }
 
+    const { pathname } = state.router.location;
+    const isBarePrime = isBarePrimePath(pathname);
+
     if (devices.length > 0) {
       if (!state.dongleId) {
-        const allowPathChange = state.router.location.pathname === '/';
-        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dispatch(selectDevice(selectedDongleId, allowPathChange));
-        } else {
-          dispatch(selectDevice(devices[0].dongle_id, allowPathChange));
+        const allowPathChange = pathname === '/';
+        const savedDongleId = window.localStorage.getItem('selectedDongleId');
+        const selectedDongleId = savedDongleId && devices.find((d) => d.dongle_id === savedDongleId)
+          ? savedDongleId
+          : devices[0].dongle_id;
+        dispatch(selectDevice(selectedDongleId, allowPathChange));
+        if (isBarePrime) {
+          dispatch(primeNav(true, false));
+          dispatch(replace(`/${selectedDongleId}/prime`));
         }
       }
       const dongleId = getState().dongleId;
@@ -71,6 +79,8 @@ export default function init() {
       } else if (dongleId) {
         dispatch(fetchSharedDevice(dongleId));
       }
+    } else if (isBarePrime) {
+      dispatch(replace('/'));
     }
 
     dispatch({
