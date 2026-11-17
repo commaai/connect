@@ -20,6 +20,7 @@ export const parseURL = (pathname) => {
   // global paths
   if (parts.length === 0) return { page: 'root' };
   if (parts.length === 1 && rootPages.includes(parts[0])) return { page: parts[0] };
+  if (parts.length === 1 && parts[0] === 'prime') return { page: 'prime' };
 
   const dongleId = parts[0];
 
@@ -49,7 +50,7 @@ export const buildURL = (destination) => {
   const basePath = dongleId ? `/${dongleId}` : '/';
   if (page === 'dashboard' || page === 'root') return basePath;
 
-  if (!dongleId) return;
+  if (!dongleId) return page === 'prime' ? '/' : undefined;
 
   if (page === 'drive') {
     if (!range) return `${basePath}/${logId}`;

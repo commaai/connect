@@ -24,6 +24,10 @@ describe('parseURL', () => {
     expect(parseURL(pathname)).toEqual(destination);
   });
 
+  it.each(['/prime', '/prime/'])('parses %s', (pathname) => {
+    expect(parseURL(pathname)).toEqual({ page: 'prime' });
+  });
+
   it('parses legacy timestamps', () => {
     expect(parseURL(`/${DONGLE}/1000/2000`)).toEqual({
       page: 'legacy-drive', dongleId: DONGLE, range: { start: 1000, end: 2000 }
@@ -44,6 +48,8 @@ describe('parseURL', () => {
     `/${DONGLE}/prime/extra`,
     `/${DONGLE}/20/10`,
     `/${DONGLE}/9007199254740992/9007199254740993`,
+    '/prime/extra',
+    '/stream',
   ])('rejects %s', (pathname) => {
     expect(parseURL(pathname)).toEqual({ page: 'not-found' });
   });
@@ -52,5 +58,9 @@ describe('parseURL', () => {
 describe('buildURL', () => {
   it.each(destinations)('builds %s: %s', (_name, pathname, destination) => {
     expect(buildURL(destination)).toBe(pathname);
+  });
+
+  it('falls back to root for Prime without a device', () => {
+    expect(buildURL({ page: 'prime' })).toBe('/');
   });
 });
