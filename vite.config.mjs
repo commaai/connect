@@ -2,6 +2,7 @@ import { copyFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 import tailwindcss from '@tailwindcss/vite';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 
@@ -27,7 +28,9 @@ function previewBranding() {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
+  const devSsl = command === 'serve' && process.argv.includes('--ssl');
+
   let sentryPlugin;
   if (mode === 'production' && process.env.SENTRY_AUTH_TOKEN) {
     sentryPlugin = sentryVitePlugin({
@@ -43,6 +46,7 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       port: 3000,
+      host: devSsl || undefined,
       // Local development can use the same Athena client through a same-origin path.
       proxy: {
         '/athena': {
@@ -62,6 +66,7 @@ export default defineConfig(({ mode }) => {
       react(),
       sentryPlugin,
       process.env.PREVIEW && previewBranding(),
+      devSsl && basicSsl(),
     ].filter(Boolean),
     optimizeDeps: {
       esbuildOptions: {

@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import './index.css';
 import App from './App';
 import Theme from './theme';
+import { registerServiceWorker } from './utils/notifications';
 
 posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
   api_host: import.meta.env.VITE_POSTHOG_HOST,
@@ -26,6 +27,11 @@ posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
   opt_in_site_apps: false,
 });
 
+posthog.register({
+  display_mode: ['browser', 'standalone', 'minimal-ui', 'fullscreen', 'window-controls-overlay']
+    .find((m) => window.matchMedia(`(display-mode: ${m})`).matches) ?? 'unknown',
+});
+
 if (import.meta.env.VITE_SENTRY_ENV) {
   Sentry.init({
     dsn: 'https://6a242abfa01b4660aa34f150e87de018@o33823.ingest.sentry.io/1234624',
@@ -40,6 +46,8 @@ console.info('connect version:', import.meta.env.VITE_APP_GIT_SHA || 'dev');
 if (import.meta.env.VITE_APP_GIT_TIMESTAMP) {
   console.info('commit date:', import.meta.env.VITE_APP_GIT_TIMESTAMP);
 }
+
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>

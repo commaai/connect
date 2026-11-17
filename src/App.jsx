@@ -44,7 +44,7 @@ class App extends Component {
 
   apiErrorResponseCallback(resp) {
     if (resp.status === 401) {
-      MyCommaAuth.logOut();
+      api.auth.logOut();
     }
   }
 
@@ -68,6 +68,12 @@ class App extends Component {
           Sentry.captureException(err, { fingerprint: 'app_auth_refresh_token' });
         }
       }
+    }
+
+    // Dev-only login bypass: VITE_DEV_AUTH_TOKEN (env / .env.development.local / ./live.sh --token)
+    // seeds the auth storage so the login screen is skipped. Stripped from production builds.
+    if (import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_TOKEN) {
+      AuthStorage.setCommaAccessToken(import.meta.env.VITE_DEV_AUTH_TOKEN);
     }
 
     const token = await MyCommaAuth.init();

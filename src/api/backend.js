@@ -2,6 +2,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as commaApi from '../api';
 import { createDemoBackend, DEMO_DONGLE_ID } from './demo';
+import { logOut } from '../utils/auth';
 
 export const DEMO_PATH = '/demo';
 
@@ -13,7 +14,7 @@ export function createRealBackend() {
   return {
     auth: {
       isAuthenticated: () => MyCommaAuth.isAuthenticated(),
-      logOut: () => MyCommaAuth.logOut(),
+      logOut,
       refreshAccessToken: (code, provider) => commaApi.auth.refreshAccessToken(code, provider),
     },
     account: { ...commaApi.account },
