@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/react';
 import './index.css';
 import App from './App';
 import Theme from './theme';
-import { registerServiceWorker } from './utils/notifications';
+import { notificationsEnabled, registerServiceWorker } from './utils/notifications';
 
 posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
   api_host: import.meta.env.VITE_POSTHOG_HOST,
@@ -30,6 +30,7 @@ posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
 posthog.register({
   display_mode: ['browser', 'standalone', 'minimal-ui', 'fullscreen', 'window-controls-overlay']
     .find((m) => window.matchMedia(`(display-mode: ${m})`).matches) ?? 'unknown',
+  notifications_enabled: notificationsEnabled(),
 });
 
 if (import.meta.env.VITE_SENTRY_ENV) {
