@@ -22,7 +22,7 @@ describe('timeline actions', () => {
     ['device', ['dongle', null, null, null, false], '/dongle'],
     ['whole drive', ['dongle', 'log', null, null, false], '/dongle/log'],
     ['drive range', ['dongle', 'log', 10, 20, false], '/dongle/log/10/20'],
-    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log'],
+    ['zero-start drive range', ['dongle', 'log', 0, 20, false], '/dongle/log/0/20'],
     ['Prime', ['dongle', null, null, null, true], '/dongle/prime'],
   ])('generates a %s URL', (_name, args, expected) => {
     expect(urlForState(...args)).toBe(expected);
@@ -39,7 +39,7 @@ describe('timeline actions', () => {
       zoom: {},
     }));
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+    expect(push).toBeCalledWith('/statedongle/log_id/0/1');
   });
 
   it.each([
