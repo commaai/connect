@@ -24,7 +24,7 @@ import NotificationsDialog, { NotificationsHelpDialog } from '../NotificationsDi
 
 import AccountMenu from './AccountMenu';
 
-const REFERRALS_SEEN_KEY = 'referralsGiftClicked';
+const REFERRALS_SEEN_KEY = 'referralsGiftClickedNov20';
 
 const syncPushSubscription = () => subscribeToPush()
   .catch((err) => console.error('Failed to subscribe to push notifications:', err));
@@ -84,7 +84,7 @@ const styles = () => ({
     width: 9,
     height: 9,
     borderRadius: '50%',
-    backgroundColor: Colors.primeBlue50,
+    backgroundColor: Colors.red50,
   },
   activeGiftIcon: {
     opacity: 1,
