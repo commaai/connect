@@ -53,7 +53,7 @@ class DriveView extends Component {
     const endTime = dayjs(start + (zoom.end - zoom.start)).format('HH:mm');
 
     return (
-      <div className="DriveView text-[length:min(1rem,3.846vw)] [--spacing:calc(min(1rem,3.846vw)/4)] [--text-xs:0.75em] [--text-lg:1.125em]">
+      <div className="DriveView text-[length:min(1rem,3.5vw)] [--spacing:calc(min(1rem,3.5vw)/4)] [--text-xs:0.75em] [--text-lg:1.125em]">
         <div className="flex flex-col gap-4 rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
