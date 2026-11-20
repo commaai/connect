@@ -18,8 +18,9 @@ const referralSteps = [
     detail: 'Send it to a friend who is interested in comma four.',
   },
   {
-    title: 'They save $50',
-    detail: 'Your link takes $50 off their comma four order.',
+    tag: 'Black Friday Sale',
+    title: 'They get $200 off',
+    detail: <>comma four is <strong className="text-white">$799</strong> for Black Friday, through December 2.</>,
   },
   {
     title: 'You earn $50 cash',
@@ -100,8 +101,8 @@ export default function Referrals({ profile }) {
 
     try {
       await navigator.share({
-        title: 'Give $50, Get $50 with comma',
-        text: 'Get $50 off comma four using this referral link.',
+        title: 'comma four Black Friday sale',
+        text: 'comma four is $799 through December 2.',
         url: shareUrl,
       });
       setShareStatus('shared');
@@ -154,7 +155,15 @@ export default function Referrals({ profile }) {
               </div>
               <div className="min-w-0 pt-0.5">
                 <span className="sr-only">Step {index + 1}: </span>
-                <h2 className="text-base font-bold leading-snug text-white">{step.title}</h2>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h2 className="text-base font-bold leading-snug text-white">{step.title}</h2>
+                  {step.tag && (
+                    // Price-tag shape: clip-path makes the pointed end, mask punches the hole.
+                    <span className="rounded-r-[3px] bg-[#e5372c] pl-3 pr-2 text-[10px] font-medium uppercase leading-[18px] tracking-[0.06em] text-white [clip-path:polygon(8px_0,100%_0,100%_100%,8px_100%,0_50%)] [mask:radial-gradient(circle_at_7px_50%,transparent_1.5px,#000_2px)]">
+                      {step.tag}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-0.5 text-xs leading-[1.45] text-white/55">{step.detail}</p>
               </div>
             </li>
