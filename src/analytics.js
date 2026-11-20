@@ -54,9 +54,6 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
 
 function getVideoPercent(state, offset) {
   const { zoom } = state;
-  if (!offset) {
-    offset = state.offset;
-  }
   return (offset - (zoom.start)) / (zoom.end - zoom.start);
 }
 
@@ -188,36 +185,36 @@ function logAction(action, prevState, state) {
       }
       return;
 
-    case Types.ACTION_SEEK:
+    case Types.ACTION_VIDEO_SEEK:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, action.offset);
         gtag('event', 'video_seek', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: action.speed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
       }
       return;
 
-    case Types.ACTION_PAUSE:
+    case Types.ACTION_VIDEO_PAUSE:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, action.offset);
         gtag('event', 'video_pause', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: action.speed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
       }
       return;
 
-    case Types.ACTION_PLAY:
+    case Types.ACTION_VIDEO_PLAY:
       if (state.zoom) {
-        percent = getVideoPercent(state);
+        percent = getVideoPercent(state, action.offset);
         gtag('event', 'video_play', {
           ...params,
-          play_speed: state.desiredPlaySpeed,
+          play_speed: action.speed,
           play_percentage: percent,
           play_percentage_round: Math.round(percent * 10) / 10,
         });
