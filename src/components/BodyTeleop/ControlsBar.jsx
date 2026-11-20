@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from 'react';
 import { PhotoCamera } from '../../icons';
+import AudioControls from './AudioControls';
 import { shareOrDownload } from '../../utils/file';
 
 const CAMERAS = [
@@ -7,16 +8,16 @@ const CAMERAS = [
   { key: 'driver', label: 'cabin', num: '2' },
 ];
 
-const btnBase = `h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
+const btnBase = `h-11 w-[60px] sm:w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
 const btnInactive = `${btnBase} bg-white/10 text-white/60`;
 const btnActive = `${btnBase} bg-white/30 text-white`;
 
-const controlsGroupBase = 'z-10 flex flex-row items-stretch gap-3.5 rounded-[20px] p-4 bg-glass-dark';
+const controlsGroupBase = 'z-10 flex flex-row flex-wrap items-stretch gap-2 sm:gap-3.5 rounded-[20px] p-3 sm:p-4 bg-glass-dark';
 const controlsGroupLandscape = 'absolute bottom-3 left-3';
 const controlsGroupPortrait = 'relative self-stretch rounded-none shrink-0 justify-between gap-2';
 
 const ControlsBar = ({
-  activeCamera, onSwitchCamera,
+  connection, activeCamera, onSwitchCamera,
   gamepadConnected, videoRef, isLandscape, controlsDisabled,
 }) => {
   const screenshotInProgress = useRef(false);
@@ -88,6 +89,13 @@ const ControlsBar = ({
         </div>
         <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Snapshot</span>
       </div>
+      {connection?.audioTransceiver?.currentDirection === 'sendrecv' && <AudioControls
+        connection={connection}
+        buttonClass={`${btnInactive} !w-11 sm:!w-16 transition duration-200 opacity-90`}
+        activeButtonClass={`${btnActive} !w-11 sm:!w-16 transition duration-200 opacity-90`}
+        groupClass="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px]"
+        labelClass="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none whitespace-nowrap"
+      />}
     </div>
   );
 };

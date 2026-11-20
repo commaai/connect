@@ -186,6 +186,7 @@ export const BodyTeleop = ({ dongleId, device, onClose, dispatch }) => {
         {connected && (
           <>
             <ControlsBar
+              connection={connection}
               activeCamera={activeCamera}
               onSwitchCamera={switchCamera}
               gamepadConnected={gamepadConnected}
