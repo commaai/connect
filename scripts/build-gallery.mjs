@@ -705,26 +705,28 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
   }
 }
 
-async function captureRenderers(renderers, output, fixtures) {
+function launchBrowser() {
+  return puppeteer.launch({
+    headless: 'shell',
+    env: { ...process.env, LANG: `${LOCALE}.UTF-8`, LC_ALL: `${LOCALE}.UTF-8`, TZ: TIMEZONE },
+    args: [
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-setuid-sandbox',
+      '--disable-sync',
+      '--force-color-profile=srgb',
+      `--lang=${LOCALE}`,
+      '--no-sandbox',
+    ],
+  });
+}
+
+async function captureRenderers(browser, renderers, output, fixtures) {
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
   for (const renderer of renderers) {
     const server = await serveDirectory(renderer.directory);
-    let browser;
     try {
-      browser = await puppeteer.launch({
-        headless: 'shell',
-        env: { ...process.env, LANG: `${LOCALE}.UTF-8`, LC_ALL: `${LOCALE}.UTF-8`, TZ: TIMEZONE },
-        args: [
-          '--disable-background-networking',
-          '--disable-default-apps',
-          '--disable-setuid-sandbox',
-          '--disable-sync',
-          '--force-color-profile=srgb',
-          `--lang=${LOCALE}`,
-          '--no-sandbox',
-        ],
-      });
       const destination = resolve(output, renderer.name);
       await mkdir(destination, { recursive: true });
       const pending = GALLERY_STATES.flatMap((state) => GALLERY_VIEWPORTS.map((viewport) => ({ state, viewport })));
@@ -737,7 +739,6 @@ async function captureRenderers(renderers, output, fixtures) {
         }
       }));
     } finally {
-      if (browser) await browser.close();
       await server.close();
     }
   }
@@ -960,6 +961,9 @@ async function main() {
   }
   if (baseSource && baselineUrl) throw new Error('--base and --baseline-url are mutually exclusive');
   const temporary = await mkdtemp(resolve(tmpdir(), 'connect-gallery-'));
+  // Chrome can take ~10s to start on CI runners, so launch it while fixtures download and the app builds.
+  const browserLaunch = launchBrowser();
+  browserLaunch.catch(() => {}); // a launch failure surfaces where the browser is awaited
   try {
     const output = resolve(args.output ?? 'dist-gallery');
     const currentRenderer = output;
@@ -972,7 +976,7 @@ async function main() {
       await buildRenderer(baseSource, baseRenderer);
       renderers.unshift({ name: 'base', directory: baseRenderer });
     }
-    await captureRenderers(renderers, captures, fixtures);
+    await captureRenderers(await browserLaunch, renderers, captures, fixtures);
     let baseSha = args['base-sha'];
     if (baselineUrl) {
       baseSha = await downloadBaseline(baselineUrl, resolve(captures, 'base'));
@@ -986,6 +990,7 @@ async function main() {
       args['artifact-output'] ? resolve(args['artifact-output']) : null,
     );
   } finally {
+    await browserLaunch.then((browser) => browser.close(), () => {});
     await rm(temporary, { recursive: true, force: true });
   }
 }
