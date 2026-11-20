@@ -69,6 +69,10 @@ class App extends Component {
         }
       }
     }
+    
+    if (import.meta.env.DEV && import.meta.env.VITE_DEV_JWT) {
+      AuthStorage.setCommaAccessToken(import.meta.env.VITE_DEV_JWT);
+    }
 
     // Dev-only login bypass: VITE_DEV_AUTH_TOKEN (env / .env.development.local / ./live.sh --token)
     // seeds the auth storage so the login screen is skipped. Stripped from production builds.
