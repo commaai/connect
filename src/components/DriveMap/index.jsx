@@ -97,12 +97,14 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(currentOffset());
+        const offset = currentOffset();
+        const pos = this.posAtOffset(offset);
+        const hasGps = offset >= this.state.driveCoordsMin * 1e3;
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
             type: 'Point',
-            coordinates: pos,
+            coordinates: hasGps ? pos : [],
           });
           if (!this.isInteracting) {
             this.moveViewportTo(pos);
