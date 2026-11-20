@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { connect } from 'react-redux';
 
 import { ArrowBackBold } from '../../icons';
-import { fetchDeviceNotCar } from '../../actions';
+import { fetchDeviceNotCar, navigateTo } from '../../actions';
 import { deviceIsOnline, deviceNamePretty } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
 import { useIsLandscape } from '../../hooks/window';
@@ -11,7 +11,7 @@ import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
 
-export const BodyTeleop = ({ dongleId, device, onClose, dispatch }) => {
+export const BodyTeleop = ({ dongleId, device, dispatch }) => {
   const [connectionState, setConnectionState] = useState('none');
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
@@ -96,8 +96,8 @@ export const BodyTeleop = ({ dongleId, device, onClose, dispatch }) => {
     if (!device?.rpc?.not_car) {
       webrtcConnectionManager.disconnect();
     }
-    if (onClose) onClose();
-  }, [device, onClose]);
+    dispatch(navigateTo('dashboard', { dongleId }));
+  }, [device, dispatch, dongleId]);
 
   const switchCamera = useCallback((cameraName) => {
     setActiveCamera((prev) => {
@@ -219,9 +219,8 @@ export const BodyTeleop = ({ dongleId, device, onClose, dispatch }) => {
   );
 };
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
-  device: state.device,
+const stateToProps = (state, ownProps) => ({
+  device: state.device?.dongle_id === ownProps.dongleId ? state.device : null,
 });
 
 export default connect(stateToProps)(BodyTeleop);

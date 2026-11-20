@@ -14,7 +14,7 @@ import {
 } from '@material-ui/core';
 
 import { api } from '../../api/backend';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { updateDevice, navigateTo } from '../../actions';
 import Colors from '../../colors';
 import { CheckIcon, ErrorOutline, SaveIcon, ShareIcon, WarningIcon } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -109,29 +109,24 @@ const styles = (theme) => ({
   },
 });
 
-const initialState = {
-  deviceAlias: '',
-  loadingDeviceAlias: false,
-  loadingDeviceShare: false,
-  hasSavedAlias: false,
-  shareEmail: '',
-  unpairConfirm: false,
-  unpaired: false,
-  loadingUnpair: false,
-  error: null,
-  unpairError: null,
-  uploadModal: false,
-};
-
 class DeviceSettingsModal extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      ...initialState,
+      deviceAlias: props.device?.alias || '',
+      loadingDeviceAlias: false,
+      loadingDeviceShare: false,
+      hasSavedAlias: false,
+      shareEmail: '',
+      unpairConfirm: false,
+      unpaired: false,
+      loadingUnpair: false,
+      error: null,
+      unpairError: null,
+      uploadModal: false,
     };
 
-    this.onPrimeSettings = this.onPrimeSettings.bind(this);
     this.handleAliasChange = this.handleAliasChange.bind(this);
     this.handleEmailChange = this.handleEmailChange.bind(this);
     this.callOnEnter = this.callOnEnter.bind(this);
@@ -139,16 +134,6 @@ class DeviceSettingsModal extends Component {
     this.shareDevice = this.shareDevice.bind(this);
     this.unpairDevice = this.unpairDevice.bind(this);
     this.closeUnpair = this.closeUnpair.bind(this);
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
-      this.setState({
-        ...initialState,
-        deviceAlias: alias,
-      });
-    }
   }
 
   handleAliasChange(e) {
@@ -206,7 +191,7 @@ class DeviceSettingsModal extends Component {
       hasShared: false,
     });
     try {
-      await api.devices.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
+      await api.devices.grantDeviceReadPermission(this.props.device.dongle_id, this.state.shareEmail.trim());
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',
@@ -222,14 +207,6 @@ class DeviceSettingsModal extends Component {
         this.setState({ error: 'unable to share', loadingDeviceShare: false });
       }
     }
-  }
-
-  onPrimeSettings() {
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId, false));
-    }
-    this.props.dispatch(primeNav(true));
-    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -259,8 +236,10 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, dispatch } = this.props;
     const commacare = device?.commacare;
+    const onClose = () => dispatch(navigateTo('dashboard'));
+
     if (!device) {
       return null;
     }
@@ -270,8 +249,8 @@ class DeviceSettingsModal extends Component {
         <Modal
           aria-labelledby="device-settings-modal"
           aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
-          onClose={this.props.onClose}
+          open
+          onClose={onClose}
         >
           <Paper className={classes.modal}>
             <div className={ classes.titleContainer }>
@@ -284,7 +263,11 @@ class DeviceSettingsModal extends Component {
             </div>
             <hr />
             <div>
-              <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
+              <Button
+                variant="outlined"
+                className={ classes.primeManageButton }
+                onClick={ () => dispatch(navigateTo('prime')) }
+              >
                 Prime settings
               </Button>
               <Button
@@ -316,7 +299,7 @@ class DeviceSettingsModal extends Component {
                   id="device_alias"
                   label="Device name"
                   className={ classes.textField }
-                  value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
+                  value={ this.state.deviceAlias }
                   onChange={this.handleAliasChange}
                   onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) }
                 />
@@ -353,7 +336,7 @@ class DeviceSettingsModal extends Component {
               </div>
             </div>
             <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+              <Button variant="contained" className={ classes.cancelButton } onClick={onClose}>
                 Close
               </Button>
             </div>
@@ -435,14 +418,8 @@ class DeviceSettingsModal extends Component {
   }
 }
 
-const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
-    || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
-  return {
-    subscription: state.subscription,
-    device,
-    globalDongleId: state.dongleId,
-  };
-};
+const stateToProps = (state) => ({
+  device: state.device?.is_owner || state.profile?.superuser ? state.device : null,
+});
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));
