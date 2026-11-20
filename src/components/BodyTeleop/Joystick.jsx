@@ -65,14 +65,13 @@ const ControllerOverlay = ({ gamepadSteering, gamepadGas, gamepadBrake, gamepadL
 }
 
 const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown }) => {
-  const thumbRange = 45;
-  const thumbLeft = thumbPos ? `${50 + thumbPos.x * thumbRange}%` : '50%';
-  const thumbTop = thumbPos ? `${50 + thumbPos.y * thumbRange}%` : '50%';
+  const thumbEdgeBuffer = 4;
+  const thumbPosition = (value = 0) => `calc(${50 + value * 50}% - ${value} * (var(--thumb-size) / 2 + ${thumbEdgeBuffer}px))`;
 
   return (
     <div
       ref={joystickAreaRef}
-      className={`touch-none rounded-2xl bg-glass bg-radial-white ${className || ''}`}
+      className={`touch-none rounded-2xl bg-glass bg-radial-white [--thumb-size:52px] md:[--thumb-size:56px] ${className || ''}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -84,9 +83,9 @@ const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onT
       <div className="absolute top-1/2 left-2 right-2 h-px -translate-y-1/2 bg-white/10" />
       <div className="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/30" />
       <div
-        className={`absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px] bg-glass bg-radial-white
+        className={`absolute w-[var(--thumb-size)] h-[var(--thumb-size)] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] bg-glass bg-radial-white
           ${thumbPos ? 'bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.6),rgba(255,255,255,0.15))]' : 'bg-radial-white'}`}
-        style={{ left: thumbLeft, top: thumbTop }}
+        style={{ left: thumbPosition(thumbPos?.x), top: thumbPosition(thumbPos?.y) }}
       />
     </div>
   );
