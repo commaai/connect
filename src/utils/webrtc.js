@@ -10,6 +10,8 @@ const CLOCK_PING_MS = 500;
 
 const CONNECTION_DEADLINE_MS = 15000;
 const ICE_GATHER_DEADLINE_MS = 8000;
+const CLIP_BLOB_PART_SIZE = 256 * 1024;
+const CLIP_HEADER_SIZE = 17;
 
 // Drop mDNS (.local) host candidates from an SDP — the device can't resolve them.
 function stripMdnsCandidates(sdp) {
@@ -40,6 +42,9 @@ export class WebRTCConnection extends EventTarget {
     this.clockSynced = false;
     this.connectStartedAt = null;
     this.transformWorkers = [];
+    this.clipTransfers = new Map();
+    this.clipTransferReady = false;
+    this.dataMessageQueue = Promise.resolve();
     this.videoEnabled = false;
     this.connectionState = 'new';
     this.failReason = null;
@@ -138,8 +143,10 @@ export class WebRTCConnection extends EventTarget {
 
       // set up data channel
       this.dc = this.pc.createDataChannel('data', { ordered: true });
+      this.dc.binaryType = 'arraybuffer';
       this.dc.onopen = () => {
         this._log('Data channel open');
+        this.dispatchEvent(new Event('datachannelopen'));
         if (this.videoEnabled) {
           this._sendDc('livestreamVideoEnable', { enabled: true });
           this.enableJoystick(true);
@@ -150,15 +157,14 @@ export class WebRTCConnection extends EventTarget {
         this._stopClockSync();
       };
       this.dc.onmessage = (evt) => {
-        try {
-          const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
-          if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
-          if (msg.type === 'deviceState') this.callbacks.onIgnition?.(!!msg.data?.started);
-          if (msg.type === 'disconnect') this.disconnect(msg.data || 'Connection replaced by another device.');
-          if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
-        } catch (e) {
-          console.warn('webrtc: ignoring malformed data-channel message', e);
-        }
+        this.dataMessageQueue = this.dataMessageQueue.then(async () => {
+          if (typeof evt.data !== 'string') {
+            const buffer = evt.data instanceof ArrayBuffer ? evt.data : await evt.data.arrayBuffer();
+            this._handleClipChunk(buffer);
+          } else {
+            this._handleDataMessage(JSON.parse(evt.data));
+          }
+        }).catch(e => console.warn('webrtc: ignoring malformed data-channel message', e));
       };
 
       const offer = await this.pc.createOffer();
@@ -230,6 +236,125 @@ export class WebRTCConnection extends EventTarget {
       return true;
     }
     return false;
+  }
+
+  async downloadClip(filename, onProgress, signal) {
+    if (signal?.aborted) throw new Error('Clip download cancelled');
+    if (this.dc?.readyState !== 'open') await this._waitForDataChannel(signal);
+    if (!this.clipTransferReady) await this._waitForEvent('cliptransferready', signal);
+
+    const id = crypto.randomUUID().replaceAll('-', '');
+    return new Promise((resolve, reject) => {
+      const transfer = { chunks: [], pendingChunks: [], pendingBytes: 0, loaded: 0, size: null, onProgress, resolve, reject };
+      const abort = () => {
+        this._sendDc('clipTransferCancel', { id });
+        this._failClipTransfer(id, 'Clip download cancelled');
+      };
+      transfer.abort = abort;
+      transfer.signal = signal;
+      signal?.addEventListener('abort', abort, { once: true });
+      this.clipTransfers.set(id, transfer);
+      if (signal?.aborted) abort();
+      else if (!this._sendDc('clipTransferStart', { id, filename })) this._failClipTransfer(id, 'Connection lost');
+    });
+  }
+
+  _waitForDataChannel(signal) {
+    return this._waitForEvent('datachannelopen', signal);
+  }
+
+  _waitForEvent(name, signal) {
+    return new Promise((resolve, reject) => {
+      const finish = (error) => {
+        clearTimeout(timeout);
+        this.removeEventListener(name, onReady);
+        signal?.removeEventListener('abort', onAbort);
+        if (error) reject(error);
+        else resolve();
+      };
+      const onReady = () => finish();
+      const onAbort = () => finish(new Error('Clip download cancelled'));
+      const timeout = setTimeout(() => finish(new Error(this.failReason || 'Could not connect to device')), CONNECTION_DEADLINE_MS);
+      this.addEventListener(name, onReady, { once: true });
+      signal?.addEventListener('abort', onAbort, { once: true });
+      if (signal?.aborted) onAbort();
+    });
+  }
+
+  _startClipTransfer({ id, size }) {
+    const transfer = this.clipTransfers.get(id);
+    if (!transfer) return;
+    if (!Number.isSafeInteger(size) || size < 0) {
+      this._failClipTransfer(id, 'Device returned an invalid clip size');
+      return;
+    }
+    transfer.size = size;
+    transfer.onProgress?.(0, size);
+  }
+
+  _handleDataMessage(msg) {
+    if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
+    if (msg.type === 'deviceState') this.callbacks.onIgnition?.(!!msg.data?.started);
+    if (msg.type === 'disconnect') this.disconnect(msg.data || 'Connection replaced by another device.');
+    if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
+    if (msg.type === 'clipTransferReady') {
+      this.clipTransferReady = true;
+      this.dispatchEvent(new Event('cliptransferready'));
+    }
+    if (msg.type === 'clipTransferStart') this._startClipTransfer(msg.data);
+    if (msg.type === 'clipTransferEnd') this._finishClipTransfer(msg.data.id);
+    if (msg.type === 'clipTransferError') this._failClipTransfer(msg.data.id, msg.data.message);
+  }
+
+  _handleClipChunk(buffer) {
+    const bytes = new Uint8Array(buffer);
+    if (bytes.length <= CLIP_HEADER_SIZE || bytes[0] !== 1) return;
+    const id = Array.from(bytes.subarray(1, CLIP_HEADER_SIZE), byte => byte.toString(16).padStart(2, '0')).join('');
+    const transfer = this.clipTransfers.get(id);
+    if (!transfer || transfer.size === null) return;
+    const chunk = bytes.slice(CLIP_HEADER_SIZE);
+    transfer.pendingChunks.push(chunk);
+    transfer.pendingBytes += chunk.length;
+    transfer.loaded += chunk.length;
+    if (transfer.loaded > transfer.size) {
+      this._failClipTransfer(id, 'Device sent more data than expected');
+      return;
+    }
+    if (transfer.pendingBytes >= CLIP_BLOB_PART_SIZE) this._flushClipChunks(transfer);
+    transfer.onProgress?.(transfer.loaded, transfer.size);
+  }
+
+  _flushClipChunks(transfer) {
+    const part = new Uint8Array(transfer.pendingBytes);
+    let offset = 0;
+    for (const chunk of transfer.pendingChunks) {
+      part.set(chunk, offset);
+      offset += chunk.length;
+    }
+    transfer.chunks.push(part);
+    transfer.pendingChunks = [];
+    transfer.pendingBytes = 0;
+  }
+
+  _finishClipTransfer(id) {
+    const transfer = this.clipTransfers.get(id);
+    if (!transfer) return;
+    if (transfer.loaded !== transfer.size) {
+      this._failClipTransfer(id, `Clip download ended at ${transfer.loaded} of ${transfer.size} bytes`);
+      return;
+    }
+    if (transfer.pendingBytes) this._flushClipChunks(transfer);
+    this.clipTransfers.delete(id);
+    transfer.signal?.removeEventListener('abort', transfer.abort);
+    transfer.resolve(new Blob(transfer.chunks, { type: 'video/mp4' }));
+  }
+
+  _failClipTransfer(id, message) {
+    const transfer = this.clipTransfers.get(id);
+    if (!transfer) return;
+    this.clipTransfers.delete(id);
+    transfer.signal?.removeEventListener('abort', transfer.abort);
+    transfer.reject(new Error(message || 'Clip download failed'));
   }
 
   enableVideo(enabled) {
@@ -347,11 +472,14 @@ export class WebRTCConnection extends EventTarget {
 
   cleanup() {
     this._clearConnectionTimeout();
+    this.clipTransferReady = false;
+    this.dataMessageQueue = Promise.resolve();
     this.enableJoystick(false);
     this._stopClockSync();
     for (const worker of this.transformWorkers.splice(0)) {
       worker.terminate();
     }
+    for (const id of Array.from(this.clipTransfers.keys())) this._failClipTransfer(id, 'Connection lost');
     if (this.dc) {
       this.dc.onopen = null;
       this.dc.onclose = null;
@@ -521,6 +649,11 @@ export class WebRTCConnectionManager {
     if (this.connection && this.connectionState === 'connected') {
       this.connection.enableJoystick(enabled);
     }
+  }
+
+  downloadClip(dongleId, filename, onProgress, signal) {
+    if (!this._healthy(dongleId)) this._open(dongleId);
+    return this.connection.downloadClip(filename, onProgress, signal);
   }
 }
 
