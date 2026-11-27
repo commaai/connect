@@ -14,11 +14,13 @@ import TimeDisplay from '../TimeDisplay';
 import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
+import { askAiPrompt, askAiSegments } from './askAi';
 import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { ContentCopy, InfoOutline, ShareIcon, WarningIcon } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
+import { currentOffset } from '../../timeline';
 import { stringifyQuery } from '../../utils/query';
 import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
@@ -156,6 +158,7 @@ class Media extends Component {
       downloadMenu: null,
       clipMenu: null,
       moreInfoMenu: null,
+      askAiMenu: null,
       uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
@@ -201,7 +204,7 @@ class Media extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
+    const { windowWidth, inView, downloadMenu, moreInfoMenu, askAiMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (prevProps.dongleId !== this.props.dongleId) {
       this.setState({ clipsSupported: false, clipMenu: null });
@@ -232,6 +235,11 @@ class Media extends Component {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
       }
       this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
+    }
+
+    if (this.props.currentRoute && !prevState.askAiMenu && askAiMenu) {
+      // fresh signed log urls, they expire after an hour
+      this.props.dispatch(fetchFiles(this.props.currentRoute.fullname, true));
     }
 
     if (routePreserved === null && (this.props.device?.is_owner || this.props.profile?.superuser)
@@ -576,6 +584,13 @@ class Media extends Component {
             >
               <Typography className={classes.mediaOptionText}>More info</Typography>
             </div>
+            <div
+              className={classes.mediaOption}
+              aria-haspopup="true"
+              onClick={ (ev) => this.setState({ askAiMenu: ev.target, askAiOffset: currentOffset() }) }
+            >
+              <Typography className={classes.mediaOptionText}>Ask AI</Typography>
+            </div>
           </div>
         </div>
         { this.renderMenus() }
@@ -585,7 +600,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, clipMenu, moreInfoMenu, askAiMenu, askAiOffset, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -770,6 +785,16 @@ class Media extends Component {
             </ListItem>,
           ] }
         </Menu>
+        <Menu
+          id="menu-ask-ai"
+          open={ Boolean(alwaysOpen || askAiMenu) }
+          anchorEl={ askAiMenu }
+          onClose={ () => this.setState({ askAiMenu: null }) }
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          { this.renderAskAiItems(askAiOffset) }
+        </Menu>
         <UploadQueue
           open={ uploadModal }
           onClose={ () => this.setState({ uploadModal: false }) }
@@ -787,6 +812,36 @@ class Media extends Component {
         </Popper>
       </>
     );
+  }
+
+  renderAskAiItems(offset) {
+    const { currentRoute, files, loop } = this.props;
+    if (!currentRoute || !files) {
+      return <MenuItem disabled>Loading logs...</MenuItem>;
+    }
+
+    const prompt = askAiPrompt(currentRoute, files, askAiSegments(loop, offset || 0), offset || 0);
+    const q = encodeURIComponent(prompt);
+    const onClick = (app) => () => {
+      this.props.dispatch(analyticsEvent('ask_ai', { app }));
+      this.setState({ askAiMenu: null });
+    };
+    return [
+      <MenuItem key="chatgpt" component="a" href={ `https://chatgpt.com/?q=${q}` } target="_blank" rel="noopener" onClick={ onClick('chatgpt') }>
+        Ask ChatGPT
+      </MenuItem>,
+      <MenuItem key="claude" component="a" href={ `https://claude.ai/new?q=${q}` } target="_blank" rel="noopener" onClick={ onClick('claude') }>
+        Ask Claude
+      </MenuItem>,
+      typeof navigator.share !== 'undefined' && (
+        <MenuItem key="share" onClick={ () => { onClick('share')(); navigator.share({ text: prompt }).catch(() => {}); } }>
+          Share to app...
+        </MenuItem>
+      ),
+      <MenuItem key="copy" onClick={ () => { onClick('copy')(); navigator.clipboard?.writeText(prompt); } }>
+        Copy prompt
+      </MenuItem>,
+    ];
   }
 
   renderUploadMenuItem([file, name, type]) {
